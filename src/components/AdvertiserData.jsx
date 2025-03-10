@@ -9,7 +9,7 @@ const { Option } = Select;
 const apiUrl =
   import.meta.env.VITE_API_URL || "http://160.153.172.237:5200/api";
 
-const PublisherData = () => {
+const AdvertiserData = () => {
   const user = useSelector((state) => state.auth.user);
   const [data, setData] = useState([]);
   const [editingKey, setEditingKey] = useState(null);
@@ -188,4 +188,4 @@ const PublisherData = () => {
   );
 };
 
-export default PublisherData;
+export default AdvertiserData;

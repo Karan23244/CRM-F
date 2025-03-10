@@ -20,7 +20,6 @@ const AdminHomepage = () => {
     navigate("/"); // Redirect to login page
   };
 
-
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Overlay for mobile view */}
@@ -86,10 +85,7 @@ const AdminHomepage = () => {
       </aside>
 
       {/* Main Content */}
-      <div
-        className={`flex-1 flex flex-col transition-all ${
-          sidebarOpen ? "" : "md:ml-0"
-        }`}>
+      <div className="flex-1 flex flex-col transition-all min-w-0">
         {/* Header with Sidebar Toggle */}
         <header className="bg-white shadow-md p-4 flex justify-between items-center">
           <button
@@ -106,7 +102,7 @@ const AdminHomepage = () => {
         </header>
 
         {/* Main Content Area */}
-        <main className="p-6 overflow-auto">
+        <main className=" overflow-auto min-w-0">
           {activeComponent === "subadmin" && <SubAdminForm />}
           {activeComponent === "review" && (
             <>
@@ -114,9 +110,9 @@ const AdminHomepage = () => {
             </>
           )}
           {activeComponent === "alldata" && (
-            <>
-              <AllData />
-            </>
+            <div>
+              <AllData  />
+            </div>
           )}
         </main>
       </div>

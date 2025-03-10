@@ -4,7 +4,8 @@ import axios from "axios";
 import { Table, Button, message } from "antd";
 import { useSelector } from "react-redux";
 
-const apiUrl = import.meta.env.VITE_API_URL || "http://160.153.172.237:5200/api";
+const apiUrl =
+  import.meta.env.VITE_API_URL || "http://160.153.172.237:5200/api";
 
 const ReviewForm = () => {
   const user = useSelector((state) => state.auth.user);
@@ -12,7 +13,7 @@ const ReviewForm = () => {
   const [reviews, setReviews] = useState([]);
   const [editIndex, setEditIndex] = useState(null);
   const [editId, setEditId] = useState(null);
-
+  console.log(reviews);
   // Fetch all reviews
   const fetchReviews = async () => {
     try {
