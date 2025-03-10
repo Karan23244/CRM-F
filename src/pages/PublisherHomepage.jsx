@@ -35,7 +35,7 @@ const PublisherHomepage = () => {
       {/* Sidebar */}
       <aside
         className={`bg-blue-500 text-white py-5 space-y-6 fixed inset-y-0 left-0 transform transition-transform duration-300 ease-in-out ${
-          sidebarOpen ? "translate-x-0 w-64" : "-translate-x-full w-0"
+          sidebarOpen ? "translate-x-0 w-48" : "-translate-x-full w-0"
         } md:relative md:translate-x-0 shadow-lg flex flex-col overflow-hidden`}>
         {/* Sidebar Header */}
         <div className="flex justify-between items-center px-4">
@@ -45,7 +45,7 @@ const PublisherHomepage = () => {
             </h2>
           )}
           <button
-            className="text-white text-2xl md:hidden"
+            className="text-white text-xl md:hidden"
             onClick={() => setSidebarOpen(false)}>
             <FaTimes />
           </button>
@@ -55,28 +55,28 @@ const PublisherHomepage = () => {
         {sidebarOpen && (
           <nav className="space-y-2 flex-1">
             <button
-              className={`w-full text-left px-4 py-3 text-lg font-medium rounded-lg transition-all flex items-center gap-2 ${
+              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "form" ? "bg-blue-700" : "hover:bg-blue-600"
               }`}
               onClick={() => setActiveComponent("form")}>
               Publisher Form
             </button>
             <button
-              className={`w-full text-left px-4 py-3 text-lg font-medium rounded-lg transition-all flex items-center gap-2 ${
+              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "data" ? "bg-blue-700" : "hover:bg-blue-600"
               }`}
               onClick={() => setActiveComponent("data")}>
               Publisher Data
             </button>
             <button
-              className={`w-full text-left px-4 py-3 text-lg font-medium rounded-lg transition-all flex items-center gap-2 ${
+              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "pid" ? "bg-blue-700" : "hover:bg-blue-600"
               }`}
               onClick={() => setActiveComponent("pid")}>
               Add PID
             </button>
             <button
-              className={`w-full text-left px-4 py-3 text-lg font-medium rounded-lg transition-all flex items-center gap-2 ${
+              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "payableevent"
                   ? "bg-blue-700"
                   : "hover:bg-blue-600"
@@ -85,7 +85,7 @@ const PublisherHomepage = () => {
               Add Payable Event
             </button>
             <button
-              className={`w-full text-left px-4 py-3 text-lg font-medium rounded-lg transition-all flex items-center gap-2 ${
+              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "mmptracker"
                   ? "bg-blue-700"
                   : "hover:bg-blue-600"
@@ -94,7 +94,7 @@ const PublisherHomepage = () => {
               Add MMP tracker
             </button>
             <button
-              className={`w-full text-left px-4 py-3 text-lg font-medium rounded-lg transition-all flex items-center gap-2 ${
+              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "changepassword"
                   ? "bg-blue-700"
                   : "hover:bg-blue-600"

@@ -34,10 +34,10 @@ const SubAdminDropdown = ({ onSelect }) => {
     setSelectedSubAdmins(selectedOptions || []); // Ensure it does not become null
     onSelect(selectedOptions || []);
   };
-    // Filter out "admin" roles
-    const filteredSubAdmins = subAdmins.filter(
-      (subAdmin) => subAdmin.role !== "admin"
-    );
+  // Filter out "admin" roles
+  const filteredSubAdmins = subAdmins.filter(
+    (subAdmin) => subAdmin.role !== "admin"
+  );
   return (
     <Select
       options={filteredSubAdmins}
@@ -152,7 +152,7 @@ const PublisherComponent = ({ data, name }) => {
         <div>
           <h1 className="text-lg font-semibold">Publisher Data of {name}</h1>
         </div>
-        <div className="w-full overflow-auto">
+        <div className="w-full overflow-auto bg-white p-4 rounded shadow-md">
           <Table
             columns={columns}
             dataSource={data}
@@ -236,7 +236,7 @@ const AdvertiserData = ({ data, name }) => {
       <div>
         <h1 className="text-lg font-semibold">Advertiser Data of {name}</h1>
       </div>
-      <div className="w-full overflow-auto">
+      <div className="w-full overflow-auto bg-white p-4 rounded shadow-md">
         <Table
           columns={columns}
           dataSource={filteredData}
