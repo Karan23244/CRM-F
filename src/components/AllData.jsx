@@ -30,15 +30,17 @@ const SubAdminDropdown = ({ onSelect }) => {
     };
     fetchSubAdmins();
   }, []);
-
   const handleChange = (selectedOptions) => {
-    setSelectedSubAdmins(selectedOptions);
-    onSelect(selectedOptions);
+    setSelectedSubAdmins(selectedOptions || []); // Ensure it does not become null
+    onSelect(selectedOptions || []);
   };
-
+    // Filter out "admin" roles
+    const filteredSubAdmins = subAdmins.filter(
+      (subAdmin) => subAdmin.role !== "admin"
+    );
   return (
     <Select
-      options={subAdmins}
+      options={filteredSubAdmins}
       value={selectedSubAdmins}
       onChange={handleChange}
       placeholder="Select Sub-Admins..."
@@ -49,17 +51,17 @@ const SubAdminDropdown = ({ onSelect }) => {
   );
 };
 
-const DataTable = ({ role, data }) => {
+const DataTable = ({ role, data, name }) => {
   return role === "publisher" ? (
-    <PublisherComponent data={data} />
+    <PublisherComponent data={data} name={name} />
   ) : role === "advertiser" ? (
-    <AdvertiserData data={data} />
+    <AdvertiserData data={data} name={name} />
   ) : (
     <div>No matching role found</div>
   );
 };
 
-const PublisherComponent = ({ data }) => {
+const PublisherComponent = ({ data, name }) => {
   const [editingKey, setEditingKey] = useState(null);
   const [editedRow, setEditedRow] = useState({});
   const [loading, setLoading] = useState(false);
@@ -109,9 +111,9 @@ const PublisherComponent = ({ data }) => {
     setEditedRow((prev) => ({ ...prev, review: value })); // Store review as a string
   };
 
-  const filteredColumns = data?.length
-    ? Object.keys(data[0]).filter((key) => key !== "id")
-    : [];
+  const filteredColumns = Object.keys(data[0] || {}).filter(
+    (key) => !["id", "user_id", "key"].includes(key)
+  );
 
   const columns = [
     ...filteredColumns.map((key) => ({
@@ -146,22 +148,25 @@ const PublisherComponent = ({ data }) => {
 
   return (
     <>
-      <div className="my-5">
-        <h1 className="text-lg font-semibold">Publisher Data</h1>
+      <div className="p-4 bg-gray-100 flex flex-col">
+        <div>
+          <h1 className="text-lg font-semibold">Publisher Data of {name}</h1>
+        </div>
+        <div className="w-full overflow-auto">
+          <Table
+            columns={columns}
+            dataSource={data}
+            pagination={{ pageSize: 10 }}
+            bordered
+            loading={loading}
+          />
+        </div>
       </div>
-      <Table
-        columns={columns}
-        dataSource={data}
-        pagination={{ pageSize: 10 }}
-        bordered
-        loading={loading}
-      />
     </>
   );
 };
 
 const MainComponent = () => {
-  const user = useSelector((state) => state.auth.user);
   const [selectedSubAdmins, setSelectedSubAdmins] = useState([]);
   const [roleData, setRoleData] = useState([]);
 
@@ -172,13 +177,16 @@ const MainComponent = () => {
           axios.get(`${apiUrl}/user-data/${admin.value}`)
         );
         const responses = await Promise.all(promises);
-        setRoleData(
-          responses.map((res) => ({
-            adminId: res.data.adminId,
-            role: res.data.role,
-            data: res.data.data,
-          }))
-        );
+
+        // Convert API responses into structured data
+        const newRoleData = responses.map((res, index) => ({
+          adminId: selectedSubAdmins[index].value, // Ensure correct mapping
+          name: selectedSubAdmins[index].label, // Add sub-admin name
+          role: selectedSubAdmins[index].role, // Use role from selection
+          data: res.data.data,
+        }));
+
+        setRoleData(newRoleData); // Update state with all selected sub-admins' data
       } catch (error) {
         console.error("Error fetching data:", error);
       }
@@ -187,7 +195,7 @@ const MainComponent = () => {
     if (selectedSubAdmins.length > 0) {
       fetchData();
     } else {
-      setRoleData([]);
+      setRoleData([]); // Reset when nothing is selected
     }
   }, [selectedSubAdmins]);
 
@@ -198,6 +206,7 @@ const MainComponent = () => {
         roleData.map((data, index) => (
           <DataTable
             key={index}
+            name={data.name} // Pass the sub-admin name
             role={data.role}
             data={data.data}
             className="overflow-x-auto"
@@ -209,7 +218,7 @@ const MainComponent = () => {
 
 export default MainComponent;
 
-const AdvertiserData = ({ data }) => {
+const AdvertiserData = ({ data, name }) => {
   if (!data || data.length === 0) {
     return <p className="text-center text-gray-500">No data available</p>;
   }
@@ -223,11 +232,11 @@ const AdvertiserData = ({ data }) => {
   }));
 
   return (
-    <div className="p-4 bg-gray-100 min-h-screen flex flex-col items-center">
+    <div className="p-4 bg-gray-100 flex flex-col">
       <div>
-        <h1 className="text-lg font-semibold">Advertiser Data</h1>
+        <h1 className="text-lg font-semibold">Advertiser Data of {name}</h1>
       </div>
-      <div className="w-full overflow-auto bg-white p-4 rounded shadow-md">
+      <div className="w-full overflow-auto">
         <Table
           columns={columns}
           dataSource={filteredData}

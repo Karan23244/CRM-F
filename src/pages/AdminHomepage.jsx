@@ -7,6 +7,8 @@ import ReviewForm from "../components/ReviewForm";
 import { logout } from "../redux/authSlice";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import ChangePassword from "../components/ChangePassword";
+
 const apiUrl =
   import.meta.env.VITE_API_URL || "http://160.153.172.237:5200/api";
 const AdminHomepage = () => {
@@ -80,6 +82,15 @@ const AdminHomepage = () => {
               onClick={() => setActiveComponent("alldata")}>
               All Data
             </button>
+            <button
+              className={`w-full text-left px-4 py-3 text-lg font-medium rounded-lg transition-all flex items-center gap-2 ${
+                activeComponent === "changepassword"
+                  ? "bg-blue-700"
+                  : "hover:bg-blue-600"
+              }`}
+              onClick={() => setActiveComponent("changepassword")}>
+              Change Password
+            </button>
           </nav>
         )}
       </aside>
@@ -111,9 +122,10 @@ const AdminHomepage = () => {
           )}
           {activeComponent === "alldata" && (
             <div>
-              <AllData  />
+              <AllData />
             </div>
           )}
+          {activeComponent === "changepassword" && <ChangePassword />}
         </main>
       </div>
     </div>

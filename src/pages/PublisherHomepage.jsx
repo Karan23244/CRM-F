@@ -8,6 +8,8 @@ import PublisherData from "../components/PublisherData";
 import PIDForm from "../components/PIDForm";
 import MMPTrackerForm from "../components/MMPTrackerForm";
 import PayableEventForm from "../components/PayableEventForm";
+import ChangePassword from "../components/ChangePassword";
+
 const PublisherHomepage = () => {
   const [activeComponent, setActiveComponent] = useState("form");
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -91,6 +93,15 @@ const PublisherHomepage = () => {
               onClick={() => setActiveComponent("mmptracker")}>
               Add MMP tracker
             </button>
+            <button
+              className={`w-full text-left px-4 py-3 text-lg font-medium rounded-lg transition-all flex items-center gap-2 ${
+                activeComponent === "changepassword"
+                  ? "bg-blue-700"
+                  : "hover:bg-blue-600"
+              }`}
+              onClick={() => setActiveComponent("changepassword")}>
+              Change Password
+            </button>
           </nav>
         )}
       </aside>
@@ -123,6 +134,7 @@ const PublisherHomepage = () => {
           {activeComponent === "pid" && <PIDForm />}
           {activeComponent === "payableevent" && <PayableEventForm/>}
           {activeComponent === "mmptracker" && <MMPTrackerForm />}
+          {activeComponent === "changepassword" && <ChangePassword />}
         </main>
       </div>
     </div>

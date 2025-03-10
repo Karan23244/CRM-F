@@ -8,6 +8,7 @@ import PayableEventForm from "../components/PayableEventForm";
 import { logout } from "../redux/authSlice";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import ChangePassword from "../components/ChangePassword";
 
 const AdvHomepage = () => {
   const [activeComponent, setActiveComponent] = useState("form");
@@ -91,6 +92,15 @@ const AdvHomepage = () => {
               onClick={() => setActiveComponent("mmptracker")}>
               Add MMP tracker
             </button>
+            <button
+              className={`w-full text-left px-4 py-3 text-lg font-medium rounded-lg transition-all flex items-center gap-2 ${
+                activeComponent === "changepassword"
+                  ? "bg-blue-700"
+                  : "hover:bg-blue-600"
+              }`}
+              onClick={() => setActiveComponent("changepassword")}>
+              Change Password
+            </button>
           </nav>
         )}
       </aside>
@@ -123,6 +133,7 @@ const AdvHomepage = () => {
           {activeComponent === "pid" && <PIDForm />}
           {activeComponent === "payableevent" && <MMPTrackerForm />}
           {activeComponent === "mmptracker" && <PayableEventForm />}
+          {activeComponent === "changepassword" && <ChangePassword />}
         </main>
       </div>
     </div>

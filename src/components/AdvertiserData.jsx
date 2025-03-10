@@ -46,14 +46,15 @@ const AdvertiserData = () => {
 
   const fetchDropdowns = async () => {
     try {
-      const [advmName, payableEvent, mmpTracker, pid] =
+      const [advmName, payableEvent, mmpTracker, pid, pub_id] =
         await Promise.all([
           axios.get(`${apiUrl}/get-subadmin`),
           axios.get(`${apiUrl}/get-paybleevernt`),
           axios.get(`${apiUrl}/get-mmptracker`),
           axios.get(`${apiUrl}/get-pid`),
+          axios.get(`${apiUrl}/get-allpub`),
         ]);
-        console.log(pid.data.data[0].pid)
+      console.log(pub_id);
       setDropdownOptions((prev) => ({
         ...prev,
         pub_name: advmName.data?.data?.map((item) => item.username) || [],
@@ -61,6 +62,7 @@ const AdvertiserData = () => {
           payableEvent.data?.data?.map((item) => item.payble_event) || [],
         mmp_tracker: mmpTracker.data?.data?.map((item) => item.mmptext) || [],
         pid: pid.data?.data?.map((item) => item.pid) || [],
+        pub_id: pub_id.data?.data?.map((item) => item.pub_id) || [],
       }));
     } catch (error) {
       message.error("Failed to fetch dropdown options");
