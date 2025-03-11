@@ -4,7 +4,7 @@ import { Table, Input, Button, Select, DatePicker, message } from "antd";
 import { EditOutlined, SaveOutlined, PlusOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useSelector } from "react-redux";
-import geoData from "../data/geoData.json";
+import geoData from "../Data/geoData.json";
 
 const { Option } = Select;
 const apiUrl =
