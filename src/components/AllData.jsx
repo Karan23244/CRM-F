@@ -59,185 +59,210 @@ const DataTable = ({ role, data, name }) => {
     <AdvertiserData data={data} name={name} role={role} />
   ) : role === "manager" ? (
     <>
-      <AdvertiserData data={data} name={name} role={role} />
       <PublisherComponent data={data} name={name} role={role} />
+      <AdvertiserData data={data} name={name} role={role} />
     </>
   ) : (
     <div>No matching role found</div>
   );
 };
 
-const PublisherComponent = ({ data, name, role }) => {
-  const [editingKey, setEditingKey] = useState(null);
-  const [editedRow, setEditedRow] = useState({});
-  const [loading, setLoading] = useState(false);
-  const [reviewOptions, setReviewOptions] = useState([]);
-  const [showEdit, setShowEdit] = useState(false);
-  const [filters, setFilters] = useState({});
-  console.log(role);
-  useEffect(() => {
-    fetchReviews();
-    setTimeout(() => {
-      setShowEdit(true);
-    }, 2000);
-  }, []);
+// const PublisherComponent = ({ data, name, role }) => {
+//   const [editingKey, setEditingKey] = useState(null);
+//   const [editedRow, setEditedRow] = useState({});
+//   const [loading, setLoading] = useState(false);
+//   const [reviewOptions, setReviewOptions] = useState([]);
+//   const [showEdit, setShowEdit] = useState(false);
+//   const [filters, setFilters] = useState({});
+//   console.log("Publisher Data:", data.publisher_data);
+//   useEffect(() => {
+//     fetchReviews();
+//     setTimeout(() => {
+//       setShowEdit(true);
+//     }, 2000);
+//   }, []);
 
-  const fetchReviews = async () => {
-    try {
-      const response = await axios.get(`${apiUrl}/get-reviews`);
-      setReviewOptions(
-        response.data?.data?.map((item) => ({
-          value: item.review_text,
-          label: item.review_text,
-        })) || []
-      );
-    } catch (error) {
-      message.error("Failed to fetch reviews");
-    }
-  };
+//   const fetchReviews = async () => {
+//     try {
+//       const response = await axios.get(`${apiUrl}/get-reviews`);
+//       setReviewOptions(
+//         response.data?.data?.map((item) => ({
+//           value: item.review_text,
+//           label: item.review_text,
+//         })) || []
+//       );
+//     } catch (error) {
+//       message.error("Failed to fetch reviews");
+//     }
+//   };
 
-  const handleEdit = (id) => {
-    setEditingKey(id);
-    setEditedRow(data.find((row) => row.id === id) || {});
-  };
+//   const handleEdit = (id) => {
+//     setEditingKey(id);
+//     setEditedRow(data.find((row) => row.id === id) || {});
+//   };
 
-  const handleSave = async () => {
-    try {
-      const updatedData = { ...editedRow, review: editedRow.review.label };
-      await axios.post(`${apiUrl}/pubdata-update/${editingKey}`, updatedData, {
-        headers: { "Content-Type": "application/json" },
-      });
-      setEditingKey(null);
-      message.success("Data updated successfully");
-    } catch (error) {
-      message.error("Failed to update data");
-    }
-  };
+//   const handleSave = async () => {
+//     try {
+//       const updatedData = { ...editedRow, review: editedRow.review.label };
+//       await axios.post(`${apiUrl}/pubdata-update/${editingKey}`, updatedData, {
+//         headers: { "Content-Type": "application/json" },
+//       });
+//       setEditingKey(null);
+//       message.success("Data updated successfully");
+//     } catch (error) {
+//       message.error("Failed to update data");
+//     }
+//   };
 
-  const handleChange = (value) => {
-    setEditedRow((prev) => ({ ...prev, review: value }));
-  };
+//   const handleChange = (value) => {
+//     setEditedRow((prev) => ({ ...prev, review: value }));
+//   };
 
-  const handleFilterChange = (value, key) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
-  };
+//   const handleFilterChange = (value, key) => {
+//     setFilters((prev) => ({ ...prev, [key]: value }));
+//   };
 
-  // const filteredRecords = data.filter((item) => {
-  //   return Object.keys(filters).every((key) => {
-  //     if (!filters[key]) return true;
+//   // const filteredRecords = data.filter((item) => {
+//   //   return Object.keys(filters).every((key) => {
+//   //     if (!filters[key]) return true;
 
-  //     if (Array.isArray(filters[key]) && filters[key].length === 2) {
-  //       const [start, end] = filters[key];
-  //       return dayjs(item[key]).isBetween(start, end, null, "[]");
-  //     }
+//   //     if (Array.isArray(filters[key]) && filters[key].length === 2) {
+//   //       const [start, end] = filters[key];
+//   //       return dayjs(item[key]).isBetween(start, end, null, "[]");
+//   //     }
 
-  //     return item[key] === filters[key];
-  //   });
-  // });
-  const filteredRecords =
-    role == "manager"
-      ? data.publisher_data.filter((item) => {
-          return Object.keys(filters).every((key) => {
-            if (!filters[key]) return true;
+//   //     return item[key] === filters[key];
+//   //   });
+//   // });
+//   const filteredRecords =
+//     role == "manager"
+//       ? data.publisher_data.filter((item) => {
+//           return Object.keys(filters).every((key) => {
+//             if (!filters[key]) return true;
 
-            if (Array.isArray(filters[key]) && filters[key].length === 2) {
-              const [start, end] = filters[key];
-              return dayjs(item[key]).isBetween(start, end, null, "[]");
-            }
+//             if (Array.isArray(filters[key]) && filters[key].length === 2) {
+//               const [start, end] = filters[key];
+//               return dayjs(item[key]).isBetween(start, end, null, "[]");
+//             }
 
-            return item[key] === filters[key];
-          });
-        })
-      : role == "publisher"
-      ? data.filter((item) => {
-          return Object.keys(filters).every((key) => {
-            if (!filters[key]) return true;
+//             return item[key] === filters[key];
+//           });
+//         })
+//       : role == "publisher"
+//       ? data.filter((item) => {
+//           return Object.keys(filters).every((key) => {
+//             if (!filters[key]) return true;
 
-            if (Array.isArray(filters[key]) && filters[key].length === 2) {
-              const [start, end] = filters[key];
-              return dayjs(item[key]).isBetween(start, end, null, "[]");
-            }
+//             if (Array.isArray(filters[key]) && filters[key].length === 2) {
+//               const [start, end] = filters[key];
+//               return dayjs(item[key]).isBetween(start, end, null, "[]");
+//             }
 
-            return item[key] === filters[key];
-          });
-        })
-      : [];
-      console.log(filteredRecords)
-  const filteredColumns = Object.keys(data[0] || {}).filter(
-    (key) => !["id", "user_id", "key", "created_at"].includes(key)
-  );
+//             return item[key] === filters[key];
+//           });
+//         })
+//       : [];
+//   const safeLoading = typeof loading === "boolean" ? loading : false;
+//   const safeFilteredRecords = Array.isArray(filteredRecords)
+//     ? filteredRecords
+//     : [];
 
-  const columns = [
-    ...filteredColumns.map((key) => {
-      if (key.toLowerCase().includes("date")) {
-        return {
-          title: key.replace(/([A-Z])/g, " $1").trim(),
-          dataIndex: key,
-          key,
-          filterDropdown: () => (
-            <RangePicker
-              onChange={(dates) => handleFilterChange(dates, key)}
-              style={{ width: "100%" }}
-            />
-          ),
-        };
-      }
+//   console.log("final", Array.isArray(filteredRecords), filteredRecords);
+//   const filteredColumns = Object.keys(data[0] || {}).filter(
+//     (key) => !["id", "user_id", "key", "created_at"].includes(key)
+//   );
 
-      const uniqueValues = [
-        ...new Set(data.map((item) => item[key]).filter(Boolean)),
-      ];
+//   const columns = [
+//     ...filteredColumns.map((key) => {
+//       if (key.toLowerCase().includes("date")) {
+//         return {
+//           title: key.replace(/([A-Z])/g, " $1").trim(),
+//           dataIndex: key,
+//           key,
+//           filterDropdown: () => (
+//             <RangePicker
+//               onChange={(dates) => handleFilterChange(dates, key)}
+//               style={{ width: "100%" }}
+//             />
+//           ),
+//         };
+//       }
 
-      return {
-        title: key.replace(/([A-Z])/g, " $1").trim(),
-        dataIndex: key,
-        key,
-        filters: uniqueValues.map((val) => ({ text: val, value: val })),
-        onFilter: (value, record) => record[key] === value,
-        render: (text, record) =>
-          editingKey === record.id && key === "review" ? (
-            <Select
-              value={editedRow.review || undefined}
-              onChange={handleChange}
-              style={{ width: "100%" }}
-              placeholder="Select Review"
-              options={reviewOptions}
-            />
-          ) : (
-            text
-          ),
-      };
-    }),
-    showEdit && {
-      title: "Actions",
-      render: (_, record) =>
-        editingKey === record.id ? (
-          <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} />
-        ) : (
-          <Button
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record.id)}
-          />
-        ),
-    },
-  ].filter(Boolean);
+//       const uniqueValues = [
+//         ...new Set(data.map((item) => item[key]).filter(Boolean)),
+//       ];
 
-  return (
-    <div className="p-4 bg-gray-100 flex flex-col">
-      <div>
-        <h1 className="text-lg font-semibold">Publisher Data of {name}</h1>
-      </div>
-      <div className="w-full overflow-auto bg-white p-4 rounded shadow-md">
-        <Table
-          columns={columns}
-          dataSource={filteredRecords}
-          pagination={{ pageSize: 10 }}
-          bordered
-          loading={loading}
-        />
-      </div>
-    </div>
-  );
-};
+//       return {
+//         title: key.replace(/([A-Z])/g, " $1").trim(),
+//         dataIndex: key,
+//         key,
+//         filters: uniqueValues.map((val) => ({ text: val, value: val })),
+//         onFilter: (value, record) => record[key] === value,
+//         render: (text, record) =>
+//           editingKey === record.id && key === "review" ? (
+//             <Select
+//               value={editedRow.review || undefined}
+//               onChange={handleChange}
+//               style={{ width: "100%" }}
+//               placeholder="Select Review"
+//               options={reviewOptions}
+//             />
+//           ) : (
+//             text
+//           ),
+//       };
+//     }),
+//     showEdit && {
+//       title: "Actions",
+//       render: (_, record) =>
+//         editingKey === record.id ? (
+//           <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} />
+//         ) : (
+//           <Button
+//             icon={<EditOutlined />}
+//             onClick={() => handleEdit(record.id)}
+//           />
+//         ),
+//     },
+//   ].filter(Boolean);
+
+//   return (
+//     <div className="p-4 bg-gray-100 flex flex-col">
+//       <div>
+//         <h1 className="text-lg font-semibold">Publisher Data of {name}</h1>
+//       </div>
+//       <div className="w-full overflow-auto bg-white p-4 rounded shadow-md">
+//         <Table
+//           columns={columns}
+//           dataSource={safeFilteredRecords.map((item, index) => ({
+//             key: item.id ?? index,
+//             adv_name: item.adv_name || "N/A",
+//             campaign_name: item.campaign_name || "N/A",
+//             city: item.city || "N/A",
+//             created_at: item.created_at || "N/A",
+//             geo: item.geo || "N/A",
+//             mmp_tracker: item.mmp_tracker || "N/A",
+//             os: item.os || "N/A",
+//             p_id: item.p_id || "N/A",
+//             paused_date: item.paused_date || "N/A",
+//             payable_event: item.payable_event || "N/A",
+//             pub_approved_numbers: item.pub_approved_numbers || "N/A",
+//             pub_deductions: item.pub_deductions || "N/A",
+//             pub_id: item.pub_id || "N/A",
+//             pub_payout: item.pub_payout || "N/A",
+//             pub_total_numbers: item.pub_total_numbers || "N/A",
+//             review: item.review || "N/A",
+//             shared_date: item.shared_date || "N/A",
+//             user_id: item.user_id || "N/A",
+//           }))}
+//           pagination={{ pageSize: 10 }}
+//           bordered
+//           loading={safeLoading}
+//         />
+//       </div>
+//     </div>
+//   );
+// };
 
 const MainComponent = () => {
   const [selectedSubAdmins, setSelectedSubAdmins] = useState([]);
@@ -352,6 +377,80 @@ const AdvertiserData = ({ data, name, role }) => {
     <div className="p-4 bg-gray-100 flex flex-col">
       <div>
         <h1 className="text-lg font-semibold">Advertiser Data of {name}</h1>
+      </div>
+      <div className="w-full overflow-auto bg-white p-4 rounded shadow-md">
+        <Table
+          columns={columns}
+          dataSource={filteredRecords}
+          pagination={{ pageSize: 10 }}
+          bordered
+        />
+      </div>
+    </div>
+  );
+};
+const PublisherComponent = ({ data, name, role }) => {
+  console.log(data)
+  if (!data || data.length === 0) {
+    return <p className="text-center text-gray-500">No data available</p>;
+  }
+  const filteredData =
+    role === "publisher"
+      ? data.map(({ adv_id, user_id, id, ...rest }) => rest)
+      : role === "manager"
+      ? data.publisher_data.map(({ adv_id, user_id, id, ...rest }) => rest)
+      : [];
+  const [filters, setFilters] = useState({});
+
+  const handleFilterChange = (value, key) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const filteredRecords = filteredData.filter((item) => {
+    return Object.keys(filters).every((key) => {
+      if (!filters[key]) return true;
+
+      if (Array.isArray(filters[key]) && filters[key].length === 2) {
+        const [start, end] = filters[key];
+        return dayjs(item[key]).isBetween(start, end, null, "[]");
+      }
+
+      return item[key] === filters[key];
+    });
+  });
+
+  const columns = Object.keys(filteredData[0] || {}).map((key) => {
+    if (key.toLowerCase().includes("date")) {
+      return {
+        title: key.replace(/([A-Z])/g, " $1").trim(),
+        dataIndex: key,
+        key,
+        filterDropdown: () => (
+          <RangePicker
+            onChange={(dates) => handleFilterChange(dates, key)}
+            style={{ width: "100%" }}
+          />
+        ),
+      };
+    }
+
+    const uniqueValues = [
+      ...new Set(filteredData.map((item) => item[key]).filter(Boolean)),
+    ];
+
+    return {
+      title: key.replace(/([A-Z])/g, " $1").trim(),
+      dataIndex: key,
+      key,
+      filters: uniqueValues.map((val) => ({ text: val, value: val })),
+      onFilter: (value, record) => record[key] === value,
+    };
+  });
+
+  return (
+    <div className="p-4 bg-gray-100 flex flex-col">
+      <div>
+        <h1 className="text-lg font-semibold">Publisher Data of {name}</h1>
       </div>
       <div className="w-full overflow-auto bg-white p-4 rounded shadow-md">
         <Table
