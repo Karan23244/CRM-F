@@ -12,36 +12,40 @@ const SubAdminDropdown = ({ onSelect }) => {
   const [subAdmins, setSubAdmins] = useState([]);
   const [selectedSubAdmins, setSelectedSubAdmins] = useState([]);
 
+  // Get assigned sub-admins from Redux
+  const user = useSelector((state) => state.auth.user);
+  const assignedSubAdmins = user?.assigned_subadmins || [];
+
   useEffect(() => {
     const fetchSubAdmins = async () => {
       try {
         const response = await axios.get(`${apiUrl}/get-subadmin`);
-        console.log(response);
         if (response.data.success) {
-          const subAdminOptions = response.data.data.map((subAdmin) => ({
-            value: subAdmin.id,
-            label: subAdmin.username,
-            role: subAdmin.role,
-          }));
+          const subAdminOptions = response.data.data
+            .filter((subAdmin) => assignedSubAdmins.includes(subAdmin.id)) // Filter only assigned sub-admins
+            .map((subAdmin) => ({
+              value: subAdmin.id,
+              label: subAdmin.username,
+              role: subAdmin.role,
+            }));
           setSubAdmins(subAdminOptions);
         }
       } catch (error) {
         console.error("Error fetching sub-admins:", error);
       }
     };
+
     fetchSubAdmins();
-  }, []);
+  }, [assignedSubAdmins]); // Refetch if assigned sub-admins change
+
   const handleChange = (selectedOptions) => {
     setSelectedSubAdmins(selectedOptions || []); // Ensure it does not become null
     onSelect(selectedOptions || []);
   };
-  // Filter out "admin" roles
-  const filteredSubAdmins = subAdmins.filter(
-    (subAdmin) => subAdmin.role !== "admin"
-  );
+
   return (
     <Select
-      options={filteredSubAdmins}
+      options={subAdmins}
       value={selectedSubAdmins}
       onChange={handleChange}
       placeholder="Select Sub-Admins..."
@@ -54,27 +58,22 @@ const SubAdminDropdown = ({ onSelect }) => {
 
 const DataTable = ({ role, data, name }) => {
   return role === "publisher" ? (
-    <PublisherComponent data={data} name={name} role={role} />
+    <PublisherComponent data={data} name={name} />
   ) : role === "advertiser" ? (
-    <AdvertiserData data={data} name={name} role={role} />
-  ) : role === "manager" ? (
-    <>
-      <AdvertiserData data={data} name={name} role={role} />
-      <PublisherComponent data={data} name={name} role={role} />
-    </>
+    <AdvertiserData data={data} name={name} />
   ) : (
     <div>No matching role found</div>
   );
 };
 
-const PublisherComponent = ({ data, name, role }) => {
+const PublisherComponent = ({ data, name }) => {
   const [editingKey, setEditingKey] = useState(null);
   const [editedRow, setEditedRow] = useState({});
   const [loading, setLoading] = useState(false);
   const [reviewOptions, setReviewOptions] = useState([]);
   const [showEdit, setShowEdit] = useState(false);
   const [filters, setFilters] = useState({});
-  console.log(role);
+
   useEffect(() => {
     fetchReviews();
     setTimeout(() => {
@@ -122,47 +121,19 @@ const PublisherComponent = ({ data, name, role }) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
-  // const filteredRecords = data.filter((item) => {
-  //   return Object.keys(filters).every((key) => {
-  //     if (!filters[key]) return true;
+  const filteredRecords = data.filter((item) => {
+    return Object.keys(filters).every((key) => {
+      if (!filters[key]) return true;
 
-  //     if (Array.isArray(filters[key]) && filters[key].length === 2) {
-  //       const [start, end] = filters[key];
-  //       return dayjs(item[key]).isBetween(start, end, null, "[]");
-  //     }
+      if (Array.isArray(filters[key]) && filters[key].length === 2) {
+        const [start, end] = filters[key];
+        return dayjs(item[key]).isBetween(start, end, null, "[]");
+      }
 
-  //     return item[key] === filters[key];
-  //   });
-  // });
-  const filteredRecords =
-    role == "manager"
-      ? data.publisher_data.filter((item) => {
-          return Object.keys(filters).every((key) => {
-            if (!filters[key]) return true;
+      return item[key] === filters[key];
+    });
+  });
 
-            if (Array.isArray(filters[key]) && filters[key].length === 2) {
-              const [start, end] = filters[key];
-              return dayjs(item[key]).isBetween(start, end, null, "[]");
-            }
-
-            return item[key] === filters[key];
-          });
-        })
-      : role == "publisher"
-      ? data.filter((item) => {
-          return Object.keys(filters).every((key) => {
-            if (!filters[key]) return true;
-
-            if (Array.isArray(filters[key]) && filters[key].length === 2) {
-              const [start, end] = filters[key];
-              return dayjs(item[key]).isBetween(start, end, null, "[]");
-            }
-
-            return item[key] === filters[key];
-          });
-        })
-      : [];
-      console.log(filteredRecords)
   const filteredColumns = Object.keys(data[0] || {}).filter(
     (key) => !["id", "user_id", "key", "created_at"].includes(key)
   );
@@ -250,7 +221,7 @@ const MainComponent = () => {
           axios.get(`${apiUrl}/user-data/${admin.value}`)
         );
         const responses = await Promise.all(promises);
-        console.log(responses);
+
         // Convert API responses into structured data
         const newRoleData = responses.map((res, index) => ({
           adminId: selectedSubAdmins[index].value, // Ensure correct mapping
@@ -258,7 +229,7 @@ const MainComponent = () => {
           role: selectedSubAdmins[index].role, // Use role from selection
           data: res.data.data,
         }));
-        console.log(newRoleData);
+
         setRoleData(newRoleData); // Update state with all selected sub-admins' data
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -291,16 +262,12 @@ const MainComponent = () => {
 
 export default MainComponent;
 
-const AdvertiserData = ({ data, name, role }) => {
+const AdvertiserData = ({ data, name }) => {
   if (!data || data.length === 0) {
     return <p className="text-center text-gray-500">No data available</p>;
   }
-  const filteredData =
-    role === "advertiser"
-      ? data.map(({ adv_id, user_id, id, ...rest }) => rest)
-      : role === "manager"
-      ? data.advertiser_data.map(({ adv_id, user_id, id, ...rest }) => rest)
-      : [];
+
+  const filteredData = data.map(({ adv_id, user_id, id, ...rest }) => rest);
   const [filters, setFilters] = useState({});
 
   const handleFilterChange = (value, key) => {

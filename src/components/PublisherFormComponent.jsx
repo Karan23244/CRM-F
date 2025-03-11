@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Table } from "antd";
+import { Table, Spin, Alert } from "antd";
 import { useSelector } from "react-redux";
 
 const apiUrl =
@@ -8,57 +8,69 @@ const apiUrl =
 
 const PublisherCreateForm = () => {
   const user = useSelector((state) => state.auth.user);
+  console.log(user);
   const userId = user?.id || null;
   const [name, setName] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const [publishers, setPublishers] = useState([]);
   const [availableIds, setAvailableIds] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [usedIds, setUsedIds] = useState(new Set());
 
-  // Initialize available IDs from user.range on first render
+  // **Initialize available IDs from user.ranges**
   useEffect(() => {
-    if (user?.range?.range_start && user?.range?.range_end) {
-      const rangeStart = Number(user.range.range_start);
-      const rangeEnd = Number(user.range.range_end);
+    if (user && user.ranges && user.ranges.length > 0) {
+      let allAvailableIds = [];
 
-      if (!isNaN(rangeStart) && !isNaN(rangeEnd) && rangeStart <= rangeEnd) {
-        const fullRange = Array.from(
-          { length: rangeEnd - rangeStart + 1 },
-          (_, i) => (rangeStart + i).toString()
-        );
-        setAvailableIds(fullRange);
-      } else {
-        console.error("Invalid range values");
-      }
+      user.ranges.forEach(({ start, end }) => {
+        const rangeStart = Number(start);
+        const rangeEnd = Number(end);
+
+        if (!isNaN(rangeStart) && !isNaN(rangeEnd) && rangeStart <= rangeEnd) {
+          const rangeIds = Array.from(
+            { length: rangeEnd - rangeStart + 1 },
+            (_, i) => (rangeStart + i).toString()
+          );
+          allAvailableIds = [...allAvailableIds, ...rangeIds];
+        }
+      });
+
+      console.log(
+        "Available IDs (before filtering used ones):",
+        allAvailableIds
+      );
+      setAvailableIds(allAvailableIds);
     }
-  }, [user?.range]);
-
+  }, [user]);
+  console.log(availableIds);
   // Fetch data from API and update available IDs dynamically
   useEffect(() => {
     const fetchPublishers = async () => {
       if (!userId) return;
 
+      setLoading(true);
       try {
-        console.log(`Fetching from: ${apiUrl}/pubid-data/${userId}`);
         const { data } = await axios.get(`${apiUrl}/pubid-data/${userId}`);
-
-        console.log("API Response:", data);
 
         if (data.success && Array.isArray(data.Publisher)) {
           setPublishers(data.Publisher);
 
-          // Extract used IDs
-          const usedIds = new Set(data.Publisher.map((ad) => ad.pub_id));
+          const usedIdsSet = new Set(data.Publisher.map((adv) => adv.pub_id));
+          setUsedIds(usedIdsSet); // Store used IDs separately
 
-          // Filter out used IDs
+          // **Filter available IDs based on used IDs**
           setAvailableIds((prevIds) =>
-            prevIds.filter((id) => !usedIds.has(id))
+            prevIds.filter((id) => !usedIdsSet.has(id))
           );
         } else {
           console.warn("Unexpected API Response Format:", data);
         }
       } catch (error) {
         console.error("Error fetching publishers:", error);
-        setPublishers([]);
+        setError("Failed to fetch publishers. Please try again.");
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -67,7 +79,10 @@ const PublisherCreateForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name || !selectedId) return;
+    if (!name || !selectedId) {
+      setError("Both fields are required.");
+      return;
+    }
 
     const newPub = {
       pub_name: name,
@@ -75,17 +90,17 @@ const PublisherCreateForm = () => {
       user_id: userId,
     };
 
+    setLoading(true);
     try {
       await axios.post(`${apiUrl}/create-pubid`, newPub);
-      console.log("Publisher Created:", newPub);
 
       // Refresh publishers after creation
       const { data } = await axios.get(`${apiUrl}/pubid-data/${userId}`);
       if (data.success && Array.isArray(data.Publisher)) {
-        setPublishers(data.advertisements);
+        setPublishers(data.Publisher);
 
         // Extract used IDs
-        const usedIds = new Set(data.advertisements.map((ad) => ad.pub_id));
+        const usedIds = new Set(data.Publisher.map((pub) => pub.pub_id));
 
         // Update available IDs
         setAvailableIds((prevIds) => prevIds.filter((id) => !usedIds.has(id)));
@@ -93,8 +108,12 @@ const PublisherCreateForm = () => {
 
       setName("");
       setSelectedId("");
+      setError(""); // Clear any previous error
     } catch (error) {
       console.error("Error creating publisher:", error);
+      setError("Failed to create publisher. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -106,6 +125,11 @@ const PublisherCreateForm = () => {
   return (
     <div className="m-6 p-6 bg-white shadow-md rounded-lg">
       <h2 className="text-2xl font-bold mb-4">Create Publisher</h2>
+
+      {error && (
+        <Alert message={error} type="error" showIcon className="mb-4" />
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-lg font-medium">Publisher Name</label>
@@ -140,17 +164,23 @@ const PublisherCreateForm = () => {
         </div>
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700">
-          Create Publisher
+          className="w-full bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700"
+          disabled={loading}>
+          {loading ? <Spin size="small" /> : "Create Publisher"}
         </button>
       </form>
+
       <h3 className="text-xl font-semibold pt-10">Existing Publishers</h3>
-      <Table
-        dataSource={publishers}
-        columns={columns}
-        rowKey="pub_id"
-        className="mt-4"
-      />
+      {loading ? (
+        <Spin size="large" className="mt-4" />
+      ) : (
+        <Table
+          dataSource={publishers}
+          columns={columns}
+          rowKey="pub_id"
+          className="mt-4"
+        />
+      )}
     </div>
   );
 };

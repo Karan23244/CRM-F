@@ -5,7 +5,7 @@ import AdvertiserHome from "./pages/AdvHomepage";
 import PublisherHome from "./pages/PublisherHomepage";
 import ProtectedRoute from "./components/ProtectedRoutes";
 import AllData from "./components/AllData";
-
+import ManagerHomepage from "./pages/ManagerHomepage"
 const AppRoutes = () => {
   return (
     <Router>
@@ -24,6 +24,9 @@ const AppRoutes = () => {
 
         <Route element={<ProtectedRoute allowedRoles={["publisher"]} />}>
           <Route path="/publisher-home" element={<PublisherHome />} />
+        </Route>
+        <Route element={<ProtectedRoute allowedRoles={["manager"]} />}>
+          <Route path="/manager-home" element={<ManagerHomepage />} />
         </Route>
       </Routes>
     </Router>

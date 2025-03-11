@@ -40,7 +40,6 @@ const LoginForm = () => {
 
       dispatch(setUser(data.subAdmin)); // Store user in Redux & localStorage
 
-      
       switch (data.subAdmin.role) {
         case "admin":
           navigate("/admin-home");
@@ -50,6 +49,9 @@ const LoginForm = () => {
           break;
         case "publisher":
           navigate("/publisher-home");
+          break;
+        case "manager":
+          navigate("/manager-home");
           break;
         default:
           navigate("/");

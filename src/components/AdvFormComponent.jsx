@@ -8,31 +8,37 @@ const apiUrl =
 
 const AdvertiserCreateForm = () => {
   const user = useSelector((state) => state.auth.user);
-  const userId = user?.id || null; // Ensure `userId` is valid
+  const userId = user?.id || null;
   const [name, setName] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const [advertisers, setAdvertisers] = useState([]);
   const [availableIds, setAvailableIds] = useState([]);
+  const [usedIds, setUsedIds] = useState(new Set());
 
-  // Initialize available IDs from user.range on first render
+  // **Initialize available IDs from user.ranges**
   useEffect(() => {
-    if (user?.range?.range_start && user?.range?.range_end) {
-      const rangeStart = Number(user.range.range_start);
-      const rangeEnd = Number(user.range.range_end);
+    if (user && user.ranges && user.ranges.length > 0) {
+      let allAvailableIds = [];
 
-      if (!isNaN(rangeStart) && !isNaN(rangeEnd) && rangeStart <= rangeEnd) {
-        const fullRange = Array.from(
-          { length: rangeEnd - rangeStart + 1 },
-          (_, i) => (rangeStart + i).toString()
-        );
-        setAvailableIds(fullRange);
-      } else {
-        console.error("Invalid range values");
-      }
+      user.ranges.forEach(({ start, end }) => {
+        const rangeStart = Number(start);
+        const rangeEnd = Number(end);
+
+        if (!isNaN(rangeStart) && !isNaN(rangeEnd) && rangeStart <= rangeEnd) {
+          const rangeIds = Array.from(
+            { length: rangeEnd - rangeStart + 1 },
+            (_, i) => (rangeStart + i).toString()
+          );
+          allAvailableIds = [...allAvailableIds, ...rangeIds];
+        }
+      });
+
+      console.log("Available IDs (before filtering used ones):", allAvailableIds);
+      setAvailableIds(allAvailableIds);
     }
-  }, [user?.range]);
-  
-  // Fetch data from API and update available IDs dynamically
+  }, [user]);
+
+  // **Fetch advertisers and remove used IDs**
   useEffect(() => {
     const fetchAdvertisers = async () => {
       if (!userId) return;
@@ -43,17 +49,11 @@ const AdvertiserCreateForm = () => {
         if (data.success && Array.isArray(data.advertisements)) {
           setAdvertisers(data.advertisements);
 
-          // Define the full range (Adjust as needed)
-          const fullRange = Array.from({ length: 10 }, (_, i) =>
-            (i + 1).toString()
-          );
+          const usedIdsSet = new Set(data.advertisements.map((adv) => adv.adv_id));
+          setUsedIds(usedIdsSet); // Store used IDs separately
 
-          // Extract used IDs from data
-          const usedIds = new Set(data.advertisements.map((adv) => adv.adv_id));
-
-          // Filter available IDs
-          const remainingIds = fullRange.filter((id) => !usedIds.has(id));
-          setAvailableIds(remainingIds);
+          // **Filter available IDs based on used IDs**
+          setAvailableIds((prevIds) => prevIds.filter((id) => !usedIdsSet.has(id)));
         }
       } catch (error) {
         console.error("Error fetching advertisers:", error);
@@ -70,7 +70,7 @@ const AdvertiserCreateForm = () => {
 
     const newAdv = {
       adv_name: name,
-      adv_id: selectedId, // Keep `adv_id` as a string
+      adv_id: selectedId,
       user_id: userId,
     };
 
@@ -81,6 +81,10 @@ const AdvertiserCreateForm = () => {
       const { data } = await axios.get(`${apiUrl}/advid-data/${userId}`);
       if (data.success && Array.isArray(data.advertisements)) {
         setAdvertisers(data.advertisements);
+
+        const newUsedIds = new Set(data.advertisements.map((adv) => adv.adv_id));
+        setUsedIds(newUsedIds);
+        setAvailableIds((prevIds) => prevIds.filter((id) => !newUsedIds.has(id)));
       }
 
       setName("");
@@ -136,7 +140,7 @@ const AdvertiserCreateForm = () => {
       <Table
         dataSource={advertisers}
         columns={columns}
-        rowKey="id"
+        rowKey="adv_id"
         className="mt-4"
       />
     </div>

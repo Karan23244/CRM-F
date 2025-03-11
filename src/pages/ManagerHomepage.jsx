@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { FaBars, FaTimes } from "react-icons/fa";
-import FormComponent from "../components/AdvFormComponent";
+import AdvFormComponent from "../components/AdvFormComponent";
 import AdvertiserData from "../components/AdvertiserData";
 import PIDForm from "../components/PIDForm";
 import MMPTrackerForm from "../components/MMPTrackerForm";
@@ -9,9 +9,12 @@ import { logout } from "../redux/authSlice";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import ChangePassword from "../components/ChangePassword";
+import PublisherData from "../components/PublisherData";
+import PublisherFormComponent from "../components/PublisherFormComponent";
+import MainComponent from "../components/ManagerAllData";
 
-const AdvHomepage = () => {
-  const [activeComponent, setActiveComponent] = useState("form");
+const ManagerHomepage = () => {
+  const [activeComponent, setActiveComponent] = useState("advform");
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const dispatch = useDispatch();
@@ -40,7 +43,7 @@ const AdvHomepage = () => {
         <div className="flex justify-between items-center px-4">
           {sidebarOpen && (
             <h2 className="text-xl font-semibold transition-opacity md:block">
-              Advertiser Panel
+              Manager Panel
             </h2>
           )}
           <button
@@ -55,17 +58,31 @@ const AdvHomepage = () => {
           <nav className="space-y-2 flex-1">
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
-                activeComponent === "form" ? "bg-blue-700" : "hover:bg-blue-600"
+                activeComponent === "advform" ? "bg-blue-700" : "hover:bg-blue-600"
               }`}
-              onClick={() => setActiveComponent("form")}>
+              onClick={() => setActiveComponent("advform")}>
               Advertiser Form
             </button>
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
-                activeComponent === "data" ? "bg-blue-700" : "hover:bg-blue-600"
+                activeComponent === "pubform" ? "bg-blue-700" : "hover:bg-blue-600"
               }`}
-              onClick={() => setActiveComponent("data")}>
+              onClick={() => setActiveComponent("pubform")}>
+              Publisher Form
+            </button>
+            <button
+              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
+                activeComponent === "advdata" ? "bg-blue-700" : "hover:bg-blue-600"
+              }`}
+              onClick={() => setActiveComponent("advdata")}>
               Advertiser Data
+            </button>
+            <button
+              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
+                activeComponent === "pubdata" ? "bg-blue-700" : "hover:bg-blue-600"
+              }`}
+              onClick={() => setActiveComponent("pubdata")}>
+              Publisher Data
             </button>
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
@@ -94,6 +111,15 @@ const AdvHomepage = () => {
             </button>
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
+                activeComponent === "managerData"
+                  ? "bg-blue-700"
+                  : "hover:bg-blue-600"
+              }`}
+              onClick={() => setActiveComponent("managerData")}>
+              Assigned Sub-Admin Data
+            </button>
+            <button
+              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "changepassword"
                   ? "bg-blue-700"
                   : "hover:bg-blue-600"
@@ -114,7 +140,7 @@ const AdvHomepage = () => {
             onClick={() => setSidebarOpen(!sidebarOpen)}>
             {sidebarOpen ? <FaTimes /> : <FaBars />}
           </button>
-          <h2 className="text-xl font-semibold">Advertiser Dashboard</h2>
+          <h2 className="text-xl font-semibold">Manager Dashboard</h2>
           <button
             className="bg-red-500 text-black font-semibold px-5 py-3 rounded-lg hover:bg-red-600 transition"
             onClick={handleLogout}>
@@ -124,15 +150,22 @@ const AdvHomepage = () => {
 
         {/* Main Content Area */}
         <main className=" overflow-auto min-w-0">
-          {activeComponent === "form" && <FormComponent />}
-          {activeComponent === "data" && (
+          {activeComponent === "advform" && <AdvFormComponent />}
+          {activeComponent === "pubform" && <PublisherFormComponent />}
+          {activeComponent === "advdata" && (
             <div className="overflow-x-auto">
               <AdvertiserData />
             </div>
           )}
+           {activeComponent === "pubdata" && (
+            <div className="overflow-x-auto">
+              <PublisherData />
+            </div>
+          )}
           {activeComponent === "pid" && <PIDForm />}
-          {activeComponent === "payableevent" && <PayableEventForm/>}
-          {activeComponent === "mmptracker" && <MMPTrackerForm/>}
+          {activeComponent === "payableevent" && <MMPTrackerForm />}
+          {activeComponent === "mmptracker" && <PayableEventForm />}
+          {activeComponent === "managerData" && <MainComponent />}
           {activeComponent === "changepassword" && <ChangePassword />}
         </main>
       </div>
@@ -140,4 +173,4 @@ const AdvHomepage = () => {
   );
 };
 
-export default AdvHomepage;
+export default ManagerHomepage;

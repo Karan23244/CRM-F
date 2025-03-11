@@ -4,6 +4,7 @@ import { Table, Input, Button, Select, DatePicker, message } from "antd";
 import { EditOutlined, SaveOutlined, PlusOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useSelector } from "react-redux";
+import geoData from "../data/geoData.json";
 
 const { Option } = Select;
 const apiUrl =
@@ -15,10 +16,10 @@ const AdvertiserData = () => {
   const [editingKey, setEditingKey] = useState(null);
   const [editedRow, setEditedRow] = useState({});
   const [dropdownOptions, setDropdownOptions] = useState({
-    geo: ["USA", "India", "Canada", "Germany"],
     os: ["Android", "APK", "iOS"],
   });
   const [loading, setLoading] = useState(false);
+  const [filters, setFilters] = useState({});
 
   useEffect(() => {
     if (user?.id) {
@@ -63,6 +64,7 @@ const AdvertiserData = () => {
         mmp_tracker: mmpTracker.data?.data?.map((item) => item.mmptext) || [],
         pid: pid.data?.data?.map((item) => item.pid) || [],
         pub_id: pub_id.data?.data?.map((item) => item.pub_id) || [],
+        geo: geoData.geo || [],
       }));
     } catch (error) {
       message.error("Failed to fetch dropdown options");
@@ -121,39 +123,104 @@ const AdvertiserData = () => {
     (key) => !["id", "user_id", "key"].includes(key)
   );
 
+  const handleFilterChange = (value, field) => {
+    setFilters((prev) => ({ ...prev, [field]: value }));
+    applyFilters({ ...filters, [field]: value });
+  };
+
+  const applyFilters = (newFilters) => {
+    let filtered = data;
+    Object.keys(newFilters).forEach((key) => {
+      if (newFilters[key]) {
+        if (Array.isArray(newFilters[key])) {
+          filtered = filtered.filter((item) => {
+            const itemDate = dayjs(item[key]);
+            return (
+              itemDate.isAfter(newFilters[key][0]) &&
+              itemDate.isBefore(newFilters[key][1])
+            );
+          });
+        } else {
+          filtered = filtered.filter((item) =>
+            item[key]?.toString().includes(newFilters[key])
+          );
+        }
+      }
+    });
+    setFilteredData(filtered);
+  };
+
   const columns = [
-    ...filteredColumns.map((key) => ({
-      title: key.replace(/([A-Z])/g, " $1").trim(),
-      dataIndex: key,
-      render: (text, record) =>
-        editingKey === record.id ? (
-          dropdownOptions[key] && dropdownOptions[key].length > 0 ? (
+    ...Object.keys(data[0] || {})
+      .filter((key) => !["id", "user_id", "key"].includes(key))
+      .map((key) => ({
+        title: key.replace(/([A-Z])/g, " $1").trim(),
+        dataIndex: key,
+        key,
+        filterDropdown: () =>
+          key.toLowerCase().includes("date") ? (
+            <DatePicker
+              onChange={(date, dateString) =>
+                handleFilterChange(dateString, key)
+              }
+              style={{ width: "100%" }}
+            />
+          ) : dropdownOptions[key] ? (
             <Select
-              value={editedRow[key]}
-              onChange={(value) => handleChange(value, key)}
-              style={{ width: "100%" }}>
+              onChange={(value) => handleFilterChange(value, key)}
+              style={{ width: "100%" }}
+              allowClear>
               {dropdownOptions[key].map((option) => (
                 <Option key={option} value={option}>
                   {option}
                 </Option>
               ))}
             </Select>
-          ) : key.toLowerCase().includes("date") ? (
-            <DatePicker
-              value={editedRow[key] ? dayjs(editedRow[key]) : null}
-              onChange={(date, dateString) => handleChange(dateString, key)}
-              style={{ width: "100%" }}
-            />
           ) : (
             <Input
-              value={editedRow[key]}
-              onChange={(e) => handleChange(e.target.value, key)}
+              onChange={(e) => handleFilterChange(e.target.value, key)}
+              placeholder={`Search ${key}`}
             />
-          )
-        ) : (
-          text
-        ),
-    })),
+          ),
+        onFilter: (value, record) => {
+          if (!value) return true;
+          if (key.toLowerCase().includes("date")) {
+            return dayjs(record[key]).isSame(dayjs(value), "day");
+          }
+          return record[key]
+            ?.toString()
+            .toLowerCase()
+            .includes(value.toLowerCase());
+        },
+        render: (text, record) =>
+          editingKey === record.id ? (
+            dropdownOptions[key] ? (
+              <Select
+                value={editedRow[key]}
+                onChange={(value) => handleChange(value, key)}
+                style={{ width: "100%" }}>
+                {dropdownOptions[key].map((option) => (
+                  <Option key={option} value={option}>
+                    {option}
+                  </Option>
+                ))}
+              </Select>
+            ) : key.toLowerCase().includes("date") ? (
+              <DatePicker
+                value={editedRow[key] ? dayjs(editedRow[key]) : null}
+                onChange={(date, dateString) => handleChange(dateString, key)}
+                style={{ width: "100%" }}
+              />
+            ) : (
+              <Input
+                value={editedRow[key]}
+                onChange={(e) => handleChange(e.target.value, key)}
+              />
+            )
+          ) : (
+            text
+          ),
+      })),
     {
       title: "Actions",
       render: (_, record) =>
