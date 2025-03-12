@@ -9,6 +9,7 @@ const apiUrl =
 const SubAdminForm = () => {
   const [subAdmins, setSubAdmins] = useState([]);
   const [username, setUsername] = useState("");
+  const [selectedSubAdmin, setSelectedSubAdmin] = useState(null);
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("publisher");
   const [ranges, setRanges] = useState([{ start: "", end: "" }]);
@@ -68,7 +69,44 @@ const SubAdminForm = () => {
   };
 
   // Handle Create Sub-Admin
-  const handleCreateSubAdmin = async () => {
+  // const handleCreateSubAdmin = async () => {
+  //   if (
+  //     !username ||
+  //     !password ||
+  //     ranges.some((range) => !range.start || !range.end)
+  //   ) {
+  //     alert("Please fill all fields!");
+  //     return;
+  //   }
+
+  //   const newSubAdmin = {
+  //     username,
+  //     password,
+  //     role,
+  //     ranges,
+  //     assigned_subadmins: role === "manager" ? assignedSubAdmins : [],
+  //   };
+  //   console.log(newSubAdmin);
+  //   try {
+  //     const response = await fetch(`${apiUrl}/create-subadmin`, {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify(newSubAdmin),
+  //     });
+  //     const data = await response.json();
+
+  //     if (response.ok) {
+  //       alert("Sub-Admin created successfully!");
+  //       resetForm();
+  //       fetchSubAdmins();
+  //     } else {
+  //       alert(`Error: ${data.message || "Failed to create sub-admin"}`);
+  //     }
+  //   } catch (error) {
+  //     alert("An error occurred while creating the sub-admin.");
+  //   }
+  // };
+  const handleSaveSubAdmin = async () => {
     if (
       !username ||
       !password ||
@@ -78,31 +116,59 @@ const SubAdminForm = () => {
       return;
     }
 
-    const newSubAdmin = {
+    const payload = {
       username,
-      password,
+      password: selectedSubAdmin ? password || "" : password, // Ensure password is empty when not updated
       role,
-      ranges,
+      ranges: ranges.map(({ start, end }) => ({
+        start: Number(start),
+        end: Number(end),
+      })), // Convert to numeric values
       assigned_subadmins: role === "manager" ? assignedSubAdmins : [],
     };
-    console.log(newSubAdmin);
-    try {
-      const response = await fetch(`${apiUrl}/create-subadmin`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newSubAdmin),
-      });
-      const data = await response.json();
+    
 
+    if (selectedSubAdmin) {
+      payload.id = selectedSubAdmin; // Include ID only for update
+    }
+    console.log(payload);
+    console.log(
+      `${apiUrl}/${selectedSubAdmin ? "update-sub-admin" : "create-subadmin"}`
+    );
+    try {
+      const response = await fetch(
+        `${apiUrl}/${
+          selectedSubAdmin ? "update-sub-admin" : "create-subadmin"
+        }`,
+        {
+          method: selectedSubAdmin ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+      console.log(response);
+      const data = await response.json();
+      console.log(data);
       if (response.ok) {
-        alert("Sub-Admin created successfully!");
+        alert(
+          `Sub-Admin ${selectedSubAdmin ? "updated" : "created"} successfully!`
+        );
         resetForm();
         fetchSubAdmins();
       } else {
-        alert(`Error: ${data.message || "Failed to create sub-admin"}`);
+        alert(
+          `Error: ${
+            data.message ||
+            `Failed to ${selectedSubAdmin ? "update" : "create"} sub-admin`
+          }`
+        );
       }
     } catch (error) {
-      alert("An error occurred while creating the sub-admin.");
+      alert(
+        `An error occurred while ${
+          selectedSubAdmin ? "updating" : "creating"
+        } the sub-admin.`
+      );
     }
   };
 
@@ -115,7 +181,49 @@ const SubAdminForm = () => {
     setAssignedSubAdmins([]);
   };
 
+  const handleEdit = (subAdmin) => {
+    setSelectedSubAdmin(subAdmin.id);
+    setUsername(subAdmin.username);
+    setRole(subAdmin.role);
+    setRanges(subAdmin.ranges);
+    setAssignedSubAdmins(subAdmin.assigned_subadmins || []);
+  };
+  const handleDeleteSubAdmin = async (id) => {
+    try {
+      const response = await fetch(`${apiUrl}/delete-sub-admin`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete sub-admin");
+      }
+
+      const result = await response.json();
+      console.log("Sub-admin deleted successfully:", result);
+      fetchSubAdmins();
+      // You may want to refresh the list or update UI here
+    } catch (error) {
+      console.error("Error deleting sub-admin:", error);
+    }
+  };
+
   // Define Table Columns
+  // const columns = [
+  //   { title: "Username", dataIndex: "username", key: "username" },
+  //   { title: "Role", dataIndex: "role", key: "role" },
+  //   {
+  //     title: "Ranges",
+  //     key: "ranges",
+  //     render: (record) =>
+  //       record?.ranges?.map((range, i) => (
+  //         <div key={i}>
+  //           {range.start} - {range.end}
+  //         </div>
+  //       )),
+  //   },
+  // ];
   const columns = [
     { title: "Username", dataIndex: "username", key: "username" },
     { title: "Role", dataIndex: "role", key: "role" },
@@ -123,18 +231,36 @@ const SubAdminForm = () => {
       title: "Ranges",
       key: "ranges",
       render: (record) =>
-        record?.ranges?.map((range, i) => (
+        record.ranges.map((range, i) => (
           <div key={i}>
             {range.start} - {range.end}
           </div>
         )),
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      render: (record) => (
+        <>
+          <Button type="link" onClick={() => handleEdit(record)}>
+            Edit
+          </Button>
+          <Button
+            type="link"
+            danger
+            onClick={() => handleDeleteSubAdmin(record.id)} // Use record.id instead of subAdminId
+          >
+            Delete Sub-Admin
+          </Button>
+        </>
+      ),
     },
   ];
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center p-6">
       <Card className="w-full" title="Create Sub-Admin">
-        <Form layout="vertical" onFinish={handleCreateSubAdmin}>
+        <Form layout="vertical" onFinish={handleSaveSubAdmin}>
           <Form.Item label="Username" required>
             <Input
               value={username}
@@ -209,7 +335,7 @@ const SubAdminForm = () => {
           </Form.Item>
 
           <Button type="primary" htmlType="submit" className="w-full">
-            Create Sub-Admin
+            {selectedSubAdmin ? "Update Sub-Admin" : "Create Sub-Admin"}
           </Button>
         </Form>
       </Card>
@@ -235,3 +361,189 @@ const SubAdminForm = () => {
 };
 
 export default SubAdminForm;
+
+// import React, { useState, useEffect } from "react";
+// import { Table, Input, Select, Button, Form, message, Spin, Card } from "antd";
+// import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
+
+// const { Option } = Select;
+// const apiUrl = import.meta.env.VITE_API_URL || "http://160.153.172.237:5200/api";
+
+// const SubAdminForm = () => {
+//   const [subAdmins, setSubAdmins] = useState([]);
+//   const [selectedSubAdmin, setSelectedSubAdmin] = useState(null);
+//   const [username, setUsername] = useState("");
+//   const [password, setPassword] = useState("");
+//   const [role, setRole] = useState("publisher");
+//   const [ranges, setRanges] = useState([{ start: "", end: "" }]);
+//   const [assignedSubAdmins, setAssignedSubAdmins] = useState([]);
+//   const [loading, setLoading] = useState(false);
+//   const [error, setError] = useState(null);
+//   const [subAdminOptions, setSubAdminOptions] = useState([]);
+
+//   useEffect(() => {
+//     fetchSubAdmins();
+//   }, []);
+
+//   const fetchSubAdmins = async () => {
+//     setLoading(true);
+//     try {
+//       const response = await fetch(`${apiUrl}/get-subadmin`);
+//       const data = await response.json();
+//       if (response.ok) {
+//         setSubAdmins(data.data);
+//         setSubAdminOptions(
+//           data.data.filter((subAdmin) => ["advertiser", "publisher"].includes(subAdmin.role))
+//         );
+//       } else {
+//         setError(data.message || "Failed to fetch sub-admins.");
+//       }
+//     } catch (err) {
+//       setError("An error occurred while fetching sub-admins.");
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   const handleEdit = (subAdmin) => {
+//     setSelectedSubAdmin(subAdmin.id);
+//     setUsername(subAdmin.username);
+//     setRole(subAdmin.role);
+//     setRanges(subAdmin.ranges);
+//     setAssignedSubAdmins(subAdmin.assigned_subadmins || []);
+//   };
+
+//   const handleSubmit = async () => {
+//     const payload = {
+//       id: selectedSubAdmin,
+//       username,
+//       password: password || undefined, // Only send if changed
+//       role,
+//       ranges,
+//       assigned_subadmins: role === "manager" ? assignedSubAdmins : [],
+//     };
+//     try {
+//       const response = await fetch(`${apiUrl}/update-sub-admin`, {
+//         method: "POST",
+//         headers: { "Content-Type": "application/json" },
+//         body: JSON.stringify(payload),
+//       });
+//       const data = await response.json();
+//       if (response.ok) {
+//         message.success("Sub-Admin updated successfully!");
+//         resetForm();
+//         fetchSubAdmins();
+//       } else {
+//         message.error(`Error: ${data.message}`);
+//       }
+//     } catch (error) {
+//       message.error("An error occurred while updating the sub-admin.");
+//     }
+//   };
+
+//   const resetForm = () => {
+//     setSelectedSubAdmin(null);
+//     setUsername("");
+//     setPassword("");
+//     setRole("publisher");
+//     setRanges([{ start: "", end: "" }]);
+//     setAssignedSubAdmins([]);
+//   };
+
+//   const columns = [
+//     { title: "Username", dataIndex: "username", key: "username" },
+//     { title: "Role", dataIndex: "role", key: "role" },
+//     {
+//       title: "Ranges",
+//       key: "ranges",
+//       render: (record) => record.ranges.map((range, i) => (
+//         <div key={i}>{range.start} - {range.end}</div>
+//       )),
+//     },
+//     {
+//       title: "Actions",
+//       key: "actions",
+//       render: (record) => (
+//         <Button type="link" onClick={() => handleEdit(record)}>
+//           Edit
+//         </Button>
+//       ),
+//     },
+//   ];
+
+//   return (
+//     <div className="min-h-screen bg-gray-50 flex flex-col items-center p-6">
+//       <Card className="w-full" title={selectedSubAdmin ? "Edit Sub-Admin" : "Create Sub-Admin"}>
+//         <Form layout="vertical" onFinish={handleSubmit}>
+//           <Form.Item label="Username" required>
+//             <Input value={username} onChange={(e) => setUsername(e.target.value)} />
+//           </Form.Item>
+
+//           <Form.Item label="Password">
+//             <Input.Password value={password} onChange={(e) => setPassword(e.target.value)} />
+//           </Form.Item>
+
+//           <Form.Item label="Role" required>
+//             <Select value={role} onChange={(value) => setRole(value)}>
+//               <Option value="publisher">Publisher</Option>
+//               <Option value="advertiser">Advertiser</Option>
+//               <Option value="manager">Manager</Option>
+//             </Select>
+//           </Form.Item>
+
+//           {role === "manager" && (
+//             <Form.Item label="Assign Sub-Admins">
+//               <Select
+//                 mode="multiple"
+//                 value={assignedSubAdmins}
+//                 onChange={setAssignedSubAdmins}
+//               >
+//                 {subAdminOptions.map((subAdmin) => (
+//                   <Option key={subAdmin.id} value={subAdmin.id}>
+//                     {subAdmin.username} ({subAdmin.role})
+//                   </Option>
+//                 ))}
+//               </Select>
+//             </Form.Item>
+//           )}
+
+//           <Form.Item label="Ranges" required>
+//             {ranges.map((range, index) => (
+//               <div key={index} className="flex space-x-2 items-center mb-2">
+//                 <Input type="number" value={range.start} onChange={(e) => {
+//                   const updatedRanges = [...ranges];
+//                   updatedRanges[index].start = e.target.value;
+//                   setRanges(updatedRanges);
+//                 }} />
+//                 <span>-</span>
+//                 <Input type="number" value={range.end} onChange={(e) => {
+//                   const updatedRanges = [...ranges];
+//                   updatedRanges[index].end = e.target.value;
+//                   setRanges(updatedRanges);
+//                 }} />
+//                 <MinusCircleOutlined
+//                   className="text-red-500 cursor-pointer"
+//                   onClick={() => setRanges(ranges.filter((_, i) => i !== index))}
+//                 />
+//               </div>
+//             ))}
+//             <Button type="dashed" onClick={() => setRanges([...ranges, { start: "", end: "" }])}>
+//               <PlusOutlined /> Add More Ranges
+//             </Button>
+//           </Form.Item>
+
+//           <Button type="primary" htmlType="submit" className="w-full">
+//             {selectedSubAdmin ? "Update Sub-Admin" : "Create Sub-Admin"}
+//           </Button>
+//         </Form>
+//       </Card>
+//       <div className="mt-8 w-full">
+//         <Card title="Sub-Admins List">
+//           {loading ? <Spin /> : error ? <p className="text-red-500">{error}</p> : <Table columns={columns} dataSource={subAdmins} rowKey="id" pagination={{ pageSize: 5 }} />}
+//         </Card>
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default SubAdminForm;

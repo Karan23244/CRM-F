@@ -119,10 +119,6 @@ const AdvertiserData = () => {
     setEditedRow((prev) => ({ ...prev, [field]: value }));
   };
 
-  const filteredColumns = Object.keys(data[0] || {}).filter(
-    (key) => !["id", "user_id", "key"].includes(key)
-  );
-
   const handleFilterChange = (value, field) => {
     setFilters((prev) => ({ ...prev, [field]: value }));
     applyFilters({ ...filters, [field]: value });
@@ -150,25 +146,44 @@ const AdvertiserData = () => {
     setFilteredData(filtered);
   };
 
+  const columnHeadings = {
+    pub_name: "PUBM Name",
+    campaign_name: "Campaign Name",
+    geo: "GEO",
+    city: "State Or City",
+    os: "OS",
+    payable_event: "Payable Event",
+    mmp_tracker: "MMP Tracker",
+    adv_id: "ADV ID",
+    adv_payout: "ADV Payout $",
+    pub_am: "Pub AM",
+    pub_id: "PubID",
+    p_id: "PID",
+    shared_date: "Shared Date",
+    paused_date: "Paused Date",
+    adv_total_numbers: "ADV Total Numbers",
+    adv_deductions: "ADV Deductions",
+    adv_approved_numbers: "ADV Approved Numbers",
+  };
+  
   const columns = [
     ...Object.keys(data[0] || {})
       .filter((key) => !["id", "user_id", "key"].includes(key))
       .map((key) => ({
-        title: key.replace(/([A-Z])/g, " $1").trim(),
+        title: columnHeadings[key] || key.replace(/([A-Z])/g, " $1").trim(),
         dataIndex: key,
         key,
         filterDropdown: () =>
           key.toLowerCase().includes("date") ? (
             <DatePicker
-              onChange={(date, dateString) =>
-                handleFilterChange(dateString, key)
-              }
+              onChange={(date, dateString) => handleFilterChange(dateString, key)}
               style={{ width: "100%" }}
             />
           ) : dropdownOptions[key] ? (
             <Select
               onChange={(value) => handleFilterChange(value, key)}
               style={{ width: "100%" }}
+              dropdownMatchSelectWidth={false} 
               allowClear>
               {dropdownOptions[key].map((option) => (
                 <Option key={option} value={option}>
@@ -179,7 +194,7 @@ const AdvertiserData = () => {
           ) : (
             <Input
               onChange={(e) => handleFilterChange(e.target.value, key)}
-              placeholder={`Search ${key}`}
+              placeholder={`Search ${columnHeadings[key] || key}`}
             />
           ),
         onFilter: (value, record) => {
@@ -187,10 +202,7 @@ const AdvertiserData = () => {
           if (key.toLowerCase().includes("date")) {
             return dayjs(record[key]).isSame(dayjs(value), "day");
           }
-          return record[key]
-            ?.toString()
-            .toLowerCase()
-            .includes(value.toLowerCase());
+          return record[key]?.toString().toLowerCase().includes(value.toLowerCase());
         },
         render: (text, record) =>
           editingKey === record.id ? (
@@ -198,7 +210,9 @@ const AdvertiserData = () => {
               <Select
                 value={editedRow[key]}
                 onChange={(value) => handleChange(value, key)}
-                style={{ width: "100%" }}>
+                style={{ width: "100%" }}
+                dropdownMatchSelectWidth={false} 
+                >
                 {dropdownOptions[key].map((option) => (
                   <Option key={option} value={option}>
                     {option}
@@ -227,13 +241,97 @@ const AdvertiserData = () => {
         editingKey === record.id ? (
           <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} />
         ) : (
-          <Button
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record.id)}
-          />
+          <Button icon={<EditOutlined />} onClick={() => handleEdit(record.id)} />
         ),
     },
   ];
+  
+
+
+  // const columns = [
+  //   ...Object.keys(data[0] || {})
+  //     .filter((key) => !["id", "user_id", "key"].includes(key))
+  //     .map((key) => ({
+  //       title: key.replace(/([A-Z])/g, " $1").trim(),
+  //       dataIndex: key,
+  //       key,
+  //       filterDropdown: () =>
+  //         key.toLowerCase().includes("date") ? (
+  //           <DatePicker
+  //             onChange={(date, dateString) =>
+  //               handleFilterChange(dateString, key)
+  //             }
+  //             style={{ width: "100%" }}
+  //           />
+  //         ) : dropdownOptions[key] ? (
+  //           <Select
+  //             onChange={(value) => handleFilterChange(value, key)}
+  //             style={{ width: "100%" }}
+  //             allowClear>
+  //             {dropdownOptions[key].map((option) => (
+  //               <Option key={option} value={option}>
+  //                 {option}
+  //               </Option>
+  //             ))}
+  //           </Select>
+  //         ) : (
+  //           <Input
+  //             onChange={(e) => handleFilterChange(e.target.value, key)}
+  //             placeholder={`Search ${key}`}
+  //           />
+  //         ),
+  //       onFilter: (value, record) => {
+  //         if (!value) return true;
+  //         if (key.toLowerCase().includes("date")) {
+  //           return dayjs(record[key]).isSame(dayjs(value), "day");
+  //         }
+  //         return record[key]
+  //           ?.toString()
+  //           .toLowerCase()
+  //           .includes(value.toLowerCase());
+  //       },
+  //       render: (text, record) =>
+  //         editingKey === record.id ? (
+  //           dropdownOptions[key] ? (
+  //             <Select
+  //               value={editedRow[key]}
+  //               onChange={(value) => handleChange(value, key)}
+  //               style={{ width: "100%" }}>
+  //               {dropdownOptions[key].map((option) => (
+  //                 <Option key={option} value={option}>
+  //                   {option}
+  //                 </Option>
+  //               ))}
+  //             </Select>
+  //           ) : key.toLowerCase().includes("date") ? (
+  //             <DatePicker
+  //               value={editedRow[key] ? dayjs(editedRow[key]) : null}
+  //               onChange={(date, dateString) => handleChange(dateString, key)}
+  //               style={{ width: "100%" }}
+  //             />
+  //           ) : (
+  //             <Input
+  //               value={editedRow[key]}
+  //               onChange={(e) => handleChange(e.target.value, key)}
+  //             />
+  //           )
+  //         ) : (
+  //           text
+  //         ),
+  //     })),
+  //   {
+  //     title: "Actions",
+  //     render: (_, record) =>
+  //       editingKey === record.id ? (
+  //         <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} />
+  //       ) : (
+  //         <Button
+  //           icon={<EditOutlined />}
+  //           onClick={() => handleEdit(record.id)}
+  //         />
+  //       ),
+  //   },
+  // ];
 
   return (
     <div className="p-4 bg-gray-100 min-h-screen flex flex-col items-center">
@@ -251,6 +349,8 @@ const AdvertiserData = () => {
           pagination={{ pageSize: 10 }}
           bordered
           loading={loading}
+          scroll={{ x: 'max-content' }}
+
         />
       </div>
     </div>

@@ -344,11 +344,31 @@ const AdvertiserData = ({ data, name, role }) => {
       return item[key] === filters[key];
     });
   });
+  const columnHeadings = {
+    pub_name: "PUBM Name",
+    campaign_name: "Campaign Name",
+    geo: "GEO",
+    city: "State Or City",
+    os: "OS",
+    payable_event: "Payable Event",
+    mmp_tracker: "MMP Tracker",
+    adv_id: "ADV ID",
+    adv_payout: "ADV Payout $",
+    pub_am: "Pub AM",
+    pub_id: "PubID",
+    p_id: "PID",
+    shared_date: "Shared Date",
+    paused_date: "Paused Date",
+    adv_total_numbers: "ADV Total Numbers",
+    adv_deductions: "ADV Deductions",
+    adv_approved_numbers: "ADV Approved Numbers",
+  };
 
   const columns = Object.keys(filteredData[0] || {}).map((key) => {
+    const title = columnHeadings[key] || key.replace(/([A-Z])/g, " $1").trim(); // Use custom title or fallback
     if (key.toLowerCase().includes("date")) {
       return {
-        title: key.replace(/([A-Z])/g, " $1").trim(),
+        title,
         dataIndex: key,
         key,
         filterDropdown: () => (
@@ -365,7 +385,7 @@ const AdvertiserData = ({ data, name, role }) => {
     ];
 
     return {
-      title: key.replace(/([A-Z])/g, " $1").trim(),
+      title : columnHeadings[key] || key.replace(/([A-Z])/g, " $1").trim(),
       dataIndex: key,
       key,
       filters: uniqueValues.map((val) => ({ text: val, value: val })),
@@ -384,6 +404,7 @@ const AdvertiserData = ({ data, name, role }) => {
           dataSource={filteredRecords}
           pagination={{ pageSize: 10 }}
           bordered
+          scroll={{ x: 'max-content' }}
         />
       </div>
     </div>
@@ -402,27 +423,92 @@ const PublisherComponent = ({ data, name, role }) => {
       : [];
   const [filters, setFilters] = useState({});
 
+  // const handleFilterChange = (value, key) => {
+  //   setFilters((prev) => ({ ...prev, [key]: value }));
+  // };
+
+  // const filteredRecords = filteredData.filter((item) => {
+  //   return Object.keys(filters).every((key) => {
+  //     if (!filters[key]) return true;
+
+  //     if (Array.isArray(filters[key]) && filters[key].length === 2) {
+  //       const [start, end] = filters[key];
+  //       return dayjs(item[key]).isBetween(start, end, null, "[]");
+  //     }
+
+  //     return item[key] === filters[key];
+  //   });
+  // });
+
+  // const columns = Object.keys(filteredData[0] || {}).map((key) => {
+  //   if (key.toLowerCase().includes("date")) {
+  //     return {
+  //       title: key.replace(/([A-Z])/g, " $1").trim(),
+  //       dataIndex: key,
+  //       key,
+  //       filterDropdown: () => (
+  //         <RangePicker
+  //           onChange={(dates) => handleFilterChange(dates, key)}
+  //           style={{ width: "100%" }}
+  //         />
+  //       ),
+  //     };
+  //   }
+
+  //   const uniqueValues = [
+  //     ...new Set(filteredData.map((item) => item[key]).filter(Boolean)),
+  //   ];
+
+  //   return {
+  //     title: key.replace(/([A-Z])/g, " $1").trim(),
+  //     dataIndex: key,
+  //     key,
+  //     filters: uniqueValues.map((val) => ({ text: val, value: val })),
+  //     onFilter: (value, record) => record[key] === value,
+  //   };
+  // });
+
+
+  const columnHeadings = {
+    adv_name: "ADVM Name",
+    campaign_name: "Campaign Name",
+    geo: "GEO",
+    city: "State Or City",
+    os: "OS",
+    payable_event: "Payable Event",
+    mmp_tracker: "MMP Tracker",
+    pub_id: "Pub ID",
+    p_id: "PID",
+    pub_payout: "Pub Payout $",
+    shared_date: "Shared Date",
+    paused_date: "Paused Date",
+    review: "Review",
+    pub_total_numbers: "PUB Total Numbers",
+    pub_deductions: "PUB Deductions",
+    pub_approved_numbers: "PUB Approved Numbers",
+  };
+  
   const handleFilterChange = (value, key) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
-
+  
   const filteredRecords = filteredData.filter((item) => {
     return Object.keys(filters).every((key) => {
       if (!filters[key]) return true;
-
+  
       if (Array.isArray(filters[key]) && filters[key].length === 2) {
         const [start, end] = filters[key];
         return dayjs(item[key]).isBetween(start, end, null, "[]");
       }
-
+  
       return item[key] === filters[key];
     });
   });
-
+  
   const columns = Object.keys(filteredData[0] || {}).map((key) => {
     if (key.toLowerCase().includes("date")) {
       return {
-        title: key.replace(/([A-Z])/g, " $1").trim(),
+        title: columnHeadings[key] || key, // Use mapped heading or fallback to key
         dataIndex: key,
         key,
         filterDropdown: () => (
@@ -433,20 +519,20 @@ const PublisherComponent = ({ data, name, role }) => {
         ),
       };
     }
-
+  
     const uniqueValues = [
       ...new Set(filteredData.map((item) => item[key]).filter(Boolean)),
     ];
-
+  
     return {
-      title: key.replace(/([A-Z])/g, " $1").trim(),
+      title: columnHeadings[key] || key, // Apply custom heading
       dataIndex: key,
       key,
       filters: uniqueValues.map((val) => ({ text: val, value: val })),
       onFilter: (value, record) => record[key] === value,
     };
   });
-
+  
   return (
     <div className="p-4 bg-gray-100 flex flex-col">
       <div>
@@ -458,6 +544,7 @@ const PublisherComponent = ({ data, name, role }) => {
           dataSource={filteredRecords}
           pagination={{ pageSize: 10 }}
           bordered
+          scroll={{ x: 'max-content' }}
         />
       </div>
     </div>

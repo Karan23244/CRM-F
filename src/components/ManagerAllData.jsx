@@ -137,12 +137,29 @@ const PublisherComponent = ({ data, name }) => {
   const filteredColumns = Object.keys(data[0] || {}).filter(
     (key) => !["id", "user_id", "key", "created_at"].includes(key)
   );
-
+  const columnHeadings = {
+    adv_name: "ADVM Name",
+    campaign_name: "Campaign Name",
+    geo: "GEO",
+    city: "State Or City",
+    os: "OS",
+    payable_event: "Payable Event",
+    mmp_tracker: "MMP Tracker",
+    pub_id: "Pub ID",
+    p_id: "PID",
+    pub_payout: "Pub Payout $",
+    shared_date: "Shared Date",
+    paused_date: "Paused Date",
+    review: "Review",
+    pub_total_numbers: "PUB Total Numbers",
+    pub_deductions: "PUB Deductions",
+    pub_approved_numbers: "PUB Approved Numbers",
+  };
   const columns = [
     ...filteredColumns.map((key) => {
       if (key.toLowerCase().includes("date")) {
         return {
-          title: key.replace(/([A-Z])/g, " $1").trim(),
+          title: columnHeadings[key] || key, // Apply custom heading
           dataIndex: key,
           key,
           filterDropdown: () => (
@@ -159,7 +176,7 @@ const PublisherComponent = ({ data, name }) => {
       ];
 
       return {
-        title: key.replace(/([A-Z])/g, " $1").trim(),
+        title: columnHeadings[key] || key, // Apply custom heading
         dataIndex: key,
         key,
         filters: uniqueValues.map((val) => ({ text: val, value: val })),
@@ -170,6 +187,7 @@ const PublisherComponent = ({ data, name }) => {
               value={editedRow.review || undefined}
               onChange={handleChange}
               style={{ width: "100%" }}
+              dropdownMatchSelectWidth={false} 
               placeholder="Select Review"
               options={reviewOptions}
             />
@@ -204,6 +222,7 @@ const PublisherComponent = ({ data, name }) => {
           pagination={{ pageSize: 10 }}
           bordered
           loading={loading}
+          scroll={{ x: 'max-content' }}
         />
       </div>
     </div>
@@ -286,11 +305,30 @@ const AdvertiserData = ({ data, name }) => {
       return item[key] === filters[key];
     });
   });
-
+  const columnHeadings = {
+    pub_name: "PUBM Name",
+    campaign_name: "Campaign Name",
+    geo: "GEO",
+    city: "State Or City",
+    os: "OS",
+    payable_event: "Payable Event",
+    mmp_tracker: "MMP Tracker",
+    adv_id: "ADV ID",
+    adv_payout: "ADV Payout $",
+    pub_am: "Pub AM",
+    pub_id: "PubID",
+    p_id: "PID",
+    shared_date: "Shared Date",
+    paused_date: "Paused Date",
+    adv_total_numbers: "ADV Total Numbers",
+    adv_deductions: "ADV Deductions",
+    adv_approved_numbers: "ADV Approved Numbers",
+  };
   const columns = Object.keys(filteredData[0] || {}).map((key) => {
+    const title = columnHeadings[key] || key.replace(/([A-Z])/g, " $1").trim();
     if (key.toLowerCase().includes("date")) {
       return {
-        title: key.replace(/([A-Z])/g, " $1").trim(),
+        title, // Use custom title or fallback
         dataIndex: key,
         key,
         filterDropdown: () => (
@@ -307,7 +345,7 @@ const AdvertiserData = ({ data, name }) => {
     ];
 
     return {
-      title: key.replace(/([A-Z])/g, " $1").trim(),
+      title : columnHeadings[key] || key.replace(/([A-Z])/g, " $1").trim(),
       dataIndex: key,
       key,
       filters: uniqueValues.map((val) => ({ text: val, value: val })),
@@ -326,6 +364,7 @@ const AdvertiserData = ({ data, name }) => {
           dataSource={filteredRecords}
           pagination={{ pageSize: 10 }}
           bordered
+          scroll={{ x: 'max-content' }}
         />
       </div>
     </div>
