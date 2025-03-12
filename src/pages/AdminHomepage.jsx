@@ -8,7 +8,8 @@ import { logout } from "../redux/authSlice";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import ChangePassword from "../components/ChangePassword";
-
+import PubnameData from "../components/PubnameData";
+import AdvnameData from "../components/AdvnameData";
 const apiUrl =
   import.meta.env.VITE_API_URL || "http://160.153.172.237:5200/api";
 const AdminHomepage = () => {
@@ -80,7 +81,25 @@ const AdminHomepage = () => {
                   : "hover:bg-blue-600"
               }`}
               onClick={() => setActiveComponent("alldata")}>
-              All Data
+              Campaign Data
+            </button>
+            <button
+              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
+                activeComponent === "advertiserdata"
+                  ? "bg-blue-700"
+                  : "hover:bg-blue-600"
+              }`}
+              onClick={() => setActiveComponent("advertiserdata")}>
+              Advertiser Data
+            </button>
+            <button
+              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
+                activeComponent === "publisherdata"
+                  ? "bg-blue-700"
+                  : "hover:bg-blue-600"
+              }`}
+              onClick={() => setActiveComponent("publisherdata")}>
+              Publisher Data
             </button>
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
@@ -123,6 +142,16 @@ const AdminHomepage = () => {
           {activeComponent === "alldata" && (
             <div>
               <AllData />
+            </div>
+          )}
+          {activeComponent === "advertiserdata" && (
+            <div>
+              <AdvnameData />
+            </div>
+          )}
+          {activeComponent === "publisherdata" && (
+            <div>
+              <PubnameData />
             </div>
           )}
           {activeComponent === "changepassword" && <ChangePassword />}
