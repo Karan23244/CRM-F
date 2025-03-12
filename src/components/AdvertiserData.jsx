@@ -58,12 +58,7 @@ const AdvertiserData = () => {
       console.log(pub_id);
       setDropdownOptions((prev) => ({
         ...prev,
-        pub_name:
-        advmName.data?.data
-          ?.filter(
-            (item) => item.role === "manager" || item.role === "publisher"
-          )
-          .map((item) => item.username) || [],
+        pub_name: advmName.data?.data?.map((item) => item.username) || [],
         payable_event:
           payableEvent.data?.data?.map((item) => item.payble_event) || [],
         mmp_tracker: mmpTracker.data?.data?.map((item) => item.mmptext) || [],
@@ -193,10 +188,9 @@ const AdvertiserData = () => {
               style={{ width: "100%" }}
               dropdownMatchSelectWidth={false}
               allowClear
-              placeholder="Select an option"
-              optionFilterProp="children"
+              placeholder="Search..."
               filterOption={(input, option) =>
-                option?.children.toLowerCase().includes(input.toLowerCase())
+                option.children.toLowerCase().includes(input.toLowerCase())
               }>
               {dropdownOptions[key].map((option) => (
                 <Option key={option} value={option}>
@@ -224,10 +218,16 @@ const AdvertiserData = () => {
           editingKey === record.id ? (
             dropdownOptions[key] ? (
               <Select
+                showSearch
                 value={editedRow[key]}
                 onChange={(value) => handleChange(value, key)}
                 style={{ width: "100%" }}
-                dropdownMatchSelectWidth={false}>
+                dropdownMatchSelectWidth={false}
+                allowClear
+                placeholder="Search..."
+                filterOption={(input, option) =>
+                  option.children.toLowerCase().includes(input.toLowerCase())
+                }>
                 {dropdownOptions[key].map((option) => (
                   <Option key={option} value={option}>
                     {option}
