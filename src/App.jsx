@@ -11,7 +11,7 @@ const AppRoutes = () => {
     <Router>
       <Routes>
         {/* Public Route */}
-        <Route path="/" element={<AdminHome />} />
+        <Route path="/" element={<LoginForm />} />
 
         {/* Protected Routes */}
         <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
