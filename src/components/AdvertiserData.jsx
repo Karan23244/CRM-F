@@ -58,13 +58,18 @@ const AdvertiserData = () => {
       console.log(pub_id);
       setDropdownOptions((prev) => ({
         ...prev,
-        pub_name: advmName.data?.data?.map((item) => item.username) || [],
+        pub_name:
+        advmName.data?.data
+          ?.filter(
+            (item) => item.role === "manager" || item.role === "publisher"
+          )
+          .map((item) => item.username) || [],
         payable_event:
           payableEvent.data?.data?.map((item) => item.payble_event) || [],
         mmp_tracker: mmpTracker.data?.data?.map((item) => item.mmptext) || [],
         pid: pid.data?.data?.map((item) => item.pid) || [],
         pub_id: pub_id.data?.data?.map((item) => item.pub_id) || [],
-        geo: geoData.geo || [],
+        geo: geoData.geo?.map((item) => item.code) || [],
       }));
     } catch (error) {
       message.error("Failed to fetch dropdown options");
@@ -165,7 +170,7 @@ const AdvertiserData = () => {
     adv_deductions: "ADV Deductions",
     adv_approved_numbers: "ADV Approved Numbers",
   };
-  
+
   const columns = [
     ...Object.keys(data[0] || {})
       .filter((key) => !["id", "user_id", "key"].includes(key))
@@ -176,15 +181,23 @@ const AdvertiserData = () => {
         filterDropdown: () =>
           key.toLowerCase().includes("date") ? (
             <DatePicker
-              onChange={(date, dateString) => handleFilterChange(dateString, key)}
+              onChange={(date, dateString) =>
+                handleFilterChange(dateString, key)
+              }
               style={{ width: "100%" }}
             />
           ) : dropdownOptions[key] ? (
             <Select
+              showSearch
               onChange={(value) => handleFilterChange(value, key)}
               style={{ width: "100%" }}
-              dropdownMatchSelectWidth={false} 
-              allowClear>
+              dropdownMatchSelectWidth={false}
+              allowClear
+              placeholder="Select an option"
+              optionFilterProp="children"
+              filterOption={(input, option) =>
+                option?.children.toLowerCase().includes(input.toLowerCase())
+              }>
               {dropdownOptions[key].map((option) => (
                 <Option key={option} value={option}>
                   {option}
@@ -202,7 +215,10 @@ const AdvertiserData = () => {
           if (key.toLowerCase().includes("date")) {
             return dayjs(record[key]).isSame(dayjs(value), "day");
           }
-          return record[key]?.toString().toLowerCase().includes(value.toLowerCase());
+          return record[key]
+            ?.toString()
+            .toLowerCase()
+            .includes(value.toLowerCase());
         },
         render: (text, record) =>
           editingKey === record.id ? (
@@ -211,8 +227,7 @@ const AdvertiserData = () => {
                 value={editedRow[key]}
                 onChange={(value) => handleChange(value, key)}
                 style={{ width: "100%" }}
-                dropdownMatchSelectWidth={false} 
-                >
+                dropdownMatchSelectWidth={false}>
                 {dropdownOptions[key].map((option) => (
                   <Option key={option} value={option}>
                     {option}
@@ -241,12 +256,13 @@ const AdvertiserData = () => {
         editingKey === record.id ? (
           <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} />
         ) : (
-          <Button icon={<EditOutlined />} onClick={() => handleEdit(record.id)} />
+          <Button
+            icon={<EditOutlined />}
+            onClick={() => handleEdit(record.id)}
+          />
         ),
     },
   ];
-  
-
 
   // const columns = [
   //   ...Object.keys(data[0] || {})
@@ -349,8 +365,7 @@ const AdvertiserData = () => {
           pagination={{ pageSize: 10 }}
           bordered
           loading={loading}
-          scroll={{ x: 'max-content' }}
-
+          scroll={{ x: "max-content" }}
         />
       </div>
     </div>

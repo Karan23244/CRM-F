@@ -60,16 +60,21 @@ const PublisherData = () => {
           axios.get(`${apiUrl}/get-pid`),
           axios.get(`${apiUrl}/pubid-data/${user.id}`),
         ]);
-
+      console.log(advmName);
       setDropdownOptions((prev) => ({
         ...prev,
-        adv_name: advmName.data?.data?.map((item) => item.username) || [],
+        adv_name:
+          advmName.data?.data
+            ?.filter(
+              (item) => item.role === "manager" || item.role === "advertiser"
+            )
+            .map((item) => item.username) || [],
         payable_event:
           payableEvent.data?.data?.map((item) => item.payble_event) || [],
         mmp_tracker: mmpTracker.data?.data?.map((item) => item.mmptext) || [],
         p_id: pid.data?.data?.map((item) => item.pid) || [],
         pub_id: pubID.data?.Publisher?.map((item) => item.pub_id) || [],
-        geo: geoData.geo,
+        geo: geoData.geo?.map((item) => item.code) || [],
       }));
     } catch (error) {
       message.error("Failed to fetch dropdown options");
@@ -188,10 +193,15 @@ const PublisherData = () => {
             />
           ) : dropdownOptions[key] ? (
             <Select
+              showSearch
               onChange={(value) => handleFilterChange(value, key)}
               style={{ width: "100%" }}
-              dropdownMatchSelectWidth={false} 
-              allowClear>
+              dropdownMatchSelectWidth={false}
+              allowClear
+              placeholder="Search..."
+              filterOption={(input, option) =>
+                option.children.toLowerCase().includes(input.toLowerCase())
+              }>
               {dropdownOptions[key].map((option) => (
                 <Option key={option} value={option}>
                   {option}
@@ -218,11 +228,16 @@ const PublisherData = () => {
           editingKey === record.id ? (
             dropdownOptions[key] ? (
               <Select
-                value={editedRow[key]}
-                onChange={(value) => handleChange(value, key)}
+                showSearch
+                onChange={(value) => handleFilterChange(value, key)}
                 style={{ width: "100%" }}
-                dropdownMatchSelectWidth={false} // Allows dropdown to take full width based on content
-              >
+                dropdownMatchSelectWidth={false}
+                allowClear
+                placeholder="Select an option"
+                optionFilterProp="children"
+                filterOption={(input, option) =>
+                  option?.children.toLowerCase().includes(input.toLowerCase())
+                }>
                 {dropdownOptions[key].map((option) => (
                   <Option key={option} value={option}>
                     {option}
@@ -275,7 +290,7 @@ const PublisherData = () => {
           pagination={{ pageSize: 10 }}
           bordered
           loading={loading}
-          scroll={{ x: 'max-content' }}
+          scroll={{ x: "max-content" }}
         />
       </div>
     </div>
