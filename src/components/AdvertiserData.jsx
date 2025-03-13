@@ -44,7 +44,6 @@ const AdvertiserData = () => {
       setLoading(false);
     }
   };
-
   const fetchDropdowns = async () => {
     try {
       const [advmName, payableEvent, mmpTracker, pid, pub_id] =

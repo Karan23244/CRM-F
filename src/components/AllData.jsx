@@ -417,9 +417,9 @@ const PublisherComponent = ({ data, name, role }) => {
   }
   const filteredData =
     role === "publisher"
-      ? data.map(({ adv_id, user_id, id, ...rest }) => rest)
+      ? data.map(({ adv_id, user_id, id,created_at, ...rest }) => rest)
       : role === "manager"
-      ? data.publisher_data.map(({ adv_id, user_id, id, ...rest }) => rest)
+      ? data.publisher_data.map(({ adv_id, user_id, id,created_at, ...rest }) => rest)
       : [];
   const [filters, setFilters] = useState({});
 

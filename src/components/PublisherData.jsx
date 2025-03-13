@@ -98,7 +98,7 @@ const PublisherData = () => {
       message.error("Failed to update data");
     }
   };
-
+    console.log(editedRow)
   const handleAddRow = async () => {
     try {
       if (!user?.id) {
@@ -229,7 +229,7 @@ const PublisherData = () => {
             dropdownOptions[key] ? (
               <Select
                 showSearch
-                onChange={(value) => handleFilterChange(value, key)}
+                onChange={(value) => handleChange(value, key)}
                 style={{ width: "100%" }}
                 dropdownMatchSelectWidth={false}
                 allowClear
