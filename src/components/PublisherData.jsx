@@ -21,7 +21,7 @@ const PublisherData = () => {
   const [editingKey, setEditingKey] = useState(null);
   const [editedRow, setEditedRow] = useState({});
   const [dropdownOptions, setDropdownOptions] = useState({
-    os: ["Android", "APK", "iOS"],
+    os: ["Android", "APK", "iOS","Both Android and iOS"],
   });
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({});
