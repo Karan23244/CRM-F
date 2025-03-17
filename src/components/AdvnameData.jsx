@@ -59,7 +59,7 @@ const AdvnameData = () => {
     const fetchData = async () => {
       try {
         const promises = selectedSubAdmins.map((admin) =>
-          axios.get(`${apiUrl}/pubid-data/${admin.value}`)
+          axios.get(`${apiUrl}/advid-data/${admin.value}`)
         );
         const responses = await Promise.all(promises);
         console.log(responses);
@@ -68,7 +68,7 @@ const AdvnameData = () => {
           adminId: selectedSubAdmins[index].value, // Ensure correct mapping
           name: selectedSubAdmins[index].label, // Add sub-admin name
           role: selectedSubAdmins[index].role, // Use role from selection
-          data: res.data.data,
+          data: res.data.advertisements,
         }));
         console.log(newRoleData);
         setRoleData(newRoleData); // Update state with all selected sub-admins' data
@@ -101,6 +101,7 @@ const AdvnameData = () => {
   );
 };
 const DataTable = ({ name, role, data }) => {
+  console.log(data);
   const columns = [
     {
       title: "ID",
@@ -108,14 +109,14 @@ const DataTable = ({ name, role, data }) => {
       key: "id",
     },
     {
-      title: "Publisher Name",
-      dataIndex: "pub_name",
-      key: "pub_name",
+      title: "Advertiser Name",
+      dataIndex: "adv_name",
+      key: "adv_name",
     },
     {
-      title: "Publisher ID",
-      dataIndex: "pub_id",
-      key: "pub_id",
+      title: "Advertiser ID",
+      dataIndex: "adv_id",
+      key: "adv_id",
     },
   ];
 

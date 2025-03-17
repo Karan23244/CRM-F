@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Table, Input, Button, Select, DatePicker, message } from "antd";
+import { Table, Input, Button, Select, DatePicker, message,Tooltip} from "antd";
 import {
   EditOutlined,
   SaveOutlined,
@@ -52,15 +52,16 @@ const PublisherData = () => {
   console.log(data);
   const fetchDropdowns = async () => {
     try {
-      const [advmName, payableEvent, mmpTracker, pid, pubID] =
+      const [advmName, payableEvent, mmpTracker, pid, pubID, review] =
         await Promise.all([
           axios.get(`${apiUrl}/get-subadmin`),
           axios.get(`${apiUrl}/get-paybleevernt`),
           axios.get(`${apiUrl}/get-mmptracker`),
           axios.get(`${apiUrl}/get-pid`),
           axios.get(`${apiUrl}/pubid-data/${user.id}`),
+          axios.get(`${apiUrl}/get-reviews`),
         ]);
-      console.log(advmName);
+      console.log(review);
       setDropdownOptions((prev) => ({
         ...prev,
         adv_name:
@@ -75,6 +76,7 @@ const PublisherData = () => {
         p_id: pid.data?.data?.map((item) => item.pid) || [],
         pub_id: pubID.data?.Publisher?.map((item) => item.pub_id) || [],
         geo: geoData.geo?.map((item) => item.code) || [],
+        review: review.data?.data?.map((item) => item.review_text) || [],
       }));
     } catch (error) {
       message.error("Failed to fetch dropdown options");
@@ -87,18 +89,24 @@ const PublisherData = () => {
   };
 
   const handleSave = async () => {
+    const isEmptyField = Object.values(editedRow).some((value) => !value);
+
+    if (isEmptyField) {
+      alert("All fields are required!");
+      return;
+    }  
     try {
       await axios.post(`${apiUrl}/pubdata-update/${editingKey}`, editedRow, {
         headers: { "Content-Type": "application/json" },
       });
       setEditingKey(null);
       fetchData();
-      message.success("Data updated successfully");
+      alert("Data updated successfully");
     } catch (error) {
-      message.error("Failed to update data");
+      alert("Failed to update data");
     }
   };
-    console.log(editedRow)
+  console.log(editedRow);
   const handleAddRow = async () => {
     try {
       if (!user?.id) {
@@ -127,10 +135,6 @@ const PublisherData = () => {
   const handleChange = (value, field) => {
     setEditedRow((prev) => ({ ...prev, [field]: value }));
   };
-
-  const filteredColumns = Object.keys(data[0] || {}).filter(
-    (key) => !["id", "user_id", "key"].includes(key)
-  );
   const handleFilterChange = (value, field) => {
     setFilters((prev) => ({ ...prev, [field]: value }));
     applyFilters({ ...filters, [field]: value });
@@ -229,6 +233,7 @@ const PublisherData = () => {
             dropdownOptions[key] ? (
               <Select
                 showSearch
+                value={editedRow[key]}
                 onChange={(value) => handleChange(value, key)}
                 style={{ width: "100%" }}
                 dropdownMatchSelectWidth={false}
@@ -262,15 +267,23 @@ const PublisherData = () => {
       })),
     {
       title: "Actions",
-      render: (_, record) =>
-        editingKey === record.id ? (
+      render: (_, record) => {
+        const createdAt = dayjs(record.created_at);
+        const isEditable = dayjs().diff(createdAt, "day") <= 3; // Check if within 3 days
+
+        return editingKey === record.id ? (
           <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} />
         ) : (
-          <Button
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record.id)}
-          />
-        ),
+          <Tooltip
+            title={!isEditable ? "You can't edit because time is over" : ""}>
+            <Button
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record.id)}
+              disabled={!isEditable} // Disable button after 3 days
+            />
+          </Tooltip>
+        );
+      },
     },
   ];
 

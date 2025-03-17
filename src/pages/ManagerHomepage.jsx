@@ -163,8 +163,8 @@ const ManagerHomepage = () => {
             </div>
           )}
           {activeComponent === "pid" && <PIDForm />}
-          {activeComponent === "payableevent" && <MMPTrackerForm />}
-          {activeComponent === "mmptracker" && <PayableEventForm />}
+          {activeComponent === "mmptracker" && <MMPTrackerForm />}
+          {activeComponent === "payableevent" && <PayableEventForm />}
           {activeComponent === "managerData" && <MainComponent />}
           {activeComponent === "changepassword" && <ChangePassword />}
         </main>

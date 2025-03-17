@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Table, Input, Button, Select, DatePicker, message } from "antd";
+import { Table, Input, Button, Select, DatePicker, message,Tooltip} from "antd";
 import { EditOutlined, SaveOutlined, PlusOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useSelector } from "react-redux";
@@ -57,7 +57,13 @@ const AdvertiserData = () => {
       console.log(pub_id);
       setDropdownOptions((prev) => ({
         ...prev,
-        pub_name: advmName.data?.data?.map((item) => item.username) || [],
+        // pub_name: advmName.data?.data?.map((item) => item.username) || [],
+        pub_name:
+          advmName.data?.data
+            ?.filter(
+              (item) => item.role === "manager" || item.role === "publisher"
+            )
+            .map((item) => item.username) || [],
         payable_event:
           payableEvent.data?.data?.map((item) => item.payble_event) || [],
         mmp_tracker: mmpTracker.data?.data?.map((item) => item.mmptext) || [],
@@ -76,6 +82,12 @@ const AdvertiserData = () => {
   };
 
   const handleSave = async () => {
+    const isEmptyField = Object.values(editedRow).some((value) => !value);
+
+    if (isEmptyField) {
+      alert("All fields are required!");
+      return;
+    }  
     try {
       await axios.post(`${apiUrl}/advdata-update/${editingKey}`, editedRow, {
         headers: { "Content-Type": "application/json" },
@@ -157,17 +169,17 @@ const AdvertiserData = () => {
     adv_payout: "ADV Payout $",
     pub_am: "Pub AM",
     pub_id: "PubID",
-    p_id: "PID",
+    pid: "PID",
     shared_date: "Shared Date",
     paused_date: "Paused Date",
-    adv_total_numbers: "ADV Total Numbers",
+    adv_total_no: "ADV Total Numbers",
     adv_deductions: "ADV Deductions",
-    adv_approved_numbers: "ADV Approved Numbers",
+    adv_approved_no: "ADV Approved Numbers",
   };
 
   const columns = [
     ...Object.keys(data[0] || {})
-      .filter((key) => !["id", "user_id", "key"].includes(key))
+      .filter((key) => !["id", "user_id", "key","created_at"].includes(key))
       .map((key) => ({
         title: columnHeadings[key] || key.replace(/([A-Z])/g, " $1").trim(),
         dataIndex: key,
@@ -249,17 +261,37 @@ const AdvertiserData = () => {
             text
           ),
       })),
+    // {
+    //   title: "Actions",
+    //   render: (_, record) =>
+    //     editingKey === record.id ? (
+    //       <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} />
+    //     ) : (
+    //       <Button
+    //         icon={<EditOutlined />}
+    //         onClick={() => handleEdit(record.id)}
+    //       />
+    //     ),
+    // },
     {
       title: "Actions",
-      render: (_, record) =>
-        editingKey === record.id ? (
+      render: (_, record) => {
+        const createdAt = dayjs(record.created_at);
+        const isEditable = dayjs().diff(createdAt, "day") <= 3; // Check if within 3 days
+
+        return editingKey === record.id ? (
           <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} />
         ) : (
-          <Button
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record.id)}
-          />
-        ),
+          <Tooltip
+            title={!isEditable ? "You can't edit because time is over" : ""}>
+            <Button
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record.id)}
+              disabled={!isEditable} // Disable button after 3 days
+            />
+          </Tooltip>
+        );
+      },
     },
   ];
 
