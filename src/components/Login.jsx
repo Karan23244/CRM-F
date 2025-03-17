@@ -4,7 +4,7 @@ import { setUser } from "../redux/authSlice";
 import { useNavigate } from "react-router-dom";
 
 const apiUrl =
-  import.meta.env.VITE_API_URL || "http://160.153.172.237:5200/api";
+  import.meta.env.VITE_API_URL || "https://api.clickorbits.in/api";
 
 const LoginForm = () => {
   const [username, setUsername] = useState("");

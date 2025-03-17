@@ -13,7 +13,7 @@ import geoData from "../Data/geoData.json";
 
 const { Option } = Select;
 const apiUrl =
-  import.meta.env.VITE_API_URL || "http://160.153.172.237:5200/api";
+  import.meta.env.VITE_API_URL || "https://api.clickorbits.in/api";
 
 const PublisherData = () => {
   const user = useSelector((state) => state.auth.user);

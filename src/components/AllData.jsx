@@ -6,7 +6,7 @@ import { EditOutlined, SaveOutlined } from "@ant-design/icons";
 import { useSelector } from "react-redux";
 
 const apiUrl =
-  import.meta.env.VITE_API_URL || "http://160.153.172.237:5200/api";
+  import.meta.env.VITE_API_URL || "https://api.clickorbits.in/api";
 const { RangePicker } = DatePicker;
 const SubAdminDropdown = ({ onSelect }) => {
   const [subAdmins, setSubAdmins] = useState([]);
@@ -52,248 +52,50 @@ const SubAdminDropdown = ({ onSelect }) => {
   );
 };
 
-const DataTable = ({ role, data, name }) => {
+const DataTable = ({ role, data, name,fetchData }) => {
   return role === "publisher" ? (
-    <PublisherComponent data={data} name={name} role={role} />
+    <PublisherComponent data={data} name={name} role={role} fetchData={fetchData}/>
   ) : role === "advertiser" ? (
     <AdvertiserData data={data} name={name} role={role} />
   ) : role === "manager" ? (
     <>
-      <PublisherComponent data={data} name={name} role={role} />
+      <PublisherComponent data={data} name={name} role={role} fetchData={fetchData}/>
       <AdvertiserData data={data} name={name} role={role} />
     </>
   ) : (
     <div>No matching role found</div>
   );
 };
-
-// const PublisherComponent = ({ data, name, role }) => {
-//   const [editingKey, setEditingKey] = useState(null);
-//   const [editedRow, setEditedRow] = useState({});
-//   const [loading, setLoading] = useState(false);
-//   const [reviewOptions, setReviewOptions] = useState([]);
-//   const [showEdit, setShowEdit] = useState(false);
-//   const [filters, setFilters] = useState({});
-//   console.log("Publisher Data:", data.publisher_data);
-//   useEffect(() => {
-//     fetchReviews();
-//     setTimeout(() => {
-//       setShowEdit(true);
-//     }, 2000);
-//   }, []);
-
-//   const fetchReviews = async () => {
-//     try {
-//       const response = await axios.get(`${apiUrl}/get-reviews`);
-//       setReviewOptions(
-//         response.data?.data?.map((item) => ({
-//           value: item.review_text,
-//           label: item.review_text,
-//         })) || []
-//       );
-//     } catch (error) {
-//       message.error("Failed to fetch reviews");
-//     }
-//   };
-
-//   const handleEdit = (id) => {
-//     setEditingKey(id);
-//     setEditedRow(data.find((row) => row.id === id) || {});
-//   };
-
-//   const handleSave = async () => {
-//     try {
-//       const updatedData = { ...editedRow, review: editedRow.review.label };
-//       await axios.post(`${apiUrl}/pubdata-update/${editingKey}`, updatedData, {
-//         headers: { "Content-Type": "application/json" },
-//       });
-//       setEditingKey(null);
-//       message.success("Data updated successfully");
-//     } catch (error) {
-//       message.error("Failed to update data");
-//     }
-//   };
-
-//   const handleChange = (value) => {
-//     setEditedRow((prev) => ({ ...prev, review: value }));
-//   };
-
-//   const handleFilterChange = (value, key) => {
-//     setFilters((prev) => ({ ...prev, [key]: value }));
-//   };
-
-//   // const filteredRecords = data.filter((item) => {
-//   //   return Object.keys(filters).every((key) => {
-//   //     if (!filters[key]) return true;
-
-//   //     if (Array.isArray(filters[key]) && filters[key].length === 2) {
-//   //       const [start, end] = filters[key];
-//   //       return dayjs(item[key]).isBetween(start, end, null, "[]");
-//   //     }
-
-//   //     return item[key] === filters[key];
-//   //   });
-//   // });
-//   const filteredRecords =
-//     role == "manager"
-//       ? data.publisher_data.filter((item) => {
-//           return Object.keys(filters).every((key) => {
-//             if (!filters[key]) return true;
-
-//             if (Array.isArray(filters[key]) && filters[key].length === 2) {
-//               const [start, end] = filters[key];
-//               return dayjs(item[key]).isBetween(start, end, null, "[]");
-//             }
-
-//             return item[key] === filters[key];
-//           });
-//         })
-//       : role == "publisher"
-//       ? data.filter((item) => {
-//           return Object.keys(filters).every((key) => {
-//             if (!filters[key]) return true;
-
-//             if (Array.isArray(filters[key]) && filters[key].length === 2) {
-//               const [start, end] = filters[key];
-//               return dayjs(item[key]).isBetween(start, end, null, "[]");
-//             }
-
-//             return item[key] === filters[key];
-//           });
-//         })
-//       : [];
-//   const safeLoading = typeof loading === "boolean" ? loading : false;
-//   const safeFilteredRecords = Array.isArray(filteredRecords)
-//     ? filteredRecords
-//     : [];
-
-//   console.log("final", Array.isArray(filteredRecords), filteredRecords);
-//   const filteredColumns = Object.keys(data[0] || {}).filter(
-//     (key) => !["id", "user_id", "key", "created_at"].includes(key)
-//   );
-
-//   const columns = [
-//     ...filteredColumns.map((key) => {
-//       if (key.toLowerCase().includes("date")) {
-//         return {
-//           title: key.replace(/([A-Z])/g, " $1").trim(),
-//           dataIndex: key,
-//           key,
-//           filterDropdown: () => (
-//             <RangePicker
-//               onChange={(dates) => handleFilterChange(dates, key)}
-//               style={{ width: "100%" }}
-//             />
-//           ),
-//         };
-//       }
-
-//       const uniqueValues = [
-//         ...new Set(data.map((item) => item[key]).filter(Boolean)),
-//       ];
-
-//       return {
-//         title: key.replace(/([A-Z])/g, " $1").trim(),
-//         dataIndex: key,
-//         key,
-//         filters: uniqueValues.map((val) => ({ text: val, value: val })),
-//         onFilter: (value, record) => record[key] === value,
-//         render: (text, record) =>
-//           editingKey === record.id && key === "review" ? (
-//             <Select
-//               value={editedRow.review || undefined}
-//               onChange={handleChange}
-//               style={{ width: "100%" }}
-//               placeholder="Select Review"
-//               options={reviewOptions}
-//             />
-//           ) : (
-//             text
-//           ),
-//       };
-//     }),
-//     showEdit && {
-//       title: "Actions",
-//       render: (_, record) =>
-//         editingKey === record.id ? (
-//           <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} />
-//         ) : (
-//           <Button
-//             icon={<EditOutlined />}
-//             onClick={() => handleEdit(record.id)}
-//           />
-//         ),
-//     },
-//   ].filter(Boolean);
-
-//   return (
-//     <div className="p-4 bg-gray-100 flex flex-col">
-//       <div>
-//         <h1 className="text-lg font-semibold">Publisher Data of {name}</h1>
-//       </div>
-//       <div className="w-full overflow-auto bg-white p-4 rounded shadow-md">
-//         <Table
-//           columns={columns}
-//           dataSource={safeFilteredRecords.map((item, index) => ({
-//             key: item.id ?? index,
-//             adv_name: item.adv_name || "N/A",
-//             campaign_name: item.campaign_name || "N/A",
-//             city: item.city || "N/A",
-//             created_at: item.created_at || "N/A",
-//             geo: item.geo || "N/A",
-//             mmp_tracker: item.mmp_tracker || "N/A",
-//             os: item.os || "N/A",
-//             p_id: item.p_id || "N/A",
-//             paused_date: item.paused_date || "N/A",
-//             payable_event: item.payable_event || "N/A",
-//             pub_approved_numbers: item.pub_approved_numbers || "N/A",
-//             pub_deductions: item.pub_deductions || "N/A",
-//             pub_id: item.pub_id || "N/A",
-//             pub_payout: item.pub_payout || "N/A",
-//             pub_total_numbers: item.pub_total_numbers || "N/A",
-//             review: item.review || "N/A",
-//             shared_date: item.shared_date || "N/A",
-//             user_id: item.user_id || "N/A",
-//           }))}
-//           pagination={{ pageSize: 10 }}
-//           bordered
-//           loading={safeLoading}
-//         />
-//       </div>
-//     </div>
-//   );
-// };
-
 const MainComponent = () => {
   const [selectedSubAdmins, setSelectedSubAdmins] = useState([]);
   const [roleData, setRoleData] = useState([]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const promises = selectedSubAdmins.map((admin) =>
-          axios.get(`${apiUrl}/user-data/${admin.value}`)
-        );
-        const responses = await Promise.all(promises);
-        console.log(responses);
-        // Convert API responses into structured data
-        const newRoleData = responses.map((res, index) => ({
-          adminId: selectedSubAdmins[index].value, // Ensure correct mapping
-          name: selectedSubAdmins[index].label, // Add sub-admin name
-          role: selectedSubAdmins[index].role, // Use role from selection
-          data: res.data.data,
-        }));
-        console.log(newRoleData);
-        setRoleData(newRoleData); // Update state with all selected sub-admins' data
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-    };
+  // Define fetchData at the top level
+  const fetchData = async () => {
+    try {
+      const promises = selectedSubAdmins.map((admin) =>
+        axios.get(`${apiUrl}/user-data/${admin.value}`)
+      );
+      const responses = await Promise.all(promises);
+      
+      const newRoleData = responses.map((res, index) => ({
+        adminId: selectedSubAdmins[index].value,
+        name: selectedSubAdmins[index].label,
+        role: selectedSubAdmins[index].role,
+        data: res.data.data,
+      }));
 
+      setRoleData(newRoleData);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
+  };
+
+  useEffect(() => {
     if (selectedSubAdmins.length > 0) {
       fetchData();
     } else {
-      setRoleData([]); // Reset when nothing is selected
+      setRoleData([]);
     }
   }, [selectedSubAdmins]);
 
@@ -304,15 +106,17 @@ const MainComponent = () => {
         roleData.map((data, index) => (
           <DataTable
             key={index}
-            name={data.name} // Pass the sub-admin name
+            name={data.name}
             role={data.role}
             data={data.data}
+            fetchData={fetchData}  // Pass fetchData to DataTable
             className="overflow-x-auto"
           />
         ))}
     </div>
   );
 };
+
 
 export default MainComponent;
 
@@ -385,7 +189,7 @@ const AdvertiserData = ({ data, name, role }) => {
     ];
 
     return {
-      title : columnHeadings[key] || key.replace(/([A-Z])/g, " $1").trim(),
+      title: columnHeadings[key] || key.replace(/([A-Z])/g, " $1").trim(),
       dataIndex: key,
       key,
       filters: uniqueValues.map((val) => ({ text: val, value: val })),
@@ -404,70 +208,109 @@ const AdvertiserData = ({ data, name, role }) => {
           dataSource={filteredRecords}
           pagination={{ pageSize: 10 }}
           bordered
-          scroll={{ x: 'max-content' }}
+          scroll={{ x: "max-content" }}
         />
       </div>
     </div>
   );
 };
-const PublisherComponent = ({ data, name, role }) => {
-  console.log(data)
+const PublisherComponent = ({ data, name, role,fetchData }) => {
+  const [editingKey, setEditingKey] = useState(null);
+  const [editedRow, setEditedRow] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [reviewOptions, setReviewOptions] = useState([]);
+  const [showEdit, setShowEdit] = useState(false);
+  const [filters, setFilters] = useState({});
+  console.log("Publisher Data:", data.publisher_data);
+  useEffect(() => {
+    fetchReviews();
+    setTimeout(() => {
+      setShowEdit(true);
+    }, 2000);
+  }, []);
+
+  const fetchReviews = async () => {
+    try {
+      const response = await axios.get(`${apiUrl}/get-reviews`);
+      setReviewOptions(
+        response.data?.data?.map((item) => ({
+          value: item.review_text,
+          label: item.review_text,
+        })) || []
+      );
+    } catch (error) {
+      message.error("Failed to fetch reviews");
+    }
+  };
+
+  const handleEdit = (id, record) => {
+    setEditingKey(id);
+    setEditedRow({ ...record }); // Store the entire row data, including review
+  };
+
+  const handleSave = async (id) => {
+    console.log("i am hitting", data.publisher_data);
+  
+    const originalRow = data.publisher_data.find((row) => row.id === id);
+    console.log("originalRow", originalRow);
+  
+    if (!originalRow) {
+      console.error(`Row with id ${id} not found!`);
+      return;
+    }
+  
+    try {
+      const updatedData = {
+        ...originalRow, // Keep all other fields unchanged
+        ...editedRow, // Merge updated review data
+        review:
+          typeof editedRow.review === "object"
+            ? editedRow.review.label
+            : editedRow.review,
+      };
+  
+      console.log("updatedData", updatedData); // Debugging output
+  
+      await axios.post(`${apiUrl}/pubdata-update/${id}`, updatedData, {
+        headers: { "Content-Type": "application/json" },
+      });
+  
+      setEditingKey(null);
+      setEditedRow({}); // Reset edited row
+      fetchData();
+      console.log("Reset editing key and edited row");
+  
+      message.success("Review updated successfully");
+    } catch (error) {
+      console.error("Error updating review:", error);
+      message.error("Failed to update review");
+    }
+  };
+  
+  const handleChange = (value) => {
+    setEditedRow((prev) => ({
+      ...prev, // Keep all other fields unchanged
+      review: value, // Update only the review field
+    }));
+  };
+
   if (!data || data.length === 0) {
     return <p className="text-center text-gray-500">No data available</p>;
   }
   const filteredData =
     role === "publisher"
-      ? data.map(({ adv_id, user_id, id,created_at, ...rest }) => rest)
+      ? data.map(({ adv_id, user_id, id, created_at, ...rest }) => ({
+          id, // Ensure the ID remains for tracking
+          ...rest,
+        }))
       : role === "manager"
-      ? data.publisher_data.map(({ adv_id, user_id, id,created_at, ...rest }) => rest)
+      ? data.publisher_data.map(
+          ({ adv_id, user_id, id, created_at, ...rest }) => ({
+            id, // Ensure the ID remains for tracking
+            ...rest,
+          })
+        )
       : [];
-  const [filters, setFilters] = useState({});
-
-  // const handleFilterChange = (value, key) => {
-  //   setFilters((prev) => ({ ...prev, [key]: value }));
-  // };
-
-  // const filteredRecords = filteredData.filter((item) => {
-  //   return Object.keys(filters).every((key) => {
-  //     if (!filters[key]) return true;
-
-  //     if (Array.isArray(filters[key]) && filters[key].length === 2) {
-  //       const [start, end] = filters[key];
-  //       return dayjs(item[key]).isBetween(start, end, null, "[]");
-  //     }
-
-  //     return item[key] === filters[key];
-  //   });
-  // });
-
-  // const columns = Object.keys(filteredData[0] || {}).map((key) => {
-  //   if (key.toLowerCase().includes("date")) {
-  //     return {
-  //       title: key.replace(/([A-Z])/g, " $1").trim(),
-  //       dataIndex: key,
-  //       key,
-  //       filterDropdown: () => (
-  //         <RangePicker
-  //           onChange={(dates) => handleFilterChange(dates, key)}
-  //           style={{ width: "100%" }}
-  //         />
-  //       ),
-  //     };
-  //   }
-
-  //   const uniqueValues = [
-  //     ...new Set(filteredData.map((item) => item[key]).filter(Boolean)),
-  //   ];
-
-  //   return {
-  //     title: key.replace(/([A-Z])/g, " $1").trim(),
-  //     dataIndex: key,
-  //     key,
-  //     filters: uniqueValues.map((val) => ({ text: val, value: val })),
-  //     onFilter: (value, record) => record[key] === value,
-  //   };
-  // });
-
 
   const columnHeadings = {
     adv_name: "ADVM Name",
@@ -487,24 +330,24 @@ const PublisherComponent = ({ data, name, role }) => {
     pub_deductions: "PUB Deductions",
     pub_approved_numbers: "PUB Approved Numbers",
   };
-  
+
   const handleFilterChange = (value, key) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
-  
+
   const filteredRecords = filteredData.filter((item) => {
     return Object.keys(filters).every((key) => {
       if (!filters[key]) return true;
-  
+
       if (Array.isArray(filters[key]) && filters[key].length === 2) {
         const [start, end] = filters[key];
         return dayjs(item[key]).isBetween(start, end, null, "[]");
       }
-  
+
       return item[key] === filters[key];
     });
   });
-  
+
   const columns = Object.keys(filteredData[0] || {}).map((key) => {
     if (key.toLowerCase().includes("date")) {
       return {
@@ -519,20 +362,51 @@ const PublisherComponent = ({ data, name, role }) => {
         ),
       };
     }
-  
+
     const uniqueValues = [
       ...new Set(filteredData.map((item) => item[key]).filter(Boolean)),
     ];
-  
+
     return {
       title: columnHeadings[key] || key, // Apply custom heading
       dataIndex: key,
       key,
       filters: uniqueValues.map((val) => ({ text: val, value: val })),
       onFilter: (value, record) => record[key] === value,
+      render: (text, record) =>
+        editingKey === record.id && key === "review" ? (
+          <Select
+            value={editedRow.review || undefined}
+            onChange={handleChange}
+            style={{ width: "100%" }}
+            placeholder="Select Review"
+            options={reviewOptions}
+          />
+        ) : (
+          text
+        ),
     };
   });
-  
+
+  if (showEdit) {
+    columns.push({
+      title: "Actions",
+      render: (_, record) =>
+        editingKey === record.id ? (
+          <Button
+            type="primary"
+            icon={<SaveOutlined />}
+            onClick={() => handleSave(record.id)} // Pass `id` to `handleSave`
+          />
+        ) : (
+          <Button
+            icon={<EditOutlined />}
+            onClick={() => handleEdit(record.id, record)}
+          />
+        ),
+    });
+  }
+
   return (
     <div className="p-4 bg-gray-100 flex flex-col">
       <div>
@@ -544,7 +418,7 @@ const PublisherComponent = ({ data, name, role }) => {
           dataSource={filteredRecords}
           pagination={{ pageSize: 10 }}
           bordered
-          scroll={{ x: 'max-content' }}
+          scroll={{ x: "max-content" }}
         />
       </div>
     </div>

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Table, Input } from "antd";
 
-const apiUrl = import.meta.env.VITE_API_URL || "http://160.153.172.237:5200/api";
+const apiUrl = import.meta.env.VITE_API_URL || "https://api.clickorbits.in/api";
 
 const AdvnameData = () => {
   const [tableData, setTableData] = useState([]);

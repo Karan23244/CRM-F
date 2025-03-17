@@ -11,7 +11,7 @@ import ChangePassword from "../components/ChangePassword";
 import PubnameData from "../components/PubnameData";
 import AdvnameData from "../components/AdvnameData";
 const apiUrl =
-  import.meta.env.VITE_API_URL || "http://160.153.172.237:5200/api";
+  import.meta.env.VITE_API_URL || "https://api.clickorbits.in/api";
 const AdminHomepage = () => {
   const [activeComponent, setActiveComponent] = useState("subadmin");
   const [sidebarOpen, setSidebarOpen] = useState(true); // Default open for large screens
