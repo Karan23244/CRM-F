@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Table, Input, Button, Select, DatePicker, message,Tooltip} from "antd";
+import {
+  Table,
+  Input,
+  Button,
+  Select,
+  DatePicker,
+  message,
+  Tooltip,
+} from "antd";
 import { EditOutlined, SaveOutlined, PlusOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useSelector } from "react-redux";
@@ -82,12 +90,21 @@ const AdvertiserData = () => {
   };
 
   const handleSave = async () => {
-    const isEmptyField = Object.values(editedRow).some((value) => !value);
+    const excludedFields = [
+      "paused_date",
+      "adv_total_no",
+      "adv_deductions",
+      "adv_approved_no",
+    ];
+
+    const isEmptyField = Object.entries(editedRow)
+      .filter(([key]) => !excludedFields.includes(key)) // Exclude specific fields
+      .some(([_, value]) => !value); // Check for empty values
 
     if (isEmptyField) {
-      alert("All fields are required!");
+      alert("All required fields must be filled!");
       return;
-    }  
+    }
     try {
       await axios.post(`${apiUrl}/advdata-update/${editingKey}`, editedRow, {
         headers: { "Content-Type": "application/json" },
@@ -179,7 +196,7 @@ const AdvertiserData = () => {
 
   const columns = [
     ...Object.keys(data[0] || {})
-      .filter((key) => !["id", "user_id", "key","created_at"].includes(key))
+      .filter((key) => !["id", "user_id", "key", "created_at"].includes(key))
       .map((key) => ({
         title: columnHeadings[key] || key.replace(/([A-Z])/g, " $1").trim(),
         dataIndex: key,

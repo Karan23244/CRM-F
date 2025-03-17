@@ -89,12 +89,20 @@ const PublisherData = () => {
   };
 
   const handleSave = async () => {
-    const isEmptyField = Object.values(editedRow).some((value) => !value);
-
+    const excludedFields = ["paused_date",
+      "review",
+      "pub_total_numbers",
+      "pub_deductions",
+      "pub_approved_numbers",
+      ];
+    const isEmptyField = Object.entries(editedRow)
+      .filter(([key]) => !excludedFields.includes(key)) // Exclude specific fields
+      .some(([_, value]) => !value); // Check for empty values
+    
     if (isEmptyField) {
-      alert("All fields are required!");
+      alert("All required fields must be filled!");
       return;
-    }  
+    }
     try {
       await axios.post(`${apiUrl}/pubdata-update/${editingKey}`, editedRow, {
         headers: { "Content-Type": "application/json" },
