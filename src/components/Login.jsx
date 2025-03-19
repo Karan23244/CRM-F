@@ -11,7 +11,6 @@ const LoginForm = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  console.log(import.meta.env.VITE_API_URL);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -25,7 +24,6 @@ const LoginForm = () => {
       setLoading(false);
       return;
     }
-    console.log(username, password);
 
     try {
       const response = await fetch(`${apiUrl}/login-subadmin`, {
@@ -35,7 +33,6 @@ const LoginForm = () => {
       });
 
       const data = await response.json();
-      console.log(data);
       if (!response.ok) throw new Error(data.message || "Login failed");
 
       dispatch(setUser(data.subAdmin)); // Store user in Redux & localStorage

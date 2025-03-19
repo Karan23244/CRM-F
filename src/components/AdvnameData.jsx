@@ -12,7 +12,6 @@ const AdvnameData = () => {
     const fetchData = async () => {
       try {
         const response = await axios.get(`${apiUrl}/get-NameAdv/`);
-        console.log("API Response:", response.data); // Debugging API response
 
         // Extracting data correctly
         if (response.data && Array.isArray(response.data.data)) {

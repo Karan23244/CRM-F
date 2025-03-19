@@ -13,7 +13,6 @@ const ReviewForm = () => {
   const [reviews, setReviews] = useState([]);
   const [editIndex, setEditIndex] = useState(null);
   const [editId, setEditId] = useState(null);
-  console.log(reviews);
   // Fetch all reviews
   const fetchReviews = async () => {
     try {

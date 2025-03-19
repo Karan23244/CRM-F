@@ -45,7 +45,6 @@ const PayableEventForm = () => {
           user_id: user?.id,
           payble_event: event,
         });
-        console.log(response);
         if (response.data.success === true) {
           const updatedEvents = [...events];
           updatedEvents[editIndex] = response.data;
@@ -59,7 +58,6 @@ const PayableEventForm = () => {
           user_id: user?.id,
           payble_event: event,
         });
-        console.log(response);
         if (response.data.success === true) {
           setEvents([...events, response.data]);
           fetchEvents();

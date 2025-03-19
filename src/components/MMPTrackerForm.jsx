@@ -47,7 +47,6 @@ const MMPTrackerForm = () => {
             mmptext: tracker,
           }
         );
-        console.log(response);
         if (response.data.success === true) {
           alert("Tracker updated successfully");
           fetchTrackers(); // Refresh the tracker list

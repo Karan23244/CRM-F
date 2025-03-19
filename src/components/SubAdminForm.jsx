@@ -28,7 +28,6 @@ const SubAdminForm = () => {
       const response = await fetch(`${apiUrl}/get-subadmin`);
 
       const data = await response.json();
-      console.log(data);
       if (response.ok) {
         setSubAdmins(
           data.data.filter((subAdmin) =>
@@ -67,45 +66,6 @@ const SubAdminForm = () => {
     updatedRanges[index][field] = value;
     setRanges(updatedRanges);
   };
-
-  // Handle Create Sub-Admin
-  // const handleCreateSubAdmin = async () => {
-  //   if (
-  //     !username ||
-  //     !password ||
-  //     ranges.some((range) => !range.start || !range.end)
-  //   ) {
-  //     alert("Please fill all fields!");
-  //     return;
-  //   }
-
-  //   const newSubAdmin = {
-  //     username,
-  //     password,
-  //     role,
-  //     ranges,
-  //     assigned_subadmins: role === "manager" ? assignedSubAdmins : [],
-  //   };
-  //   console.log(newSubAdmin);
-  //   try {
-  //     const response = await fetch(`${apiUrl}/create-subadmin`, {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify(newSubAdmin),
-  //     });
-  //     const data = await response.json();
-
-  //     if (response.ok) {
-  //       alert("Sub-Admin created successfully!");
-  //       resetForm();
-  //       fetchSubAdmins();
-  //     } else {
-  //       alert(`Error: ${data.message || "Failed to create sub-admin"}`);
-  //     }
-  //   } catch (error) {
-  //     alert("An error occurred while creating the sub-admin.");
-  //   }
-  // };
   const handleSaveSubAdmin = async () => {
     if (
       !username ||
@@ -131,10 +91,6 @@ const SubAdminForm = () => {
     if (selectedSubAdmin) {
       payload.id = selectedSubAdmin; // Include ID only for update
     }
-    console.log(payload);
-    console.log(
-      `${apiUrl}/${selectedSubAdmin ? "update-sub-admin" : "create-subadmin"}`
-    );
     try {
       const response = await fetch(
         `${apiUrl}/${
@@ -146,9 +102,7 @@ const SubAdminForm = () => {
           body: JSON.stringify(payload),
         }
       );
-      console.log(response);
       const data = await response.json();
-      console.log(data);
       if (response.ok) {
         alert(
           `Sub-Admin ${selectedSubAdmin ? "updated" : "created"} successfully!`
@@ -201,7 +155,7 @@ const SubAdminForm = () => {
       }
 
       const result = await response.json();
-      console.log("Sub-admin deleted successfully:", result);
+      alert("Sub-admin deleted successfully:");
       fetchSubAdmins();
       // You may want to refresh the list or update UI here
     } catch (error) {

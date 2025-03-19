@@ -61,7 +61,6 @@ const AdvertiserData = () => {
           axios.get(`${apiUrl}/get-pid`),
           axios.get(`${apiUrl}/get-allpub`),
         ]);
-      console.log(pub_id);
       setDropdownOptions((prev) => ({
         ...prev,
         // pub_name: advmName.data?.data?.map((item) => item.username) || [],
@@ -128,8 +127,6 @@ const AdvertiserData = () => {
         user_id: user.id, // Ensure user_id is included
         createdAt: new Date().toISOString(),
       };
-
-      console.log("Adding new row:", newRow);
       await axios.post(`${apiUrl}/add-advdata`, newRow, {
         headers: { "Content-Type": "application/json" },
       });
@@ -138,7 +135,6 @@ const AdvertiserData = () => {
       fetchData();
       alert("Data added successfully");
     } catch (error) {
-      console.error("Add Data Error:", error.response?.data || error.message);
       alert("Failed to add data");
     }
   };

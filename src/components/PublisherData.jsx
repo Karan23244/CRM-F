@@ -32,7 +32,6 @@ const PublisherData = () => {
   });
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({});
-  console.log(user);
   useEffect(() => {
     if (user?.id) {
       fetchData();
@@ -56,7 +55,6 @@ const PublisherData = () => {
       setLoading(false);
     }
   };
-  console.log(data);
   const fetchDropdowns = async () => {
     try {
       const [advmName, payableEvent, mmpTracker, pid, pubID, review] =
@@ -68,7 +66,6 @@ const PublisherData = () => {
           axios.get(`${apiUrl}/pubid-data/${user.id}`),
           axios.get(`${apiUrl}/get-reviews`),
         ]);
-      console.log(review);
       setDropdownOptions((prev) => ({
         ...prev,
         adv_name:

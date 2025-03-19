@@ -8,7 +8,6 @@ const apiUrl =
 
 const PublisherCreateForm = () => {
   const user = useSelector((state) => state.auth.user);
-  console.log(user);
   const userId = user?.id || null;
   const [name, setName] = useState("");
   const [selectedId, setSelectedId] = useState("");
@@ -35,15 +34,9 @@ const PublisherCreateForm = () => {
           allAvailableIds = [...allAvailableIds, ...rangeIds];
         }
       });
-
-      console.log(
-        "Available IDs (before filtering used ones):",
-        allAvailableIds
-      );
       setAvailableIds(allAvailableIds);
     }
   }, [user]);
-  console.log(availableIds);
   // Fetch data from API and update available IDs dynamically
   useEffect(() => {
     const fetchPublishers = async () => {

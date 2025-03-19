@@ -15,7 +15,7 @@ import axios from "axios";
 import dayjs from "dayjs";
 import "../index.css";
 import geoData from "../Data/geoData.json";
-
+import { exportToExcel } from "./exportExcel";
 const { Option } = Select;
 const apiUrl = import.meta.env.VITE_API_URL || "https://api.clickorbits.in/api";
 
@@ -167,7 +167,6 @@ const CampianData = () => {
       message.error("Failed to fetch dropdown options");
     }
   };
-  console.log(dropdownOptions);
   // Handle Checkbox Change
   const handleCheckboxChange = (type) => {
     setSelectedType(type);
@@ -214,7 +213,6 @@ const CampianData = () => {
         selectedType === "publisher"
           ? `${apiUrl}/pubdata-update/${editingKey}`
           : `${apiUrl}/advdata-update/${editingKey}`;
-      console.log(editedRow);
       await axios.post(updateUrl, editedRow, {
         headers: { "Content-Type": "application/json" },
       });
@@ -332,7 +330,19 @@ const CampianData = () => {
           <span className="text-lg font-semibold">Show Advertiser Data</span>
         </Checkbox>
       </div>
-
+      {/* Download Excel Button */}
+      <button
+        onClick={() =>
+          exportToExcel(
+            selectedType === "publisher" ? pubData : advData,
+            selectedType === "publisher"
+              ? "publisher-data.xlsx"
+              : "advertiser-data.xlsx"
+          )
+        }
+        className="px-4 py-2 bg-blue-500 text-white rounded mb-5">
+        Download Excel
+      </button>
       {/* Table Section */}
       <div className="bg-white shadow-lg rounded-lg p-5">
         <Table

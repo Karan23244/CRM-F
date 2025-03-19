@@ -32,8 +32,6 @@ const AdvertiserCreateForm = () => {
           allAvailableIds = [...allAvailableIds, ...rangeIds];
         }
       });
-
-      console.log("Available IDs (before filtering used ones):", allAvailableIds);
       setAvailableIds(allAvailableIds);
     }
   }, [user]);
@@ -56,7 +54,6 @@ const AdvertiserCreateForm = () => {
           setAvailableIds((prevIds) => prevIds.filter((id) => !usedIdsSet.has(id)));
         }
       } catch (error) {
-        console.error("Error fetching advertisers:", error);
         setAdvertisers([]);
       }
     };
@@ -90,7 +87,7 @@ const AdvertiserCreateForm = () => {
       setName("");
       setSelectedId("");
     } catch (error) {
-      console.error("Error creating advertiser:", error);
+      alert("Error creating advertiser:");
     }
   };
 

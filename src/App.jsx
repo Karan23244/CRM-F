@@ -4,7 +4,6 @@ import AdminHome from "./pages/AdminHomepage";
 import AdvertiserHome from "./pages/AdvHomepage";
 import PublisherHome from "./pages/PublisherHomepage";
 import ProtectedRoute from "./components/ProtectedRoutes";
-import AllData from "./components/AllData";
 import ManagerHomepage from "./pages/ManagerHomepage";
 const AppRoutes = () => {
   return (
