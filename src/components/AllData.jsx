@@ -355,7 +355,7 @@ const PublisherComponent = ({ data, name, role,fetchData }) => {
         dataIndex: key,
         key,
         filterDropdown: () => (
-          <RangePicker
+          <DatePicker
             onChange={(dates) => handleFilterChange(dates, key)}
             style={{ width: "100%" }}
           />

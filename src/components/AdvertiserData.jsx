@@ -15,8 +15,7 @@ import { useSelector } from "react-redux";
 import geoData from "../Data/geoData.json";
 
 const { Option } = Select;
-const apiUrl =
-  import.meta.env.VITE_API_URL || "https://api.clickorbits.in/api";
+const apiUrl = import.meta.env.VITE_API_URL || "https://api.clickorbits.in/api";
 
 const AdvertiserData = () => {
   const user = useSelector((state) => state.auth.user);
@@ -24,7 +23,7 @@ const AdvertiserData = () => {
   const [editingKey, setEditingKey] = useState(null);
   const [editedRow, setEditedRow] = useState({});
   const [dropdownOptions, setDropdownOptions] = useState({
-    os: ["Android", "APK", "iOS","Both Android and iOS"],
+    os: ["Android", "APK", "iOS", "Both Android and iOS"],
   });
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({});
@@ -111,9 +110,9 @@ const AdvertiserData = () => {
       });
       setEditingKey(null);
       fetchData();
-      message.success("Data updated successfully");
+      alert("Data updated successfully");
     } catch (error) {
-      message.error("Failed to update data");
+      alert("Failed to update data");
     }
   };
   // Add new row
@@ -137,43 +136,16 @@ const AdvertiserData = () => {
 
       setEditedRow({});
       fetchData();
-      message.success("Data added successfully");
+      alert("Data added successfully");
     } catch (error) {
       console.error("Add Data Error:", error.response?.data || error.message);
-      message.error("Failed to add data");
+      alert("Failed to add data");
     }
   };
   const handleChange = (value, field) => {
     setEditedRow((prev) => ({ ...prev, [field]: value }));
   };
-
-  const handleFilterChange = (value, field) => {
-    setFilters((prev) => ({ ...prev, [field]: value }));
-    applyFilters({ ...filters, [field]: value });
-  };
-
-  const applyFilters = (newFilters) => {
-    let filtered = data;
-    Object.keys(newFilters).forEach((key) => {
-      if (newFilters[key]) {
-        if (Array.isArray(newFilters[key])) {
-          filtered = filtered.filter((item) => {
-            const itemDate = dayjs(item[key]);
-            return (
-              itemDate.isAfter(newFilters[key][0]) &&
-              itemDate.isBefore(newFilters[key][1])
-            );
-          });
-        } else {
-          filtered = filtered.filter((item) =>
-            item[key]?.toString().includes(newFilters[key])
-          );
-        }
-      }
-    });
-    setFilteredData(filtered);
-  };
-
+  
   const columnHeadings = {
     pub_name: "PUBM Name",
     campaign_name: "Campaign Name",
@@ -194,6 +166,32 @@ const AdvertiserData = () => {
     adv_approved_no: "ADV Approved Numbers",
   };
 
+  const allowedFieldsAfter3Days = [
+    "paused_date",
+    "adv_total_no",
+    "adv_deductions",
+    "adv_approved_no",
+  ];
+const handleFilterChange = (value, key) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const filteredRecords = data.filter((item) => {
+    return Object.keys(filters).every((key) => {
+      if (!filters[key]) return true;
+
+      // Date range filter
+      if (Array.isArray(filters[key]) && filters[key].length === 2) {
+        const [start, end] = filters[key];
+        return dayjs(item[key]).isBetween(start, end, null, "[]");
+      }
+
+      return item[key]
+        ?.toString()
+        .toLowerCase()
+        .includes(filters[key].toString().toLowerCase());
+    });
+  });
   const columns = [
     ...Object.keys(data[0] || {})
       .filter((key) => !["id", "user_id", "key", "created_at"].includes(key))
@@ -242,69 +240,71 @@ const AdvertiserData = () => {
             .toLowerCase()
             .includes(value.toLowerCase());
         },
-        render: (text, record) =>
-          editingKey === record.id ? (
-            dropdownOptions[key] ? (
-              <Select
-                showSearch
-                value={editedRow[key]}
-                onChange={(value) => handleChange(value, key)}
-                style={{ width: "100%" }}
-                dropdownMatchSelectWidth={false}
-                allowClear
-                placeholder="Search..."
-                filterOption={(input, option) =>
-                  option.children.toLowerCase().includes(input.toLowerCase())
-                }>
-                {dropdownOptions[key].map((option) => (
-                  <Option key={option} value={option}>
-                    {option}
-                  </Option>
-                ))}
-              </Select>
-            ) : key.toLowerCase().includes("date") ? (
-              <DatePicker
-                value={editedRow[key] ? dayjs(editedRow[key]) : null}
-                onChange={(date, dateString) => handleChange(dateString, key)}
-                style={{ width: "100%" }}
-              />
+        render: (text, record) => {
+          const createdAt = dayjs(record.created_at);
+          const isEditableAfter3Days =
+            dayjs().diff(createdAt, "day") > 3 &&
+            allowedFieldsAfter3Days.includes(key); // Only allow specific fields after 3 days
+
+          if (editingKey === record.id) {
+            return isEditableAfter3Days ||
+              dayjs().diff(createdAt, "day") <= 3 ? (
+              dropdownOptions[key] ? (
+                <Select
+                  showSearch
+                  value={editedRow[key]}
+                  onChange={(value) => handleChange(value, key)}
+                  style={{ width: "100%" }}
+                  dropdownMatchSelectWidth={false}
+                  allowClear
+                  placeholder="Search..."
+                  filterOption={(input, option) =>
+                    option.children.toLowerCase().includes(input.toLowerCase())
+                  }>
+                  {dropdownOptions[key].map((option) => (
+                    <Option key={option} value={option}>
+                      {option}
+                    </Option>
+                  ))}
+                </Select>
+              ) : key.toLowerCase().includes("date") ? (
+                <DatePicker
+                  value={editedRow[key] ? dayjs(editedRow[key]) : null}
+                  onChange={(date, dateString) => handleChange(dateString, key)}
+                  style={{ width: "100%" }}
+                />
+              ) : (
+                <Input
+                  value={editedRow[key]}
+                  onChange={(e) => handleChange(e.target.value, key)}
+                />
+              )
             ) : (
-              <Input
-                value={editedRow[key]}
-                onChange={(e) => handleChange(e.target.value, key)}
-              />
-            )
-          ) : (
-            text
-          ),
+              text
+            );
+          }
+          return text;
+        },
       })),
-    // {
-    //   title: "Actions",
-    //   render: (_, record) =>
-    //     editingKey === record.id ? (
-    //       <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} />
-    //     ) : (
-    //       <Button
-    //         icon={<EditOutlined />}
-    //         onClick={() => handleEdit(record.id)}
-    //       />
-    //     ),
-    // },
     {
       title: "Actions",
       render: (_, record) => {
         const createdAt = dayjs(record.created_at);
-        const isEditable = dayjs().diff(createdAt, "day") <= 3; // Check if within 3 days
+        const isEditable = dayjs().diff(createdAt, "day") <= 3;
 
         return editingKey === record.id ? (
           <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} />
         ) : (
           <Tooltip
-            title={!isEditable ? "You can't edit because time is over" : ""}>
+            title={
+              !isEditable && !allowedFieldsAfter3Days.length
+                ? "You can't edit because time is over"
+                : ""
+            }>
             <Button
               icon={<EditOutlined />}
               onClick={() => handleEdit(record.id)}
-              disabled={!isEditable} // Disable button after 3 days
+              disabled={!isEditable && !allowedFieldsAfter3Days.length} // Disable after 3 days if no allowed fields
             />
           </Tooltip>
         );
@@ -314,9 +314,9 @@ const AdvertiserData = () => {
 
   // const columns = [
   //   ...Object.keys(data[0] || {})
-  //     .filter((key) => !["id", "user_id", "key"].includes(key))
+  //     .filter((key) => !["id", "user_id", "key", "created_at"].includes(key))
   //     .map((key) => ({
-  //       title: key.replace(/([A-Z])/g, " $1").trim(),
+  //       title: columnHeadings[key] || key.replace(/([A-Z])/g, " $1").trim(),
   //       dataIndex: key,
   //       key,
   //       filterDropdown: () =>
@@ -329,9 +329,15 @@ const AdvertiserData = () => {
   //           />
   //         ) : dropdownOptions[key] ? (
   //           <Select
+  //             showSearch
   //             onChange={(value) => handleFilterChange(value, key)}
   //             style={{ width: "100%" }}
-  //             allowClear>
+  //             dropdownMatchSelectWidth={false}
+  //             allowClear
+  //             placeholder="Search..."
+  //             filterOption={(input, option) =>
+  //               option.children.toLowerCase().includes(input.toLowerCase())
+  //             }>
   //             {dropdownOptions[key].map((option) => (
   //               <Option key={option} value={option}>
   //                 {option}
@@ -341,7 +347,7 @@ const AdvertiserData = () => {
   //         ) : (
   //           <Input
   //             onChange={(e) => handleFilterChange(e.target.value, key)}
-  //             placeholder={`Search ${key}`}
+  //             placeholder={`Search ${columnHeadings[key] || key}`}
   //           />
   //         ),
   //       onFilter: (value, record) => {
@@ -358,9 +364,16 @@ const AdvertiserData = () => {
   //         editingKey === record.id ? (
   //           dropdownOptions[key] ? (
   //             <Select
+  //               showSearch
   //               value={editedRow[key]}
   //               onChange={(value) => handleChange(value, key)}
-  //               style={{ width: "100%" }}>
+  //               style={{ width: "100%" }}
+  //               dropdownMatchSelectWidth={false}
+  //               allowClear
+  //               placeholder="Search..."
+  //               filterOption={(input, option) =>
+  //                 option.children.toLowerCase().includes(input.toLowerCase())
+  //               }>
   //               {dropdownOptions[key].map((option) => (
   //                 <Option key={option} value={option}>
   //                   {option}
@@ -383,20 +396,39 @@ const AdvertiserData = () => {
   //           text
   //         ),
   //     })),
+  //   // {
+  //   //   title: "Actions",
+  //   //   render: (_, record) =>
+  //   //     editingKey === record.id ? (
+  //   //       <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} />
+  //   //     ) : (
+  //   //       <Button
+  //   //         icon={<EditOutlined />}
+  //   //         onClick={() => handleEdit(record.id)}
+  //   //       />
+  //   //     ),
+  //   // },
   //   {
   //     title: "Actions",
-  //     render: (_, record) =>
-  //       editingKey === record.id ? (
+  //     render: (_, record) => {
+  //       const createdAt = dayjs(record.created_at);
+  //       const isEditable = dayjs().diff(createdAt, "day") <= 3; // Check if within 3 days
+
+  //       return editingKey === record.id ? (
   //         <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} />
   //       ) : (
-  //         <Button
-  //           icon={<EditOutlined />}
-  //           onClick={() => handleEdit(record.id)}
-  //         />
-  //       ),
+  //         <Tooltip
+  //           title={!isEditable ? "You can't edit because time is over" : ""}>
+  //           <Button
+  //             icon={<EditOutlined />}
+  //             onClick={() => handleEdit(record.id)}
+  //             disabled={!isEditable} // Disable button after 3 days
+  //           />
+  //         </Tooltip>
+  //       );
+  //     },
   //   },
   // ];
-
   return (
     <div className="p-4 bg-gray-100 min-h-screen flex flex-col items-center">
       <div className="w-full overflow-auto bg-white p-4 rounded shadow-md">
@@ -409,7 +441,7 @@ const AdvertiserData = () => {
         </Button>
         <Table
           columns={columns}
-          dataSource={data}
+          dataSource={filteredRecords}
           pagination={{ pageSize: 10 }}
           bordered
           loading={loading}

@@ -1,8 +1,6 @@
 import React, { useState } from "react";
 import { FaBars, FaTimes } from "react-icons/fa";
 import SubAdminForm from "../components/SubAdminForm";
-import AllData from "../components/AllData";
-import { Link } from "react-router-dom";
 import ReviewForm from "../components/ReviewForm";
 import { logout } from "../redux/authSlice";
 import { useDispatch } from "react-redux";
@@ -10,8 +8,7 @@ import { useNavigate } from "react-router-dom";
 import ChangePassword from "../components/ChangePassword";
 import PubnameData from "../components/PubnameData";
 import AdvnameData from "../components/AdvnameData";
-const apiUrl =
-  import.meta.env.VITE_API_URL || "https://api.clickorbits.in/api";
+import CampianData from "../components/CampianData";
 const AdminHomepage = () => {
   const [activeComponent, setActiveComponent] = useState("subadmin");
   const [sidebarOpen, setSidebarOpen] = useState(true); // Default open for large screens
@@ -141,7 +138,7 @@ const AdminHomepage = () => {
           )}
           {activeComponent === "alldata" && (
             <div>
-              <AllData />
+              <CampianData />
             </div>
           )}
           {activeComponent === "advertiserdata" && (
