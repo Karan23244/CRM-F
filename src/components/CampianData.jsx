@@ -71,7 +71,7 @@ const CampianData = () => {
   const [editingKey, setEditingKey] = useState(null);
   const [editedRow, setEditedRow] = useState({});
   const [dropdownOptions, setDropdownOptions] = useState({
-    os: ["Android", "APK", "iOS", "Both Android and iOS"],
+    os: ["Android", "APK", "iOS"],
   });
 
   // Fetch Publisher Data
