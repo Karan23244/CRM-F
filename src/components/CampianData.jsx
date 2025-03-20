@@ -52,7 +52,6 @@ const columnHeadingsAdv = {
   mmp_tracker: "MMP Tracker",
   adv_id: "ADV ID",
   adv_payout: "ADV Payout $",
-  pub_am: "Pub AM",
   pub_id: "PubID",
   pid: "PID",
   shared_date: "Shared Date",
@@ -142,6 +141,7 @@ const CampianData = () => {
           axios.get(`${apiUrl}/get-pid`),
           axios.get(`${apiUrl}/get-reviews`),
         ]);
+        console.log(advmName)
       setDropdownOptions((prev) => ({
         ...prev,
         adv_name:
@@ -167,6 +167,7 @@ const CampianData = () => {
       message.error("Failed to fetch dropdown options");
     }
   };
+  console.log(dropdownOptions)
   // Handle Checkbox Change
   const handleCheckboxChange = (type) => {
     setSelectedType(type);

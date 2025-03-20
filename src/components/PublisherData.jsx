@@ -197,51 +197,36 @@ const PublisherData = () => {
         .includes(filters[key].toString().toLowerCase());
     });
   });
-
+  
   const columns = [
     ...Object.keys(data[0] || {})
       .filter((key) => !["id", "user_id", "key", "created_at"].includes(key))
       .map((key) => {
-        // Handle Date fields separately
-        if (key.toLowerCase().includes("date")) {
-          return {
-            title: columnHeadings[key] || key.replace(/([A-Z])/g, " $1").trim(),
-            dataIndex: key,
-            key,
-            filterDropdown: () => (
+        const isDateField = key.toLowerCase().includes("date");
+  
+        return {
+          title: columnHeadings[key] || key.replace(/([A-Z])/g, " $1").trim(),
+          dataIndex: key,
+          key,
+          filters: isDateField
+            ? undefined
+            : data
+                .map((item) => item[key])
+                .filter(Boolean)
+                .map((val) => ({ text: val, value: val })),
+          filterDropdown: () =>
+            isDateField ? (
               <DatePicker.RangePicker
                 onChange={(dates, dateStrings) =>
                   handleFilterChange(dateStrings, key)
                 }
                 style={{ width: "100%" }}
               />
-            ),
-            onFilter: (value, record) =>
-              dayjs(record[key]).isSame(dayjs(value), "day"),
-          };
-        }
-
-        // Generate unique dropdown filter options for non-date fields
-        const uniqueValues = [
-          ...new Set(data.map((item) => item[key]).filter(Boolean)),
-        ];
-
-        return {
-          title: columnHeadings[key] || key.replace(/([A-Z])/g, " $1").trim(),
-          dataIndex: key,
-          key,
-          filters: uniqueValues.map((val) => ({
-            text: val,
-            value: val,
-          })),
-          onFilter: (value, record) => record[key] === value,
-          filterDropdown: () =>
-            dropdownOptions[key] ? (
+            ) : dropdownOptions[key] ? (
               <Select
                 showSearch
                 onChange={(value) => handleFilterChange(value, key)}
                 style={{ width: "100%" }}
-                dropdownMatchSelectWidth={false}
                 allowClear
                 placeholder="Search..."
                 filterOption={(input, option) =>
@@ -262,27 +247,33 @@ const PublisherData = () => {
           render: (text, record) => {
             const createdAt = dayjs(record.created_at);
             const isEditable = dayjs().diff(createdAt, "day") <= 3;
-            const allowedAfter3Days =
-              allowedFields[user?.role.toLowerCase()] || [];
+            const allowedAfter3Days = allowedFields[user?.role.toLowerCase()] || [];
             const canEditAfter3Days =
-              dayjs().diff(createdAt, "day") > 3 &&
-              allowedAfter3Days.includes(key);
-
+              dayjs().diff(createdAt, "day") > 3 && allowedAfter3Days.includes(key);
+  
             if (editingKey === record.id) {
               return isEditable || canEditAfter3Days ? (
-                dropdownOptions[key] ? (
+                isDateField ? (
+                  <DatePicker
+                    value={
+                      editedRow[key] ? dayjs(editedRow[key]) : null
+                    } // Ensure correct date parsing
+                    onChange={(date, dateString) =>
+                      handleChange(dateString, key)
+                    }
+                    style={{ width: "100%" }}
+                  />
+                ) : dropdownOptions[key] ? (
                   <Select
                     showSearch
                     value={editedRow[key]}
                     onChange={(value) => handleChange(value, key)}
                     style={{ width: "100%" }}
-                    dropdownMatchSelectWidth={false}
                     allowClear
                     placeholder="Search..."
+                    dropdownMatchSelectWidth={false}
                     filterOption={(input, option) =>
-                      option.children
-                        .toLowerCase()
-                        .includes(input.toLowerCase())
+                      option.children.toLowerCase().includes(input.toLowerCase())
                     }>
                     {dropdownOptions[key].map((option) => (
                       <Option key={option} value={option}>
@@ -290,14 +281,6 @@ const PublisherData = () => {
                       </Option>
                     ))}
                   </Select>
-                ) : key.toLowerCase().includes("date") ? (
-                  <DatePicker
-                    value={editedRow[key] ? dayjs(editedRow[key]) : null}
-                    onChange={(date, dateString) =>
-                      handleChange(dateString, key)
-                    }
-                    style={{ width: "100%" }}
-                  />
                 ) : (
                   <Input
                     value={editedRow[key]}
@@ -308,7 +291,7 @@ const PublisherData = () => {
                 text
               );
             }
-            return text;
+            return isDateField && text ? dayjs(text).format("YYYY-MM-DD") : text;
           },
         };
       }),
@@ -320,9 +303,13 @@ const PublisherData = () => {
         const allowedAfter3Days = allowedFields[user?.role.toLowerCase()] || [];
         const canEditAfter3Days =
           dayjs().diff(createdAt, "day") > 3 && allowedAfter3Days.length > 0;
-
+  
         return editingKey === record.id ? (
-          <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} />
+          <Button
+            type="primary"
+            icon={<SaveOutlined />}
+            onClick={() => handleSave(record.id)}
+          />
         ) : (
           <Tooltip
             title={
