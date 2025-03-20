@@ -214,7 +214,13 @@ const PublisherComponent = ({ data, name, fetchData }) => {
         <Table
           columns={columns}
           dataSource={filteredRecords}
-          pagination={{ pageSize: 10 }}
+          pagination={{
+            pageSizeOptions: ["10", "20", "50", "100"], // Define available page sizes
+            showSizeChanger: true, // Allow changing page size
+            defaultPageSize: 10, // Set the default page size
+            showTotal: (total, range) =>
+              `${range[0]}-${range[1]} of ${total} items`, // Optional: Show total records
+          }}
           bordered
           loading={loading}
           rowKey="id"
@@ -363,7 +369,13 @@ const AdvertiserData = ({ data, name }) => {
         <Table
           columns={columns}
           dataSource={filteredRecords}
-          pagination={{ pageSize: 10 }}
+          pagination={{
+            pageSizeOptions: ["10", "20", "50", "100"], // Define available page sizes
+            showSizeChanger: true, // Allow changing page size
+            defaultPageSize: 10, // Set the default page size
+            showTotal: (total, range) =>
+              `${range[0]}-${range[1]} of ${total} items`, // Optional: Show total records
+          }}
           bordered
           scroll={{ x: "max-content" }}
         />

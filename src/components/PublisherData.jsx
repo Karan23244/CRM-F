@@ -197,13 +197,13 @@ const PublisherData = () => {
         .includes(filters[key].toString().toLowerCase());
     });
   });
-  
+
   const columns = [
     ...Object.keys(data[0] || {})
       .filter((key) => !["id", "user_id", "key", "created_at"].includes(key))
       .map((key) => {
         const isDateField = key.toLowerCase().includes("date");
-  
+
         return {
           title: columnHeadings[key] || key.replace(/([A-Z])/g, " $1").trim(),
           dataIndex: key,
@@ -247,17 +247,17 @@ const PublisherData = () => {
           render: (text, record) => {
             const createdAt = dayjs(record.created_at);
             const isEditable = dayjs().diff(createdAt, "day") <= 3;
-            const allowedAfter3Days = allowedFields[user?.role.toLowerCase()] || [];
+            const allowedAfter3Days =
+              allowedFields[user?.role.toLowerCase()] || [];
             const canEditAfter3Days =
-              dayjs().diff(createdAt, "day") > 3 && allowedAfter3Days.includes(key);
-  
+              dayjs().diff(createdAt, "day") > 3 &&
+              allowedAfter3Days.includes(key);
+
             if (editingKey === record.id) {
               return isEditable || canEditAfter3Days ? (
                 isDateField ? (
                   <DatePicker
-                    value={
-                      editedRow[key] ? dayjs(editedRow[key]) : null
-                    } // Ensure correct date parsing
+                    value={editedRow[key] ? dayjs(editedRow[key]) : null} // Ensure correct date parsing
                     onChange={(date, dateString) =>
                       handleChange(dateString, key)
                     }
@@ -273,7 +273,9 @@ const PublisherData = () => {
                     placeholder="Search..."
                     dropdownMatchSelectWidth={false}
                     filterOption={(input, option) =>
-                      option.children.toLowerCase().includes(input.toLowerCase())
+                      option.children
+                        .toLowerCase()
+                        .includes(input.toLowerCase())
                     }>
                     {dropdownOptions[key].map((option) => (
                       <Option key={option} value={option}>
@@ -291,7 +293,9 @@ const PublisherData = () => {
                 text
               );
             }
-            return isDateField && text ? dayjs(text).format("YYYY-MM-DD") : text;
+            return isDateField && text
+              ? dayjs(text).format("YYYY-MM-DD")
+              : text;
           },
         };
       }),
@@ -303,7 +307,7 @@ const PublisherData = () => {
         const allowedAfter3Days = allowedFields[user?.role.toLowerCase()] || [];
         const canEditAfter3Days =
           dayjs().diff(createdAt, "day") > 3 && allowedAfter3Days.length > 0;
-  
+
         return editingKey === record.id ? (
           <Button
             type="primary"
@@ -340,7 +344,13 @@ const PublisherData = () => {
         <Table
           columns={columns}
           dataSource={filteredRecords}
-          pagination={{ pageSize: 10 }}
+          pagination={{
+            pageSizeOptions: ["10", "20", "50", "100"], // Define available page sizes
+            showSizeChanger: true, // Allow changing page size
+            defaultPageSize: 10, // Set the default page size
+            showTotal: (total, range) =>
+              `${range[0]}-${range[1]} of ${total} items`, // Optional: Show total records
+          }}
           bordered
           loading={loading}
           scroll={{ x: "max-content" }}

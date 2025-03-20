@@ -141,7 +141,7 @@ const CampianData = () => {
           axios.get(`${apiUrl}/get-pid`),
           axios.get(`${apiUrl}/get-reviews`),
         ]);
-        console.log(advmName)
+      console.log(advmName);
       setDropdownOptions((prev) => ({
         ...prev,
         adv_name:
@@ -167,7 +167,7 @@ const CampianData = () => {
       message.error("Failed to fetch dropdown options");
     }
   };
-  console.log(dropdownOptions)
+  console.log(dropdownOptions);
   // Handle Checkbox Change
   const handleCheckboxChange = (type) => {
     setSelectedType(type);
@@ -355,7 +355,13 @@ const CampianData = () => {
           }
           rowKey="id"
           bordered
-          pagination={{ pageSize: 10 }}
+          pagination={{
+            pageSizeOptions: ["10", "20", "50", "100"], // Define available page sizes
+            showSizeChanger: true, // Allow changing page size
+            defaultPageSize: 10, // Set the default page size
+            showTotal: (total, range) =>
+              `${range[0]}-${range[1]} of ${total} items`, // Optional: Show total records
+          }}
           scroll={{ x: "max-content" }}
         />
       </div>

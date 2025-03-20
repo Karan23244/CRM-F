@@ -141,7 +141,7 @@ const AdvertiserData = () => {
   const handleChange = (value, field) => {
     setEditedRow((prev) => ({ ...prev, [field]: value }));
   };
-  
+
   const columnHeadings = {
     pub_name: "PUBM Name",
     campaign_name: "Campaign Name",
@@ -168,7 +168,7 @@ const AdvertiserData = () => {
     "adv_deductions",
     "adv_approved_no",
   ];
-const handleFilterChange = (value, key) => {
+  const handleFilterChange = (value, key) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -438,7 +438,13 @@ const handleFilterChange = (value, key) => {
         <Table
           columns={columns}
           dataSource={filteredRecords}
-          pagination={{ pageSize: 10 }}
+          pagination={{
+            pageSizeOptions: ["10", "20", "50", "100"], // Define available page sizes
+            showSizeChanger: true, // Allow changing page size
+            defaultPageSize: 10, // Set the default page size
+            showTotal: (total, range) =>
+              `${range[0]}-${range[1]} of ${total} items`, // Optional: Show total records
+          }}
           bordered
           loading={loading}
           scroll={{ x: "max-content" }}
