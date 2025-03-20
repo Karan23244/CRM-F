@@ -27,7 +27,6 @@ const AdvnameData = () => {
     fetchData();
   }, []);
 
-
   // Filtering data based on search input for multiple fields
   const filteredData = tableData.filter((item) =>
     [item.username, item.adv_name, item.adv_id].some((field) =>
@@ -61,15 +60,23 @@ const AdvnameData = () => {
         placeholder="Search by Advertiser Name"
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
-        className="mb-4 w-1/3 p-2 border rounded"
+        className="mb-4 w-1/3 p-2 pb-6 border rounded"
       />
-      
+
       {/* Table Component */}
       <Table
         dataSource={filteredData}
         columns={columns}
         rowKey="id"
-        pagination={{ pageSize: 10 }}
+        pagination={{
+          pageSizeOptions: ["10", "20", "50", "100"], // Define available page sizes
+          showSizeChanger: true, // Allow changing page size
+          defaultPageSize: 10, // Set the default page size
+          showTotal: (total, range) =>
+            `${range[0]}-${range[1]} of ${total} items`, // Optional: Show total records
+        }}
+        bordered
+        className="mt-5"
       />
     </div>
   );

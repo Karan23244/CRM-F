@@ -2,8 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Table, Input } from "antd";
 
-const apiUrl =
-  import.meta.env.VITE_API_URL || "https://api.clickorbits.in/api";
+const apiUrl = import.meta.env.VITE_API_URL || "https://api.clickorbits.in/api";
 
 const PubnameData = () => {
   const [tableData, setTableData] = useState([]);
@@ -69,7 +68,15 @@ const PubnameData = () => {
         dataSource={filteredData}
         columns={columns}
         rowKey="id"
-        pagination={{ pageSize: 20 }}
+        pagination={{
+          pageSizeOptions: ["10", "20", "50", "100"], // Define available page sizes
+          showSizeChanger: true, // Allow changing page size
+          defaultPageSize: 10, // Set the default page size
+          showTotal: (total, range) =>
+            `${range[0]}-${range[1]} of ${total} items`, // Optional: Show total records
+        }}
+        bordered
+        className="mt-5"
       />
     </div>
   );
