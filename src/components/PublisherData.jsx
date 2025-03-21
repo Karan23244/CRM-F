@@ -215,9 +215,9 @@ const PublisherData = () => {
                 .map((val) => ({ text: val, value: val })),
           filterDropdown: () =>
             isDateField ? (
-              <DatePicker.RangePicker
-                onChange={(dates, dateStrings) =>
-                  handleFilterChange(dateStrings, key)
+              <DatePicker
+                onChange={(date, dateString) =>
+                  handleFilterChange(dateString, key)
                 }
                 style={{ width: "100%" }}
               />
