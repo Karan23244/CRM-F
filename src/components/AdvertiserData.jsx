@@ -123,10 +123,10 @@ const AdvertiserData = () => {
       }
 
       const newRow = {
-        ...editedRow,
         user_id: user.id, // Ensure user_id is included
         createdAt: new Date().toISOString(),
       };
+      console.log(newRow);
       await axios.post(`${apiUrl}/add-advdata`, newRow, {
         headers: { "Content-Type": "application/json" },
       });
