@@ -284,6 +284,7 @@ const AdvertiserData = () => {
       })),
     {
       title: "Actions",
+      fixed: "right",
       render: (_, record) => {
         const createdAt = dayjs(record.created_at);
         const isEditable = dayjs().diff(createdAt, "day") <= 3;

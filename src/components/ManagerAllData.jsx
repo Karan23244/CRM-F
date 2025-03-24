@@ -72,6 +72,14 @@ const PublisherComponent = ({ data, name, fetchData }) => {
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({});
 
+  // Check if a column has all empty values
+  const isColumnEmpty = (data, key) => {
+    return data.every(
+      (item) =>
+        item[key] === null || item[key] === "" || item[key] === undefined
+    );
+  };
+
   // Enable editing for the selected row
   const handleEdit = (id) => {
     setEditingKey(id);
@@ -155,7 +163,12 @@ const PublisherComponent = ({ data, name, fetchData }) => {
   // Define table columns with editable fields
   const columns = [
     ...Object.keys(data[0] || {})
-      .filter((key) => !["id", "user_id", "key", "created_at"].includes(key))
+      .filter(
+        (key) =>
+          !["id", "user_id", "key", "created_at"].includes(key) &&
+          // ✅ Exclude `adv_name` if it's empty
+          !(key === "adv_name" && isColumnEmpty(data, "adv_name"))
+      )
       .map((key) => ({
         title: columnHeadings[key] || key,
         dataIndex: key,
@@ -192,6 +205,7 @@ const PublisherComponent = ({ data, name, fetchData }) => {
       })),
     {
       title: "Actions",
+      fixed: "right",
       key: "actions",
       render: (_, record) =>
         editingKey === record.id ? (
@@ -264,7 +278,6 @@ const MainComponent = () => {
       setRoleData([]); // ✅ Reset data when no selection
     }
   }, [selectedSubAdmins]);
-
   return (
     <div className="m-6">
       {/* ✅ Sub-admin dropdown */}

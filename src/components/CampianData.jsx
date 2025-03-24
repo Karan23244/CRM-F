@@ -108,7 +108,7 @@ const CampianData = () => {
   // Set initial data based on selection
   useEffect(() => {
     const data = selectedType === "publisher" ? pubData : advData;
-    setFilteredData(data);
+    setFilteredData(data.filter((row) => !isRowEmpty(row)));
     generateUniqueValues(data);
   }, [selectedType, pubData, advData]);
 
@@ -173,7 +173,15 @@ const CampianData = () => {
     setSelectedType(type);
     setFilters({});
   };
-
+  // Check if all values in a row are empty
+// Check if the row has empty pub_name or adv_name
+const isRowEmpty = (row) => {
+  if (selectedType === "publisher") {
+    return !row.adv_name || row.adv_name === null || row.adv_name === "";
+  } else {
+    return !row.pub_name || row.pub_name === null || row.pub_name === "";
+  }
+};
   // Handle Filter Change
   const handleFilterChange = (value, key) => {
     setFilters((prev) => ({
@@ -190,7 +198,7 @@ const CampianData = () => {
         filters[key] ? item[key] === filters[key] : true
       )
     );
-    setFilteredData(filtered);
+    setFilteredData(data.filter((row) => !isRowEmpty(row)));
   }, [filters, pubData, advData, selectedType]);
 
   // Handle Edit
@@ -295,6 +303,7 @@ const CampianData = () => {
       })),
       {
         title: "Actions",
+        fixed: "right",
         key: "actions",
         render: (record) =>
           editingKey === record.id ? (
