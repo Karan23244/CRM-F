@@ -34,43 +34,51 @@ const PIDForm = () => {
 
   // Function to handle form submission
   const handleSubmit = async () => {
-    if (!pid.trim()) return;
-
-    try {
-      if (editIndex !== null) {
-        // Update existing PID
-        const response = await axios.post(`${apiUrl}/update-pid/${editId}`, {
-          user_id: user?.id,
-          pid: pid,
-        });
-        if (response.data.success) {
-          message.success("PID updated successfully");
-          fetchPids(); // Refresh the PID list
-          setEditIndex(null);
-          setEditId(null);
-        } else {
-          message.error("Failed to update PID");
-        }
+    const trimmedPid = pid.trim(); // Trim front and back spaces
+    if (!trimmedPid) return; // Prevent submission of empty or space-only PID
+  try {
+    if (editIndex !== null) {
+      // Update existing PID
+      const response = await axios.post(`${apiUrl}/update-pid/${editId}`, {
+        user_id: user?.id,
+        pid: trimmedPid,
+      });
+  
+      if (response.data.success) {
+        alert("PID updated successfully");
+        fetchPids(); // Refresh the PID list
+        setEditIndex(null);
+        setEditId(null);
       } else {
-        // Add new PID
-        const response = await axios.post(`${apiUrl}/add-pid`, {
-          user_id: user?.id,
-          pid: pid,
-        });
-        if (response.data.success) {
-          message.success("PID added successfully");
-          fetchPids(); // Refresh the PID list
-        } else {
-          message.error("Failed to add PID");
-        }
+        alert("Failed to update PID");
       }
-    } catch (error) {
-      console.error("Error submitting PID:", error);
-      message.error("An error occurred while submitting the PID");
+    } else {
+      // Add new PID
+      const response = await axios.post(`${apiUrl}/add-pid`, {
+        user_id: user?.id,
+        pid: trimmedPid,
+      });
+  
+      console.log(response);
+      if (response.status === 500) {
+        alert("PID already exists! Please use a different PID.");
+      } else if (response.data.success) {
+        alert("PID added successfully");
+        fetchPids(); // Refresh the PID list
+      } else {
+        alert("Failed to add PID");
+      }
+    }
+  } catch (error) {
+    if (error.response && error.response.status === 500) {
+      alert("PID already exists! Please choose a different PID.");
+    } else {
+      console.error("Error:", error);
+      alert("Something went wrong. Please try again later.");
     }
     setPid("");
-  };
-
+  }
+}
   // Function to handle edit button click
   const handleEdit = (index) => {
     setPid(pids[index].pid);
