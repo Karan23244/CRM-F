@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Table, Select } from "antd";
+import { Table, Select, Button, Space } from "antd";
 import { useSelector } from "react-redux";
 import geoData from "../Data/geoData.json";
 
@@ -17,6 +17,7 @@ const AdvertiserCreateForm = () => {
   const [advertisers, setAdvertisers] = useState([]);
   const [availableIds, setAvailableIds] = useState([]);
   const [usedIds, setUsedIds] = useState(new Set());
+  const [editingAdv, setEditingAdv] = useState(null);
 
   // **Initialize available IDs from user.ranges**
   useEffect(() => {
@@ -68,6 +69,7 @@ const AdvertiserCreateForm = () => {
     fetchAdvertisers();
   }, [userId]);
 
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name || !selectedId || !geo) {
@@ -82,11 +84,25 @@ const AdvertiserCreateForm = () => {
       note: note || "", // Optional note
       user_id: userId,
     };
-    console.log(newAdv);
+    console.log(newAdv)
     try {
-      await axios.post(`${apiUrl}/create-advid`, newAdv);
+      if (editingAdv) {
+        // **Update existing advertiser**
+        const response = await axios.put(
+          `${apiUrl}/update-advid`, // Correct endpoint
+          newAdv
+        );
+        console.log(response)
+        if (response.data.success) {
+          alert("Advertiser updated successfully");
+        }
+        setEditingAdv(null);
+      } else {
+        // **Create new advertiser**
+        await axios.post(`${apiUrl}/create-advid`, newAdv);
+      }
 
-      // Refresh advertisers after creation
+      // Refresh advertisers after submission
       const { data } = await axios.get(`${apiUrl}/advid-data/${userId}`);
       if (data.success && Array.isArray(data.advertisements)) {
         setAdvertisers(data.advertisements);
@@ -101,13 +117,29 @@ const AdvertiserCreateForm = () => {
       }
 
       // Reset form
-      setName("");
-      setSelectedId("");
-      setGeo("");
-      setNote("");
+      resetForm();
     } catch (error) {
-      alert("Error creating advertiser:");
+      console.log(error)
+      alert("Error creating/updating advertiser:");
     }
+  };
+
+  // Handle Edit Button
+  const handleEdit = (record) => {
+    setEditingAdv(record);
+    setName(record.adv_name);
+    setSelectedId(record.adv_id);
+    setGeo(record.geo);
+    setNote(record.note);
+  };
+
+  // Reset Form
+  const resetForm = () => {
+    setName("");
+    setSelectedId("");
+    setGeo("");
+    setNote("");
+    setEditingAdv(null);
   };
 
   const columns = [
@@ -115,11 +147,25 @@ const AdvertiserCreateForm = () => {
     { title: "Advertiser Name", dataIndex: "adv_name", key: "adv_name" },
     { title: "Geo", dataIndex: "geo", key: "geo" },
     { title: "Note", dataIndex: "note", key: "note" },
+    {
+      title: "Actions",
+      key: "actions",
+      render: (_, record) => (
+        <Space size="middle">
+          <Button type="link" onClick={() => handleEdit(record)}>
+            Edit
+          </Button>
+        </Space>
+      ),
+    },
   ];
 
   return (
     <div className="m-6 p-6 bg-white shadow-md rounded-lg">
-      <h2 className="text-2xl font-bold mb-4">Create Advertiser</h2>
+      <h2 className="text-2xl font-bold mb-4">
+        {editingAdv ? "Edit Advertiser" : "Create Advertiser"}
+      </h2>
+
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Advertiser Name */}
         <div>
@@ -142,13 +188,19 @@ const AdvertiserCreateForm = () => {
             value={selectedId}
             onChange={(e) => setSelectedId(e.target.value)}
             className="w-full p-2 border border-gray-300 rounded-lg"
-            required>
+            required
+            disabled={!!editingAdv} // Disable changing ID in edit mode
+          >
             <option value="">Select an ID</option>
-            {availableIds.map((id) => (
-              <option key={id} value={id}>
-                {id}
-              </option>
-            ))}
+            {availableIds.length > 0 || editingAdv ? (
+              (editingAdv ? [editingAdv.adv_id] : availableIds).map((id) => (
+                <option key={id} value={id}>
+                  {id}
+                </option>
+              ))
+            ) : (
+              <option disabled>No available IDs</option>
+            )}
           </select>
         </div>
 
@@ -165,17 +217,20 @@ const AdvertiserCreateForm = () => {
             filterOption={(input, option) =>
               option?.label?.toLowerCase().includes(input.toLowerCase())
             }
-            required>
+            required
+          >
             {geoData.geo?.map((geo) => (
               <Select.Option
                 key={geo.code}
                 value={geo.code}
-                label={`${geo.code}`}>
+                label={`${geo.code}`}
+              >
                 {geo.code}
               </Select.Option>
             ))}
           </Select>
         </div>
+
         {/* Note (Optional) */}
         <div>
           <label className="block text-lg font-medium">Note (Optional)</label>
@@ -190,9 +245,20 @@ const AdvertiserCreateForm = () => {
         {/* Submit Button */}
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700">
-          Create Advertiser
+          className="w-full bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700"
+        >
+          {editingAdv ? "Update Advertiser" : "Create Advertiser"}
         </button>
+
+        {editingAdv && (
+          <button
+            type="button"
+            onClick={resetForm}
+            className="w-full mt-2 bg-gray-400 text-white p-2 rounded-lg hover:bg-gray-500"
+          >
+            Cancel Edit
+          </button>
+        )}
       </form>
 
       {/* Existing Advertisers Table */}

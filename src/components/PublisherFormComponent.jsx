@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Table, Spin, Alert, Select } from "antd";
+import { Table, Spin, Alert, Select, Button, Space } from "antd";
 import { useSelector } from "react-redux";
 import geoData from "../Data/geoData.json";
 
 const { Option } = Select;
 
-const apiUrl =
-  import.meta.env.VITE_API_URL || "https://api.clickorbits.in/api";
+const apiUrl = import.meta.env.VITE_API_URL || "https://api.clickorbits.in/api";
 
 const PublisherCreateForm = () => {
   const user = useSelector((state) => state.auth.user);
@@ -21,6 +20,7 @@ const PublisherCreateForm = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [usedIds, setUsedIds] = useState(new Set());
+  const [editingPub, setEditingPub] = useState(null);
 
   // **Initialize available IDs from user.ranges**
   useEffect(() => {
@@ -76,6 +76,7 @@ const PublisherCreateForm = () => {
     fetchPublishers();
   }, [userId]);
 
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name || !selectedId || !geo) {
@@ -92,10 +93,25 @@ const PublisherCreateForm = () => {
     };
 
     setLoading(true);
+    console.log(newPub);
     try {
-      await axios.post(`${apiUrl}/create-pubid`, newPub);
+      if (editingPub) {
+        // **Update existing publisher using PUT request**
+        const response = await axios.put(
+          `${apiUrl}/update-pubid`, // Correct endpoint
+          newPub
+        );
+        console.log(response)
+        if (response.data.success) {
+          alert("Publisher updated successfully");
+        }
+        setEditingPub(null);
+      } else {
+        // **Create new publisher**
+        await axios.post(`${apiUrl}/create-pubid`, newPub);
+      }
 
-      // Refresh publishers after creation
+      // Refresh publishers after submission
       const { data } = await axios.get(`${apiUrl}/pubid-data/${userId}`);
       if (data.success && Array.isArray(data.Publisher)) {
         setPublishers(data.Publisher);
@@ -108,17 +124,32 @@ const PublisherCreateForm = () => {
       }
 
       // Reset form after submission
-      setName("");
-      setSelectedId("");
-      setGeo("");
-      setNote("");
-      setError(""); // Clear any previous error
+      resetForm();
     } catch (error) {
-      console.error("Error creating publisher:", error);
-      setError("Failed to create publisher. Please try again.");
+      console.error("Error creating/updating publisher:", error);
+      setError("Failed to create/update publisher. Please try again.");
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handle Edit Button
+  const handleEdit = (record) => {
+    setEditingPub(record);
+    setName(record.pub_name);
+    setSelectedId(record.pub_id);
+    setGeo(record.geo);
+    setNote(record.note);
+  };
+
+  // Reset Form
+  const resetForm = () => {
+    setName("");
+    setSelectedId("");
+    setGeo("");
+    setNote("");
+    setEditingPub(null);
+    setError("");
   };
 
   const columns = [
@@ -126,11 +157,24 @@ const PublisherCreateForm = () => {
     { title: "Publisher Name", dataIndex: "pub_name", key: "pub_name" },
     { title: "Geo", dataIndex: "geo", key: "geo" },
     { title: "Note", dataIndex: "note", key: "note" },
+    {
+      title: "Actions",
+      key: "actions",
+      render: (_, record) => (
+        <Space size="middle">
+          <Button type="link" onClick={() => handleEdit(record)}>
+            Edit
+          </Button>
+        </Space>
+      ),
+    },
   ];
 
   return (
     <div className="m-6 p-6 bg-white shadow-md rounded-lg">
-      <h2 className="text-2xl font-bold mb-4">Create Publisher</h2>
+      <h2 className="text-2xl font-bold mb-4">
+        {editingPub ? "Edit Publisher" : "Create Publisher"}
+      </h2>
 
       {error && (
         <Alert message={error} type="error" showIcon className="mb-4" />
@@ -159,10 +203,11 @@ const PublisherCreateForm = () => {
             onChange={(e) => setSelectedId(e.target.value)}
             className="w-full p-2 border border-gray-300 rounded-lg"
             required
+            disabled={!!editingPub} // Disable changing ID in edit mode
           >
             <option value="">Select an ID</option>
-            {availableIds.length > 0 ? (
-              availableIds.map((id) => (
+            {availableIds.length > 0 || editingPub ? (
+              (editingPub ? [editingPub.pub_id] : availableIds).map((id) => (
                 <option key={id} value={id}>
                   {id}
                 </option>
@@ -186,14 +231,12 @@ const PublisherCreateForm = () => {
             filterOption={(input, option) =>
               option?.label?.toLowerCase().includes(input.toLowerCase())
             }
-            required
-          >
+            required>
             {geoData.geo?.map((geo) => (
               <Select.Option
                 key={geo.code}
                 value={geo.code}
-                label={`${geo.code}`}
-              >
+                label={`${geo.code}`}>
                 {geo.code}
               </Select.Option>
             ))}
@@ -215,10 +258,24 @@ const PublisherCreateForm = () => {
         <button
           type="submit"
           className="w-full bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700"
-          disabled={loading}
-        >
-          {loading ? <Spin size="small" /> : "Create Publisher"}
+          disabled={loading}>
+          {loading ? (
+            <Spin size="small" />
+          ) : editingPub ? (
+            "Update Publisher"
+          ) : (
+            "Create Publisher"
+          )}
         </button>
+
+        {editingPub && (
+          <button
+            type="button"
+            onClick={resetForm}
+            className="w-full mt-2 bg-gray-400 text-white p-2 rounded-lg hover:bg-gray-500">
+            Cancel Edit
+          </button>
+        )}
       </form>
 
       <h3 className="text-xl font-semibold pt-10">Existing Publishers</h3>
