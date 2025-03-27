@@ -101,7 +101,7 @@ const PublisherCreateForm = () => {
           `${apiUrl}/update-pubid`, // Correct endpoint
           newPub
         );
-        console.log(response)
+        console.log(response);
         if (response.data.success) {
           alert("Publisher updated successfully");
         }
@@ -190,6 +190,7 @@ const PublisherCreateForm = () => {
             onChange={(e) => setName(e.target.value)}
             className="w-full p-2 border border-gray-300 rounded-lg"
             required
+            disabled={!!editingPub}
           />
         </div>
 
@@ -251,6 +252,7 @@ const PublisherCreateForm = () => {
             onChange={(e) => setNote(e.target.value)}
             className="w-full p-2 border border-gray-300 rounded-lg"
             rows="3"
+            disabled={!!editingPub}
           />
         </div>
 
