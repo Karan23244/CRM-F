@@ -127,6 +127,7 @@ const PublisherData = () => {
       }
 
       const newRow = {
+        ...editedRow,
         user_id: user.id,
         createdAt: new Date().toISOString(),
       };
