@@ -4,7 +4,7 @@ import { Table, Select, Button, Space } from "antd";
 import { useSelector } from "react-redux";
 import geoData from "../Data/geoData.json";
 
-const apiUrl = import.meta.env.VITE_API_URL || "https://api.clickorbits.in/api";
+const apiUrl = import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 
 const AdvertiserCreateForm = () => {
   const user = useSelector((state) => state.auth.user);

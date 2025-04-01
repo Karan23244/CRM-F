@@ -5,7 +5,7 @@ import { Table, Button, message } from "antd";
 import { useSelector } from "react-redux";
 
 const apiUrl =
-  import.meta.env.VITE_API_URL || "https://api.clickorbits.in/api";
+  import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 
 const ReviewForm = () => {
   const user = useSelector((state) => state.auth.user);

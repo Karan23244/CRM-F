@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useSelector } from "react-redux";
 
-const apiUrl = import.meta.env.VITE_API_URL || "https://api.clickorbits.in/api";
+const apiUrl = import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 
 const ChangePassword = () => {
   const user = useSelector((state) => state.auth.user);

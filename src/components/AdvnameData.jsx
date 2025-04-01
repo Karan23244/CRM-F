@@ -5,7 +5,7 @@ import { useSelector } from "react-redux";
 import geoData from "../Data/geoData.json";
 
 const { Option } = Select;
-const apiUrl = import.meta.env.VITE_API_URL || "https://api.clickorbits.in/api";
+const apiUrl = import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 
 const AdvnameData = () => {
   const user = useSelector((state) => state.auth.user);

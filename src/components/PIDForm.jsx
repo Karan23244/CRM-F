@@ -4,7 +4,7 @@ import axios from "axios";
 import { Table, Button, Input, message } from "antd";
 
 const apiUrl =
-  import.meta.env.VITE_API_URL || "https://api.clickorbits.in/api";
+  import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 
 const PIDForm = () => {
   const user = useSelector((state) => state.auth.user);

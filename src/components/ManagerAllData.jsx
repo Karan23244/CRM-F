@@ -7,7 +7,7 @@ import { useSelector } from "react-redux";
 import dayjs from "dayjs";
 import { exportToExcel } from "./exportExcel";
 
-const apiUrl = import.meta.env.VITE_API_URL || "https://api.clickorbits.in/api";
+const apiUrl = import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 const { RangePicker } = DatePicker;
 const SubAdminDropdown = ({ onSelect }) => {
   const [subAdmins, setSubAdmins] = useState([]);

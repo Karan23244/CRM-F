@@ -4,7 +4,7 @@ import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
 
 const { Option } = Select;
 const apiUrl =
-  import.meta.env.VITE_API_URL || "https://api.clickorbits.in/api";
+  import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 
 const SubAdminForm = () => {
   const [subAdmins, setSubAdmins] = useState([]);

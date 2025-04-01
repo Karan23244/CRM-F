@@ -4,7 +4,7 @@ import { Table, Input, Select, Button, Space } from "antd";
 import geoData from "../Data/geoData.json";
 
 const { Option } = Select;
-const apiUrl = import.meta.env.VITE_API_URL || "https://api.clickorbits.in/api";
+const apiUrl = import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 
 const PubnameData = () => {
   const [tableData, setTableData] = useState([]);

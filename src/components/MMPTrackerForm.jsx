@@ -5,7 +5,7 @@ import { useSelector } from "react-redux";
 import { Table, Button, message } from "antd";
 
 const apiUrl =
-  import.meta.env.VITE_API_URL || "https://api.clickorbits.in/api";
+  import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 
 const MMPTrackerForm = () => {
   const user = useSelector((state) => state.auth.user);

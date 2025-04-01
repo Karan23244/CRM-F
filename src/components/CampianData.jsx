@@ -17,7 +17,7 @@ import "../index.css";
 import geoData from "../Data/geoData.json";
 import { exportToExcel } from "./exportExcel";
 const { Option } = Select;
-const apiUrl = import.meta.env.VITE_API_URL || "https://api.clickorbits.in/api";
+const apiUrl = import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 
 // Publisher Column Headings
 const columnHeadingsPub = {
