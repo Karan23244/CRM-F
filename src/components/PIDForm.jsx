@@ -58,8 +58,6 @@ const PIDForm = () => {
         user_id: user?.id,
         pid: trimmedPid,
       });
-  
-      console.log(response);
       if (response.status === 500) {
         alert("PID already exists! Please use a different PID.");
       } else if (response.data.success) {

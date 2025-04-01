@@ -36,7 +36,8 @@ const MMPTrackerForm = () => {
   // Function to handle form submission
   const handleSubmit = async () => {
     if (!tracker.trim()) return;
-
+    const trimmedTracker = tracker.trim(); // Trim front and back spaces
+    if (!trimmedTracker) return; // Prevent submission of empty or space-only Tracker
     try {
       if (editIndex !== null) {
         // Update existing tracker
@@ -44,7 +45,7 @@ const MMPTrackerForm = () => {
           `${apiUrl}/update-mmptracker/${editId}`,
           {
             user_id: user?.id,
-            mmptext: tracker,
+            mmptext: trimmedTracker,
           }
         );
         if (response.data.success === true) {
@@ -57,7 +58,7 @@ const MMPTrackerForm = () => {
         // Add new tracker
         const response = await axios.post(`${apiUrl}/add-mmptracker`, {
           user_id: user?.id,
-          mmptext: tracker,
+          mmptext: trimmedTracker,
         });
         if (response.data.success === true) {
           alert("Tracker added successfully");
@@ -65,8 +66,12 @@ const MMPTrackerForm = () => {
         }
       }
     } catch (error) {
-      console.error("Error submitting tracker:", error);
-      message.error("An error occurred while submitting the tracker");
+      if (error.response && error.response.status === 500) {
+        alert("Tracker already exists! Please choose a different Tracker.");
+      } else {
+        console.error("Error:", error);
+        alert("Something went wrong. Please try again later.");
+      }
     }
     setTracker("");
   };

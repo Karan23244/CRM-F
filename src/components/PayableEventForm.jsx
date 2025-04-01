@@ -4,8 +4,7 @@ import axios from "axios";
 import { useSelector } from "react-redux";
 import { Table, Button } from "antd";
 
-const apiUrl =
-  import.meta.env.VITE_API_URL || "https://api.clickorbits.in/api";
+const apiUrl = import.meta.env.VITE_API_URL || "https://api.clickorbits.in/api";
 
 const PayableEventForm = () => {
   const user = useSelector((state) => state.auth.user);
@@ -37,13 +36,14 @@ const PayableEventForm = () => {
 
   // Function to handle form submission
   const handleSubmit = async () => {
-    if (!event.trim()) return;
-
+    const trimmedEvent = event.trim(); // Trim front and back spaces
+    if (!trimmedEvent) return; // Prevent submission of empty or space-only Event
+    console.log(trimmedEvent);
     try {
       if (editIndex !== null) {
         const response = await axios.post(`${apiUrl}/update-event/${editId}`, {
           user_id: user?.id,
-          payble_event: event,
+          payble_event: trimmedEvent,
         });
         if (response.data.success === true) {
           const updatedEvents = [...events];
@@ -52,19 +52,35 @@ const PayableEventForm = () => {
           setEditIndex(null);
           fetchEvents();
           setEditId(null);
+        } else {
+          alert("Failed to update Payable Event");
         }
       } else {
         const response = await axios.post(`${apiUrl}/add-paybleevernt`, {
           user_id: user?.id,
-          payble_event: event,
+          payble_event: trimmedEvent,
         });
-        if (response.data.success === true) {
+        if (response.status === 500) {
+          alert(
+            "Payable Event is already exists! Please use a different Payable Event."
+          );
+        } else if (response.data.success) {
+          alert("Payable Event added successfully");
           setEvents([...events, response.data]);
           fetchEvents();
+        } else {
+          alert("Failed to add Payable Event");
         }
       }
     } catch (error) {
-      console.error("Error submitting event:", error);
+      if (error.response && error.response.status === 500) {
+        alert(
+          "Payable Event already exists! Please choose a different Payable Event."
+        );
+      } else {
+        console.error("Error:", error);
+        alert("Something went wrong. Please try again later.");
+      }
     }
     setEvent("");
   };
