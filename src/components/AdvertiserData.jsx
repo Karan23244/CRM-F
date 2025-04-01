@@ -13,6 +13,7 @@ import { EditOutlined, SaveOutlined, PlusOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useSelector } from "react-redux";
 import geoData from "../Data/geoData.json";
+import { exportToExcel } from "./exportExcel";
 
 const { Option } = Select;
 const apiUrl = import.meta.env.VITE_API_URL || "https://api.clickorbits.in/api";
@@ -430,6 +431,12 @@ const AdvertiserData = () => {
   return (
     <div className="p-4 bg-gray-100 min-h-screen flex flex-col items-center">
       <div className="w-full overflow-auto bg-white p-4 rounded shadow-md">
+        <Button
+          type="primary"
+          onClick={() => exportToExcel(data, "advertiser-data.xlsx")}
+          className="px-4 py-2 mr-4 bg-blue-500 text-white rounded mb-5">
+          Download Excel
+        </Button>
         <Button
           type="primary"
           icon={<PlusOutlined />}

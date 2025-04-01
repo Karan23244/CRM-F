@@ -5,6 +5,7 @@ import { Table, Input, Button, message, DatePicker } from "antd";
 import { EditOutlined, SaveOutlined } from "@ant-design/icons";
 import { useSelector } from "react-redux";
 import dayjs from "dayjs";
+import { exportToExcel } from "./exportExcel";
 
 const apiUrl = import.meta.env.VITE_API_URL || "https://api.clickorbits.in/api";
 const { RangePicker } = DatePicker;
@@ -221,6 +222,12 @@ const PublisherComponent = ({ data, name, fetchData }) => {
 
   return (
     <div className="p-4 bg-gray-100 flex flex-col">
+      <Button
+        type="primary"
+        onClick={() => exportToExcel(data, "Sub-publisher-data.xlsx")}
+        className="w-3xs mb-5">
+        Download Excel
+      </Button>
       <div>
         <h1 className="text-lg font-semibold">Publisher Data of {name}</h1>
       </div>
