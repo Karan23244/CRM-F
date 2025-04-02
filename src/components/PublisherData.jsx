@@ -334,37 +334,45 @@ const PublisherData = () => {
     },
   ];
   return (
-    <div className="p-4 bg-gray-100 min-h-screen flex flex-col items-center">
-      <div className="w-full overflow-auto bg-white p-4 rounded shadow-md">
-        <Button
-          type="primary"
-          onClick={() => exportToExcel(data, "publisher-data.xlsx")}
-          className="px-4 py-2 mr-4 bg-blue-500 text-white rounded mb-5">
-          Download Excel
-        </Button>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={handleAddRow}
-          className="mb-4">
-          Add Row
-        </Button>
-        <Table
-          columns={columns}
-          dataSource={filteredRecords}
-          pagination={{
-            pageSizeOptions: ["10", "20", "50", "100"], // Define available page sizes
-            showSizeChanger: true, // Allow changing page size
-            defaultPageSize: 10, // Set the default page size
-            showTotal: (total, range) =>
-              `${range[0]}-${range[1]} of ${total} items`, // Optional: Show total records
-          }}
-          bordered
-          loading={loading}
-          scroll={{ x: "max-content" }}
-        />
-      </div>
+<div className="p-4 bg-gray-100 min-h-screen flex flex-col items-center">
+  <div className="w-full bg-white p-4 rounded shadow-md relative">
+    {/* Fixed Button Container */}
+    <div className="sticky top-0 left-0 right-0 z-20 p-4 flex">
+      <Button
+        type="primary"
+        onClick={() => exportToExcel(data, "publisher-data.xlsx")}
+        className="px-4 py-2 mr-4 bg-blue-500 text-white rounded">
+        Download Excel
+      </Button>
+      <Button
+        type="primary"
+        icon={<PlusOutlined />}
+        onClick={handleAddRow}
+        className="px-4 py-2 bg-green-500 text-white rounded">
+        Add Row
+      </Button>
     </div>
+
+    {/* Scrollable Table Container */}
+    <div className="overflow-auto max-h-[70vh] mt-2">
+      <Table
+        columns={columns}
+        dataSource={filteredRecords}
+        pagination={{
+          pageSizeOptions: ["10", "20", "50", "100"],
+          showSizeChanger: true,
+          defaultPageSize: 10,
+          showTotal: (total, range) =>
+            `${range[0]}-${range[1]} of ${total} items`,
+        }}
+        bordered
+        loading={loading}
+        scroll={{ x: "max-content" }}
+      />
+    </div>
+  </div>
+</div>
+
   );
 };
 

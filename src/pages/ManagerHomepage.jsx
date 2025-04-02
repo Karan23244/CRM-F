@@ -149,7 +149,7 @@ const ManagerHomepage = () => {
         </header>
 
         {/* Main Content Area */}
-        <main className=" overflow-auto min-w-0">
+        <main className="overflow-auto min-w-0">
           {activeComponent === "advform" && <AdvFormComponent />}
           {activeComponent === "pubform" && <PublisherFormComponent />}
           {activeComponent === "advdata" && (

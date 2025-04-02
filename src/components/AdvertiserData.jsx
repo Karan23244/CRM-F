@@ -16,7 +16,8 @@ import geoData from "../Data/geoData.json";
 import { exportToExcel } from "./exportExcel";
 
 const { Option } = Select;
-const apiUrl = import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
+const apiUrl =
+  import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 
 const AdvertiserData = () => {
   const user = useSelector((state) => state.auth.user);
@@ -311,153 +312,43 @@ const AdvertiserData = () => {
     },
   ];
 
-  // const columns = [
-  //   ...Object.keys(data[0] || {})
-  //     .filter((key) => !["id", "user_id", "key", "created_at"].includes(key))
-  //     .map((key) => ({
-  //       title: columnHeadings[key] || key.replace(/([A-Z])/g, " $1").trim(),
-  //       dataIndex: key,
-  //       key,
-  //       filterDropdown: () =>
-  //         key.toLowerCase().includes("date") ? (
-  //           <DatePicker
-  //             onChange={(date, dateString) =>
-  //               handleFilterChange(dateString, key)
-  //             }
-  //             style={{ width: "100%" }}
-  //           />
-  //         ) : dropdownOptions[key] ? (
-  //           <Select
-  //             showSearch
-  //             onChange={(value) => handleFilterChange(value, key)}
-  //             style={{ width: "100%" }}
-  //             dropdownMatchSelectWidth={false}
-  //             allowClear
-  //             placeholder="Search..."
-  //             filterOption={(input, option) =>
-  //               option.children.toLowerCase().includes(input.toLowerCase())
-  //             }>
-  //             {dropdownOptions[key].map((option) => (
-  //               <Option key={option} value={option}>
-  //                 {option}
-  //               </Option>
-  //             ))}
-  //           </Select>
-  //         ) : (
-  //           <Input
-  //             onChange={(e) => handleFilterChange(e.target.value, key)}
-  //             placeholder={`Search ${columnHeadings[key] || key}`}
-  //           />
-  //         ),
-  //       onFilter: (value, record) => {
-  //         if (!value) return true;
-  //         if (key.toLowerCase().includes("date")) {
-  //           return dayjs(record[key]).isSame(dayjs(value), "day");
-  //         }
-  //         return record[key]
-  //           ?.toString()
-  //           .toLowerCase()
-  //           .includes(value.toLowerCase());
-  //       },
-  //       render: (text, record) =>
-  //         editingKey === record.id ? (
-  //           dropdownOptions[key] ? (
-  //             <Select
-  //               showSearch
-  //               value={editedRow[key]}
-  //               onChange={(value) => handleChange(value, key)}
-  //               style={{ width: "100%" }}
-  //               dropdownMatchSelectWidth={false}
-  //               allowClear
-  //               placeholder="Search..."
-  //               filterOption={(input, option) =>
-  //                 option.children.toLowerCase().includes(input.toLowerCase())
-  //               }>
-  //               {dropdownOptions[key].map((option) => (
-  //                 <Option key={option} value={option}>
-  //                   {option}
-  //                 </Option>
-  //               ))}
-  //             </Select>
-  //           ) : key.toLowerCase().includes("date") ? (
-  //             <DatePicker
-  //               value={editedRow[key] ? dayjs(editedRow[key]) : null}
-  //               onChange={(date, dateString) => handleChange(dateString, key)}
-  //               style={{ width: "100%" }}
-  //             />
-  //           ) : (
-  //             <Input
-  //               value={editedRow[key]}
-  //               onChange={(e) => handleChange(e.target.value, key)}
-  //             />
-  //           )
-  //         ) : (
-  //           text
-  //         ),
-  //     })),
-  //   // {
-  //   //   title: "Actions",
-  //   //   render: (_, record) =>
-  //   //     editingKey === record.id ? (
-  //   //       <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} />
-  //   //     ) : (
-  //   //       <Button
-  //   //         icon={<EditOutlined />}
-  //   //         onClick={() => handleEdit(record.id)}
-  //   //       />
-  //   //     ),
-  //   // },
-  //   {
-  //     title: "Actions",
-  //     render: (_, record) => {
-  //       const createdAt = dayjs(record.created_at);
-  //       const isEditable = dayjs().diff(createdAt, "day") <= 3; // Check if within 3 days
-
-  //       return editingKey === record.id ? (
-  //         <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} />
-  //       ) : (
-  //         <Tooltip
-  //           title={!isEditable ? "You can't edit because time is over" : ""}>
-  //           <Button
-  //             icon={<EditOutlined />}
-  //             onClick={() => handleEdit(record.id)}
-  //             disabled={!isEditable} // Disable button after 3 days
-  //           />
-  //         </Tooltip>
-  //       );
-  //     },
-  //   },
-  // ];
   return (
     <div className="p-4 bg-gray-100 min-h-screen flex flex-col items-center">
-      <div className="w-full overflow-auto bg-white p-4 rounded shadow-md">
-        <Button
-          type="primary"
-          onClick={() => exportToExcel(data, "advertiser-data.xlsx")}
-          className="px-4 py-2 mr-4 bg-blue-500 text-white rounded mb-5">
-          Download Excel
-        </Button>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={handleAddRow}
-          className="mb-4">
-          Add Row
-        </Button>
-        <Table
-          columns={columns}
-          dataSource={filteredRecords}
-          pagination={{
-            pageSizeOptions: ["10", "20", "50", "100"], // Define available page sizes
-            showSizeChanger: true, // Allow changing page size
-            defaultPageSize: 10, // Set the default page size
-            showTotal: (total, range) =>
-              `${range[0]}-${range[1]} of ${total} items`, // Optional: Show total records
-          }}
-          bordered
-          loading={loading}
-          scroll={{ x: "max-content" }}
-        />
+      <div className="w-full bg-white p-4 rounded shadow-md relative">
+        {/* Fixed Button Container */}
+        <div className="sticky top-0 left-0 right-0 z-20 p-4">
+          <Button
+            type="primary"
+            onClick={() => exportToExcel(data, "advertiser-data.xlsx")}
+            className="px-4 py-2 mr-4 bg-blue-500 text-white rounded">
+            Download Excel
+          </Button>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={handleAddRow}
+            className="px-4 py-2 bg-green-500 text-white rounded">
+            Add Row
+          </Button>
+        </div>
+
+        {/* Scrollable Table Container */}
+        <div className="overflow-auto max-h-[70vh] mt-2">
+          <Table
+            columns={columns}
+            dataSource={filteredRecords}
+            pagination={{
+              pageSizeOptions: ["10", "20", "50", "100"],
+              showSizeChanger: true,
+              defaultPageSize: 10,
+              showTotal: (total, range) =>
+                `${range[0]}-${range[1]} of ${total} items`,
+            }}
+            bordered
+            loading={loading}
+            scroll={{ x: "max-content" }}
+          />
+        </div>
       </div>
     </div>
   );
