@@ -14,6 +14,8 @@ import {
   SaveOutlined,
   PlusOutlined,
   SearchOutlined,
+  CopyOutlined,
+  DeleteOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useSelector } from "react-redux";
@@ -21,7 +23,8 @@ import geoData from "../Data/geoData.json";
 import { exportToExcel } from "./exportExcel";
 
 const { Option } = Select;
-const apiUrl = import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
+const apiUrl =
+  import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 
 const PublisherData = () => {
   const user = useSelector((state) => state.auth.user);
@@ -144,11 +147,48 @@ const PublisherData = () => {
       message.error("Failed to add data");
     }
   };
+  const handleCopyRow = async (record) => {
+    try {
+      if (!user?.id) {
+        message.error("User ID is missing. Please login again.");
+        return;
+      }
+
+      const copiedRow = {
+        ...record,
+        id: undefined, // Remove the existing ID so the backend treats it as a new entry
+        user_id: user.id,
+        createdAt: new Date().toISOString(),
+      };
+
+      await axios.post(`${apiUrl}/add-pubdata`, copiedRow, {
+        headers: { "Content-Type": "application/json" },
+      });
+
+      fetchData();
+      message.success("Row copied and added successfully");
+    } catch (error) {
+      message.error("Failed to copy row");
+    }
+  };
 
   const handleChange = (value, field) => {
     setEditedRow((prev) => ({ ...prev, [field]: value }));
   };
-
+  const handleDelete = (id) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this item? This action cannot be undone."
+    );
+    if (!confirmDelete) return;
+  
+    axios
+      .post(`${apiUrl}/pubdata-delete-data/${id}`)
+      .then(() => {
+        alert("Data deleted");
+        fetchData();
+      })
+      .catch((err) => console.error("Error deleting Data:", err));
+  };
   const columnHeadings = {
     adv_name: "ADVM Name",
     campaign_name: "Campaign Name",
@@ -305,74 +345,99 @@ const PublisherData = () => {
       fixed: "right",
       render: (_, record) => {
         const createdAt = dayjs(record.created_at);
-        const isEditable = dayjs().diff(createdAt, "day") <= 3;
+        const now = dayjs();
+        const isEditable = now.diff(createdAt, "day") <= 3;
         const allowedAfter3Days = allowedFields[user?.role.toLowerCase()] || [];
         const canEditAfter3Days =
-          dayjs().diff(createdAt, "day") > 3 && allowedAfter3Days.length > 0;
+          now.diff(createdAt, "day") > 3 && allowedAfter3Days.length > 0;
 
-        return editingKey === record.id ? (
-          <Button
-            type="primary"
-            icon={<SaveOutlined />}
-            onClick={() => handleSave(record.id)}
-          />
-        ) : (
-          <Tooltip
-            title={
-              !isEditable && !canEditAfter3Days
-                ? "You can't edit because time is over"
-                : ""
-            }>
-            <Button
-              icon={<EditOutlined />}
-              onClick={() => handleEdit(record.id)}
-              disabled={!isEditable && !canEditAfter3Days}
-            />
-          </Tooltip>
+        // Calculate remaining hours for delete button
+        const deleteTimeLimit = createdAt.add(24, "hour");
+        const remainingHours = deleteTimeLimit.diff(now, "hour");
+        const canDelete = remainingHours > 0;
+
+        return (
+          <div style={{ display: "flex", gap: "8px" }}>
+            {editingKey === record.id ? (
+              <Button
+                type="primary"
+                icon={<SaveOutlined />}
+                onClick={() => handleSave(record.id)}
+              />
+            ) : (
+              <Tooltip
+                title={
+                  !isEditable && !canEditAfter3Days
+                    ? "You can't edit because time is over"
+                    : ""
+                }>
+                <Button
+                  icon={<EditOutlined />}
+                  onClick={() => handleEdit(record.id)}
+                  disabled={!isEditable && !canEditAfter3Days}
+                />
+              </Tooltip>
+            )}
+            {canDelete && (
+              <Tooltip title={`Delete available for ${remainingHours}h`}>
+                <Button
+                  type="primary"
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={() => handleDelete(record.id)}
+                />
+              </Tooltip>
+            )}
+            <Tooltip title="Copy this row">
+              <Button
+                icon={<CopyOutlined />}
+                onClick={() => handleCopyRow(record)}
+              />
+            </Tooltip>
+          </div>
         );
       },
     },
   ];
   return (
-<div className="p-4 bg-gray-100 min-h-screen flex flex-col items-center">
-  <div className="w-full bg-white p-4 rounded shadow-md relative">
-    {/* Fixed Button Container */}
-    <div className="sticky top-0 left-0 right-0 z-20 p-4 flex">
-      <Button
-        type="primary"
-        onClick={() => exportToExcel(data, "publisher-data.xlsx")}
-        className="px-4 py-2 mr-4 bg-blue-500 text-white rounded">
-        Download Excel
-      </Button>
-      <Button
-        type="primary"
-        icon={<PlusOutlined />}
-        onClick={handleAddRow}
-        className="px-4 py-2 bg-green-500 text-white rounded">
-        Add Row
-      </Button>
-    </div>
+    <div className="p-4 bg-gray-100 min-h-screen flex flex-col items-center">
+      <div className="w-full bg-white p-4 rounded shadow-md relative">
+        {/* Fixed Button Container */}
+        <div className="sticky top-0 left-0 right-0 z-20 p-4 flex">
+          <Button
+            type="primary"
+            onClick={() => exportToExcel(data, "publisher-data.xlsx")}
+            className="px-4 py-2 mr-4 bg-blue-500 text-white rounded">
+            Download Excel
+          </Button>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={handleAddRow}
+            className="px-4 py-2 bg-green-500 text-white rounded">
+            Add Row
+          </Button>
+        </div>
 
-    {/* Scrollable Table Container */}
-    <div className="overflow-auto max-h-[70vh] mt-2">
-      <Table
-        columns={columns}
-        dataSource={filteredRecords}
-        pagination={{
-          pageSizeOptions: ["10", "20", "50", "100"],
-          showSizeChanger: true,
-          defaultPageSize: 10,
-          showTotal: (total, range) =>
-            `${range[0]}-${range[1]} of ${total} items`,
-        }}
-        bordered
-        loading={loading}
-        scroll={{ x: "max-content" }}
-      />
+        {/* Scrollable Table Container */}
+        <div className="overflow-auto max-h-[70vh] mt-2">
+          <Table
+            columns={columns}
+            dataSource={filteredRecords}
+            pagination={{
+              pageSizeOptions: ["10", "20", "50", "100"],
+              showSizeChanger: true,
+              defaultPageSize: 10,
+              showTotal: (total, range) =>
+                `${range[0]}-${range[1]} of ${total} items`,
+            }}
+            bordered
+            loading={loading}
+            scroll={{ x: "max-content" }}
+          />
+        </div>
+      </div>
     </div>
-  </div>
-</div>
-
   );
 };
 

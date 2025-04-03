@@ -141,7 +141,6 @@ const CampianData = () => {
           axios.get(`${apiUrl}/get-pid`),
           axios.get(`${apiUrl}/get-reviews`),
         ]);
-      console.log(advmName);
       setDropdownOptions((prev) => ({
         ...prev,
         adv_name:
@@ -167,7 +166,6 @@ const CampianData = () => {
       message.error("Failed to fetch dropdown options");
     }
   };
-  console.log(dropdownOptions);
   // Handle Checkbox Change
   const handleCheckboxChange = (type) => {
     setSelectedType(type);
@@ -198,8 +196,8 @@ const isRowEmpty = (row) => {
         filters[key] ? item[key] === filters[key] : true
       )
     );
-    setFilteredData(data.filter((row) => !isRowEmpty(row)));
-  }, [filters, pubData, advData, selectedType]);
+    setFilteredData(filtered.filter((row) => !isRowEmpty(row)));
+  }, [filters, pubData, advData, selectedType]);  
 
   // Handle Edit
   const handleEdit = (id) => {

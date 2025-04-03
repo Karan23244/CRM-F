@@ -9,11 +9,18 @@ import {
   message,
   Tooltip,
 } from "antd";
-import { EditOutlined, SaveOutlined, PlusOutlined } from "@ant-design/icons";
+import {
+  EditOutlined,
+  SaveOutlined,
+  PlusOutlined,
+  DeleteOutlined,
+  CopyOutlined,
+} from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useSelector } from "react-redux";
 import geoData from "../Data/geoData.json";
 import { exportToExcel } from "./exportExcel";
+import { Modal, message as antdMessage } from "antd";
 
 const { Option } = Select;
 const apiUrl =
@@ -29,7 +36,6 @@ const AdvertiserData = () => {
   });
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({});
-
   useEffect(() => {
     if (user?.id) {
       fetchData();
@@ -129,7 +135,6 @@ const AdvertiserData = () => {
         user_id: user.id, // Ensure user_id is included
         createdAt: new Date().toISOString(),
       };
-      console.log(newRow);
       await axios.post(`${apiUrl}/add-advdata`, newRow, {
         headers: { "Content-Type": "application/json" },
       });
@@ -141,10 +146,49 @@ const AdvertiserData = () => {
       alert("Failed to add data");
     }
   };
+  const handleCopyRow = async (record) => {
+    try {
+      if (!user?.id) {
+        message.error("User ID is missing. Please login again.");
+        return;
+      }
+
+      const copiedRow = {
+        ...record,
+        id: undefined, // Remove the existing ID so a new one gets created
+        user_id: user.id,
+        createdAt: new Date().toISOString(),
+      };
+
+      await axios.post(`${apiUrl}/add-advdata`, copiedRow, {
+        headers: { "Content-Type": "application/json" },
+      });
+
+      fetchData();
+      message.success("Row copied successfully!");
+    } catch (error) {
+      message.error("Failed to copy row");
+    }
+  };
+
   const handleChange = (value, field) => {
     setEditedRow((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleDelete = (id) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this item? This action cannot be undone."
+    );
+    if (!confirmDelete) return;
+
+    axios
+      .post(`${apiUrl}/advdata-delete-data/${id}`)
+      .then(() => {
+        alert("Data deleted");
+        fetchData();
+      })
+      .catch((err) => console.error("Error deleting Data:", err));
+  };
   const columnHeadings = {
     pub_name: "PUBM Name",
     campaign_name: "Campaign Name",
@@ -285,28 +329,104 @@ const AdvertiserData = () => {
           return text;
         },
       })),
+    // {
+    //   title: "Actions",
+    //   fixed: "right",
+    //   render: (_, record) => {
+    //     const createdAt = dayjs(record.created_at);
+    //     const hoursSinceCreation = dayjs().diff(createdAt, "hour");
+    //     const remainingHours = Math.max(24 - hoursSinceCreation, 0);
+    //     const isEditable = dayjs().diff(createdAt, "day") <= 3;
+    //     const isDeletable = hoursSinceCreation < 24; // Delete button active for only 24 hours
+
+    //     return (
+    //       <div style={{ display: "flex", gap: "8px" }}>
+    //         {editingKey === record.id ? (
+    //           <Button
+    //             type="primary"
+    //             icon={<SaveOutlined />}
+    //             onClick={handleSave}
+    //           />
+    //         ) : (
+    //           <Tooltip
+    //             title={
+    //               !isEditable && !allowedFieldsAfter3Days.length
+    //                 ? "You can't edit because time is over"
+    //                 : ""
+    //             }>
+    //             <Button
+    //               icon={<EditOutlined />}
+    //               onClick={() => handleEdit(record.id)}
+    //               disabled={!isEditable && !allowedFieldsAfter3Days.length}
+    //             />
+    //           </Tooltip>
+    //         )}
+
+    //         {isDeletable && (
+    //           <Tooltip title={`Delete option available for ${remainingHours}h`}>
+    //             <Button
+    //               type="danger"
+    //               icon={<DeleteOutlined />}
+    //               onClick={() => handleDelete(record.id)}
+    //             />
+    //           </Tooltip>
+    //         )}
+    //       </div>
+    //     );
+    //   },
+    // },
     {
       title: "Actions",
       fixed: "right",
       render: (_, record) => {
         const createdAt = dayjs(record.created_at);
+        const hoursSinceCreation = dayjs().diff(createdAt, "hour");
+        const remainingHours = Math.max(24 - hoursSinceCreation, 0);
         const isEditable = dayjs().diff(createdAt, "day") <= 3;
+        const isDeletable = hoursSinceCreation < 24; // Delete button active for only 24 hours
 
-        return editingKey === record.id ? (
-          <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} />
-        ) : (
-          <Tooltip
-            title={
-              !isEditable && !allowedFieldsAfter3Days.length
-                ? "You can't edit because time is over"
-                : ""
-            }>
-            <Button
-              icon={<EditOutlined />}
-              onClick={() => handleEdit(record.id)}
-              disabled={!isEditable && !allowedFieldsAfter3Days.length} // Disable after 3 days if no allowed fields
-            />
-          </Tooltip>
+        return (
+          <div style={{ display: "flex", gap: "8px" }}>
+            {editingKey === record.id ? (
+              <Button
+                type="primary"
+                icon={<SaveOutlined />}
+                onClick={handleSave}
+              />
+            ) : (
+              <Tooltip
+                title={
+                  !isEditable && !allowedFieldsAfter3Days.length
+                    ? "You can't edit because time is over"
+                    : ""
+                }>
+                <Button
+                  icon={<EditOutlined />}
+                  onClick={() => handleEdit(record.id)}
+                  disabled={!isEditable && !allowedFieldsAfter3Days.length}
+                />
+              </Tooltip>
+            )}
+
+            {isDeletable && (
+              <Tooltip title={`Delete option available for ${remainingHours}h`}>
+                <Button
+                  type="primary"
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={() => handleDelete(record.id)}
+                />
+              </Tooltip>
+            )}
+
+            {/* Copy Button */}
+            <Tooltip title="Copy this row">
+              <Button
+                icon={<CopyOutlined />}
+                onClick={() => handleCopyRow(record)}
+              />
+            </Tooltip>
+          </div>
         );
       },
     },
