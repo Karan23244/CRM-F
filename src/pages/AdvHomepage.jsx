@@ -9,6 +9,7 @@ import { logout } from "../redux/authSlice";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import ChangePassword from "../components/ChangePassword";
+import  AdvertiserCurrentData from "../components/AdvertiserCurrentData"
 
 const AdvHomepage = () => {
   const [activeComponent, setActiveComponent] = useState("form");
@@ -62,10 +63,19 @@ const AdvHomepage = () => {
             </button>
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
+                activeComponent === "currentadvdata"
+                  ? "bg-blue-700"
+                  : "hover:bg-blue-600"
+              }`}
+              onClick={() => setActiveComponent("currentadvdata")}>
+              Current Advertiser Data
+            </button>
+            <button
+              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "data" ? "bg-blue-700" : "hover:bg-blue-600"
               }`}
               onClick={() => setActiveComponent("data")}>
-              Advertiser Data
+              Previous Advertiser Data
             </button>
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
@@ -125,14 +135,19 @@ const AdvHomepage = () => {
         {/* Main Content Area */}
         <main className=" overflow-auto min-w-0">
           {activeComponent === "form" && <FormComponent />}
+          {activeComponent === "currentadvdata" && (
+            <div className="overflow-x-auto">
+              <AdvertiserCurrentData />
+            </div>
+          )}
           {activeComponent === "data" && (
             <div className="overflow-x-auto">
               <AdvertiserData />
             </div>
           )}
           {activeComponent === "pid" && <PIDForm />}
-          {activeComponent === "payableevent" && <PayableEventForm/>}
-          {activeComponent === "mmptracker" && <MMPTrackerForm/>}
+          {activeComponent === "payableevent" && <PayableEventForm />}
+          {activeComponent === "mmptracker" && <MMPTrackerForm />}
           {activeComponent === "changepassword" && <ChangePassword />}
         </main>
       </div>
