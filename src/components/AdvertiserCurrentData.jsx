@@ -31,7 +31,6 @@ const AdvertiserData = () => {
   const [data, setData] = useState([]);
   const [editingKey, setEditingKey] = useState(null);
   const [editedRow, setEditedRow] = useState({});
-  const [selectedMonth, setSelectedMonth] = useState(null);
   const [dropdownOptions, setDropdownOptions] = useState({
     os: ["Android", "APK", "iOS"],
   });
@@ -43,13 +42,28 @@ const AdvertiserData = () => {
       fetchDropdowns();
     }
   }, [user]);
-
+  console.log(data);
   const fetchData = async () => {
     try {
       setLoading(true);
       const response = await axios.get(`${apiUrl}/advdata-byuser/${user.id}`);
+
+      // Get current month and year
+      const now = new Date();
+      const currentMonth = now.getMonth(); // 0-indexed (0 = Jan, 1 = Feb...)
+      const currentYear = now.getFullYear();
+      // Filter data to include only entries from the current month
+      const filteredData = response.data.filter((item) => {
+        const createdAt = new Date(item.created_at);
+        return (
+          createdAt.getMonth() === currentMonth &&
+          createdAt.getFullYear() === currentYear
+        );
+      });
+
+      // Map the filtered data
       setData(
-        response.data.reverse().map((item) => ({
+        filteredData.reverse().map((item) => ({
           ...item,
           key: item.id,
         }))
@@ -60,6 +74,7 @@ const AdvertiserData = () => {
       setLoading(false);
     }
   };
+
   const fetchDropdowns = async () => {
     try {
       const [advmName, payableEvent, mmpTracker, pid, pub_id] =
@@ -220,54 +235,22 @@ const AdvertiserData = () => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
-  // const filteredRecords = data.filter((item) => {
-  //   return Object.keys(filters).every((key) => {
-  //     if (!filters[key]) return true;
+  const filteredRecords = data.filter((item) => {
+    return Object.keys(filters).every((key) => {
+      if (!filters[key]) return true;
 
-  //     // Date range filter
-  //     if (Array.isArray(filters[key]) && filters[key].length === 2) {
-  //       const [start, end] = filters[key];
-  //       return dayjs(item[key]).isBetween(start, end, null, "[]");
-  //     }
+      // Date range filter
+      if (Array.isArray(filters[key]) && filters[key].length === 2) {
+        const [start, end] = filters[key];
+        return dayjs(item[key]).isBetween(start, end, null, "[]");
+      }
 
-  //     return item[key]
-  //       ?.toString()
-  //       .toLowerCase()
-  //       .includes(filters[key].toString().toLowerCase());
-  //   });
-  //   // Apply monthly filter (checks created_at field)
-  //   const matchesMonth = selectedMonth
-  //     ? dayjs(item.created_at).isSame(selectedMonth, "month")
-  //     : true;
-
-  //   return matchesFilters && matchesMonth;
-  // });
-
-    const filteredRecords = data.filter((item) => {
-      // Apply existing filters
-      const matchesFilters = Object.keys(filters).every((key) => {
-        if (!filters[key]) return true;
-    
-        // Date range filter
-        if (Array.isArray(filters[key]) && filters[key].length === 2) {
-          const [start, end] = filters[key];
-          return dayjs(item[key]).isBetween(start, end, null, "[]");
-        }
-    
-        return item[key]
-          ?.toString()
-          .toLowerCase()
-          .includes(filters[key].toString().toLowerCase());
-      });
-    
-      // Apply monthly filter (checks created_at field)
-      const matchesMonth = selectedMonth
-        ? dayjs(item.created_at).isSame(selectedMonth, "month")
-        : true;
-    
-      return matchesFilters && matchesMonth;
-    });  
-
+      return item[key]
+        ?.toString()
+        .toLowerCase()
+        .includes(filters[key].toString().toLowerCase());
+    });
+  });
   const columns = [
     ...Object.keys(data[0] || {})
       .filter((key) => !["id", "user_id", "key", "created_at"].includes(key))
@@ -476,19 +459,13 @@ const AdvertiserData = () => {
             className="px-4 py-2 mr-4 bg-blue-500 text-white rounded">
             Download Excel
           </Button>
-          {/* <Button
+          <Button
             type="primary"
             icon={<PlusOutlined />}
             onClick={handleAddRow}
             className="px-4 py-2 bg-green-500 text-white rounded">
             Add Row
-          </Button> */}
-          <DatePicker
-            picker="month"
-            onChange={(date) => setSelectedMonth(date)}
-            placeholder="Filter by month"
-            allowClear
-          />
+          </Button>
         </div>
 
         {/* Scrollable Table Container */}
