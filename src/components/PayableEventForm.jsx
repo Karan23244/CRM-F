@@ -4,7 +4,8 @@ import axios from "axios";
 import { useSelector } from "react-redux";
 import { Table, Button } from "antd";
 
-const apiUrl = import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
+const apiUrl =
+  import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 
 const PayableEventForm = () => {
   const user = useSelector((state) => state.auth.user);
@@ -86,10 +87,9 @@ const PayableEventForm = () => {
   };
 
   // Function to handle edit button click
-  const handleEdit = (index) => {
-    setEvent(events[index].payble_event);
-    setEditIndex(index);
-    setEditId(events[index].id);
+  const handleEdit = (record) => {
+    setEvent(record.payble_event);
+    setEditId(record.id);
   };
 
   // Define table columns
@@ -108,8 +108,8 @@ const PayableEventForm = () => {
     {
       title: "Actions",
       key: "actions",
-      render: (_, record, index) => (
-        <Button type="primary" onClick={() => handleEdit(index)}>
+      render: (text, record) => (
+        <Button type="primary" onClick={() => handleEdit(record)}>
           Edit
         </Button>
       ),

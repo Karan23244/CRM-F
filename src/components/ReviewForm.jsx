@@ -71,12 +71,10 @@ const ReviewForm = () => {
   };
 
   // Handle edit button click
-  const handleEdit = (index) => {
-    setReview(reviews[index].review_text);
-    setEditIndex(index);
-    setEditId(reviews[index].id);
+  const handleEdit = (record) => {
+    setReview(record.review_text);
+    setEditId(record.id);
   };
-
   // Define table columns
   const columns = [
     {
@@ -93,8 +91,8 @@ const ReviewForm = () => {
     {
       title: "Actions",
       key: "actions",
-      render: (_, __, index) => (
-        <Button type="primary" onClick={() => handleEdit(index)}>
+      render: (text, record) => (
+        <Button type="primary" onClick={() => handleEdit(record)}>
           Edit
         </Button>
       ),

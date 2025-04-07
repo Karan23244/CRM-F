@@ -77,10 +77,9 @@ const MMPTrackerForm = () => {
   };
 
   // Function to handle edit button click
-  const handleEdit = (index) => {
-    setTracker(trackers[index].mmptext);
-    setEditIndex(index);
-    setEditId(trackers[index].id);
+  const handleEdit = (record) => {
+    setTracker(record.mmptext);
+    setEditId(record.id);
   };
 
   // Define table columns
@@ -99,8 +98,8 @@ const MMPTrackerForm = () => {
     {
       title: "Actions",
       key: "actions",
-      render: (_, __, index) => (
-        <Button type="primary" onClick={() => handleEdit(index)}>
+      render: (text, record) => (
+        <Button type="primary" onClick={() => handleEdit(record)}>
           Edit
         </Button>
       ),

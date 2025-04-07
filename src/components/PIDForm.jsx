@@ -12,7 +12,6 @@ const PIDForm = () => {
   const [pids, setPids] = useState([]);
   const [editIndex, setEditIndex] = useState(null);
   const [editId, setEditId] = useState(null);
-
   // Function to fetch all PIDs
   const fetchPids = async () => {
     try {
@@ -36,52 +35,51 @@ const PIDForm = () => {
   const handleSubmit = async () => {
     const trimmedPid = pid.trim(); // Trim front and back spaces
     if (!trimmedPid) return; // Prevent submission of empty or space-only PID
-  try {
-    if (editIndex !== null) {
-      // Update existing PID
-      const response = await axios.post(`${apiUrl}/update-pid/${editId}`, {
-        user_id: user?.id,
-        pid: trimmedPid,
-      });
-  
-      if (response.data.success) {
-        alert("PID updated successfully");
-        fetchPids(); // Refresh the PID list
-        setEditIndex(null);
-        setEditId(null);
+    try {
+      if (editIndex !== null) {
+        // Update existing PID
+        const response = await axios.post(`${apiUrl}/update-pid/${editId}`, {
+          user_id: user?.id,
+          pid: trimmedPid,
+        });
+
+        if (response.data.success) {
+          alert("PID updated successfully");
+          fetchPids(); // Refresh the PID list
+          setEditIndex(null);
+          setEditId(null);
+        } else {
+          alert("Failed to update PID");
+        }
       } else {
-        alert("Failed to update PID");
+        // Add new PID
+        const response = await axios.post(`${apiUrl}/add-pid`, {
+          user_id: user?.id,
+          pid: trimmedPid,
+        });
+        if (response.status === 500) {
+          alert("PID already exists! Please use a different PID.");
+        } else if (response.data.success) {
+          alert("PID added successfully");
+          fetchPids(); // Refresh the PID list
+        } else {
+          alert("Failed to add PID");
+        }
       }
-    } else {
-      // Add new PID
-      const response = await axios.post(`${apiUrl}/add-pid`, {
-        user_id: user?.id,
-        pid: trimmedPid,
-      });
-      if (response.status === 500) {
-        alert("PID already exists! Please use a different PID.");
-      } else if (response.data.success) {
-        alert("PID added successfully");
-        fetchPids(); // Refresh the PID list
+    } catch (error) {
+      if (error.response && error.response.status === 500) {
+        alert("PID already exists! Please choose a different PID.");
       } else {
-        alert("Failed to add PID");
+        console.error("Error:", error);
+        alert("Something went wrong. Please try again later.");
       }
+      setPid("");
     }
-  } catch (error) {
-    if (error.response && error.response.status === 500) {
-      alert("PID already exists! Please choose a different PID.");
-    } else {
-      console.error("Error:", error);
-      alert("Something went wrong. Please try again later.");
-    }
-    setPid("");
-  }
-}
+  };
   // Function to handle edit button click
-  const handleEdit = (index) => {
-    setPid(pids[index].pid);
-    setEditIndex(index);
-    setEditId(pids[index].id);
+  const handleEdit = (record) => {
+    setPid(record.pid);
+    setEditId(record.id);
   };
 
   // Define table columns
@@ -100,8 +98,8 @@ const PIDForm = () => {
     {
       title: "Actions",
       key: "actions",
-      render: (_, __, index) => (
-        <Button type="primary" onClick={() => handleEdit(index)}>
+      render: (text, record) => (
+        <Button type="primary" onClick={() => handleEdit(record)}>
           Edit
         </Button>
       ),
@@ -127,8 +125,8 @@ const PIDForm = () => {
           <Table
             columns={columns}
             dataSource={pids}
-            rowKey="id"
-            pagination={{ pageSize: 5 }}
+            rowKey={pids.id}
+            pagination={{ pageSize: 10 }}
           />
         </div>
       )}
