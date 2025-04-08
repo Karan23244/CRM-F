@@ -4,7 +4,8 @@ import { Table, Input, Select, Button, Space } from "antd";
 import geoData from "../Data/geoData.json";
 
 const { Option } = Select;
-const apiUrl = import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
+const apiUrl =
+  import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 
 const PubnameData = () => {
   const [tableData, setTableData] = useState([]);
@@ -17,7 +18,7 @@ const PubnameData = () => {
   const [geo, setGeo] = useState("");
   const [note, setNote] = useState("");
   const [pubUserId, setPubUserId] = useState(null); // Store creator's user_id
-
+  console.log(tableData);
   // **Fetch publisher data**
   useEffect(() => {
     const fetchData = async () => {
@@ -41,7 +42,8 @@ const PubnameData = () => {
   // **Filtered data for search**
   const filteredData = tableData.filter((item) =>
     [item.username, item.pub_name, item.pub_id, item.geo, item.note].some(
-      (field) => field?.toString().toLowerCase().includes(searchTerm.toLowerCase())
+      (field) =>
+        field?.toString().toLowerCase().includes(searchTerm.toLowerCase())
     )
   );
 
@@ -101,6 +103,30 @@ const PubnameData = () => {
     setEditingPub(null);
   };
 
+  const handlePause = async (record) => {
+    try {
+      const response = await axios.post(`${apiUrl}/publisher-pause`, {
+        pub_id: record.pub_id,
+        pause: 1,
+      });
+
+      if (response.data.success) {
+        alert(`Publisher ${record.pub_id} has been paused.`);
+
+        // ✅ Refresh data after pause
+        const { data } = await axios.get(`${apiUrl}/get-Namepub/`);
+        if (data.success && Array.isArray(data.data)) {
+          setTableData(data.data);
+        }
+      } else {
+        alert(`Failed to pause publisher ${record.pub_id}.`);
+      }
+    } catch (error) {
+      console.error("Error pausing publisher:", error);
+      alert("Error occurred while pausing publisher.");
+    }
+  };
+
   // **Table Columns**
   const columns = [
     { title: "UserName", dataIndex: "username", key: "username" },
@@ -113,8 +139,24 @@ const PubnameData = () => {
       key: "actions",
       render: (_, record) => (
         <Space size="middle">
-          <Button type="link" onClick={() => handleEdit(record)}>
+          <Button
+            type="primary"
+            size="small"
+            onClick={() => handleEdit(record)}>
             Edit
+          </Button>
+          <Button
+            type="default"
+            danger={record.pause !== "1"}
+            size="small"
+            onClick={() => handlePause(record)}
+            disabled={record.pause === "1"}
+            className={`rounded px-3 py-1 ${
+              record.pause === "1"
+                ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                : "bg-red-600 hover:bg-red-700 text-white"
+            }`}>
+            {record.pause === "1" ? "Paused" : "Pause"}
           </Button>
         </Space>
       ),
@@ -166,8 +208,7 @@ const PubnameData = () => {
               filterOption={(input, option) =>
                 option?.label?.toLowerCase().includes(input.toLowerCase())
               }
-              required
-            >
+              required>
               {geoData.geo?.map((geo) => (
                 <Option key={geo.code} value={geo.code} label={`${geo.code}`}>
                   {geo.code}
@@ -190,16 +231,14 @@ const PubnameData = () => {
           {/* Submit Button */}
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700"
-          >
+            className="w-full bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700">
             Update Publisher
           </button>
 
           <button
             type="button"
             onClick={resetForm}
-            className="w-full mt-2 bg-gray-400 text-white p-2 rounded-lg hover:bg-gray-500"
-          >
+            className="w-full mt-2 bg-gray-400 text-white p-2 rounded-lg hover:bg-gray-500">
             Cancel
           </button>
         </form>

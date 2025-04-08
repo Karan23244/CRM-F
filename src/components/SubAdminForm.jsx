@@ -69,7 +69,7 @@ const SubAdminForm = () => {
   const handleSaveSubAdmin = async () => {
     if (
       !username ||
-      !password ||
+      (!selectedSubAdmin && !password) ||
       ranges.some((range) => !range.start || !range.end)
     ) {
       alert("Please fill all fields!");
@@ -81,16 +81,17 @@ const SubAdminForm = () => {
       password: selectedSubAdmin ? password || "" : password, // Ensure password is empty when not updated
       role,
       ranges: ranges.map(({ start, end }) => ({
-        start: Number(start),
-        end: Number(end),
-      })), // Convert to numeric values
+        start: `${String(start)}`,
+        end: `${String(end)}`,
+      })),
       assigned_subadmins: role === "manager" ? assignedSubAdmins : [],
     };
-    
 
+  
     if (selectedSubAdmin) {
       payload.id = selectedSubAdmin; // Include ID only for update
     }
+    console.log(payload);
     try {
       const response = await fetch(
         `${apiUrl}/${
@@ -102,7 +103,9 @@ const SubAdminForm = () => {
           body: JSON.stringify(payload),
         }
       );
+      console.log(response);
       const data = await response.json();
+      console.log(data);
       if (response.ok) {
         alert(
           `Sub-Admin ${selectedSubAdmin ? "updated" : "created"} successfully!`
@@ -142,26 +145,29 @@ const SubAdminForm = () => {
     setRanges(subAdmin.ranges);
     setAssignedSubAdmins(subAdmin.assigned_subadmins || []);
   };
-  const handleDeleteSubAdmin = async (id) => {
-    try {
-      const response = await fetch(`${apiUrl}/delete-sub-admin`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
-      });
+const handleDeleteSubAdmin = async (id) => {
+  const confirmed = window.confirm("Are you sure you want to delete this sub-admin?");
+  if (!confirmed) return;
 
-      if (!response.ok) {
-        throw new Error("Failed to delete sub-admin");
-      }
+  try {
+    const response = await fetch(`${apiUrl}/delete-sub-admin`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
 
-      const result = await response.json();
-      alert("Sub-admin deleted successfully:");
-      fetchSubAdmins();
-      // You may want to refresh the list or update UI here
-    } catch (error) {
-      console.error("Error deleting sub-admin:", error);
+    if (!response.ok) {
+      throw new Error("Failed to delete sub-admin");
     }
-  };
+
+    const result = await response.json();
+    alert("Sub-admin deleted successfully");
+    fetchSubAdmins(); // Refresh the list
+  } catch (error) {
+    console.error("Error deleting sub-admin:", error);
+  }
+};
+
 
   // Define Table Columns
   // const columns = [

@@ -5,7 +5,8 @@ import { useSelector } from "react-redux";
 import geoData from "../Data/geoData.json";
 
 const { Option } = Select;
-const apiUrl = import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
+const apiUrl =
+  import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 
 const AdvnameData = () => {
   const user = useSelector((state) => state.auth.user);
@@ -105,7 +106,29 @@ const AdvnameData = () => {
     setNote("");
     setEditingAdv(null);
   };
+  const handlePause = async (record) => {
+    try {
+      const response = await axios.post(`${apiUrl}/advid-pause`, {
+        pub_id: record.pub_id,
+        pause: 1,
+      });
 
+      if (response.data.success) {
+        alert(`Publisher ${record.pub_id} has been paused.`);
+
+        // ✅ Refresh data after pause
+        const { data } = await axios.get(`${apiUrl}/get-Namepub/`);
+        if (data.success && Array.isArray(data.data)) {
+          setTableData(data.data);
+        }
+      } else {
+        alert(`Failed to pause publisher ${record.pub_id}.`);
+      }
+    } catch (error) {
+      console.error("Error pausing publisher:", error);
+      alert("Error occurred while pausing publisher.");
+    }
+  };
   // **Table Columns**
   const columns = [
     { title: "UserName", dataIndex: "username", key: "username" },
@@ -118,8 +141,24 @@ const AdvnameData = () => {
       key: "actions",
       render: (_, record) => (
         <Space size="middle">
-          <Button type="link" onClick={() => handleEdit(record)}>
+          <Button
+            type="primary"
+            size="small"
+            onClick={() => handleEdit(record)}>
             Edit
+          </Button>
+          <Button
+            type="default"
+            danger={record.pause !== "1"}
+            size="small"
+            onClick={() => handlePause(record)}
+            disabled={record.pause === "1"}
+            className={`rounded px-3 py-1 ${
+              record.pause === "1"
+                ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                : "bg-red-600 hover:bg-red-700 text-white"
+            }`}>
+            {record.pause === "1" ? "Paused" : "Pause"}
           </Button>
         </Space>
       ),
