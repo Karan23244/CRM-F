@@ -14,6 +14,7 @@ import PublisherFormComponent from "../components/PublisherFormComponent";
 import MainComponent from "../components/ManagerAllData";
 import  AdvertiserCurrentData from "../components/AdvertiserCurrentData"
 import  PublisherCurrentData from "../components/PublisherCurrentData"
+import SubAdminPubnameData from "../components/SubAdminPubnameData";
 const ManagerHomepage = () => {
   const [activeComponent, setActiveComponent] = useState("advform");
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -135,6 +136,15 @@ const ManagerHomepage = () => {
             </button>
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
+                activeComponent === "pubnameData"
+                  ? "bg-blue-700"
+                  : "hover:bg-blue-600"
+              }`}
+              onClick={() => setActiveComponent("pubnameData")}>
+              Assigned Sub-Admin Publisher Data
+            </button>
+            <button
+              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "changepassword"
                   ? "bg-blue-700"
                   : "hover:bg-blue-600"
@@ -192,6 +202,7 @@ const ManagerHomepage = () => {
           {activeComponent === "mmptracker" && <MMPTrackerForm />}
           {activeComponent === "payableevent" && <PayableEventForm />}
           {activeComponent === "managerData" && <MainComponent />}
+          {activeComponent === "pubnameData" && <SubAdminPubnameData />}
           {activeComponent === "changepassword" && <ChangePassword />}
         </main>
       </div>

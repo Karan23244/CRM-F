@@ -9,12 +9,14 @@ import { logout } from "../redux/authSlice";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import ChangePassword from "../components/ChangePassword";
-import  AdvertiserCurrentData from "../components/AdvertiserCurrentData"
-
+import AdvertiserCurrentData from "../components/AdvertiserCurrentData";
+import { useSelector } from "react-redux";
+import ReportForm from "../components/ReportForm";
 const AdvHomepage = () => {
+  const user = useSelector((state) => state.auth.user);
   const [activeComponent, setActiveComponent] = useState("form");
   const [sidebarOpen, setSidebarOpen] = useState(true);
-
+  console.log(user);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -102,6 +104,18 @@ const AdvHomepage = () => {
               onClick={() => setActiveComponent("mmptracker")}>
               Add MMP tracker
             </button>
+            {user?.id === 31 && (
+              <button
+                className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
+                  activeComponent === "reportform"
+                    ? "bg-blue-700"
+                    : "hover:bg-blue-600"
+                }`}
+                onClick={() => setActiveComponent("reportform")}>
+                Report Form
+              </button>
+            )}
+
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "changepassword"
@@ -148,6 +162,9 @@ const AdvHomepage = () => {
           {activeComponent === "pid" && <PIDForm />}
           {activeComponent === "payableevent" && <PayableEventForm />}
           {activeComponent === "mmptracker" && <MMPTrackerForm />}
+          {activeComponent === "reportform" && user?.id === 31 && (
+            <ReportForm />
+          )}
           {activeComponent === "changepassword" && <ChangePassword />}
         </main>
       </div>
