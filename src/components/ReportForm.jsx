@@ -1,59 +1,72 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import * as XLSX from "xlsx";
 import axios from "axios";
 
 const ExcelUploader = () => {
   const apiUrl = import.meta.env.VITE_API_URL || "https://apii.clickorbits.in";
-  const [file, setFile] = useState(null);
+  const [files, setFiles] = useState([]);
   const [inputText, setInputText] = useState("");
-  const [loading, setLoading] = useState(false); // Added loading state
+  const [loading, setLoading] = useState(false);
+  const fileInputRef = useRef(null);
 
   const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0];
-    setFile(selectedFile);
+    const selectedFiles = Array.from(e.target.files);
+    setFiles((prevFiles) => {
+      const allFiles = [...prevFiles, ...selectedFiles];
+      // Remove duplicates by file name
+      const uniqueFiles = Array.from(new Map(allFiles.map(file => [file.name, file])).values());
+      return uniqueFiles;
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!file || !inputText) {
-      alert("Please provide both a file and column input.");
+    if (files.length === 0 || !inputText) {
+      alert("Please provide both at least one file and a column name.");
       return;
     }
 
     const formData = new FormData();
-    formData.append("file", file);
+    files.forEach((file, index) => {
+      formData.append("files", file);
+      console.log(`Added file ${index + 1}:`, file.name);
+    });
     formData.append("column", inputText);
 
-    setLoading(true); // Set loading to true before making the request
+    // ✅ Log the FormData contents
+    for (let [key, value] of formData.entries()) {
+      console.log(`${key}:`, value);
+    }
+
+    setLoading(true);
 
     try {
       const response = await axios.post(`${apiUrl}/upload`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
-        responseType: "blob", // Important!
+        responseType: "blob",
       });
-      console.log(response);
 
-      // Create a download link for the blob
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", "grouped_data.zip"); // Adjust filename if needed
+      link.setAttribute("download", "grouped_data.zip");
       document.body.appendChild(link);
       link.click();
       link.remove();
-
-    
     } catch (error) {
       console.error("Upload failed:", error);
       alert("Something went wrong while uploading.");
     } finally {
-      setLoading(false); // Set loading to false when the request is finished
-      alert("File downloaded successfully.");
-      setFile("");
+      setLoading(false);
+      alert("File(s) processed and downloaded successfully.");
+      setFiles([]);
       setInputText("");
+      if (fileInputRef.current) {
+        fileInputRef.current.value = null; // Clear input
+      }
     }
   };
 
@@ -80,21 +93,29 @@ const ExcelUploader = () => {
 
           <div>
             <label className="block text-blue-800 font-semibold mb-2">
-              Upload Excel File
+              Upload Excel Files
             </label>
             <input
               type="file"
               accept=".xlsx, .xls, .csv"
+              multiple
+              ref={fileInputRef}
               onChange={handleFileChange}
               className="w-full p-2 border border-dashed border-blue-400 rounded-md bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-300"
             />
+            {files.length > 0 && (
+              <ul className="mt-2 text-sm text-blue-600 list-disc pl-5">
+                {files.map((file, idx) => (
+                  <li key={idx}>{file.name}</li>
+                ))}
+              </ul>
+            )}
           </div>
 
           <button
             type="submit"
             className="w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition duration-300"
-            disabled={loading} // Disable button while loading
-          >
+            disabled={loading}>
             🚀 Submit
           </button>
         </form>
