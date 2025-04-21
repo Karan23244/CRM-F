@@ -102,6 +102,7 @@ const ExcelUploader = () => {
               ref={fileInputRef}
               onChange={handleFileChange}
               className="w-full p-2 border border-dashed border-blue-400 rounded-md bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-300"
+              multi
             />
             {files.length > 0 && (
               <ul className="mt-2 text-sm text-blue-600 list-disc pl-5">
