@@ -13,7 +13,7 @@ import AdvertiserCurrentData from "../components/AdvertiserCurrentData";
 import { useSelector } from "react-redux";
 import ReportForm from "../components/ReportForm";
 import NewRequest from "../components/NewRequest";
-const AdvHomepage = ({ }) => {
+const AdvHomepage = ({}) => {
   const user = useSelector((state) => state.auth.user);
   const [activeComponent, setActiveComponent] = useState("form");
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -172,12 +172,11 @@ const AdvHomepage = ({ }) => {
           {activeComponent === "pid" && <PIDForm />}
           {activeComponent === "payableevent" && <PayableEventForm />}
           {activeComponent === "mmptracker" && <MMPTrackerForm />}
-          {activeComponent === "viewRequest" && (
-            <NewRequest/>
-          )}
-          {activeComponent === "reportform" && user?.id === 31 && (
+          {activeComponent === "viewRequest" && <NewRequest />}
+          {activeComponent === "reportform" && [31, 40].includes(user?.id) && (
             <ReportForm />
           )}
+
           {activeComponent === "changepassword" && <ChangePassword />}
         </main>
       </div>
