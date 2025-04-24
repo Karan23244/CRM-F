@@ -12,7 +12,8 @@ import ChangePassword from "../components/ChangePassword";
 import AdvertiserCurrentData from "../components/AdvertiserCurrentData";
 import { useSelector } from "react-redux";
 import ReportForm from "../components/ReportForm";
-const AdvHomepage = () => {
+import NewRequest from "../components/NewRequest";
+const AdvHomepage = ({ }) => {
   const user = useSelector((state) => state.auth.user);
   const [activeComponent, setActiveComponent] = useState("form");
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -104,6 +105,15 @@ const AdvHomepage = () => {
               onClick={() => setActiveComponent("mmptracker")}>
               Add MMP tracker
             </button>
+            <button
+              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
+                activeComponent === "viewRequest"
+                  ? "bg-blue-700"
+                  : "hover:bg-blue-600"
+              }`}
+              onClick={() => setActiveComponent("viewRequest")}>
+              New Request
+            </button>
             {user?.id === 31 && (
               <button
                 className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
@@ -162,6 +172,9 @@ const AdvHomepage = () => {
           {activeComponent === "pid" && <PIDForm />}
           {activeComponent === "payableevent" && <PayableEventForm />}
           {activeComponent === "mmptracker" && <MMPTrackerForm />}
+          {activeComponent === "viewRequest" && (
+            <NewRequest/>
+          )}
           {activeComponent === "reportform" && user?.id === 31 && (
             <ReportForm />
           )}

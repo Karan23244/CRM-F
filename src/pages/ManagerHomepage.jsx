@@ -12,10 +12,11 @@ import ChangePassword from "../components/ChangePassword";
 import PublisherData from "../components/PublisherData";
 import PublisherFormComponent from "../components/PublisherFormComponent";
 import MainComponent from "../components/ManagerAllData";
-import  AdvertiserCurrentData from "../components/AdvertiserCurrentData"
-import  PublisherCurrentData from "../components/PublisherCurrentData"
+import AdvertiserCurrentData from "../components/AdvertiserCurrentData";
+import PublisherCurrentData from "../components/PublisherCurrentData";
 import SubAdminPubnameData from "../components/SubAdminPubnameData";
-const ManagerHomepage = () => {
+import MakeRequest from "../components/MakeRequest";
+const ManagerHomepage = ({ }) => {
   const [activeComponent, setActiveComponent] = useState("advform");
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
@@ -60,42 +61,54 @@ const ManagerHomepage = () => {
           <nav className="space-y-2 flex-1">
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
-                activeComponent === "advform" ? "bg-blue-700" : "hover:bg-blue-600"
+                activeComponent === "advform"
+                  ? "bg-blue-700"
+                  : "hover:bg-blue-600"
               }`}
               onClick={() => setActiveComponent("advform")}>
               Advertiser Form
             </button>
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
-                activeComponent === "pubform" ? "bg-blue-700" : "hover:bg-blue-600"
+                activeComponent === "pubform"
+                  ? "bg-blue-700"
+                  : "hover:bg-blue-600"
               }`}
               onClick={() => setActiveComponent("pubform")}>
               Publisher Form
             </button>
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
-                activeComponent === "currentadvdata" ? "bg-blue-700" : "hover:bg-blue-600"
+                activeComponent === "currentadvdata"
+                  ? "bg-blue-700"
+                  : "hover:bg-blue-600"
               }`}
               onClick={() => setActiveComponent("currentadvdata")}>
               Current Advertiser Data
             </button>
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
-                activeComponent === "advdata" ? "bg-blue-700" : "hover:bg-blue-600"
+                activeComponent === "advdata"
+                  ? "bg-blue-700"
+                  : "hover:bg-blue-600"
               }`}
               onClick={() => setActiveComponent("advdata")}>
               Previous Advertiser Data
             </button>
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
-                activeComponent === "currentpubdata" ? "bg-blue-700" : "hover:bg-blue-600"
+                activeComponent === "currentpubdata"
+                  ? "bg-blue-700"
+                  : "hover:bg-blue-600"
               }`}
               onClick={() => setActiveComponent("currentpubdata")}>
               Current Publisher Data
             </button>
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
-                activeComponent === "pubdata" ? "bg-blue-700" : "hover:bg-blue-600"
+                activeComponent === "pubdata"
+                  ? "bg-blue-700"
+                  : "hover:bg-blue-600"
               }`}
               onClick={() => setActiveComponent("pubdata")}>
               Previous Publisher Data
@@ -115,6 +128,15 @@ const ManagerHomepage = () => {
               }`}
               onClick={() => setActiveComponent("payableevent")}>
               Add Payable Event
+            </button>
+            <button
+              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
+                activeComponent === "makerequest"
+                  ? "bg-blue-700"
+                  : "hover:bg-blue-600"
+              }`}
+              onClick={() => setActiveComponent("makerequest")}>
+              Make Request
             </button>
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
@@ -188,7 +210,7 @@ const ManagerHomepage = () => {
               <AdvertiserData />
             </div>
           )}
-           {activeComponent === "currentpubdata" && (
+          {activeComponent === "currentpubdata" && (
             <div className="overflow-x-auto">
               <PublisherCurrentData />
             </div>
@@ -201,6 +223,7 @@ const ManagerHomepage = () => {
           {activeComponent === "pid" && <PIDForm />}
           {activeComponent === "mmptracker" && <MMPTrackerForm />}
           {activeComponent === "payableevent" && <PayableEventForm />}
+          {activeComponent === "makerequest" && <MakeRequest/>}
           {activeComponent === "managerData" && <MainComponent />}
           {activeComponent === "pubnameData" && <SubAdminPubnameData />}
           {activeComponent === "changepassword" && <ChangePassword />}
