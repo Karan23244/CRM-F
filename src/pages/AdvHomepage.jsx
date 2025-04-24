@@ -25,7 +25,7 @@ const AdvHomepage = ({}) => {
     dispatch(logout());
     navigate("/"); // Redirect to login page
   };
-
+  const allowedUserIds = [31, 40];
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Overlay for mobile view */}
@@ -114,7 +114,7 @@ const AdvHomepage = ({}) => {
               onClick={() => setActiveComponent("viewRequest")}>
               New Request
             </button>
-            {user?.id === 31 && (
+            {allowedUserIds.includes(Number(user?.id)) && (
               <button
                 className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                   activeComponent === "reportform"
@@ -125,7 +125,6 @@ const AdvHomepage = ({}) => {
                 Report Form
               </button>
             )}
-
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "changepassword"
@@ -173,9 +172,8 @@ const AdvHomepage = ({}) => {
           {activeComponent === "payableevent" && <PayableEventForm />}
           {activeComponent === "mmptracker" && <MMPTrackerForm />}
           {activeComponent === "viewRequest" && <NewRequest />}
-          {activeComponent === "reportform" && [31, 40].includes(user?.id) && (
-            <ReportForm />
-          )}
+          {activeComponent === "reportform" &&
+            allowedUserIds.includes(Number(user?.id)) && <ReportForm />}
 
           {activeComponent === "changepassword" && <ChangePassword />}
         </main>
