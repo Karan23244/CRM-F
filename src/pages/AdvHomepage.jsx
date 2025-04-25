@@ -13,6 +13,7 @@ import AdvertiserCurrentData from "../components/AdvertiserCurrentData";
 import { useSelector } from "react-redux";
 import ReportForm from "../components/ReportForm";
 import NewRequest from "../components/NewRequest";
+import ExcelGraphCompare from "../components/Graph";
 const AdvHomepage = ({}) => {
   const user = useSelector((state) => state.auth.user);
   const [activeComponent, setActiveComponent] = useState("form");
@@ -115,15 +116,26 @@ const AdvHomepage = ({}) => {
               New Request
             </button>
             {allowedUserIds.includes(Number(user?.id)) && (
-              <button
-                className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
-                  activeComponent === "reportform"
-                    ? "bg-blue-700"
-                    : "hover:bg-blue-600"
-                }`}
-                onClick={() => setActiveComponent("reportform")}>
-                Report Form
-              </button>
+              <>
+                <button
+                  className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
+                    activeComponent === "reportform"
+                      ? "bg-blue-700"
+                      : "hover:bg-blue-600"
+                  }`}
+                  onClick={() => setActiveComponent("reportform")}>
+                  Report Form
+                </button>
+                <button
+                  className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
+                    activeComponent === "genrategraph"
+                      ? "bg-blue-700"
+                      : "hover:bg-blue-600"
+                  }`}
+                  onClick={() => setActiveComponent("genrategraph")}>
+                  Genrate Graph
+                </button>
+              </>
             )}
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
@@ -174,7 +186,8 @@ const AdvHomepage = ({}) => {
           {activeComponent === "viewRequest" && <NewRequest />}
           {activeComponent === "reportform" &&
             allowedUserIds.includes(Number(user?.id)) && <ReportForm />}
-
+          {activeComponent === "genrategraph" &&
+            allowedUserIds.includes(Number(user?.id)) && <ExcelGraphCompare />}
           {activeComponent === "changepassword" && <ChangePassword />}
         </main>
       </div>
