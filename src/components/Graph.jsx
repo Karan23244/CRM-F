@@ -1,28 +1,40 @@
-import React, { useState, useRef } from "react";
-import * as XLSX from "xlsx";
+import { useState, useRef } from "react";
 import { Bar } from "react-chartjs-2";
+import { saveAs } from "file-saver";
 import html2canvas from "html2canvas";
 import JSZip from "jszip";
-import { saveAs } from "file-saver";
+import Chart from "chart.js/auto";
 import {
   Chart as ChartJS,
-  BarElement,
   CategoryScale,
   LinearScale,
+  BarElement,
+  Title,
   Tooltip,
   Legend,
 } from "chart.js";
+import ChartDataLabels from "chartjs-plugin-datalabels";
 
-ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
-
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
+Chart.register(ChartDataLabels);
+const apiUrl =
+  import.meta.env.VITE_API_URL || "https://apii.clickorbits.in";
 const ExcelGraphCompare = () => {
   const [chartData, setChartData] = useState([]);
+  const [charts, setCharts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [sheetName, setSheetName] = useState("");
   const chartRefs = useRef([]);
   const [zipLoading, setZipLoading] = useState(false);
 
-  const handleFileUpload = (e) => {
+  const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -30,204 +42,112 @@ const ExcelGraphCompare = () => {
     setChartData([]);
     chartRefs.current = [];
 
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      try {
-        const bstr = evt.target.result;
-        const wb = XLSX.read(bstr, { type: "binary" });
-        let selectedSheetName = sheetName.trim() || wb.SheetNames[0];
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("sheetName", sheetName);
 
-        if (!wb.Sheets[selectedSheetName]) {
-          alert(`❌ Sheet "${selectedSheetName}" not found.`);
-          setLoading(false);
-          return;
-        }
+    try {
+      const res = await fetch(`${apiUrl}/process-excel`, {
+        method: "POST",
+        body: formData,
+      });
 
-        const ws = wb.Sheets[selectedSheetName];
-        const rawData = XLSX.utils.sheet_to_json(ws, { header: 1 });
-        if (!rawData.length) {
-          alert("❌ Empty file.");
-          setLoading(false);
-          return;
-        }
+      const { charts } = await res.json();
+      setCharts(charts);
 
-        const headers = rawData[0];
-        const dataRows = rawData.slice(1);
-        const dateIndices = headers
-          .map((h, i) => (String(h).toLowerCase() === "date" ? i : -1))
-          .filter((i) => i !== -1);
-
-        if (dateIndices.length < 2) {
-          alert("❌ Need at least 2 'Date' blocks to compare.");
-          setLoading(false);
-          return;
-        }
-
-        const secondLastIndex = dateIndices[dateIndices.length - 2];
-        const lastIndex = dateIndices[dateIndices.length - 1];
-        const pidIndex = headers.indexOf("PID");
-
-        const extractColumns = (rows, startIndex, keys) =>
-          rows.map((row) => ({
-            pid: row[pidIndex] || "Unknown",
-            date: row[startIndex] || "Unknown",
-            ...Object.fromEntries(
-              keys.map((key, i) => [
-                key.toLowerCase(),
-                parseInt(row[startIndex + 1 + i], 10) || 0,
-              ])
-            ),
-          }));
-
-        const originalKeys = ["Install", "Realtime", "P360"];
-        const newKeys = ["Event", "Realtime", "P360"];
-
-        const secondLastBlockData = extractColumns(
-          dataRows,
-          secondLastIndex,
-          originalKeys
-        );
-        const lastBlockData = extractColumns(dataRows, lastIndex, originalKeys);
-
-        const secondLastNewData = extractColumns(
-          dataRows,
-          secondLastIndex + 5,
-          newKeys
-        );
-        const lastNewData = extractColumns(dataRows, lastIndex + 5, newKeys);
-
-        const groupedData = {};
-        const groupedNewData = {};
-
-        [...secondLastBlockData, ...lastBlockData].forEach((data) => {
-          groupedData[data.pid] ||= {
-            secondLast: { install: 0, realtime: 0, p360: 0 },
-            last: { install: 0, realtime: 0, p360: 0 },
-          };
-
-          if (data.date === secondLastBlockData[0].date) {
-            groupedData[data.pid].secondLast = {
-              install: data.install,
-              realtime: data.realtime,
-              p360: data.p360,
-            };
-          } else if (data.date === lastBlockData[0].date) {
-            groupedData[data.pid].last = {
-              install: data.install,
-              realtime: data.realtime,
-              p360: data.p360,
-            };
-          }
-        });
-
-        [...secondLastNewData, ...lastNewData].forEach((data) => {
-          groupedNewData[data.pid] ||= {
-            secondLast: { event: 0, realtime: 0, p360: 0 },
-            last: { event: 0, realtime: 0, p360: 0 },
-          };
-
-          groupedNewData[data.pid].secondLast = {
-            event: data.event,
-            realtime: data.realtime,
-            p360: data.p360,
-          };
-
-          groupedNewData[data.pid].last = {
-            event: data.event,
-            realtime: data.realtime,
-            p360: data.p360,
-          };
-        });
-
-        const secondDate = secondLastBlockData[0]?.date || "Second Last";
-        const lastDate = lastBlockData[0]?.date || "Last";
-
-        const charts = [];
-
-        Object.keys(groupedData).forEach((pid, index) => {
-          const data = groupedData[pid];
-          const chartData = {
-            labels: ["Install", "Realtime", "P360"],
-            datasets: [
-              {
-                label: `${pid} - ${secondDate}`,
-                data: [
-                  data.secondLast.install,
-                  data.secondLast.realtime,
-                  data.secondLast.p360,
-                ],
-                backgroundColor: "rgba(54, 162, 235, 0.6)",
+      const newCharts = charts.map((chart, index) => (
+        <div
+          key={`${chart.pid}-${chart.type}`}
+          className="p-4 w-full h-[500px]"
+          ref={(el) => chartRefs.current.push(el)}>
+          <h3 className="text-base font-semibold mb-2">{`PID: ${
+            chart.pid
+          } - ${chart.labels.join("/")}`}</h3>
+          <Bar
+            data={{
+              labels: chart.labels,
+              datasets: chart.datasets,
+            }}
+            options={{
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                tooltip: {
+                  callbacks: {
+                    label: function (context) {
+                      const actual =
+                        context.dataset.actualValues?.[context.dataIndex] ??
+                        context.raw;
+                      return `${context.dataset.label}: ${actual}`;
+                    },
+                  },
+                },
+                datalabels: {
+                  display: true,
+                  formatter: function (value, context) {
+                    const actual =
+                      context.dataset.actualValues?.[context.dataIndex] ??
+                      value;
+                    return `${actual}`; // Display the actual value
+                  },
+                  color: "black", // Label color inside bars
+                  font: {
+                    weight: "medium",
+                    size: 14,
+                  },
+                  anchor: "center",
+                  align: "center",
+                  offset: 4,
+                },
               },
-              {
-                label: `${pid} - ${lastDate}`,
-                data: [data.last.install, data.last.realtime, data.last.p360],
-                backgroundColor: "rgba(255, 99, 132, 0.6)",
+              scales: {
+                x: {
+                  title: {
+                    display: true,
+                    text:
+                      chart.labels[0] === "Install"
+                        ? "Install vs Realtime"
+                        : "Event vs Realtime",
+                  },
+                  grid: {
+                    display: true, // Show grid lines for x-axis
+                  },
+                },
+                y: {
+                  beginAtZero: true, // Ensure the y-axis starts from 0
+                  max: 10, // Set max to the highest value + padding
+                  ticks: {
+                    stepSize: 1, // Adjust step size to create more tick marks
+                    min: 0, // Ensure the y-axis starts from 0
+                    max: 10, // Set the max value based on the data
+                  },
+                  grid: {
+                    color: "#BFBFBF", // Light grid color for a cleaner look
+                  },
+                },
               },
-            ],
-          };
-
-          charts.push(
-            <div
-              key={`${pid}-install`}
-              className="bg-white rounded shadow p-4 w-full h-[400px]"
-              ref={(el) => chartRefs.current.push(el)}>
-              <h3 className="text-sm font-semibold mb-2">{`PID: ${pid} - Install/Realtime/P360`}</h3>
-              <Bar
-                data={chartData}
-                options={{ responsive: true, maintainAspectRatio: false }}
-              />
-            </div>
-          );
-        });
-
-        Object.keys(groupedNewData).forEach((pid) => {
-          const data = groupedNewData[pid];
-          const chartData = {
-            labels: ["Event", "Realtime", "P360"],
-            datasets: [
-              {
-                label: `${pid} - ${secondDate}`,
-                data: [
-                  data.secondLast.event,
-                  data.secondLast.realtime,
-                  data.secondLast.p360,
-                ],
-                backgroundColor: "rgba(153, 102, 255, 0.6)",
+              elements: {
+                bar: {
+                  borderRadius: 5, // Rounded corners for bars
+                  borderWidth: 1, // Optional: Border width around bars
+                },
               },
-              {
-                label: `${pid} - ${lastDate}`,
-                data: [data.last.event, data.last.realtime, data.last.p360],
-                backgroundColor: "rgba(255, 206, 86, 0.6)",
+              layout: {
+                padding: 10, // Padding around the chart for a cleaner look
               },
-            ],
-          };
+            }}
+          />
+        </div>
+      ));
 
-          charts.push(
-            <div
-              key={`${pid}-event`}
-              className="bg-white rounded shadow p-4 w-full h-[400px]"
-              ref={(el) => chartRefs.current.push(el)}>
-              <h3 className="text-sm font-semibold mb-2">{`PID: ${pid} - Event/Realtime/P360`}</h3>
-              <Bar
-                data={chartData}
-                options={{ responsive: true, maintainAspectRatio: false }}
-              />
-            </div>
-          );
-        });
-
-        setChartData(charts);
-      } catch (err) {
-        console.error("❌ Error parsing Excel file:", err);
-        alert("❌ An error occurred while processing the file.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    reader.readAsBinaryString(file);
+      setChartData(newCharts);
+    } catch (error) {
+      console.error("❌ Error processing file:", error);
+      alert("❌ Failed to process file.");
+    } finally {
+      setLoading(false);
+    }
   };
-
   const handleDownloadZip = async () => {
     setZipLoading(true);
     const zip = new JSZip();
@@ -240,6 +160,8 @@ const ExcelGraphCompare = () => {
       const canvas = await html2canvas(chartNode);
       const imgData = canvas.toDataURL("image/png");
       const imgBase64 = imgData.split(",")[1];
+
+      // Corrected line: using backticks for template literals
       folder.file(`chart_${i + 1}.png`, imgBase64, { base64: true });
     }
 
@@ -249,7 +171,7 @@ const ExcelGraphCompare = () => {
   };
 
   return (
-    <div className="p-4 max-w-6xl mx-auto">
+    <div className="p-4 max-w-7xl mx-auto">
       <h2 className="text-xl font-bold mb-4">
         📊 Upload Excel File to Compare
       </h2>
@@ -275,7 +197,7 @@ const ExcelGraphCompare = () => {
 
       {chartData.length > 0 && (
         <>
-          <div className="mb-6 flex items-center gap-4">
+          <div className="mb-6 flex flex-col gap-4">
             <button
               className={`px-4 py-2 rounded text-white font-semibold ${
                 zipLoading
@@ -288,16 +210,15 @@ const ExcelGraphCompare = () => {
                 ? "⏳ Preparing ZIP..."
                 : "⬇️ Download All Charts as ZIP"}
             </button>
-
             {zipLoading && (
               <span className="text-sm text-gray-600">
                 This might take a few seconds...
               </span>
             )}
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {chartData}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {chartData}
+            </div>
           </div>
         </>
       )}
