@@ -24,8 +24,6 @@ ChartJS.register(
   Legend
 );
 Chart.register(ChartDataLabels);
-const apiUrl =
-  import.meta.env.VITE_API_URL || "https://apii.clickorbits.in";
 const ExcelGraphCompare = () => {
   const [chartData, setChartData] = useState([]);
   const [charts, setCharts] = useState([]);
@@ -47,14 +45,13 @@ const ExcelGraphCompare = () => {
     formData.append("sheetName", sheetName);
 
     try {
-      const res = await fetch(`${apiUrl}/process-excel`, {
+      const res = await fetch("http://localhost:4001/process-excel", {
         method: "POST",
         body: formData,
       });
 
       const { charts } = await res.json();
       setCharts(charts);
-
       const newCharts = charts.map((chart, index) => (
         <div
           key={`${chart.pid}-${chart.type}`}
@@ -115,11 +112,11 @@ const ExcelGraphCompare = () => {
                 },
                 y: {
                   beginAtZero: true, // Ensure the y-axis starts from 0
-                  max: 10, // Set max to the highest value + padding
+                  max: 100, // Set max to the highest value + padding
                   ticks: {
-                    stepSize: 1, // Adjust step size to create more tick marks
+                    stepSize: 10, // Adjust step size to create more tick marks
                     min: 0, // Ensure the y-axis starts from 0
-                    max: 10, // Set the max value based on the data
+                    max: 100, // Set the max value based on the data
                   },
                   grid: {
                     color: "#BFBFBF", // Light grid color for a cleaner look

@@ -16,7 +16,7 @@ import AdvertiserCurrentData from "../components/AdvertiserCurrentData";
 import PublisherCurrentData from "../components/PublisherCurrentData";
 import SubAdminPubnameData from "../components/SubAdminPubnameData";
 import MakeRequest from "../components/MakeRequest";
-const ManagerHomepage = ({ }) => {
+const ManagerHomepage = ({}) => {
   const [activeComponent, setActiveComponent] = useState("advform");
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
@@ -58,7 +58,7 @@ const ManagerHomepage = ({ }) => {
 
         {/* Navigation */}
         {sidebarOpen && (
-          <nav className="space-y-2 flex-1">
+          <nav className="space-y-2 flex-1 overflow-y-auto px-2">
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "advform"
@@ -223,7 +223,7 @@ const ManagerHomepage = ({ }) => {
           {activeComponent === "pid" && <PIDForm />}
           {activeComponent === "mmptracker" && <MMPTrackerForm />}
           {activeComponent === "payableevent" && <PayableEventForm />}
-          {activeComponent === "makerequest" && <MakeRequest/>}
+          {activeComponent === "makerequest" && <MakeRequest />}
           {activeComponent === "managerData" && <MainComponent />}
           {activeComponent === "pubnameData" && <SubAdminPubnameData />}
           {activeComponent === "changepassword" && <ChangePassword />}
