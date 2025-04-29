@@ -24,6 +24,8 @@ ChartJS.register(
   Legend
 );
 Chart.register(ChartDataLabels);
+const apiUrl = import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
+
 const ExcelGraphCompare = () => {
   const [chartData, setChartData] = useState([]);
   const [charts, setCharts] = useState([]);
@@ -45,7 +47,7 @@ const ExcelGraphCompare = () => {
     formData.append("sheetName", sheetName);
 
     try {
-      const res = await fetch("http://localhost:4001/process-excel", {
+      const res = await fetch(`${apiUrl}/process-excel`, {
         method: "POST",
         body: formData,
       });
