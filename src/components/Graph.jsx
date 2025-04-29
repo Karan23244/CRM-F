@@ -24,7 +24,7 @@ ChartJS.register(
   Legend
 );
 Chart.register(ChartDataLabels);
-const apiUrl = import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
+const apiUrl = import.meta.env.VITE_API_URL || "https://apii.clickorbits.in";
 
 const ExcelGraphCompare = () => {
   const [chartData, setChartData] = useState([]);
