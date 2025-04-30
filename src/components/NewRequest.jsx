@@ -2,41 +2,45 @@ import React, { useEffect, useState } from "react";
 import { Table, Button, Input, Modal, message } from "antd";
 import axios from "axios";
 import { subscribeToNotifications } from "./Socket";
-import { notification } from 'antd';
+import { notification } from "antd";
+import { useSelector } from "react-redux";
 
-const apiUrl =
-  import.meta.env.VITE_API_URL || "https://apii.clickorbits.in";
+const apiUrl = import.meta.env.VITE_API_URL || "https://apii.clickorbits.in";
 
 const NewRequest = () => {
+  const user = useSelector((state) => state.auth.user);
+  const username = user?.username || null;
+  console.log(username);
   const [requests, setRequests] = useState([]);
   const [editingRequest, setEditingRequest] = useState(null);
   const [newLink, setNewLink] = useState("");
 
-
   useEffect(() => {
     fetchRequests();
-  
+
     subscribeToNotifications((data) => {
       console.log(data);
       if (data?.id !== null) {
-        notification.info({
-          message: '📢 New Request Submitted',
-          description: 'A new request has been added to the campaign list.',
-          placement: 'topRight',
-          duration: 3, // auto-dismiss after 3 seconds
-        });
         fetchRequests();
       }
     });
   }, []);
-  
+
   console.log(requests);
   const fetchRequests = async () => {
     try {
-      const res = await axios.get(`${apiUrl}/getAllPubRequests`);
-      setRequests(res.data?.data || []);
+      const res = await axios.get(`${apiUrl}/getPubRequestss/${username}`);
+      const result = res.data?.data;
+
+      if (Array.isArray(result)) {
+        setRequests(result);
+      } else {
+        console.error("Expected an array but got:", result);
+        setRequests([]); // Fallback to empty array
+      }
     } catch (error) {
       message.error("Failed to fetch requests");
+      setRequests([]); // Also fallback on error
     }
   };
 

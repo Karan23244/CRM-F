@@ -15,11 +15,15 @@ import MainComponent from "../components/ManagerAllData";
 import AdvertiserCurrentData from "../components/AdvertiserCurrentData";
 import PublisherCurrentData from "../components/PublisherCurrentData";
 import SubAdminPubnameData from "../components/SubAdminPubnameData";
+import NewRequest from "../components/NewRequest";
 import MakeRequest from "../components/MakeRequest";
+import { subscribeToNotifications } from "../components/Socket";
+
 const ManagerHomepage = ({}) => {
   const [activeComponent, setActiveComponent] = useState("advform");
   const [sidebarOpen, setSidebarOpen] = useState(true);
-
+  const [showNotificationDot, setShowNotificationDot] = useState(false);
+  const [showNewRequestDot, setShowNewRequestDot] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -27,6 +31,37 @@ const ManagerHomepage = ({}) => {
     dispatch(logout());
     navigate("/"); // Redirect to login page
   };
+
+  useEffect(() => {
+    subscribeToNotifications((data) => {
+      if (data?.adv_res && data?.id) {
+        // Only show dot if not on MakeRequest component
+        if (activeComponent !== "makerequest") {
+          setShowNotificationDot(true);
+        }
+      }
+    });
+  }, [activeComponent]);
+  useEffect(() => {
+    if (activeComponent === "makerequest") {
+      setShowNotificationDot(false);
+    }
+  }, [activeComponent]);
+
+  useEffect(() => {
+    subscribeToNotifications((data) => {
+      if (data?.campaign_name && data?.id) {
+        if (activeComponent !== "viewRequest") {
+          setShowNewRequestDot(true); // Show dot only if not already on viewRequest
+        }
+      }
+    });
+  }, [activeComponent]);
+  useEffect(() => {
+    if (activeComponent === "viewRequest") {
+      setShowNewRequestDot(false);
+    }
+  }, [activeComponent]);
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -137,7 +172,23 @@ const ManagerHomepage = ({}) => {
               }`}
               onClick={() => setActiveComponent("makerequest")}>
               Make Request
+              {showNotificationDot && (
+                <span className="w-2 h-2 bg-red-500 rounded-full ml-1"></span>
+              )}
             </button>
+            <button
+              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
+                activeComponent === "viewRequest"
+                  ? "bg-blue-700"
+                  : "hover:bg-blue-600"
+              }`}
+              onClick={() => setActiveComponent("viewRequest")}>
+              New Request
+              {showNewRequestDot && (
+                <span className="w-2 h-2 bg-red-500 rounded-full ml-1"></span>
+              )}
+            </button>
+
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "mmptracker"
@@ -224,6 +275,7 @@ const ManagerHomepage = ({}) => {
           {activeComponent === "mmptracker" && <MMPTrackerForm />}
           {activeComponent === "payableevent" && <PayableEventForm />}
           {activeComponent === "makerequest" && <MakeRequest />}
+          {activeComponent === "viewRequest" && <NewRequest />}
           {activeComponent === "managerData" && <MainComponent />}
           {activeComponent === "pubnameData" && <SubAdminPubnameData />}
           {activeComponent === "changepassword" && <ChangePassword />}

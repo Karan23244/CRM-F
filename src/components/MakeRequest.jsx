@@ -8,16 +8,19 @@ import {
   InputNumber,
   Select,
   message,
-  notification
+  notification,
 } from "antd";
 import axios from "axios";
 import { subscribeToNotifications } from "./Socket";
+import { useSelector } from "react-redux";
 
 const { Option } = Select;
 const apiUrl = import.meta.env.VITE_API_URL || "https://apii.clickorbits.in";
 const apiUrl1 =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 const PublisherRequest = () => {
+  const user = useSelector((state) => state.auth.user);
+  const userId = user?.id || null;
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm();
   const [requests, setRequests] = useState([]);
@@ -26,27 +29,20 @@ const PublisherRequest = () => {
   useEffect(() => {
     fetchAdvertisers();
     fetchRequests();
-  
+
     // Socket notification setup
     subscribeToNotifications((data) => {
       console.log(data);
       if (data?.payout !== null) {
-        notification.success({
-          message: '✅ Link Updated',
-          description: 'A request link has been updated successfully.',
-          placement: 'topRight',
-          duration: 3,
-        });
         fetchRequests(); // Optional: refresh data
       }
     });
   }, []);
-  
 
   console.log(requests);
   const fetchRequests = async () => {
     try {
-      const res = await axios.get(`${apiUrl}/getAllPubRequests`);
+      const res = await axios.get(`${apiUrl}/getPubRequest/${userId}`);
       setRequests(res.data?.data || []);
     } catch (error) {
       message.error("Failed to fetch requests");
@@ -83,6 +79,7 @@ const PublisherRequest = () => {
 
       const requestData = {
         adv_name: values.advertiserName,
+        us_id:userId,
         campaign_name: values.campaignName,
         payout: values.payout,
         os: values.os,
@@ -201,9 +198,7 @@ const PublisherRequest = () => {
             <Select placeholder="Select OS">
               <Option value="Android">Android</Option>
               <Option value="iOS">iOS</Option>
-              <Option value="Windows">Windows</Option>
-              <Option value="macOS">macOS</Option>
-              <Option value="Other">Other</Option>
+              <Option value="iOS">Both</Option>
             </Select>
           </Form.Item>
         </Form>

@@ -14,11 +14,13 @@ import { useSelector } from "react-redux";
 import ReportForm from "../components/ReportForm";
 import NewRequest from "../components/NewRequest";
 import ExcelGraphCompare from "../components/Graph";
+import { subscribeToNotifications } from "../components/Socket";
+
 const AdvHomepage = ({}) => {
   const user = useSelector((state) => state.auth.user);
   const [activeComponent, setActiveComponent] = useState("form");
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  console.log(user);
+  const [showNewRequestDot, setShowNewRequestDot] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -27,6 +29,20 @@ const AdvHomepage = ({}) => {
     navigate("/"); // Redirect to login page
   };
   const allowedUserIds = [31, 40];
+  useEffect(() => {
+    subscribeToNotifications((data) => {
+      if (data?.campaign_name && data?.id) {
+        if (activeComponent !== "viewRequest") {
+          setShowNewRequestDot(true); // Show dot only if not already on viewRequest
+        }
+      }
+    });
+  }, [activeComponent]);
+  useEffect(() => {
+    if (activeComponent === "viewRequest") {
+      setShowNewRequestDot(false);
+    }
+  }, [activeComponent]);
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Overlay for mobile view */}
@@ -114,7 +130,11 @@ const AdvHomepage = ({}) => {
               }`}
               onClick={() => setActiveComponent("viewRequest")}>
               New Request
+              {showNewRequestDot && (
+                <span className="w-2 h-2 bg-red-500 rounded-full ml-1"></span>
+              )}
             </button>
+
             {allowedUserIds.includes(Number(user?.id)) && (
               <>
                 <button

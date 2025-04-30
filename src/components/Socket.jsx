@@ -12,12 +12,12 @@ export const subscribeToNotifications = (callback) => {
     console.log('Welcome message from server:', message);
     callback(message);
   });
- 
+ //request 
   socket.on('pub_request_added', (data) => {
     console.log('New Pub Request added:', data);
     callback(data);
   });
- 
+ //update link
   socket.on('adv_res_updated', (data) => {
     console.log('Adv Res updated:', data);
     callback(data);
