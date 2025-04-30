@@ -8,13 +8,15 @@ import {
   InputNumber,
   Select,
   message,
+  notification
 } from "antd";
 import axios from "axios";
+import { subscribeToNotifications } from "./Socket";
 
 const { Option } = Select;
-const apiUrl =
+const apiUrl = import.meta.env.VITE_API_URL || "https://apii.clickorbits.in";
+const apiUrl1 =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
-
 const PublisherRequest = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm();
@@ -24,11 +26,27 @@ const PublisherRequest = () => {
   useEffect(() => {
     fetchAdvertisers();
     fetchRequests();
+  
+    // Socket notification setup
+    subscribeToNotifications((data) => {
+      console.log(data);
+      if (data?.payout !== null) {
+        notification.success({
+          message: '✅ Link Updated',
+          description: 'A request link has been updated successfully.',
+          placement: 'topRight',
+          duration: 3,
+        });
+        fetchRequests(); // Optional: refresh data
+      }
+    });
   }, []);
+  
+
   console.log(requests);
   const fetchRequests = async () => {
     try {
-      const res = await axios.get(`${apiUrl}/get-allrequests`);
+      const res = await axios.get(`${apiUrl}/getAllPubRequests`);
       setRequests(res.data?.data || []);
     } catch (error) {
       message.error("Failed to fetch requests");
@@ -36,7 +54,7 @@ const PublisherRequest = () => {
   };
   const fetchAdvertisers = async () => {
     try {
-      const advmName = await axios.get(`${apiUrl}/get-subadmin`);
+      const advmName = await axios.get(`${apiUrl1}/get-subadmin`);
       const filteredNames =
         advmName.data?.data
           ?.filter(
@@ -71,7 +89,7 @@ const PublisherRequest = () => {
       };
       console.log(requestData);
       // Sending the form data to the API endpoint
-      const response = await axios.post(`${apiUrl}/addrequest`, requestData);
+      const response = await axios.post(`${apiUrl}/addPubRequest`, requestData);
       console.log(response);
       if (response.status === 201) {
         // Update the local state with the new request (optional, depending on your needs)

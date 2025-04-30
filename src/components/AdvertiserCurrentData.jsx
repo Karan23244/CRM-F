@@ -117,6 +117,7 @@ const AdvertiserData = () => {
       "adv_total_no",
       "adv_deductions",
       "adv_approved_no",
+      "pay_out",
     ];
 
     const isEmptyField = Object.entries(editedRow)
@@ -127,6 +128,7 @@ const AdvertiserData = () => {
       alert("All required fields must be filled!");
       return;
     }
+    console.log(editedRow)
     try {
       await axios.post(`${apiUrl}/advdata-update/${editingKey}`, editedRow, {
         headers: { "Content-Type": "application/json" },
@@ -215,6 +217,7 @@ const AdvertiserData = () => {
     mmp_tracker: "MMP Tracker",
     adv_id: "ADV ID",
     adv_payout: "ADV Payout $",
+    pay_out: "PUB Payout $",
     pub_am: "Pub AM",
     pub_id: "PubID",
     pid: "PID",
@@ -230,6 +233,7 @@ const AdvertiserData = () => {
     "adv_total_no",
     "adv_deductions",
     "adv_approved_no",
+    "pay_out",
   ];
   const handleFilterChange = (value, key) => {
     setFilters((prev) => ({ ...prev, [key]: value }));

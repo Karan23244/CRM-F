@@ -1,22 +1,39 @@
 import React, { useEffect, useState } from "react";
 import { Table, Button, Input, Modal, message } from "antd";
 import axios from "axios";
+import { subscribeToNotifications } from "./Socket";
+import { notification } from 'antd';
 
 const apiUrl =
-  import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
+  import.meta.env.VITE_API_URL || "https://apii.clickorbits.in";
 
 const NewRequest = () => {
   const [requests, setRequests] = useState([]);
   const [editingRequest, setEditingRequest] = useState(null);
   const [newLink, setNewLink] = useState("");
 
+
   useEffect(() => {
     fetchRequests();
+  
+    subscribeToNotifications((data) => {
+      console.log(data);
+      if (data?.id !== null) {
+        notification.info({
+          message: '📢 New Request Submitted',
+          description: 'A new request has been added to the campaign list.',
+          placement: 'topRight',
+          duration: 3, // auto-dismiss after 3 seconds
+        });
+        fetchRequests();
+      }
+    });
   }, []);
+  
   console.log(requests);
   const fetchRequests = async () => {
     try {
-      const res = await axios.get(`${apiUrl}/get-allrequests`);
+      const res = await axios.get(`${apiUrl}/getAllPubRequests`);
       setRequests(res.data?.data || []);
     } catch (error) {
       message.error("Failed to fetch requests");
@@ -30,7 +47,7 @@ const NewRequest = () => {
 
   const handleUpdateSubmit = async () => {
     try {
-      const response = await axios.put(`${apiUrl}/updaterequest`, {
+      const response = await axios.put(`${apiUrl}/updateAdvRes`, {
         id: editingRequest.id,
         adv_res: newLink,
       });

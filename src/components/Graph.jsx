@@ -151,23 +151,29 @@ const ExcelGraphCompare = () => {
     setZipLoading(true);
     const zip = new JSZip();
     const folder = zip.folder("charts");
-
+    console.log(chartRefs.current.length);
+    // Uncomment the logic below once you're sure chartRefs is correct
     for (let i = 0; i < chartRefs.current.length; i++) {
       const chartNode = chartRefs.current[i];
-      if (!chartNode) continue;
+      const chartInfo = charts[i];
+      if (!chartNode || !chartInfo) continue;
+      const chartType =
+        chartInfo.labels?.[0] === "Install" ? "Install" : "Event";
+      const fileName = `chart_${chartInfo.pid}_${chartInfo.pubid}_${chartType}.png`;
 
       const canvas = await html2canvas(chartNode);
       const imgData = canvas.toDataURL("image/png");
       const imgBase64 = imgData.split(",")[1];
 
-      // Corrected line: using backticks for template literals
-      folder.file(`chart_${i + 1}.png`, imgBase64, { base64: true });
+      folder.file(fileName, imgBase64, { base64: true });
     }
 
     const zipBlob = await zip.generateAsync({ type: "blob" });
     saveAs(zipBlob, "charts.zip");
     setZipLoading(false);
   };
+  
+  
 
   return (
     <div className="p-4 max-w-7xl mx-auto">

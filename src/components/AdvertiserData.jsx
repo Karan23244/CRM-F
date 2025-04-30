@@ -102,6 +102,7 @@ const AdvertiserData = () => {
       "adv_total_no",
       "adv_deductions",
       "adv_approved_no",
+      "pay_out",
     ];
 
     const isEmptyField = Object.entries(editedRow)
@@ -200,6 +201,7 @@ const AdvertiserData = () => {
     mmp_tracker: "MMP Tracker",
     adv_id: "ADV ID",
     adv_payout: "ADV Payout $",
+    pay_out: "PUB Payout $",
     pub_am: "Pub AM",
     pub_id: "PubID",
     pid: "PID",
@@ -208,6 +210,7 @@ const AdvertiserData = () => {
     adv_total_no: "ADV Total Numbers",
     adv_deductions: "ADV Deductions",
     adv_approved_no: "ADV Approved Numbers",
+  
   };
 
   const allowedFieldsAfter3Days = [
@@ -215,58 +218,36 @@ const AdvertiserData = () => {
     "adv_total_no",
     "adv_deductions",
     "adv_approved_no",
+    "pay_out",
   ];
   const handleFilterChange = (value, key) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
-  // const filteredRecords = data.filter((item) => {
-  //   return Object.keys(filters).every((key) => {
-  //     if (!filters[key]) return true;
+  const filteredRecords = data.filter((item) => {
+    // Apply existing filters
+    const matchesFilters = Object.keys(filters).every((key) => {
+      if (!filters[key]) return true;
 
-  //     // Date range filter
-  //     if (Array.isArray(filters[key]) && filters[key].length === 2) {
-  //       const [start, end] = filters[key];
-  //       return dayjs(item[key]).isBetween(start, end, null, "[]");
-  //     }
+      // Date range filter
+      if (Array.isArray(filters[key]) && filters[key].length === 2) {
+        const [start, end] = filters[key];
+        return dayjs(item[key]).isBetween(start, end, null, "[]");
+      }
 
-  //     return item[key]
-  //       ?.toString()
-  //       .toLowerCase()
-  //       .includes(filters[key].toString().toLowerCase());
-  //   });
-  //   // Apply monthly filter (checks created_at field)
-  //   const matchesMonth = selectedMonth
-  //     ? dayjs(item.created_at).isSame(selectedMonth, "month")
-  //     : true;
+      return item[key]
+        ?.toString()
+        .toLowerCase()
+        .includes(filters[key].toString().toLowerCase());
+    });
 
-  //   return matchesFilters && matchesMonth;
-  // });
+    // Apply monthly filter (checks created_at field)
+    const matchesMonth = selectedMonth
+      ? dayjs(item.created_at).isSame(selectedMonth, "month")
+      : true;
 
-    const filteredRecords = data.filter((item) => {
-      // Apply existing filters
-      const matchesFilters = Object.keys(filters).every((key) => {
-        if (!filters[key]) return true;
-    
-        // Date range filter
-        if (Array.isArray(filters[key]) && filters[key].length === 2) {
-          const [start, end] = filters[key];
-          return dayjs(item[key]).isBetween(start, end, null, "[]");
-        }
-    
-        return item[key]
-          ?.toString()
-          .toLowerCase()
-          .includes(filters[key].toString().toLowerCase());
-      });
-    
-      // Apply monthly filter (checks created_at field)
-      const matchesMonth = selectedMonth
-        ? dayjs(item.created_at).isSame(selectedMonth, "month")
-        : true;
-    
-      return matchesFilters && matchesMonth;
-    });  
+    return matchesFilters && matchesMonth;
+  });
 
   const columns = [
     ...Object.keys(data[0] || {})
@@ -362,52 +343,6 @@ const AdvertiserData = () => {
           return text;
         },
       })),
-    // {
-    //   title: "Actions",
-    //   fixed: "right",
-    //   render: (_, record) => {
-    //     const createdAt = dayjs(record.created_at);
-    //     const hoursSinceCreation = dayjs().diff(createdAt, "hour");
-    //     const remainingHours = Math.max(24 - hoursSinceCreation, 0);
-    //     const isEditable = dayjs().diff(createdAt, "day") <= 3;
-    //     const isDeletable = hoursSinceCreation < 24; // Delete button active for only 24 hours
-
-    //     return (
-    //       <div style={{ display: "flex", gap: "8px" }}>
-    //         {editingKey === record.id ? (
-    //           <Button
-    //             type="primary"
-    //             icon={<SaveOutlined />}
-    //             onClick={handleSave}
-    //           />
-    //         ) : (
-    //           <Tooltip
-    //             title={
-    //               !isEditable && !allowedFieldsAfter3Days.length
-    //                 ? "You can't edit because time is over"
-    //                 : ""
-    //             }>
-    //             <Button
-    //               icon={<EditOutlined />}
-    //               onClick={() => handleEdit(record.id)}
-    //               disabled={!isEditable && !allowedFieldsAfter3Days.length}
-    //             />
-    //           </Tooltip>
-    //         )}
-
-    //         {isDeletable && (
-    //           <Tooltip title={`Delete option available for ${remainingHours}h`}>
-    //             <Button
-    //               type="danger"
-    //               icon={<DeleteOutlined />}
-    //               onClick={() => handleDelete(record.id)}
-    //             />
-    //           </Tooltip>
-    //         )}
-    //       </div>
-    //     );
-    //   },
-    // },
     {
       title: "Actions",
       fixed: "right",
