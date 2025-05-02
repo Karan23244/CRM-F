@@ -219,6 +219,7 @@ const AdvertiserData = () => {
     "adv_deductions",
     "adv_approved_no",
     "pay_out",
+    "pub_id",
   ];
   const handleFilterChange = (value, key) => {
     setFilters((prev) => ({ ...prev, [key]: value }));

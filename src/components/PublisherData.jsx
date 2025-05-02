@@ -43,7 +43,7 @@ const PublisherData = () => {
       fetchDropdowns();
     }
   }, [user]);
-
+ console.log(data)
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -471,7 +471,7 @@ const PublisherData = () => {
     </div>
   );
 };
-
+ 
 export default PublisherData;
 // import React, { useEffect, useState } from "react";
 // import { Table, Select, Dropdown, Menu, message } from "antd";
@@ -482,7 +482,6 @@ export default PublisherData;
 // import geoData from "../Data/geoData.json";
 // import { useSelector } from "react-redux";
 // import utc from "dayjs/plugin/utc";
-
 // dayjs.extend(utc);
 
 // const { Option } = Select;

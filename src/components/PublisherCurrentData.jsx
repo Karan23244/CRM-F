@@ -474,12 +474,13 @@ import dayjs from "dayjs";
 import "../index.css";
 import geoData from "../Data/geoData.json";
 import { useSelector } from "react-redux";
-
+import { exportToExcel } from "./exportExcel";
 const { Option } = Select;
 const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 
 const columnHeadingsAdv = {
+  username: "Input UserName",
   pub_name: "PUBM Name",
   campaign_name: "Campaign Name",
   geo: "GEO",
@@ -719,16 +720,47 @@ const PublisherPayoutData = () => {
   };
 
   return (
-    <div className="p-4">
-      <Table
-        dataSource={filteredData}
-        columns={getColumns(columnHeadingsAdv)}
-        rowKey="id"
-        scroll={{ x: true }}
-        pagination={{ pageSize: 10 }}
-        bordered
-      />
-    </div>
+    // <div className="p-4">
+    //   <Table
+    //     dataSource={filteredData}
+    //     columns={getColumns(columnHeadingsAdv)}
+    //     rowKey="id"
+    //     scroll={{ x: true }}
+    //     pagination={{ pageSize: 10 }}
+    //     bordered
+    //   />
+    // </div>
+
+        <div className="p-4 bg-gray-100 min-h-screen flex flex-col items-center">
+          <div className="w-full bg-white p-4 rounded shadow-md relative">
+            {/* Fixed Button Container */}
+            <div className="sticky top-0 left-0 right-0 z-20 p-4 flex">
+              <Button
+                type="primary"
+                onClick={() => exportToExcel(data, "publisher-data.xlsx")}
+                className="px-4 py-2 mr-4 bg-blue-500 text-white rounded">
+                Download Excel
+              </Button>
+            </div>
+
+            {/* Scrollable Table Container */}
+            <div className="overflow-auto max-h-[70vh] mt-2">
+              <Table
+                columns={getColumns(columnHeadingsAdv)}
+                dataSource={filteredData}
+                pagination={{
+                  pageSizeOptions: ["10", "20", "50", "100"],
+                  showSizeChanger: true,
+                  defaultPageSize: 10,
+                  showTotal: (total, range) =>
+                    `${range[0]}-${range[1]} of ${total} items`,
+                }}
+                bordered
+                scroll={{ x: "max-content" }}
+              />
+            </div>
+          </div>
+        </div>
   );
 };
 
