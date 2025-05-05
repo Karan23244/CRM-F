@@ -21,6 +21,7 @@ import { useSelector } from "react-redux";
 import geoData from "../Data/geoData.json";
 import { exportToExcel } from "./exportExcel";
 import { Modal, message as antdMessage } from "antd";
+import MainComponent from "../components/ManagerAllData";
 
 const { Option } = Select;
 const apiUrl =
@@ -32,6 +33,8 @@ const AdvertiserData = () => {
   const [editingKey, setEditingKey] = useState(null);
   const [editedRow, setEditedRow] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
+  const [showSubadminData, setShowSubadminData] = useState(false);
+
   const [dropdownOptions, setDropdownOptions] = useState({
     os: ["Android", "APK", "iOS"],
   });
@@ -463,25 +466,47 @@ const AdvertiserData = () => {
   return (
     <div className="p-4 bg-gray-100 min-h-screen flex flex-col items-center">
       <div className="w-full bg-white p-6 rounded shadow-md relative">
-        {/* Fixed Button Container */}
-        <div className="sticky top-0 left-0 right-0 z-20 bg-white p-4 rounded shadow flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        {/* Sticky Top Bar */}
+        <div className="sticky top-0 left-0 right-0 z-20 bg-white p-4 rounded shadow-md flex flex-col md:flex-row md:items-center md:justify-between gap-4 border border-gray-200">
+          {/* Buttons Section */}
           <div className="flex flex-wrap items-center gap-4">
-            <Button
-              type="primary"
-              onClick={() => exportToExcel(data, "advertiser-data.xlsx")}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded">
-              Download Excel
-            </Button>
+            {!showSubadminData ? (
+              <>
+                <Button
+                  type="primary"
+                  onClick={() => exportToExcel(data, "advertiser-data.xlsx")}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200">
+                  📥 Download Excel
+                </Button>
 
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={handleAddRow}
-              className="bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2 rounded">
-              Add Row
-            </Button>
+                {user?.role === "manager" && (
+                  <Button
+                    type="primary"
+                    onClick={() => setShowSubadminData(true)}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200">
+                    📊 Assigned Sub-Admin Data
+                  </Button>
+                )}
+
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={handleAddRow}
+                  className="bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200">
+                  Add Row
+                </Button>
+              </>
+            ) : (
+              <Button
+                type="primary"
+                onClick={() => setShowSubadminData(false)}
+                className="bg-red-500 hover:bg-red-600 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200">
+                ← Back to Table
+              </Button>
+            )}
           </div>
 
+          {/* Search Input */}
           <div className="w-full md:w-auto">
             <Input
               placeholder="Search by Username, Pub Name, or Campaign Name"
@@ -492,22 +517,26 @@ const AdvertiserData = () => {
           </div>
         </div>
 
-        {/* Scrollable Table Container */}
+        {/* Table or Component View */}
         <div className="overflow-auto max-h-[70vh] mt-4">
-          <Table
-            columns={columns}
-            dataSource={finalFilteredData}
-            pagination={{
-              pageSizeOptions: ["10", "20", "50", "100"],
-              showSizeChanger: true,
-              defaultPageSize: 10,
-              showTotal: (total, range) =>
-                `${range[0]}-${range[1]} of ${total} items`,
-            }}
-            bordered
-            loading={loading}
-            scroll={{ x: "max-content" }}
-          />
+          {!showSubadminData ? (
+            <Table
+              columns={columns}
+              dataSource={finalFilteredData}
+              pagination={{
+                pageSizeOptions: ["10", "20", "50", "100"],
+                showSizeChanger: true,
+                defaultPageSize: 10,
+                showTotal: (total, range) =>
+                  `${range[0]}-${range[1]} of ${total} items`,
+              }}
+              bordered
+              loading={loading}
+              scroll={{ x: "max-content" }}
+            />
+          ) : (
+            <MainComponent />
+          )}
         </div>
       </div>
     </div>

@@ -516,7 +516,7 @@ const PublisherPayoutData = () => {
     os: ["Android", "APK", "iOS"],
   });
   const user = useSelector((state) => state.auth.user);
-  console.log(filteredData);
+  console.log(user);
   const fetchAdvData = async () => {
     try {
       const response = await axios.get(`${apiUrl}/get-advdata`);
@@ -760,12 +760,15 @@ const PublisherPayoutData = () => {
                   📥 Download Excel
                 </Button>
 
-                <Button
-                  type="primary"
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md shadow-sm transition-all duration-200"
-                  onClick={() => setShowSubadminData(true)}>
-                  📊 Assigned Sub-Admin Data
-                </Button>
+                {/* Conditionally render this button only if user is a manager */}
+                {user?.role === "manager" && (
+                  <Button
+                    type="primary"
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md shadow-sm transition-all duration-200"
+                    onClick={() => setShowSubadminData(true)}>
+                    📊 Assigned Sub-Admin Data
+                  </Button>
+                )}
               </div>
 
               <Input

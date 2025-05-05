@@ -7,7 +7,8 @@ import { useSelector } from "react-redux";
 import dayjs from "dayjs";
 import { exportToExcel } from "./exportExcel";
 
-const apiUrl = import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
+const apiUrl =
+  import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 const { RangePicker } = DatePicker;
 const SubAdminDropdown = ({ onSelect }) => {
   const [subAdmins, setSubAdmins] = useState([]);
@@ -381,7 +382,13 @@ const AdvertiserData = ({ data, name }) => {
   });
 
   return (
-    <div className="p-4 bg-gray-100 flex flex-col">
+    <div className="p-4 flex flex-col">
+      <Button
+        type="primary"
+        onClick={() => exportToExcel(data, "Sub-publisher-data.xlsx")}
+        className="w-3xs mb-5">
+        Download Excel
+      </Button>
       <div>
         <h1 className="text-lg font-semibold">Advertiser Data of {name}</h1>
       </div>
