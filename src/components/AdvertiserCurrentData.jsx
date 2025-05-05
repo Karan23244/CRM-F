@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import {
   Table,
@@ -31,6 +31,7 @@ const AdvertiserData = () => {
   const [data, setData] = useState([]);
   const [editingKey, setEditingKey] = useState(null);
   const [editedRow, setEditedRow] = useState({});
+  const [searchTerm, setSearchTerm] = useState("");
   const [dropdownOptions, setDropdownOptions] = useState({
     os: ["Android", "APK", "iOS"],
   });
@@ -128,7 +129,6 @@ const AdvertiserData = () => {
       alert("All required fields must be filled!");
       return;
     }
-    console.log(editedRow)
     try {
       await axios.post(`${apiUrl}/advdata-update/${editingKey}`, editedRow, {
         headers: { "Content-Type": "application/json" },
@@ -255,6 +255,14 @@ const AdvertiserData = () => {
         .includes(filters[key].toString().toLowerCase());
     });
   });
+  const finalFilteredData = useMemo(() => {
+    const lowerSearch = searchTerm.toLowerCase();
+    return filteredRecords.filter(
+      (item) =>
+        item.pub_name?.toLowerCase().includes(lowerSearch) ||
+        item.campaign_name?.toLowerCase().includes(lowerSearch)
+    );
+  }, [searchTerm, filteredRecords]);
   const columns = [
     ...Object.keys(data[0] || {})
       .filter((key) => !["id", "user_id", "key", "created_at"].includes(key))
@@ -454,29 +462,41 @@ const AdvertiserData = () => {
 
   return (
     <div className="p-4 bg-gray-100 min-h-screen flex flex-col items-center">
-      <div className="w-full bg-white p-4 rounded shadow-md relative">
+      <div className="w-full bg-white p-6 rounded shadow-md relative">
         {/* Fixed Button Container */}
-        <div className="sticky top-0 left-0 right-0 z-20 p-4">
-          <Button
-            type="primary"
-            onClick={() => exportToExcel(data, "advertiser-data.xlsx")}
-            className="px-4 py-2 mr-4 bg-blue-500 text-white rounded">
-            Download Excel
-          </Button>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={handleAddRow}
-            className="px-4 py-2 bg-green-500 text-white rounded">
-            Add Row
-          </Button>
+        <div className="sticky top-0 left-0 right-0 z-20 bg-white p-4 rounded shadow flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-4">
+            <Button
+              type="primary"
+              onClick={() => exportToExcel(data, "advertiser-data.xlsx")}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded">
+              Download Excel
+            </Button>
+
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleAddRow}
+              className="bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2 rounded">
+              Add Row
+            </Button>
+          </div>
+
+          <div className="w-full md:w-auto">
+            <Input
+              placeholder="Search by Username, Pub Name, or Campaign Name"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full md:w-80 px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+          </div>
         </div>
 
         {/* Scrollable Table Container */}
-        <div className="overflow-auto max-h-[70vh] mt-2">
+        <div className="overflow-auto max-h-[70vh] mt-4">
           <Table
             columns={columns}
-            dataSource={filteredRecords}
+            dataSource={finalFilteredData}
             pagination={{
               pageSizeOptions: ["10", "20", "50", "100"],
               showSizeChanger: true,

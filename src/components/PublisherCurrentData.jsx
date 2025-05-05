@@ -507,6 +507,9 @@ const PublisherPayoutData = () => {
   const [uniqueValues, setUniqueValues] = useState({});
   const [editingKey, setEditingKey] = useState(null);
   const [editedRow, setEditedRow] = useState({});
+  const [searchTerm, setSearchTerm] = useState("");
+  const [finalFilteredData, setFinalFilteredData] = useState([]);
+
   const [dropdownOptions, setDropdownOptions] = useState({
     os: ["Android", "APK", "iOS"],
   });
@@ -527,6 +530,16 @@ const PublisherPayoutData = () => {
     fetchAdvData();
     fetchDropdowns();
   }, []);
+  useEffect(() => {
+    const lowerSearch = searchTerm.toLowerCase();
+    const result = filteredData.filter(
+      (item) =>
+        item.username?.toLowerCase().includes(lowerSearch) ||
+        item.pub_name?.toLowerCase().includes(lowerSearch) ||
+        item.campaign_name?.toLowerCase().includes(lowerSearch)
+    );
+    setFinalFilteredData(result);
+  }, [searchTerm, filteredData]);
 
   useEffect(() => {
     const currentMonth = dayjs().month(); // 0-based (0 = January)
@@ -731,36 +744,43 @@ const PublisherPayoutData = () => {
     //   />
     // </div>
 
-        <div className="p-4 bg-gray-100 min-h-screen flex flex-col items-center">
-          <div className="w-full bg-white p-4 rounded shadow-md relative">
-            {/* Fixed Button Container */}
-            <div className="sticky top-0 left-0 right-0 z-20 p-4 flex">
-              <Button
-                type="primary"
-                onClick={() => exportToExcel(data, "publisher-data.xlsx")}
-                className="px-4 py-2 mr-4 bg-blue-500 text-white rounded">
-                Download Excel
-              </Button>
-            </div>
-
-            {/* Scrollable Table Container */}
-            <div className="overflow-auto max-h-[70vh] mt-2">
-              <Table
-                columns={getColumns(columnHeadingsAdv)}
-                dataSource={filteredData}
-                pagination={{
-                  pageSizeOptions: ["10", "20", "50", "100"],
-                  showSizeChanger: true,
-                  defaultPageSize: 10,
-                  showTotal: (total, range) =>
-                    `${range[0]}-${range[1]} of ${total} items`,
-                }}
-                bordered
-                scroll={{ x: "max-content" }}
-              />
-            </div>
-          </div>
+    <div className="p-4 bg-gray-100 min-h-screen flex flex-col items-center">
+      <div className="w-full bg-white p-4 rounded shadow-md relative">
+        {/* Fixed Button Container */}
+        <div className="sticky top-0 left-0 right-0 z-20 p-4 flex">
+          <Button
+            type="primary"
+            onClick={() => exportToExcel(data, "publisher-data.xlsx")}
+            className="px-4 py-2 mr-4 bg-blue-500 text-white rounded">
+            Download Excel
+          </Button>
+          <Input
+            placeholder="Search by Username, Pub Name, or Campaign Name"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="ml-4 w-5xl"
+          />
+          
         </div>
+
+        {/* Scrollable Table Container */}
+        <div className="overflow-auto max-h-[70vh] mt-2">
+          <Table
+            columns={getColumns(columnHeadingsAdv)}
+            dataSource={finalFilteredData}
+            pagination={{
+              pageSizeOptions: ["10", "20", "50", "100"],
+              showSizeChanger: true,
+              defaultPageSize: 10,
+              showTotal: (total, range) =>
+                `${range[0]}-${range[1]} of ${total} items`,
+            }}
+            bordered
+            scroll={{ x: "max-content" }}
+          />
+        </div>
+      </div>
+    </div>
   );
 };
 
