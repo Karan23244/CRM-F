@@ -475,6 +475,8 @@ import "../index.css";
 import geoData from "../Data/geoData.json";
 import { useSelector } from "react-redux";
 import { exportToExcel } from "./exportExcel";
+import MainComponent from "../components/ManagerAllData";
+
 const { Option } = Select;
 const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
@@ -509,7 +511,7 @@ const PublisherPayoutData = () => {
   const [editedRow, setEditedRow] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
   const [finalFilteredData, setFinalFilteredData] = useState([]);
-
+  const [showSubadminData, setShowSubadminData] = useState(false);
   const [dropdownOptions, setDropdownOptions] = useState({
     os: ["Android", "APK", "iOS"],
   });
@@ -744,40 +746,64 @@ const PublisherPayoutData = () => {
     //   />
     // </div>
 
-    <div className="p-4 bg-gray-100 min-h-screen flex flex-col items-center">
-      <div className="w-full bg-white p-4 rounded shadow-md relative">
-        {/* Fixed Button Container */}
-        <div className="sticky top-0 left-0 right-0 z-20 p-4 flex">
-          <Button
-            type="primary"
-            onClick={() => exportToExcel(data, "publisher-data.xlsx")}
-            className="px-4 py-2 mr-4 bg-blue-500 text-white rounded">
-            Download Excel
-          </Button>
-          <Input
-            placeholder="Search by Username, Pub Name, or Campaign Name"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="ml-4 w-5xl"
-          />
-          
+    <div className="p-6 bg-gray-50 min-h-screen flex flex-col items-center">
+      <div className="w-full bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+        {/* Sticky Header Controls */}
+        <div className="sticky top-0 z-30 bg-white pb-4 -mx-6 px-6 pt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-gray-200">
+          {!showSubadminData ? (
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 w-full">
+              <div className="flex gap-3">
+                <Button
+                  type="primary"
+                  onClick={() => exportToExcel(data, "publisher-data.xlsx")}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow-sm transition-all duration-200">
+                  📥 Download Excel
+                </Button>
+
+                <Button
+                  type="primary"
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md shadow-sm transition-all duration-200"
+                  onClick={() => setShowSubadminData(true)}>
+                  📊 Assigned Sub-Admin Data
+                </Button>
+              </div>
+
+              <Input
+                placeholder="Search by Username, Pub Name, or Campaign Name"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full sm:w-[400px] px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:outline-none"
+              />
+            </div>
+          ) : (
+            <Button
+              type="primary"
+              className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md shadow-sm transition-all duration-200"
+              onClick={() => setShowSubadminData(false)}>
+              ← Back to Table
+            </Button>
+          )}
         </div>
 
-        {/* Scrollable Table Container */}
-        <div className="overflow-auto max-h-[70vh] mt-2">
-          <Table
-            columns={getColumns(columnHeadingsAdv)}
-            dataSource={finalFilteredData}
-            pagination={{
-              pageSizeOptions: ["10", "20", "50", "100"],
-              showSizeChanger: true,
-              defaultPageSize: 10,
-              showTotal: (total, range) =>
-                `${range[0]}-${range[1]} of ${total} items`,
-            }}
-            bordered
-            scroll={{ x: "max-content" }}
-          />
+        {/* Conditional Rendering Area */}
+        <div className="overflow-auto max-h-[70vh] mt-4">
+          {!showSubadminData ? (
+            <Table
+              columns={getColumns(columnHeadingsAdv)}
+              dataSource={finalFilteredData}
+              pagination={{
+                pageSizeOptions: ["10", "20", "50", "100"],
+                showSizeChanger: true,
+                defaultPageSize: 10,
+                showTotal: (total, range) =>
+                  `${range[0]}-${range[1]} of ${total} items`,
+              }}
+              bordered
+              scroll={{ x: "max-content" }}
+            />
+          ) : (
+            <MainComponent />
+          )}
         </div>
       </div>
     </div>

@@ -200,15 +200,6 @@ const ManagerHomepage = ({}) => {
             </button>
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
-                activeComponent === "managerData"
-                  ? "bg-blue-700"
-                  : "hover:bg-blue-600"
-              }`}
-              onClick={() => setActiveComponent("managerData")}>
-              Assigned Sub-Admin Data
-            </button>
-            <button
-              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "pubnameData"
                   ? "bg-blue-700"
                   : "hover:bg-blue-600"
@@ -276,7 +267,6 @@ const ManagerHomepage = ({}) => {
           {activeComponent === "payableevent" && <PayableEventForm />}
           {activeComponent === "makerequest" && <MakeRequest />}
           {activeComponent === "viewRequest" && <NewRequest />}
-          {activeComponent === "managerData" && <MainComponent />}
           {activeComponent === "pubnameData" && <SubAdminPubnameData />}
           {activeComponent === "changepassword" && <ChangePassword />}
         </main>

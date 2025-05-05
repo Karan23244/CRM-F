@@ -221,7 +221,7 @@ const PublisherComponent = ({ data, name, fetchData }) => {
   ];
 
   return (
-    <div className="p-4 bg-gray-100 flex flex-col">
+    <div className="p-4 flex flex-col">
       <Button
         type="primary"
         onClick={() => exportToExcel(data, "Sub-publisher-data.xlsx")}
