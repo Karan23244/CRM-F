@@ -50,7 +50,7 @@ const AdvnameData = () => {
         field?.toString().toLowerCase().includes(searchTerm.toLowerCase())
     )
   );
-
+  console.log(tableData)
   // **Handle Form Submission for Updating**
   const handleUpdate = async (e) => {
     e.preventDefault();
@@ -109,24 +109,24 @@ const AdvnameData = () => {
   const handlePause = async (record) => {
     try {
       const response = await axios.post(`${apiUrl}/advid-pause`, {
-        pub_id: record.pub_id,
+        adv_id: record.adv_id,
         pause: 1,
       });
 
       if (response.data.success) {
-        alert(`Publisher ${record.pub_id} has been paused.`);
+        alert(`Advertiser ${record.adv_id} has been paused.`);
 
         // ✅ Refresh data after pause
-        const { data } = await axios.get(`${apiUrl}/get-Namepub/`);
+        const { data } = await axios.get(`${apiUrl}/get-NameAdv/`);
         if (data.success && Array.isArray(data.data)) {
           setTableData(data.data);
         }
       } else {
-        alert(`Failed to pause publisher ${record.pub_id}.`);
+        alert(`Failed to pause advertiser ${record.pub_id}.`);
       }
     } catch (error) {
-      console.error("Error pausing publisher:", error);
-      alert("Error occurred while pausing publisher.");
+      console.error("Error pausing advertiser:", error);
+      alert("Error occurred while pausing advertiser.");
     }
   };
   // **Table Columns**
