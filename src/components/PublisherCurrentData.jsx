@@ -482,24 +482,18 @@ const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 
 const columnHeadingsAdv = {
-  username: "Input UserName",
-  pub_name: "PUBM Name",
+  username: "Adv AM",
   campaign_name: "Campaign Name",
   geo: "GEO",
   city: "State Or City",
   os: "OS",
   payable_event: "Payable Event",
   mmp_tracker: "MMP Tracker",
-  adv_id: "ADV ID",
-  adv_payout: "ADV Payout $",
-  pay_out: "PUB Payout $",
   pub_id: "PubID",
   pid: "PID",
+  pay_out: "PUB Payout $",
   shared_date: "Shared Date",
   paused_date: "Paused Date",
-  adv_total_no: "ADV Total Numbers",
-  adv_deductions: "ADV Deductions",
-  adv_approved_no: "ADV Approved Numbers",
 };
 
 const PublisherPayoutData = () => {
@@ -510,13 +504,13 @@ const PublisherPayoutData = () => {
   const [editingKey, setEditingKey] = useState(null);
   const [editedRow, setEditedRow] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
-  const [finalFilteredData, setFinalFilteredData] = useState([]);
   const [showSubadminData, setShowSubadminData] = useState(false);
-  const [dropdownOptions, setDropdownOptions] = useState({
-    os: ["Android", "APK", "iOS"],
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1); // First day of current month
   });
+
   const user = useSelector((state) => state.auth.user);
-  console.log(user);
   const fetchAdvData = async () => {
     try {
       const response = await axios.get(`${apiUrl}/get-advdata`);
@@ -530,18 +524,7 @@ const PublisherPayoutData = () => {
 
   useEffect(() => {
     fetchAdvData();
-    fetchDropdowns();
   }, []);
-  useEffect(() => {
-    const lowerSearch = searchTerm.toLowerCase();
-    const result = filteredData.filter(
-      (item) =>
-        item.username?.toLowerCase().includes(lowerSearch) ||
-        item.pub_name?.toLowerCase().includes(lowerSearch) ||
-        item.campaign_name?.toLowerCase().includes(lowerSearch)
-    );
-    setFinalFilteredData(result);
-  }, [searchTerm, filteredData]);
 
   useEffect(() => {
     const currentMonth = dayjs().month(); // 0-based (0 = January)
@@ -573,36 +556,6 @@ const PublisherPayoutData = () => {
       return acc;
     }, {});
     setUniqueValues(formattedValues);
-  };
-
-  const fetchDropdowns = async () => {
-    try {
-      const [advmName, payableEvent, mmpTracker, pid, review] =
-        await Promise.all([
-          axios.get(`${apiUrl}/get-subadmin`),
-          axios.get(`${apiUrl}/get-paybleevernt`),
-          axios.get(`${apiUrl}/get-mmptracker`),
-          axios.get(`${apiUrl}/get-pid`),
-          axios.get(`${apiUrl}/get-reviews`),
-        ]);
-      setDropdownOptions((prev) => ({
-        ...prev,
-        pub_name:
-          advmName.data?.data
-            ?.filter(
-              (item) => item.role === "manager" || item.role === "publisher"
-            )
-            .map((item) => item.username) || [],
-        payable_event:
-          payableEvent.data?.data?.map((item) => item.payble_event) || [],
-        mmp_tracker: mmpTracker.data?.data?.map((item) => item.mmptext) || [],
-        p_id: pid.data?.data?.map((item) => item.pid) || [],
-        review: review.data?.data?.map((item) => item.review_text) || [],
-        geo: geoData.geo?.map((item) => item.code) || [],
-      }));
-    } catch (error) {
-      message.error("Failed to fetch dropdown options");
-    }
   };
 
   const handleFilterChange = (value, key) => {
@@ -657,6 +610,37 @@ const PublisherPayoutData = () => {
       alert("Failed to update data");
     }
   };
+
+  useEffect(() => {
+    const selectedDate = selectedMonth ? dayjs(selectedMonth) : dayjs();
+    const selectedMonthValue = selectedDate.month();
+    const selectedYear = selectedDate.year();
+    const lowerSearch = searchTerm.toLowerCase();
+
+    const filtered = advData.filter((item) => {
+      const createdDate = dayjs(item.created_at);
+      const matchesMonth =
+        createdDate.month() === selectedMonthValue &&
+        createdDate.year() === selectedYear;
+
+      const matchesPub = item.pub_name === user?.username;
+
+      const matchesFilters = Object.keys(filters).every((key) =>
+        filters[key] ? item[key] === filters[key] : true
+      );
+
+      const matchesSearch = !searchTerm.trim()
+        ? true
+        : Object.values(item).some((val) =>
+            String(val).toLowerCase().includes(lowerSearch)
+          );
+
+      return matchesMonth && matchesPub && matchesFilters && matchesSearch;
+    });
+
+    setFilteredData(filtered);
+    generateUniqueValues(filtered);
+  }, [searchTerm, selectedMonth, filters, advData, user]);
 
   const getColumns = (columnHeadings) => {
     return [
@@ -749,41 +733,52 @@ const PublisherPayoutData = () => {
     <div className="p-6 bg-gray-50 min-h-screen flex flex-col items-center">
       <div className="w-full bg-white p-6 rounded-xl shadow-lg border border-gray-200">
         {/* Sticky Header Controls */}
-        <div className="sticky top-0 z-30 bg-white pb-4 -mx-6 px-6 pt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-gray-200">
+        <div className="sticky top-0 z-30 bg-white -mx-6 px-6 pt-4 pb-4 border-b border-gray-200 shadow-sm">
           {!showSubadminData ? (
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4 w-full">
-              <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full">
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-3">
                 <Button
                   type="primary"
                   onClick={() => exportToExcel(data, "publisher-data.xlsx")}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow-sm transition-all duration-200">
-                  📥 Download Excel
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-md transition-all duration-200">
+                  📥 <span>Download Excel</span>
                 </Button>
 
-                {/* Conditionally render this button only if user is a manager */}
                 {user?.role === "manager" && (
                   <Button
                     type="primary"
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md shadow-sm transition-all duration-200"
-                    onClick={() => setShowSubadminData(true)}>
-                    📊 Assigned Sub-Admin Data
+                    onClick={() => setShowSubadminData(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-md transition-all duration-200">
+                    📊 <span>Assigned Sub-Admin Data</span>
                   </Button>
                 )}
               </div>
 
-              <Input
-                placeholder="Search by Username, Pub Name, or Campaign Name"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full sm:w-[400px] px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:outline-none"
-              />
+              {/* Search & Filter */}
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                <Input
+                  placeholder="🔍 Search by Username, Pub Name, or Campaign"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full sm:w-[300px] px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none transition-all"
+                />
+                <DatePicker
+                  picker="month"
+                  value={dayjs(selectedMonth)}
+                  onChange={(date) =>
+                    setSelectedMonth(date ? date.toDate() : null)
+                  }
+                  className="w-full sm:w-[160px] rounded-lg"
+                />
+              </div>
             </div>
           ) : (
             <Button
               type="primary"
-              className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md shadow-sm transition-all duration-200"
-              onClick={() => setShowSubadminData(false)}>
-              ← Back to Table
+              onClick={() => setShowSubadminData(false)}
+              className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg shadow-md transition-all duration-200">
+              ← <span>Back to Table</span>
             </Button>
           )}
         </div>
@@ -793,7 +788,7 @@ const PublisherPayoutData = () => {
           {!showSubadminData ? (
             <Table
               columns={getColumns(columnHeadingsAdv)}
-              dataSource={finalFilteredData}
+              dataSource={filteredData}
               pagination={{
                 pageSizeOptions: ["10", "20", "50", "100"],
                 showSizeChanger: true,

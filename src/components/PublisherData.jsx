@@ -497,16 +497,24 @@
 // };
 
 // export default PublisherData;
-
 import React, { useEffect, useState } from "react";
-import { Table, Select, Button, Input, Dropdown, Menu, message } from "antd";
+import {
+  Table,
+  Select,
+  Button,
+  Input,
+  Dropdown,
+  Menu,
+  message,
+  DatePicker,
+} from "antd";
 import { FilterOutlined } from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
 import "../index.css";
 import geoData from "../Data/geoData.json";
 import { useSelector } from "react-redux";
-import utc from "dayjs/plugin/utc";
 import { exportToExcel } from "./exportExcel";
 
 dayjs.extend(utc);
@@ -516,44 +524,42 @@ const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 
 const columnHeadingsAdv = {
-  username: "Input Name",
-  pub_name: "PUBM Name",
+  username: "Adv AM",
   campaign_name: "Campaign Name",
   geo: "GEO",
   city: "State Or City",
   os: "OS",
   payable_event: "Payable Event",
   mmp_tracker: "MMP Tracker",
-  adv_id: "ADV ID",
-  adv_payout: "ADV Payout $",
-  pay_out: "PUB Payout $",
   pub_id: "PubID",
   pid: "PID",
+  pay_out: "PUB Payout $",
   shared_date: "Shared Date",
   paused_date: "Paused Date",
-  adv_total_no: "ADV Total Numbers",
-  adv_deductions: "ADV Deductions",
-  adv_approved_no: "ADV Approved Numbers",
 };
 
 const PublisherPayoutData = () => {
   const [advData, setAdvData] = useState([]);
   const [filters, setFilters] = useState({});
-  const [filteredData, setFilteredData] = useState([]);
-  const [uniqueValues, setUniqueValues] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
-  const [finalFilteredData, setFinalFilteredData] = useState([]);
-  const [dropdownOptions, setDropdownOptions] = useState({
-    os: ["Android", "APK", "iOS"],
-  });
-  console.log(filteredData)
-  const user = useSelector((state) => state.auth.user); // Get the current logged-in user's username
+  const [selectedMonth, setSelectedMonth] = useState(null);
+  const [uniqueValues, setUniqueValues] = useState({});
+  const user = useSelector((state) => state.auth.user);
 
   const fetchAdvData = async () => {
     try {
       const response = await axios.get(`${apiUrl}/get-advdata`);
       if (response.data.success) {
         setAdvData(response.data.data);
+
+        // Extract unique values for filters
+        const unique = {};
+        Object.keys(columnHeadingsAdv).forEach((key) => {
+          unique[key] = [
+            ...new Set(response.data.data.map((item) => item[key])),
+          ].filter(Boolean);
+        });
+        setUniqueValues(unique);
       }
     } catch (error) {
       console.error("Error fetching advertiser data:", error);
@@ -562,87 +568,29 @@ const PublisherPayoutData = () => {
 
   useEffect(() => {
     fetchAdvData();
-    fetchDropdowns();
   }, []);
 
-  // Filter data by excluding records from the current month and checking for matching username
-  const filterDataByMonthAndUsername = () => {
-    const currentMonth = dayjs().month(); // Get the current month (0-11)
-    const currentYear = dayjs().year(); // Get the current year
-    const filtered = advData.filter((item) => {
-      const createdAt = dayjs(item.created_at); // Parse the created_at date
+  const filteredData = advData.filter((item) => {
+    const createdDate = dayjs(item.created_at);
+    const matchesMonth = selectedMonth
+      ? createdDate.month() === dayjs(selectedMonth).month() &&
+        createdDate.year() === dayjs(selectedMonth).year()
+      : true;
 
-      // Check if the item's created_at is not in the current month
-      // and if the pub_name matches the logged-in user's username
-      return (
-        (createdAt.month() !== currentMonth ||
-          createdAt.year() !== currentYear) &&
-        item.pub_name === user?.username // Match pub_name with logged-in username
-      );
-    });
+    const matchesPub = item.pub_name === user?.username;
 
-    setFilteredData(filtered); // Set filtered data
-  };
-  useEffect(() => {
-    const lowerSearch = searchTerm.toLowerCase();
-    const result = filteredData.filter(
-      (item) =>
-        item.username?.toLowerCase().includes(lowerSearch) ||
-        item.pub_name?.toLowerCase().includes(lowerSearch) ||
-        item.campaign_name?.toLowerCase().includes(lowerSearch)
+    const matchesFilters = Object.keys(filters).every((key) =>
+      filters[key] ? item[key] === filters[key] : true
     );
-    setFinalFilteredData(result);
-  }, [searchTerm, filteredData]);
-  useEffect(() => {
-    if (advData.length > 0) {
-      filterDataByMonthAndUsername(); // Filter data after it's fetched
-    }
-  }, [advData, user]); // Add user to dependency array to re-filter when the username changes
 
-  const generateUniqueValues = (data) => {
-    const uniqueVals = {};
-    data.forEach((item) => {
-      Object.keys(item).forEach((key) => {
-        if (!uniqueVals[key]) uniqueVals[key] = new Set();
-        uniqueVals[key].add(item[key]);
-      });
-    });
-    const formattedValues = Object.keys(uniqueVals).reduce((acc, key) => {
-      acc[key] = Array.from(uniqueVals[key]);
-      return acc;
-    }, {});
-    setUniqueValues(formattedValues);
-  };
+    const matchesSearch = !searchTerm.trim()
+      ? true
+      : Object.values(item).some((val) =>
+          String(val).toLowerCase().includes(searchTerm.toLowerCase())
+        );
 
-  const fetchDropdowns = async () => {
-    try {
-      const [advmName, payableEvent, mmpTracker, pid, review] =
-        await Promise.all([
-          axios.get(`${apiUrl}/get-subadmin`),
-          axios.get(`${apiUrl}/get-paybleevernt`),
-          axios.get(`${apiUrl}/get-mmptracker`),
-          axios.get(`${apiUrl}/get-pid`),
-          axios.get(`${apiUrl}/get-reviews`),
-        ]);
-      setDropdownOptions((prev) => ({
-        ...prev,
-        pub_name:
-          advmName.data?.data
-            ?.filter(
-              (item) => item.role === "manager" || item.role === "publisher"
-            )
-            .map((item) => item.username) || [],
-        payable_event:
-          payableEvent.data?.data?.map((item) => item.payble_event) || [],
-        mmp_tracker: mmpTracker.data?.data?.map((item) => item.mmptext) || [],
-        p_id: pid.data?.data?.map((item) => item.pid) || [],
-        review: review.data?.data?.map((item) => item.review_text) || [],
-        geo: geoData.geo?.map((item) => item.code) || [],
-      }));
-    } catch (error) {
-      message.error("Failed to fetch dropdown options");
-    }
-  };
+    return matchesMonth && matchesPub && matchesFilters && matchesSearch;
+  });
 
   const handleFilterChange = (value, key) => {
     setFilters((prev) => ({
@@ -666,7 +614,8 @@ const PublisherPayoutData = () => {
                       className="w-full"
                       placeholder={`Filter ${key}`}
                       value={filters[key]}
-                      onChange={(value) => handleFilterChange(value, key)}>
+                      onChange={(value) => handleFilterChange(value, key)}
+                    >
                       {uniqueValues[key]?.map((val) => (
                         <Option key={val} value={val}>
                           {val}
@@ -677,7 +626,8 @@ const PublisherPayoutData = () => {
                 </Menu>
               }
               trigger={["click"]}
-              placement="bottomRight">
+              placement="bottomRight"
+            >
               <FilterOutlined className="cursor-pointer text-gray-500 hover:text-black ml-2" />
             </Dropdown>
           )}
@@ -689,54 +639,53 @@ const PublisherPayoutData = () => {
   };
 
   return (
-    <>
-      {/* <div className="p-4">
-        <Table
-          dataSource={filteredData}
-          columns={getColumns(columnHeadingsAdv)}
-          rowKey="id"
-          scroll={{ x: true }}
-          pagination={{ pageSize: 10 }}
-          bordered
-        />
-      </div> */}
-      <div className="p-4 bg-gray-100 min-h-screen flex flex-col items-center">
-        <div className="w-full bg-white p-4 rounded shadow-md relative">
-          {/* Fixed Button Container */}
-          <div className="sticky top-0 left-0 right-0 z-20 p-4 flex">
-            <Button
-              type="primary"
-              onClick={() => exportToExcel(data, "publisher-data.xlsx")}
-              className="px-4 py-2 mr-4 bg-blue-500 text-white rounded">
-              Download Excel
-            </Button>
+    <div className="p-4 bg-gray-100 min-h-screen flex flex-col items-center">
+      <div className="w-full bg-white p-4 rounded shadow-md">
+        {/* Header Bar */}
+        <div className="mb-4 flex flex-col md:flex-row gap-3 items-center justify-between">
+          <Button
+            type="primary"
+            onClick={() => exportToExcel(filteredData, "publisher-data.xlsx")}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            📥 Download Excel
+          </Button>
+
+          <div className="flex gap-3">
             <Input
-              placeholder="Search by Username, Pub Name, or Campaign Name"
+              placeholder="🔍 Search"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-96"
+              className="w-[220px]"
             />
-          </div>
-
-          {/* Scrollable Table Container */}
-          <div className="overflow-auto max-h-[70vh] mt-2">
-            <Table
-              columns={getColumns(columnHeadingsAdv)}
-              dataSource={finalFilteredData}
-              pagination={{
-                pageSizeOptions: ["10", "20", "50", "100"],
-                showSizeChanger: true,
-                defaultPageSize: 10,
-                showTotal: (total, range) =>
-                  `${range[0]}-${range[1]} of ${total} items`,
-              }}
-              bordered
-              scroll={{ x: "max-content" }}
+            <DatePicker
+              picker="month"
+              value={selectedMonth ? dayjs(selectedMonth) : null}
+              onChange={(date) => setSelectedMonth(date ? date.toDate() : null)}
+              className="w-[160px]"
             />
           </div>
         </div>
+
+        {/* Table Section */}
+        <div className="overflow-auto max-h-[70vh]">
+          <Table
+            dataSource={filteredData}
+            columns={getColumns(columnHeadingsAdv)}
+            rowKey="id"
+            scroll={{ x: true }}
+            pagination={{
+              pageSizeOptions: ["10", "20", "50"],
+              defaultPageSize: 10,
+              showSizeChanger: true,
+              showTotal: (total, range) =>
+                `${range[0]}-${range[1]} of ${total} items`,
+            }}
+            bordered
+          />
+        </div>
       </div>
-    </>
+    </div>
   );
 };
 

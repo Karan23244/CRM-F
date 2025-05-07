@@ -20,6 +20,7 @@ const AdvertiserCreateForm = () => {
   const [usedIds, setUsedIds] = useState(new Set());
   const [editingAdv, setEditingAdv] = useState(null);
   const [target, setTarget] = useState("");
+  console.log(user)
   // **Initialize available IDs from user.ranges**
   useEffect(() => {
     if (user && user.ranges && user.ranges.length > 0) {

@@ -50,7 +50,6 @@ const AdvertiserData = () => {
       fetchDropdowns();
     }
   }, [user]);
-  console.log(data);
 
   const fetchData = async () => {
     try {

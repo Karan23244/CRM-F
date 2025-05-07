@@ -1,20 +1,20 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { logout } from "../redux/authSlice";
 import { FaBars, FaTimes } from "react-icons/fa";
 import PublisherFormComponent from "../components/PublisherFormComponent";
 import PublisherData from "../components/PublisherData";
-import PIDForm from "../components/PIDForm";
-import MMPTrackerForm from "../components/MMPTrackerForm";
-import PayableEventForm from "../components/PayableEventForm";
 import ChangePassword from "../components/ChangePassword";
 import PublisherCurrentData from "../components/PublisherCurrentData";
 import MakeRequest from "../components/MakeRequest";
-const PublisherHomepage = ({ }) => {
+import { FaBell } from "react-icons/fa";
+import { subscribeToNotifications } from "../components/Socket";
+const PublisherHomepage = ({}) => {
   const [activeComponent, setActiveComponent] = useState("form");
   const [sidebarOpen, setSidebarOpen] = useState(true);
-
+  const [showNotificationDot, setShowNotificationDot] = useState(false);
+  const [showNewRequestDot, setShowNewRequestDot] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -22,6 +22,22 @@ const PublisherHomepage = ({ }) => {
     dispatch(logout());
     navigate("/"); // Redirect to login page
   };
+
+  useEffect(() => {
+    subscribeToNotifications((data) => {
+      if (data?.adv_res && data?.id) {
+        // Only show dot if not on MakeRequest component
+        if (activeComponent !== "makerequest") {
+          setShowNotificationDot(true);
+        }
+      }
+    });
+  }, [activeComponent]);
+  useEffect(() => {
+    if (activeComponent === "makerequest") {
+      setShowNotificationDot(false);
+    }
+  }, [activeComponent]);
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -59,7 +75,7 @@ const PublisherHomepage = ({ }) => {
                 activeComponent === "form" ? "bg-blue-700" : "hover:bg-blue-600"
               }`}
               onClick={() => setActiveComponent("form")}>
-              Publisher Form
+              Publisher from/data
             </button>
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
@@ -68,39 +84,14 @@ const PublisherHomepage = ({ }) => {
                   : "hover:bg-blue-600"
               }`}
               onClick={() => setActiveComponent("currentpubdata")}>
-              Current Publisher Data
+              Current Pub Campaign data
             </button>
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "data" ? "bg-blue-700" : "hover:bg-blue-600"
               }`}
               onClick={() => setActiveComponent("data")}>
-              Previous Publisher Data
-            </button>
-            <button
-              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
-                activeComponent === "pid" ? "bg-blue-700" : "hover:bg-blue-600"
-              }`}
-              onClick={() => setActiveComponent("pid")}>
-              Add PID
-            </button>
-            <button
-              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
-                activeComponent === "payableevent"
-                  ? "bg-blue-700"
-                  : "hover:bg-blue-600"
-              }`}
-              onClick={() => setActiveComponent("payableevent")}>
-              Add Payable Event
-            </button>
-            <button
-              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
-                activeComponent === "mmptracker"
-                  ? "bg-blue-700"
-                  : "hover:bg-blue-600"
-              }`}
-              onClick={() => setActiveComponent("mmptracker")}>
-              Add MMP tracker
+              Previous Pub Campaign data
             </button>
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
@@ -134,11 +125,25 @@ const PublisherHomepage = ({ }) => {
             {sidebarOpen ? <FaTimes /> : <FaBars />}
           </button>
           <h2 className="text-xl font-semibold">Publisher Dashboard</h2>
-          <button
-            className="bg-red-500 text-black font-semibold px-5 py-3 rounded-lg hover:bg-red-600 transition"
-            onClick={handleLogout}>
-            Logout
-          </button>
+
+          <div className="flex items-center gap-4">
+            {/* Bell Icon */}
+            <button
+              className="relative"
+              onClick={() => setActiveComponent("makerequest")}>
+              <FaBell className="text-2xl text-blue-700 hover:text-blue-900 transition" />
+              {showNewRequestDot && (
+                <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
+              )}
+            </button>
+
+            {/* Logout */}
+            <button
+              className="bg-red-500 text-black font-semibold px-5 py-3 rounded-lg hover:bg-red-600 transition"
+              onClick={handleLogout}>
+              Logout
+            </button>
+          </div>
         </header>
 
         {/* Main Content Area */}
@@ -154,10 +159,7 @@ const PublisherHomepage = ({ }) => {
               <PublisherData />
             </div>
           )}
-          {activeComponent === "pid" && <PIDForm />}
-          {activeComponent === "payableevent" && <PayableEventForm />}
-          {activeComponent === "mmptracker" && <MMPTrackerForm />}
-          {activeComponent === "makerequest" && <MakeRequest/>}
+          {activeComponent === "makerequest" && <MakeRequest />}
           {activeComponent === "changepassword" && <ChangePassword />}
         </main>
       </div>

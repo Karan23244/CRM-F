@@ -21,6 +21,7 @@ const PublisherCreateForm = () => {
   const [error, setError] = useState("");
   const [usedIds, setUsedIds] = useState(new Set());
   const [editingPub, setEditingPub] = useState(null);
+  const [target, setTarget] = useState("");
 
   // **Initialize available IDs from user.ranges**
   useEffect(() => {
@@ -88,7 +89,8 @@ const PublisherCreateForm = () => {
       pub_name: name,
       pub_id: selectedId,
       geo: geo,
-      note: note || "", // Optional note
+      note: note || "", 
+      target: target || "",
       user_id: userId,
     };
 
@@ -140,6 +142,7 @@ const PublisherCreateForm = () => {
     setSelectedId(record.pub_id);
     setGeo(record.geo);
     setNote(record.note);
+    setTarget(record.target || "");
   };
 
   // Reset Form
@@ -149,6 +152,7 @@ const PublisherCreateForm = () => {
     setGeo("");
     setNote("");
     setEditingPub(null);
+    setTarget("");
     setError("");
   };
 
@@ -157,6 +161,7 @@ const PublisherCreateForm = () => {
     { title: "Publisher Name", dataIndex: "pub_name", key: "pub_name" },
     { title: "Geo", dataIndex: "geo", key: "geo" },
     { title: "Note", dataIndex: "note", key: "note" },
+    { title: "Target", dataIndex: "target", key: "target" },
     {
       title: "Actions",
       key: "actions",
@@ -244,16 +249,33 @@ const PublisherCreateForm = () => {
           </Select>
         </div>
 
-        {/* Note (Optional) */}
-        <div>
-          <label className="block text-lg font-medium">Note (Optional)</label>
-          <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded-lg"
-            rows="3"
-          />
-        </div>
+        {editingPub && user?.role === "manager" && (
+          <>
+            {/* Target Field */}
+            <div>
+              <label className="block text-lg font-medium">Target</label>
+              <input
+                type="text"
+                value={target}
+                onChange={(e) => setTarget(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-lg"
+              />
+            </div>
+
+            {/* Note Field */}
+            <div>
+              <label className="block text-lg font-medium">
+                Note (Optional)
+              </label>
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-lg"
+                rows="3"
+              />
+            </div>
+          </>
+        )}
 
         {/* Submit Button */}
         <button

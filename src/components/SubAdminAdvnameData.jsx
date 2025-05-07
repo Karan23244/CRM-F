@@ -48,7 +48,7 @@ const AdvnameData = () => {
   const filteredData = tableData
   .filter((item) => user?.assigned_subadmins?.includes(item.user_id))
   .filter((item) =>
-    [item.username, item.adv_name, item.adv_id, item.geo, item.note].some(
+    [item.username, item.adv_name, item.adv_id, item.geo, item.note,item.target].some(
       (field) =>
         field?.toString().toLowerCase().includes(searchTerm.toLowerCase())
     )

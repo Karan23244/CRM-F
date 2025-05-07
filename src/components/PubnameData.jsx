@@ -17,7 +17,9 @@ const PubnameData = () => {
   const [selectedId, setSelectedId] = useState("");
   const [geo, setGeo] = useState("");
   const [note, setNote] = useState("");
-  const [pubUserId, setPubUserId] = useState(null); // Store creator's user_id
+  const [pubUserId, setPubUserId] = useState(null);
+  const [target, setTarget] = useState("");
+
   console.log(tableData);
   // **Fetch publisher data**
   useEffect(() => {
@@ -41,9 +43,15 @@ const PubnameData = () => {
 
   // **Filtered data for search**
   const filteredData = tableData.filter((item) =>
-    [item.username, item.pub_name, item.pub_id, item.geo, item.note].some(
-      (field) =>
-        field?.toString().toLowerCase().includes(searchTerm.toLowerCase())
+    [
+      item.username,
+      item.pub_name,
+      item.pub_id,
+      item.geo,
+      item.note,
+      item.target,
+    ].some((field) =>
+      field?.toString().toLowerCase().includes(searchTerm.toLowerCase())
     )
   );
 
@@ -60,6 +68,7 @@ const PubnameData = () => {
       pub_id: selectedId,
       geo: geo,
       note: note || "",
+      target: target || "",
       user_id: pubUserId, // Use the original creator's user_id
     };
 
@@ -90,6 +99,7 @@ const PubnameData = () => {
     setSelectedId(record.pub_id);
     setGeo(record.geo);
     setNote(record.note);
+    setTarget(record.target);
     setPubUserId(record.user_id); // Set original creator's user_id for updating
   };
 
@@ -99,6 +109,7 @@ const PubnameData = () => {
     setSelectedId("");
     setGeo("");
     setNote("");
+    setTarget("");
     setPubUserId(null);
     setEditingPub(null);
   };
@@ -134,6 +145,7 @@ const PubnameData = () => {
     { title: "Publisher ID", dataIndex: "pub_id", key: "pub_id" },
     { title: "Geo", dataIndex: "geo", key: "geo" },
     { title: "Note", dataIndex: "note", key: "note" },
+    { title: "Target", dataIndex: "target", key: "target" },
     {
       title: "Actions",
       key: "actions",
@@ -225,6 +237,16 @@ const PubnameData = () => {
               onChange={(e) => setNote(e.target.value)}
               className="w-full p-2 border border-gray-300 rounded-lg"
               rows="3"
+            />
+          </div>
+          {/* Target Field */}
+          <div>
+            <label className="block text-lg font-medium">Target</label>
+            <input
+              type="text"
+              value={target}
+              onChange={(e) => setTarget(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-lg"
             />
           </div>
 

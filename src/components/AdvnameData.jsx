@@ -47,7 +47,7 @@ const AdvnameData = () => {
 
   // **Filtered data for search**
   const filteredData = tableData.filter((item) =>
-    [item.username, item.adv_name, item.adv_id, item.geo, item.note].some(
+    [item.username, item.adv_name, item.adv_id, item.geo, item.note,item.target].some(
       (field) =>
         field?.toString().toLowerCase().includes(searchTerm.toLowerCase())
     )
