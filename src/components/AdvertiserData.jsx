@@ -38,6 +38,7 @@ const AdvertiserData = () => {
   });
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({});
+  console.log(data)
   useEffect(() => {
     if (user?.id) {
       fetchData();
@@ -103,7 +104,6 @@ const AdvertiserData = () => {
       "adv_total_no",
       "adv_deductions",
       "adv_approved_no",
-      "pay_out",
     ];
 
     const isEmptyField = Object.entries(editedRow)
@@ -202,10 +202,10 @@ const AdvertiserData = () => {
     mmp_tracker: "MMP Tracker",
     adv_id: "ADV ID",
     adv_payout: "ADV Payout $",
-    pay_out: "PUB Payout $",
     pub_am: "Pub AM",
     pub_id: "PubID",
     pid: "PID",
+    pay_out: "PUB Payout $",
     shared_date: "Shared Date",
     paused_date: "Paused Date",
     adv_total_no: "ADV Total Numbers",
@@ -218,7 +218,6 @@ const AdvertiserData = () => {
     "adv_total_no",
     "adv_deductions",
     "adv_approved_no",
-    "pay_out",
   ];
   const handleFilterChange = (value, key) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -248,14 +247,32 @@ const AdvertiserData = () => {
 
     return matchesFilters && matchesMonth;
   });
-  const finalFilteredData = useMemo(() => {
-    const lowerSearch = searchTerm.toLowerCase();
-    return filteredRecords.filter(
-      (item) =>
-        item.pub_name?.toLowerCase().includes(lowerSearch) ||
-        item.campaign_name?.toLowerCase().includes(lowerSearch)
+  const finalFilteredData = data.filter((item) => {
+    const createdAt = new Date(item.created_at);
+    const itemMonth = createdAt.getMonth();
+    const itemYear = createdAt.getFullYear();
+  
+    // Filter by selectedMonth (if selected)
+    if (selectedMonth) {
+      const selectedDate = new Date(selectedMonth);
+      const selectedMonthValue = selectedDate.getMonth();
+      const selectedYear = selectedDate.getFullYear();
+      if (itemMonth !== selectedMonthValue || itemYear !== selectedYear) {
+        return false;
+      }
+    }
+  
+    // If there's no search term, include the item
+    if (!searchTerm.trim()) return true;
+  
+    const lowerSearchTerm = searchTerm.toLowerCase();
+  
+    // Check if any value in the item includes the search term
+    return Object.values(item).some((value) =>
+      String(value).toLowerCase().includes(lowerSearchTerm)
     );
-  }, [searchTerm, filteredRecords]);
+  });
+  
   const columns = [
     ...Object.keys(data[0] || {})
       .filter((key) => !["id", "user_id", "key", "created_at"].includes(key))

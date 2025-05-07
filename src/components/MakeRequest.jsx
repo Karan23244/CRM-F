@@ -20,7 +20,7 @@ const apiUrl1 =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 const PublisherRequest = () => {
   const user = useSelector((state) => state.auth.user);
-  const userId = user?.id || null;
+  const username = user?.username || null;
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm();
   const [requests, setRequests] = useState([]);
@@ -42,7 +42,7 @@ const PublisherRequest = () => {
   console.log(requests);
   const fetchRequests = async () => {
     try {
-      const res = await axios.get(`${apiUrl}/getPubRequest/${userId}`);
+      const res = await axios.get(`${apiUrl}/getPubRequest/${username}`);
       setRequests(res.data?.data || []);
     } catch (error) {
       message.error("Failed to fetch requests");
@@ -79,7 +79,7 @@ const PublisherRequest = () => {
 
       const requestData = {
         adv_name: values.advertiserName,
-        us_id:userId,
+        pub_name: username,
         campaign_name: values.campaignName,
         payout: values.payout,
         os: values.os,
@@ -113,37 +113,45 @@ const PublisherRequest = () => {
   };
 
   const columns = [
-    {
-      title: "Advertiser Name",
-      dataIndex: "adv_name",
-      key: "adv_name",
+  {
+    title: "Advertiser Name",
+    dataIndex: "adv_name",
+    key: "adv_name",
+  },
+  {
+    title: "Campaign Name",
+    dataIndex: "campaign_name",
+    key: "campaign_name",
+  },
+  {
+    title: "PUB Payout ($)",
+    dataIndex: "payout",
+    key: "payout",
+  },
+  {
+    title: "OS",
+    dataIndex: "os",
+    key: "os",
+  },
+  {
+    title: "Action",
+    key: "action",
+    render: (_, record) => {
+      const status = record.adv_res?.toLowerCase();
+      let color = "default";
+      if (status === "waiting") color = "warning";
+      else if (status === "shared") color = "primary";
+      else if (status === "rejected") color = "danger";
+
+      return (
+        <Button type={color} disabled>
+          {status?.charAt(0).toUpperCase() + status?.slice(1) || "N/A"}
+        </Button>
+      );
     },
-    {
-      title: "Campaign Name",
-      dataIndex: "campaign_name",
-      key: "campaign_name",
-    },
-    {
-      title: "Payout ($)",
-      dataIndex: "payout",
-      key: "payout",
-    },
-    {
-      title: "OS",
-      dataIndex: "os",
-      key: "os",
-    },
-    {
-      title: "Link",
-      dataIndex: "adv_res",
-      key: "adv_res",
-      render: (text) => (
-        <span style={{ color: text === "Pending" ? "gray" : "blue" }}>
-          {text}
-        </span>
-      ),
-    },
-  ];
+  },
+];
+
 
   return (
     <div className="p-4">

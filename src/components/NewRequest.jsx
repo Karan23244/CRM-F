@@ -49,40 +49,43 @@ const NewRequest = () => {
     setNewLink(record.adv_res || "");
   };
 
-  const handleUpdateSubmit = async () => {
+  const handleStatusUpdate = async (id, status) => {
     try {
-      const response = await axios.put(`${apiUrl}/updateAdvRes`, {
-        id: editingRequest.id,
-        adv_res: newLink,
+      await axios.put(`${apiUrl}/updateAdvRes`, {
+        id,
+        adv_res: status,
       });
-      alert("Link updated successfully");
-      setEditingRequest(null);
-      setNewLink("");
-      fetchRequests(); // Refresh list
+      message.success(`Status updated to "${status}"`);
+      fetchRequests(); // Refresh data
     } catch (error) {
-      console.error("Update Error:", error);
-      alert("Failed to update link");
+      console.error("Failed to update status:", error);
+      message.error("Failed to update status");
     }
   };
+  
 
   const columns = [
-    { title: "ID", dataIndex: "id", key: "id" },
-    { title: "Advertiser", dataIndex: "adv_name", key: "adv_name" }, // Directly using the name from the API response
+    { title: "Publisher", dataIndex: "pub_name", key: "pub_name" }, // Directly using the name from the API response
     { title: "Campaign", dataIndex: "campaign_name", key: "campaign_name" },
-    { title: "Payout", dataIndex: "payout", key: "payout" },
+    { title: "PUB Payout $", dataIndex: "payout", key: "payout" },
     { title: "OS", dataIndex: "os", key: "os" },
     {
-      title: "Link",
-      dataIndex: "adv_res",
-      key: "adv_res",
-      render: (text) => <p>{text || "Pending"}</p>,
-    },
-    {
-      title: "Actions",
-      render: (_, record) => (
-        <Button type="link" onClick={() => handleUpdateClick(record)}>
-          Update Link
-        </Button>
+      title: "Action",
+      key: "action",
+      render: (text, record) => (
+        <div className="flex gap-2">
+          {["waiting", "shared", "rejected"].map((status) => (
+            <Button
+              key={status}
+              size="small"
+              type={record.adv_res === status ? "default" : "primary"}
+              disabled={record.adv_res === status}
+              onClick={() => handleStatusUpdate(record.id, status)}
+            >
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </Button>
+          ))}
+        </div>
       ),
     },
   ];
@@ -91,19 +94,6 @@ const NewRequest = () => {
     <div className="p-4">
       <h2 className="text-xl mb-4">All Campaign Requests</h2>
       <Table dataSource={requests} columns={columns} rowKey="id" />
-
-      <Modal
-        title="Update Link"
-        open={!!editingRequest}
-        onOk={handleUpdateSubmit}
-        onCancel={() => setEditingRequest(null)}
-        okText="Update">
-        <Input
-          value={newLink}
-          onChange={(e) => setNewLink(e.target.value)}
-          placeholder="Enter new link"
-        />
-      </Modal>
     </div>
   );
 };

@@ -11,7 +11,7 @@ const apiUrl =
 const AdvnameData = () => {
   const user = useSelector((state) => state.auth.user);
   const userId = user?.id || null;
-
+    console.log(user);
   const [tableData, setTableData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingAdv, setEditingAdv] = useState(null);
@@ -45,14 +45,15 @@ const AdvnameData = () => {
     fetchData();
   }, []);
 
-  // **Filtered data for search**
-  const filteredData = tableData.filter((item) =>
+  const filteredData = tableData
+  .filter((item) => user?.assigned_subadmins?.includes(item.user_id))
+  .filter((item) =>
     [item.username, item.adv_name, item.adv_id, item.geo, item.note].some(
       (field) =>
         field?.toString().toLowerCase().includes(searchTerm.toLowerCase())
     )
   );
-  console.log(tableData);
+    console.log(filteredData);
   // **Handle Form Submission for Updating**
   const handleUpdate = async (e) => {
     e.preventDefault();
@@ -134,6 +135,8 @@ const AdvnameData = () => {
       alert("Error occurred while pausing advertiser.");
     }
   };
+
+
   // **Table Columns**
   const columns = [
     { title: "UserName", dataIndex: "username", key: "username" },

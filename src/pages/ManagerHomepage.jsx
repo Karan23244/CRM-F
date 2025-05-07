@@ -18,6 +18,7 @@ import SubAdminPubnameData from "../components/SubAdminPubnameData";
 import NewRequest from "../components/NewRequest";
 import MakeRequest from "../components/MakeRequest";
 import { subscribeToNotifications } from "../components/Socket";
+import SubAdminAdvnameData from "../components/SubAdminAdvnameData";
 
 const ManagerHomepage = ({}) => {
   const [activeComponent, setActiveComponent] = useState("advform");
@@ -209,6 +210,15 @@ const ManagerHomepage = ({}) => {
             </button>
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
+                activeComponent === "advnameData"
+                  ? "bg-blue-700"
+                  : "hover:bg-blue-600"
+              }`}
+              onClick={() => setActiveComponent("advnameData")}>
+              Assigned Sub-Admin Advertiser Data
+            </button>
+            <button
+              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "changepassword"
                   ? "bg-blue-700"
                   : "hover:bg-blue-600"
@@ -268,6 +278,7 @@ const ManagerHomepage = ({}) => {
           {activeComponent === "makerequest" && <MakeRequest />}
           {activeComponent === "viewRequest" && <NewRequest />}
           {activeComponent === "pubnameData" && <SubAdminPubnameData />}
+          {activeComponent === "advnameData" && <SubAdminAdvnameData />}
           {activeComponent === "changepassword" && <ChangePassword />}
         </main>
       </div>

@@ -4,7 +4,8 @@ import { Table, Select, Button, Space } from "antd";
 import { useSelector } from "react-redux";
 import geoData from "../Data/geoData.json";
 
-const apiUrl = import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
+const apiUrl =
+  import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 
 const AdvertiserCreateForm = () => {
   const user = useSelector((state) => state.auth.user);
@@ -18,7 +19,7 @@ const AdvertiserCreateForm = () => {
   const [availableIds, setAvailableIds] = useState([]);
   const [usedIds, setUsedIds] = useState(new Set());
   const [editingAdv, setEditingAdv] = useState(null);
-
+  const [target, setTarget] = useState("");
   // **Initialize available IDs from user.ranges**
   useEffect(() => {
     if (user && user.ranges && user.ranges.length > 0) {
@@ -81,10 +82,11 @@ const AdvertiserCreateForm = () => {
       adv_name: name,
       adv_id: selectedId,
       geo: geo,
-      note: note || "", // Optional note
+      note: note || "",
+      target: target || "",
       user_id: userId,
     };
-    console.log(newAdv)
+    console.log(newAdv);
     try {
       if (editingAdv) {
         // **Update existing advertiser**
@@ -92,7 +94,7 @@ const AdvertiserCreateForm = () => {
           `${apiUrl}/update-advid`, // Correct endpoint
           newAdv
         );
-        console.log(response)
+        console.log(response);
         if (response.data.success) {
           alert("Advertiser updated successfully");
         }
@@ -119,7 +121,7 @@ const AdvertiserCreateForm = () => {
       // Reset form
       resetForm();
     } catch (error) {
-      console.log(error)
+      console.log(error);
       alert("Error creating/updating advertiser:");
     }
   };
@@ -130,7 +132,8 @@ const AdvertiserCreateForm = () => {
     setName(record.adv_name);
     setSelectedId(record.adv_id);
     setGeo(record.geo);
-    setNote(record.note);
+    setNote(record.note || "");
+    setTarget(record.target || "");
   };
 
   // Reset Form
@@ -139,6 +142,7 @@ const AdvertiserCreateForm = () => {
     setSelectedId("");
     setGeo("");
     setNote("");
+    setTarget("");
     setEditingAdv(null);
   };
 
@@ -147,6 +151,7 @@ const AdvertiserCreateForm = () => {
     { title: "Advertiser Name", dataIndex: "adv_name", key: "adv_name" },
     { title: "Geo", dataIndex: "geo", key: "geo" },
     { title: "Note", dataIndex: "note", key: "note" },
+    { title: "Target", dataIndex: "target", key: "target" },
     {
       title: "Actions",
       key: "actions",
@@ -218,36 +223,50 @@ const AdvertiserCreateForm = () => {
             filterOption={(input, option) =>
               option?.label?.toLowerCase().includes(input.toLowerCase())
             }
-            required
-          >
+            required>
             {geoData.geo?.map((geo) => (
               <Select.Option
                 key={geo.code}
                 value={geo.code}
-                label={`${geo.code}`}
-              >
+                label={`${geo.code}`}>
                 {geo.code}
               </Select.Option>
             ))}
           </Select>
         </div>
 
-        {/* Note (Optional) */}
-        <div>
-          <label className="block text-lg font-medium">Note (Optional)</label>
-          <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded-lg"
-            rows="3"
-          />
-        </div>
+        {editingAdv && user?.role === "manager" && (
+          <>
+            {/* Target Field */}
+            <div>
+              <label className="block text-lg font-medium">Target</label>
+              <input
+                type="text"
+                value={target}
+                onChange={(e) => setTarget(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-lg"
+              />
+            </div>
+
+            {/* Note Field */}
+            <div>
+              <label className="block text-lg font-medium">
+                Note (Optional)
+              </label>
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-lg"
+                rows="3"
+              />
+            </div>
+          </>
+        )}
 
         {/* Submit Button */}
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700"
-        >
+          className="w-full bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700">
           {editingAdv ? "Update Advertiser" : "Create Advertiser"}
         </button>
 
@@ -255,8 +274,7 @@ const AdvertiserCreateForm = () => {
           <button
             type="button"
             onClick={resetForm}
-            className="w-full mt-2 bg-gray-400 text-white p-2 rounded-lg hover:bg-gray-500"
-          >
+            className="w-full mt-2 bg-gray-400 text-white p-2 rounded-lg hover:bg-gray-500">
             Cancel Edit
           </button>
         )}

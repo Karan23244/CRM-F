@@ -34,6 +34,10 @@ const AdvertiserData = () => {
   const [editedRow, setEditedRow] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
   const [showSubadminData, setShowSubadminData] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1); // First day of current month
+  });
 
   const [dropdownOptions, setDropdownOptions] = useState({
     os: ["Android", "APK", "iOS"],
@@ -47,27 +51,14 @@ const AdvertiserData = () => {
     }
   }, [user]);
   console.log(data);
+
   const fetchData = async () => {
     try {
       setLoading(true);
       const response = await axios.get(`${apiUrl}/advdata-byuser/${user.id}`);
-
-      // Get current month and year
-      const now = new Date();
-      const currentMonth = now.getMonth(); // 0-indexed (0 = Jan, 1 = Feb...)
-      const currentYear = now.getFullYear();
-      // Filter data to include only entries from the current month
-      const filteredData = response.data.filter((item) => {
-        const createdAt = new Date(item.created_at);
-        return (
-          createdAt.getMonth() === currentMonth &&
-          createdAt.getFullYear() === currentYear
-        );
-      });
-
-      // Map the filtered data
+      // Store all data, no filtering yet
       setData(
-        filteredData.reverse().map((item) => ({
+        response.data.reverse().map((item) => ({
           ...item,
           key: item.id,
         }))
@@ -121,7 +112,6 @@ const AdvertiserData = () => {
       "adv_total_no",
       "adv_deductions",
       "adv_approved_no",
-      "pay_out",
     ];
 
     const isEmptyField = Object.entries(editedRow)
@@ -220,10 +210,10 @@ const AdvertiserData = () => {
     mmp_tracker: "MMP Tracker",
     adv_id: "ADV ID",
     adv_payout: "ADV Payout $",
-    pay_out: "PUB Payout $",
     pub_am: "Pub AM",
     pub_id: "PubID",
     pid: "PID",
+    pay_out: "PUB Payout $",
     shared_date: "Shared Date",
     paused_date: "Paused Date",
     adv_total_no: "ADV Total Numbers",
@@ -236,36 +226,38 @@ const AdvertiserData = () => {
     "adv_total_no",
     "adv_deductions",
     "adv_approved_no",
-    "pay_out",
   ];
   const handleFilterChange = (value, key) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
-  const filteredRecords = data.filter((item) => {
-    return Object.keys(filters).every((key) => {
-      if (!filters[key]) return true;
+  // Final filtered data based on selectedMonth and searchTerm
+  const finalFilteredData = data.filter((item) => {
+    const createdAt = new Date(item.created_at);
+    const itemMonth = createdAt.getMonth();
+    const itemYear = createdAt.getFullYear();
 
-      // Date range filter
-      if (Array.isArray(filters[key]) && filters[key].length === 2) {
-        const [start, end] = filters[key];
-        return dayjs(item[key]).isBetween(start, end, null, "[]");
-      }
+    // Filter by selectedMonth (if selected)
+    const selectedDate = selectedMonth ? new Date(selectedMonth) : new Date(); // Fallback to current date
+    const selectedMonthValue = selectedDate.getMonth();
+    const selectedYear = selectedDate.getFullYear();
+    
+    if (itemMonth !== selectedMonthValue || itemYear !== selectedYear) {
+      return false;
+    }
+    
 
-      return item[key]
-        ?.toString()
-        .toLowerCase()
-        .includes(filters[key].toString().toLowerCase());
-    });
-  });
-  const finalFilteredData = useMemo(() => {
-    const lowerSearch = searchTerm.toLowerCase();
-    return filteredRecords.filter(
-      (item) =>
-        item.pub_name?.toLowerCase().includes(lowerSearch) ||
-        item.campaign_name?.toLowerCase().includes(lowerSearch)
+    // If there's no search term, include the item
+    if (!searchTerm.trim()) return true;
+
+    const lowerSearchTerm = searchTerm.toLowerCase();
+
+    // Check if any value in the item includes the search term
+    return Object.values(item).some((value) =>
+      String(value).toLowerCase().includes(lowerSearchTerm)
     );
-  }, [searchTerm, filteredRecords]);
+  });
+
   const columns = [
     ...Object.keys(data[0] || {})
       .filter((key) => !["id", "user_id", "key", "created_at"].includes(key))
@@ -495,6 +487,13 @@ const AdvertiserData = () => {
                   className="bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200">
                   Add Row
                 </Button>
+                <DatePicker
+                  picker="month"
+                  onChange={(date) => setSelectedMonth(date)}
+                  placeholder="🗓 Filter by Month"
+                  allowClear
+                  className="w-full md:w-48 rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition"
+                />
               </>
             ) : (
               <Button
