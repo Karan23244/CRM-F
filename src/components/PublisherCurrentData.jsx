@@ -745,7 +745,7 @@ const PublisherPayoutData = () => {
                   📥 <span>Download Excel</span>
                 </Button>
 
-                {user?.role === "manager" && (
+                {user?.role === "publisher_manager" && (
                   <Button
                     type="primary"
                     onClick={() => setShowSubadminData(true)}

@@ -249,7 +249,7 @@ const PublisherCreateForm = () => {
           </Select>
         </div>
 
-        {editingPub && user?.role === "manager" && (
+        {editingPub && user?.role === "publisher_manager" && (
           <>
             {/* Target Field */}
             <div>

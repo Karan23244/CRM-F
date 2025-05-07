@@ -17,7 +17,8 @@ const SubAdminForm = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [subAdminOptions, setSubAdminOptions] = useState([]);
-
+  console.log(selectedSubAdmin);
+  console.log(subAdmins)
   useEffect(() => {
     fetchSubAdmins();
   }, []);
@@ -31,7 +32,13 @@ const SubAdminForm = () => {
       if (response.ok) {
         setSubAdmins(
           data.data.filter((subAdmin) =>
-            ["advertiser", "publisher", "manager"].includes(subAdmin.role)
+            [
+              "advertiser",
+              "publisher",
+              "advertiser_manager",
+              "publisher_manager",
+              "manager"
+            ].includes(subAdmin.role)
           )
         );
         setSubAdminOptions(
@@ -87,7 +94,6 @@ const SubAdminForm = () => {
       assigned_subadmins: role === "manager" ? assignedSubAdmins : [],
     };
 
-  
     if (selectedSubAdmin) {
       payload.id = selectedSubAdmin; // Include ID only for update
     }
@@ -145,29 +151,30 @@ const SubAdminForm = () => {
     setRanges(subAdmin.ranges);
     setAssignedSubAdmins(subAdmin.assigned_subadmins || []);
   };
-const handleDeleteSubAdmin = async (id) => {
-  const confirmed = window.confirm("Are you sure you want to delete this sub-admin?");
-  if (!confirmed) return;
+  const handleDeleteSubAdmin = async (id) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this sub-admin?"
+    );
+    if (!confirmed) return;
 
-  try {
-    const response = await fetch(`${apiUrl}/delete-sub-admin`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
-    });
+    try {
+      const response = await fetch(`${apiUrl}/delete-sub-admin`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
 
-    if (!response.ok) {
-      throw new Error("Failed to delete sub-admin");
+      if (!response.ok) {
+        throw new Error("Failed to delete sub-admin");
+      }
+
+      const result = await response.json();
+      alert("Sub-admin deleted successfully");
+      fetchSubAdmins(); // Refresh the list
+    } catch (error) {
+      console.error("Error deleting sub-admin:", error);
     }
-
-    const result = await response.json();
-    alert("Sub-admin deleted successfully");
-    fetchSubAdmins(); // Refresh the list
-  } catch (error) {
-    console.error("Error deleting sub-admin:", error);
-  }
-};
-
+  };
 
   // Define Table Columns
   // const columns = [
@@ -241,11 +248,12 @@ const handleDeleteSubAdmin = async (id) => {
             <Select value={role} onChange={(value) => setRole(value)}>
               <Option value="publisher">Publisher</Option>
               <Option value="advertiser">Advertiser</Option>
-              <Option value="manager">Manager</Option>
+              <Option value="advertiser_manager">Advertiser Manager</Option>
+              <Option value="publisher_manager">Publisher Manager</Option>
             </Select>
           </Form.Item>
 
-          {role === "manager" && (
+          {role === "advertiser_manager" && (
             <Form.Item label="Assign Sub-Admins">
               <Select
                 mode="multiple"
@@ -260,7 +268,36 @@ const handleDeleteSubAdmin = async (id) => {
               </Select>
             </Form.Item>
           )}
-
+              {role === "manager" && (
+            <Form.Item label="Assign Sub-Admins">
+              <Select
+                mode="multiple"
+                value={assignedSubAdmins}
+                onChange={setAssignedSubAdmins}
+                placeholder="Select sub-admins">
+                {subAdminOptions.map((subAdmin) => (
+                  <Option key={subAdmin.id} value={subAdmin.id}>
+                    {subAdmin.username} ({subAdmin.role})
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+          )}
+          {role === "publisher_manager" && (
+            <Form.Item label="Assign Sub-Admins">
+              <Select
+                mode="multiple"
+                value={assignedSubAdmins}
+                onChange={setAssignedSubAdmins}
+                placeholder="Select sub-admins">
+                {subAdminOptions.map((subAdmin) => (
+                  <Option key={subAdmin.id} value={subAdmin.id}>
+                    {subAdmin.username} ({subAdmin.role})
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+          )}
           <Form.Item label="Ranges" required>
             {ranges.map((range, index) => (
               <div key={index} className="flex space-x-2 items-center mb-2">

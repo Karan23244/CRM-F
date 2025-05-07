@@ -78,7 +78,7 @@ const AdvertiserData = () => {
         pub_name:
           advmName.data?.data
             ?.filter(
-              (item) => item.role === "manager" || item.role === "publisher"
+              (item) => item.role === "advertiser_manager" || item.role === "publisher"
             )
             .map((item) => item.username) || [],
         payable_event:

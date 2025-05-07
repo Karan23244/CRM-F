@@ -33,6 +33,7 @@ const LoginForm = () => {
       });
 
       const data = await response.json();
+      console.log("Login Response:", data);
       if (!response.ok) throw new Error(data.message || "Login failed");
 
       dispatch(setUser(data.subAdmin)); // Store user in Redux & localStorage
@@ -46,6 +47,12 @@ const LoginForm = () => {
           break;
         case "publisher":
           navigate("/publisher-home");
+          break;
+        case "advertiser_manager":
+          navigate("/advertiser-manager-home");
+          break;
+        case "publisher_manager":
+          navigate("/publisher-manager-home");
           break;
         case "manager":
           navigate("/manager-home");

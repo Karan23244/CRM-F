@@ -22,6 +22,7 @@ const SubAdminDropdown = ({ onSelect }) => {
     const fetchSubAdmins = async () => {
       try {
         const response = await axios.get(`${apiUrl}/get-subadmin`);
+        console.log("Sub-admins response:", response.data);
         if (response.data.success) {
           const subAdminOptions = response.data.data
             .filter((subAdmin) => assignedSubAdmins.includes(subAdmin.id)) // Filter only assigned sub-admins

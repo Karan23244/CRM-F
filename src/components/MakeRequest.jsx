@@ -54,7 +54,7 @@ const PublisherRequest = () => {
       const filteredNames =
         advmName.data?.data
           ?.filter(
-            (item) => item.role === "manager" || item.role === "advertiser"
+            (item) => item.role === "advertiser_manager" || item.role === "advertiser"
           )
           .map((item) => item.username) || [];
       setAdvertisers(filteredNames);

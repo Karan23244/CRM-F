@@ -236,7 +236,7 @@ const AdvertiserCreateForm = () => {
           </Select>
         </div>
 
-        {editingAdv && user?.role === "manager" && (
+        {editingAdv && user?.role === "advertiser_manager" && (
           <>
             {/* Target Field */}
             <div>

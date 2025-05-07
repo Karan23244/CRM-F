@@ -6,6 +6,8 @@ import AdvertiserHome from "./pages/AdvHomepage";
 import PublisherHome from "./pages/PublisherHomepage";
 import ProtectedRoute from "./components/ProtectedRoutes";
 import ManagerHomepage from "./pages/ManagerHomepage";
+import Advertisermanagerpage from "./pages/AdvertiserManagerHomepage";
+import Publishermanagerpage from "./pages/PublisherManagerHomepage";
 const AppRoutes = () => {
   return (
     <>
@@ -34,6 +36,24 @@ const AppRoutes = () => {
               path="/publisher-home"
               element={
                 <PublisherHome
+                />
+              }
+            />
+          </Route>
+          <Route element={<ProtectedRoute allowedRoles={["publisher_manager"]} />}>
+            <Route
+              path="/publisher-manager-home"
+              element={
+                <Publishermanagerpage
+                />
+              }
+            />
+          </Route>
+          <Route element={<ProtectedRoute allowedRoles={["advertiser_manager"]} />}>
+            <Route
+              path="/advertiser-manager-home"
+              element={
+                <Advertisermanagerpage
                 />
               }
             />
