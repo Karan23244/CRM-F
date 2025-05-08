@@ -456,7 +456,6 @@
 // };
 
 // export default PublisherData;
-
 import React, { useEffect, useState } from "react";
 import {
   Table,
@@ -475,7 +474,6 @@ import "../index.css";
 import geoData from "../Data/geoData.json";
 import { useSelector } from "react-redux";
 import { exportToExcel } from "./exportExcel";
-import MainComponent from "../components/ManagerAllData";
 
 const { Option } = Select;
 const apiUrl =
@@ -509,8 +507,11 @@ const PublisherPayoutData = () => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1); // First day of current month
   });
+  const [selectedSubAdmins, setSelectedSubAdmins] = useState([]);
+  const [subAdmins, setSubAdmins] = useState([]);
 
   const user = useSelector((state) => state.auth.user);
+
   const fetchAdvData = async () => {
     try {
       const response = await axios.get(`${apiUrl}/get-advdata`);
@@ -521,6 +522,31 @@ const PublisherPayoutData = () => {
       console.error("Error fetching advertiser data:", error);
     }
   };
+
+  const assignedSubAdmins = user?.assigned_subadmins || [];
+
+  useEffect(() => {
+    const fetchSubAdmins = async () => {
+      try {
+        const response = await axios.get(`${apiUrl}/get-subadmin`);
+        console.log("Sub-admins response:", response.data);
+        if (response.data.success) {
+          const subAdminOptions = response.data.data
+            .filter((subAdmin) => assignedSubAdmins.includes(subAdmin.id)) // Filter only assigned sub-admins
+            .map((subAdmin) => ({
+              value: subAdmin.id,
+              label: subAdmin.username,
+              role: subAdmin.role,
+            }));
+          setSubAdmins(subAdminOptions);
+        }
+      } catch (error) {
+        console.error("Error fetching sub-admins:", error);
+      }
+    };
+
+    fetchSubAdmins();
+  }, [assignedSubAdmins]); // Refetch if assigned sub-admins change
 
   useEffect(() => {
     fetchAdvData();
@@ -559,6 +585,7 @@ const PublisherPayoutData = () => {
   };
 
   const handleFilterChange = (value, key) => {
+    console.log(`Filter changed for ${key}: ${value}`);
     setFilters((prev) => ({
       ...prev,
       [key]: value,
@@ -571,18 +598,28 @@ const PublisherPayoutData = () => {
 
     const filtered = advData.filter((item) => {
       const createdDate = dayjs(item.created_at);
-      return (
-        item.pub_name === user?.username &&
+      const matchesMonth =
         createdDate.month() === currentMonth &&
-        createdDate.year() === currentYear &&
-        Object.keys(filters).every((key) =>
-          filters[key] ? item[key] === filters[key] : true
-        )
+        createdDate.year() === currentYear;
+
+      const matchesPub = item.pub_name === user?.username;
+
+      const matchesFilters = Object.keys(filters).every((key) =>
+        filters[key] ? item[key] === filters[key] : true
       );
+
+      const matchesSearch = !searchTerm.trim()
+        ? true
+        : Object.values(item).some((val) =>
+            String(val).toLowerCase().includes(searchTerm.toLowerCase())
+          );
+
+      return matchesMonth && matchesPub && matchesFilters && matchesSearch;
     });
 
     setFilteredData(filtered);
-  }, [filters, advData, user]);
+    generateUniqueValues(filtered);
+  }, [filters, advData, searchTerm, user]);
 
   const handleEdit = (id) => {
     const row = filteredData.find((row) => row.id === id);
@@ -612,35 +649,31 @@ const PublisherPayoutData = () => {
   };
 
   useEffect(() => {
-    const selectedDate = selectedMonth ? dayjs(selectedMonth) : dayjs();
-    const selectedMonthValue = selectedDate.month();
-    const selectedYear = selectedDate.year();
-    const lowerSearch = searchTerm.toLowerCase();
-
-    const filtered = advData.filter((item) => {
-      const createdDate = dayjs(item.created_at);
-      const matchesMonth =
-        createdDate.month() === selectedMonthValue &&
-        createdDate.year() === selectedYear;
-
-      const matchesPub = item.pub_name === user?.username;
-
-      const matchesFilters = Object.keys(filters).every((key) =>
-        filters[key] ? item[key] === filters[key] : true
+    if (selectedSubAdmins?.length > 0) {
+      const filtered = advData.filter(
+        (item) => selectedSubAdmins.includes(item.pub_name) // Matching pub_name with selected username
       );
+      console.log(filtered);
+      setFilteredData(filtered);
+      generateUniqueValues(filtered);
+    } else {
+      // When no sub-admin is selected, reset to default filtered data
+      const currentMonth = dayjs().month(); // 0-based (0 = January)
+      const currentYear = dayjs().year();
 
-      const matchesSearch = !searchTerm.trim()
-        ? true
-        : Object.values(item).some((val) =>
-            String(val).toLowerCase().includes(lowerSearch)
-          );
+      const data = advData.filter((row) => {
+        const createdDate = dayjs(row.created_at);
+        return (
+          row.pub_name === user?.username &&
+          createdDate.month() === currentMonth &&
+          createdDate.year() === currentYear
+        );
+      });
 
-      return matchesMonth && matchesPub && matchesFilters && matchesSearch;
-    });
-
-    setFilteredData(filtered);
-    generateUniqueValues(filtered);
-  }, [searchTerm, selectedMonth, filters, advData, user]);
+      setFilteredData(data);
+      generateUniqueValues(data);
+    }
+  }, [selectedSubAdmins, advData, user]);
 
   const getColumns = (columnHeadings) => {
     return [
@@ -694,7 +727,7 @@ const PublisherPayoutData = () => {
         render: (record) => {
           const createdDate = dayjs(record.created_at);
           const threeDaysAgo = dayjs().subtract(3, "day");
-          const isEditDisabled = createdDate.isBefore(threeDaysAgo); // Disable edit if created_at is more than 3 days ago
+          const isEditDisabled = createdDate.isBefore(threeDaysAgo);
 
           return editingKey === record.id ? (
             <Button
@@ -708,8 +741,7 @@ const PublisherPayoutData = () => {
             <Button
               icon={<EditOutlined />}
               onClick={() => handleEdit(record.id)}
-              disabled={isEditDisabled} // Disable the edit button if more than 3 days
-            >
+              disabled={isEditDisabled}>
               Edit
             </Button>
           );
@@ -717,95 +749,246 @@ const PublisherPayoutData = () => {
       },
     ];
   };
-
   return (
-    // <div className="p-4">
-    //   <Table
-    //     dataSource={filteredData}
-    //     columns={getColumns(columnHeadingsAdv)}
-    //     rowKey="id"
-    //     scroll={{ x: true }}
-    //     pagination={{ pageSize: 10 }}
-    //     bordered
-    //   />
-    // </div>
-
     <div className="p-6 bg-gray-50 min-h-screen flex flex-col items-center">
       <div className="w-full bg-white p-6 rounded-xl shadow-lg border border-gray-200">
-        {/* Sticky Header Controls */}
-        <div className="sticky top-0 z-30 bg-white -mx-6 px-6 pt-4 pb-4 border-b border-gray-200 shadow-sm">
-          {!showSubadminData ? (
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full">
-              {/* Action Buttons */}
-              <div className="flex flex-wrap gap-3">
-                <Button
-                  type="primary"
-                  onClick={() => exportToExcel(data, "publisher-data.xlsx")}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-md transition-all duration-200">
-                  📥 <span>Download Excel</span>
-                </Button>
+        <div className="sticky top-0 z-30 bg-white -mx-6 px-6 pt-4 pb-4 border-b border-gray-200 flex items-center justify-between gap-6">
+          {/* Download Excel Button */}
+          <Button
+            type="primary"
+            onClick={() => exportToExcel(data, "advertiser-data.xlsx")}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg shadow-sm transition-all duration-300 transform hover:scale-105">
+            📥 Download Excel
+          </Button>
 
-                {user?.role === "publisher_manager" && (
-                  <Button
-                    type="primary"
-                    onClick={() => setShowSubadminData(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-md transition-all duration-200">
-                    📊 <span>Assigned Sub-Admin Data</span>
-                  </Button>
-                )}
-              </div>
+          {/* Select Subadmins Dropdown */}
+          <Select
+            mode="multiple"
+            allowClear
+            placeholder="Select Subadmins"
+            value={selectedSubAdmins}
+            onChange={setSelectedSubAdmins}
+            onClear={() => setFilters({})} // Reset filters when cleared
+            className="w-1/4 border border-gray-300 rounded-lg py-2 px-3 shadow-sm hover:border-blue-500 focus:ring-2 focus:ring-blue-400">
+            {subAdmins?.map((subAdmin) => (
+              <Option key={subAdmin.label} value={subAdmin.label}>
+                {subAdmin.label}
+              </Option>
+            ))}
+          </Select>
 
-              {/* Search & Filter */}
-              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                <Input
-                  placeholder="🔍 Search by Username, Pub Name, or Campaign"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full sm:w-[300px] px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none transition-all"
-                />
-                <DatePicker
-                  picker="month"
-                  value={dayjs(selectedMonth)}
-                  onChange={(date) =>
-                    setSelectedMonth(date ? date.toDate() : null)
-                  }
-                  className="w-full sm:w-[160px] rounded-lg"
-                />
-              </div>
-            </div>
-          ) : (
-            <Button
-              type="primary"
-              onClick={() => setShowSubadminData(false)}
-              className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg shadow-md transition-all duration-200">
-              ← <span>Back to Table</span>
-            </Button>
-          )}
+          {/* Search Input */}
+          <Input
+            placeholder="Search"
+            className="w-1/3 border border-gray-300 rounded-lg py-2 px-3 shadow-sm focus:ring-2 focus:ring-blue-400"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+
+          {/* Date Picker */}
+          <DatePicker
+            className="ml-4 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400"
+            value={dayjs(selectedMonth)}
+            onChange={(date) => setSelectedMonth(date)}
+            picker="month"
+          />
         </div>
 
-        {/* Conditional Rendering Area */}
-        <div className="overflow-auto max-h-[70vh] mt-4">
-          {!showSubadminData ? (
-            <Table
-              columns={getColumns(columnHeadingsAdv)}
-              dataSource={filteredData}
-              pagination={{
-                pageSizeOptions: ["10", "20", "50", "100"],
-                showSizeChanger: true,
-                defaultPageSize: 10,
-                showTotal: (total, range) =>
-                  `${range[0]}-${range[1]} of ${total} items`,
-              }}
-              bordered
-              scroll={{ x: "max-content" }}
-            />
-          ) : (
-            <MainComponent />
-          )}
-        </div>
+        <Table
+          columns={getColumns(columnHeadingsAdv)}
+          dataSource={filteredData}
+          rowKey="id"
+          pagination={{ pageSize: 10 }}
+          scroll={{ x: 1500 }}
+        />
       </div>
     </div>
   );
 };
 
 export default PublisherPayoutData;
+
+const PublisherComponent = ({ data, name, fetchData }) => {
+  const [editingKey, setEditingKey] = useState(null);
+  const [editedRow, setEditedRow] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [filters, setFilters] = useState({});
+  console.log("Data:", data);
+  // Check if a column has all empty values
+  const isColumnEmpty = (data, key) => {
+    return data.every(
+      (item) =>
+        item[key] === null || item[key] === "" || item[key] === undefined
+    );
+  };
+
+  // Enable editing for the selected row
+  const handleEdit = (id) => {
+    setEditingKey(id);
+    setEditedRow(data.find((row) => row.id === id) || {});
+  };
+
+  // Save updated data to backend
+  const handleSave = async () => {
+    try {
+      const updatedData = {
+        ...editedRow,
+      };
+      // // Send the updated data to the API
+      await axios.post(`${apiUrl}/pubdata-update/${editingKey}`, updatedData, {
+        headers: { "Content-Type": "application/json" },
+      });
+
+      setEditingKey(null);
+      alert("Data updated successfully");
+      fetchData();
+    } catch (error) {
+      alert("Failed to update data", error);
+    }
+  };
+
+  // Handle change for editable fields
+  const handleChange = (value, key) => {
+    setEditedRow((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  };
+
+  // Handle filters for date and other fields
+  const handleFilterChange = (value, key) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+  };
+
+  // Apply filters to data
+  const filteredRecords = data.filter((item) => {
+    return Object.keys(filters).every((key) => {
+      if (!filters[key]) return true;
+
+      if (Array.isArray(filters[key]) && filters[key].length === 2) {
+        const [start, end] = filters[key];
+        return dayjs(item[key]).isBetween(start, end, null, "[]");
+      }
+
+      return item[key] === filters[key];
+    });
+  });
+
+  // Define editable column headings
+  const columnHeadings = {
+    adv_name: "ADVM Name",
+    campaign_name: "Campaign Name",
+    geo: "GEO",
+    city: "State Or City",
+    os: "OS",
+    payable_event: "Payable Event",
+    mmp_tracker: "MMP Tracker",
+    pub_id: "Pub ID",
+    p_id: "PID",
+    pub_payout: "Pub Payout $",
+    shared_date: "Shared Date",
+    paused_date: "Paused Date",
+    review: "Review",
+    pub_total_numbers: "PUB Total Numbers",
+    pub_deductions: "PUB Deductions",
+    pub_approved_numbers: "PUB Approved Numbers",
+  };
+
+  // Define editable keys
+  const editableFields = [
+    "paused_date",
+    "pub_total_numbers",
+    "pub_deductions",
+    "pub_approved_numbers",
+  ];
+
+  // Define table columns with editable fields
+  const columns = [
+    ...Object.keys(data[0] || {})
+      .filter(
+        (key) =>
+          !["id", "user_id", "key", "created_at"].includes(key) &&
+          // ✅ Exclude `adv_name` if it's empty
+          !(key === "adv_name" && isColumnEmpty(data, "adv_name"))
+      )
+      .map((key) => ({
+        title: columnHeadings[key] || key,
+        dataIndex: key,
+        key,
+        filters: Array.from(new Set(data.map((item) => item[key]))).map(
+          (val) => ({
+            text: val,
+            value: val,
+          })
+        ),
+        onFilter: (value, record) => record[key] === value,
+        render: (text, record) => {
+          // Show editable fields for specific columns
+          if (editingKey === record.id && editableFields.includes(key)) {
+            if (key.toLowerCase().includes("date")) {
+              return (
+                <DatePicker
+                  value={editedRow[key] ? dayjs(editedRow[key]) : null}
+                  onChange={(date, dateString) => handleChange(dateString, key)}
+                  style={{ width: "100%" }}
+                />
+              );
+            } else {
+              return (
+                <Input
+                  value={editedRow[key]}
+                  onChange={(e) => handleChange(e.target.value, key)}
+                />
+              );
+            }
+          }
+          return text;
+        },
+      })),
+    {
+      title: "Actions",
+      fixed: "right",
+      key: "actions",
+      render: (_, record) =>
+        editingKey === record.id ? (
+          <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} />
+        ) : (
+          <Button
+            icon={<EditOutlined />}
+            onClick={() => handleEdit(record.id)}
+          />
+        ),
+    },
+  ];
+
+  return (
+    <div className="p-4 flex flex-col">
+      <Button
+        type="primary"
+        onClick={() => exportToExcel(data, "Sub-publisher-data.xlsx")}
+        className="w-3xs mb-5">
+        Download Excel
+      </Button>
+      <div>
+        <h1 className="text-lg font-semibold">Publisher Data of {name}</h1>
+      </div>
+      <div className="w-full overflow-auto bg-white p-4 rounded shadow-md">
+        <Table
+          columns={columns}
+          dataSource={filteredRecords}
+          pagination={{
+            pageSizeOptions: ["10", "20", "50", "100"], // Define available page sizes
+            showSizeChanger: true, // Allow changing page size
+            defaultPageSize: 10, // Set the default page size
+            showTotal: (total, range) =>
+              `${range[0]}-${range[1]} of ${total} items`, // Optional: Show total records
+          }}
+          bordered
+          loading={loading}
+          rowKey="id"
+          scroll={{ x: "max-content" }}
+        />
+      </div>
+    </div>
+  );
+};

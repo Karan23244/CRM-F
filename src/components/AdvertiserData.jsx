@@ -38,7 +38,7 @@ const AdvertiserData = () => {
   });
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({});
-  console.log(data)
+  console.log(data);
   useEffect(() => {
     if (user?.id) {
       fetchData();
@@ -78,7 +78,8 @@ const AdvertiserData = () => {
         pub_name:
           advmName.data?.data
             ?.filter(
-              (item) => item.role === "advertiser_manager" || item.role === "publisher"
+              (item) =>
+                item.role === "advertiser_manager" || item.role === "publisher"
             )
             .map((item) => item.username) || [],
         payable_event:
@@ -212,7 +213,26 @@ const AdvertiserData = () => {
     adv_deductions: "ADV Deductions",
     adv_approved_no: "ADV Approved Numbers",
   };
-
+  const desiredOrder = [
+    "pub_name",
+    "campaign_name",
+    "geo",
+    "city",
+    "os",
+    "payable_event",
+    "mmp_tracker",
+    "adv_id",
+    "adv_payout",
+    "pub_am",
+    "pub_id",
+    "pid",
+    "pay_out",
+    "shared_date",
+    "paused_date",
+    "adv_total_no",
+    "adv_deductions",
+    "adv_approved_no",
+  ];
   const allowedFieldsAfter3Days = [
     "paused_date",
     "adv_total_no",
@@ -251,7 +271,7 @@ const AdvertiserData = () => {
     const createdAt = new Date(item.created_at);
     const itemMonth = createdAt.getMonth();
     const itemYear = createdAt.getFullYear();
-  
+
     // Filter by selectedMonth (if selected)
     if (selectedMonth) {
       const selectedDate = new Date(selectedMonth);
@@ -261,21 +281,21 @@ const AdvertiserData = () => {
         return false;
       }
     }
-  
+
     // If there's no search term, include the item
     if (!searchTerm.trim()) return true;
-  
+
     const lowerSearchTerm = searchTerm.toLowerCase();
-  
+
     // Check if any value in the item includes the search term
     return Object.values(item).some((value) =>
       String(value).toLowerCase().includes(lowerSearchTerm)
     );
   });
-  
+
   const columns = [
-    ...Object.keys(data[0] || {})
-      .filter((key) => !["id", "user_id", "key", "created_at"].includes(key))
+    ...desiredOrder
+      .filter((key) => data[0] && key in data[0]) // ensure key exists in data
       .map((key) => ({
         title: columnHeadings[key] || key.replace(/([A-Z])/g, " $1").trim(),
         dataIndex: key,
@@ -426,21 +446,21 @@ const AdvertiserData = () => {
 
   return (
     <div className="p-4 bg-gray-100 min-h-screen flex flex-col items-center">
-        {/* Fixed Button Container */}
-        <div className="w-full bg-white p-6 rounded-xl shadow-lg relative">
-          {/* Sticky Top Bar */}
-          <div className="sticky top-0 left-0 right-0 z-20 bg-white shadow-md rounded-md p-4 mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            {/* Left Section: Buttons */}
-            <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-              <Button
-                type="primary"
-                onClick={() => exportToExcel(data, "advertiser-data.xlsx")}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded-lg transition-all duration-200">
-                📥 Download Excel
-              </Button>
+      {/* Fixed Button Container */}
+      <div className="w-full bg-white p-6 rounded-xl shadow-lg relative">
+        {/* Sticky Top Bar */}
+        <div className="sticky top-0 left-0 right-0 z-20 bg-white shadow-md rounded-md p-4 mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          {/* Left Section: Buttons */}
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+            <Button
+              type="primary"
+              onClick={() => exportToExcel(data, "advertiser-data.xlsx")}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded-lg transition-all duration-200">
+              📥 Download Excel
+            </Button>
 
-              {/* Optional Add Row Button */}
-              {/*
+            {/* Optional Add Row Button */}
+            {/*
       <Button
         type="primary"
         icon={<PlusOutlined />}
@@ -450,27 +470,26 @@ const AdvertiserData = () => {
         ➕ Add Row
       </Button>
       */}
-            </div>
-
-            {/* Right Section: Filters */}
-            <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full md:w-auto">
-              <DatePicker
-                picker="month"
-                onChange={(date) => setSelectedMonth(date)}
-                placeholder="🗓 Filter by Month"
-                allowClear
-                className="w-full md:w-48 rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition"
-              />
-
-              <Input
-                placeholder="🔍 Search Username / Publisher / Campaign"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full md:w-80 px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-              />
-            </div>
           </div>
-        
+
+          {/* Right Section: Filters */}
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full md:w-auto">
+            <DatePicker
+              picker="month"
+              onChange={(date) => setSelectedMonth(date)}
+              placeholder="🗓 Filter by Month"
+              allowClear
+              className="w-full md:w-48 rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition"
+            />
+
+            <Input
+              placeholder="🔍 Search Username / Publisher / Campaign"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full md:w-80 px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+            />
+          </div>
+        </div>
 
         {/* Scrollable Table Container */}
         <div className="overflow-auto max-h-[70vh] mt-2">

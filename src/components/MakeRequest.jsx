@@ -25,10 +25,12 @@ const PublisherRequest = () => {
   const [form] = Form.useForm();
   const [requests, setRequests] = useState([]);
   const [advertisers, setAdvertisers] = useState([]);
-
+  const [dropdownOptions, setDropdownOptions] = useState({});
+  console.log(dropdownOptions);
   useEffect(() => {
     fetchAdvertisers();
     fetchRequests();
+    fetchDropdowns();
 
     // Socket notification setup
     subscribeToNotifications((data) => {
@@ -39,7 +41,6 @@ const PublisherRequest = () => {
     });
   }, []);
 
-  console.log(requests);
   const fetchRequests = async () => {
     try {
       const res = await axios.get(`${apiUrl}/getPubRequest/${username}`);
@@ -48,13 +49,31 @@ const PublisherRequest = () => {
       message.error("Failed to fetch requests");
     }
   };
+
+  const fetchDropdowns = async () => {
+    try {
+      const [pid, pub_id] = await Promise.all([
+        axios.get(`${apiUrl1}/get-pid`),
+        axios.get(`${apiUrl1}/get-allpub`),
+      ]);
+      setDropdownOptions((prev) => ({
+        ...prev,
+        pid: pid.data?.data?.map((item) => item.pid) || [],
+        pub_id: pub_id.data?.data?.map((item) => item.pub_id) || [],
+      }));
+    } catch (error) {
+      message.error("Failed to fetch dropdown options");
+    }
+  };
+
   const fetchAdvertisers = async () => {
     try {
       const advmName = await axios.get(`${apiUrl1}/get-subadmin`);
       const filteredNames =
         advmName.data?.data
           ?.filter(
-            (item) => item.role === "advertiser_manager" || item.role === "advertiser"
+            (item) =>
+              item.role === "advertiser_manager" || item.role === "advertiser"
           )
           .map((item) => item.username) || [];
       setAdvertisers(filteredNames);
@@ -83,7 +102,10 @@ const PublisherRequest = () => {
         campaign_name: values.campaignName,
         payout: values.payout,
         os: values.os,
+        pid: values.pid,
+        pub_id: values.pub_id,
       };
+
       console.log(requestData);
       // Sending the form data to the API endpoint
       const response = await axios.post(`${apiUrl}/addPubRequest`, requestData);
@@ -113,45 +135,54 @@ const PublisherRequest = () => {
   };
 
   const columns = [
-  {
-    title: "Advertiser Name",
-    dataIndex: "adv_name",
-    key: "adv_name",
-  },
-  {
-    title: "Campaign Name",
-    dataIndex: "campaign_name",
-    key: "campaign_name",
-  },
-  {
-    title: "PUB Payout ($)",
-    dataIndex: "payout",
-    key: "payout",
-  },
-  {
-    title: "OS",
-    dataIndex: "os",
-    key: "os",
-  },
-  {
-    title: "Action",
-    key: "action",
-    render: (_, record) => {
-      const status = record.adv_res?.toLowerCase();
-      let color = "default";
-      if (status === "waiting") color = "warning";
-      else if (status === "shared") color = "primary";
-      else if (status === "rejected") color = "danger";
-
-      return (
-        <Button type={color} disabled>
-          {status?.charAt(0).toUpperCase() + status?.slice(1) || "N/A"}
-        </Button>
-      );
+    {
+      title: "Advertiser Name",
+      dataIndex: "adv_name",
+      key: "adv_name",
     },
-  },
-];
+    {
+      title: "Campaign Name",
+      dataIndex: "campaign_name",
+      key: "campaign_name",
+    },
+    {
+      title: "PUB Payout ($)",
+      dataIndex: "payout",
+      key: "payout",
+    },
+    {
+      title: "OS",
+      dataIndex: "os",
+      key: "os",
+    },
+    {
+      title: "PID",
+      dataIndex: "pid",
+      key: "pid",
+    },
+    {
+      title: "PUB ID",
+      dataIndex: "pub_id",
+      key: "pub_id",
+    },
+    {
+      title: "Action",
+      key: "action",
+      render: (_, record) => {
+        const status = record.adv_res?.toLowerCase();
+        let color = "default";
+        if (status === "waiting") color = "warning";
+        else if (status === "shared") color = "primary";
+        else if (status === "rejected") color = "danger";
 
+        return (
+          <Button type={color} disabled>
+            {status?.charAt(0).toUpperCase() + status?.slice(1) || "N/A"}
+          </Button>
+        );
+      },
+    },
+  ];
 
   return (
     <div className="p-4">
@@ -208,6 +239,43 @@ const PublisherRequest = () => {
               <Option value="iOS">iOS</Option>
               <Option value="apk">apk</Option>
               <Option value="iOS">Both</Option>
+            </Select>
+          </Form.Item>
+          <Form.Item
+            label="PID"
+            name="pid"
+            rules={[{ required: true, message: "Please select a PID" }]}>
+            <Select
+              showSearch
+              placeholder="Select PID"
+              optionFilterProp="children"
+              filterOption={(input, option) =>
+                option?.children?.toLowerCase().includes(input.toLowerCase())
+              }>
+              {dropdownOptions.pid?.map((pidValue) => (
+                <Option key={pidValue} value={pidValue}>
+                  {pidValue}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            label="PUB ID"
+            name="pub_id"
+            rules={[{ required: true, message: "Please select a PUB ID" }]}>
+            <Select
+              showSearch
+              placeholder="Select PUB ID"
+              optionFilterProp="children"
+              filterOption={(input, option) =>
+                option?.children?.toLowerCase().includes(input.toLowerCase())
+              }>
+              {dropdownOptions.pub_id?.map((pubIdValue) => (
+                <Option key={pubIdValue} value={pubIdValue}>
+                  {pubIdValue}
+                </Option>
+              ))}
             </Select>
           </Form.Item>
         </Form>

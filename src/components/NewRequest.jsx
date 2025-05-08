@@ -62,13 +62,22 @@ const NewRequest = () => {
       message.error("Failed to update status");
     }
   };
-  
 
   const columns = [
     { title: "Publisher", dataIndex: "pub_name", key: "pub_name" }, // Directly using the name from the API response
     { title: "Campaign", dataIndex: "campaign_name", key: "campaign_name" },
     { title: "PUB Payout $", dataIndex: "payout", key: "payout" },
     { title: "OS", dataIndex: "os", key: "os" },
+    {
+      title: "PID",
+      dataIndex: "pid",
+      key: "pid",
+    },
+    {
+      title: "PUB ID",
+      dataIndex: "pub_id",
+      key: "pub_id",
+    },
     {
       title: "Action",
       key: "action",
@@ -80,8 +89,7 @@ const NewRequest = () => {
               size="small"
               type={record.adv_res === status ? "default" : "primary"}
               disabled={record.adv_res === status}
-              onClick={() => handleStatusUpdate(record.id, status)}
-            >
+              onClick={() => handleStatusUpdate(record.id, status)}>
               {status.charAt(0).toUpperCase() + status.slice(1)}
             </Button>
           ))}

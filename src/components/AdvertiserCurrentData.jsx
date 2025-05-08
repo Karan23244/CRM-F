@@ -38,7 +38,7 @@ const AdvertiserData = () => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1); // First day of current month
   });
-
+  
   const [dropdownOptions, setDropdownOptions] = useState({
     os: ["Android", "APK", "iOS"],
   });
@@ -85,7 +85,7 @@ const AdvertiserData = () => {
         pub_name:
           advmName.data?.data
             ?.filter(
-              (item) => item.role === "advertiser_manager" || item.role === "publisher"
+              (item) => item.role === "publisher_manager" || item.role === "publisher"
             )
             .map((item) => item.username) || [],
         payable_event:
@@ -256,10 +256,30 @@ const AdvertiserData = () => {
       String(value).toLowerCase().includes(lowerSearchTerm)
     );
   });
-
+  const desiredOrder = [
+    "adv_id",
+    "campaign_name",
+    "geo",
+    "city",
+    "os",
+    "payable_event",
+    "mmp_tracker",
+    "adv_payout",
+    "pub_name",
+    "pub_id",
+    "pub_am",
+    "pid",
+    "pay_out",
+    "shared_date",
+    "paused_date",
+    "adv_total_no",
+    "adv_deductions",
+    "adv_approved_no",
+  ];
+  
   const columns = [
-    ...Object.keys(data[0] || {})
-      .filter((key) => !["id", "user_id", "key", "created_at"].includes(key))
+    ...desiredOrder
+      .filter((key) => data[0] && key in data[0]) // ensure key exists in data
       .map((key) => ({
         title: columnHeadings[key] || key.replace(/([A-Z])/g, " $1").trim(),
         dataIndex: key,
@@ -267,9 +287,7 @@ const AdvertiserData = () => {
         filterDropdown: () =>
           key.toLowerCase().includes("date") ? (
             <DatePicker
-              onChange={(date, dateString) =>
-                handleFilterChange(dateString, key)
-              }
+              onChange={(date, dateString) => handleFilterChange(dateString, key)}
               style={{ width: "100%" }}
             />
           ) : dropdownOptions[key] ? (
@@ -282,7 +300,8 @@ const AdvertiserData = () => {
               placeholder="Search..."
               filterOption={(input, option) =>
                 option.children.toLowerCase().includes(input.toLowerCase())
-              }>
+              }
+            >
               {dropdownOptions[key].map((option) => (
                 <Option key={option} value={option}>
                   {option}
@@ -300,20 +319,15 @@ const AdvertiserData = () => {
           if (key.toLowerCase().includes("date")) {
             return dayjs(record[key]).isSame(dayjs(value), "day");
           }
-          return record[key]
-            ?.toString()
-            .toLowerCase()
-            .includes(value.toLowerCase());
+          return record[key]?.toString().toLowerCase().includes(value.toLowerCase());
         },
         render: (text, record) => {
           const createdAt = dayjs(record.created_at);
           const isEditableAfter3Days =
-            dayjs().diff(createdAt, "day") > 3 &&
-            allowedFieldsAfter3Days.includes(key); // Only allow specific fields after 3 days
-
+            dayjs().diff(createdAt, "day") > 3 && allowedFieldsAfter3Days.includes(key);
+  
           if (editingKey === record.id) {
-            return isEditableAfter3Days ||
-              dayjs().diff(createdAt, "day") <= 3 ? (
+            return isEditableAfter3Days || dayjs().diff(createdAt, "day") <= 3 ? (
               dropdownOptions[key] ? (
                 <Select
                   showSearch
@@ -325,7 +339,8 @@ const AdvertiserData = () => {
                   placeholder="Search..."
                   filterOption={(input, option) =>
                     option.children.toLowerCase().includes(input.toLowerCase())
-                  }>
+                  }
+                >
                   {dropdownOptions[key].map((option) => (
                     <Option key={option} value={option}>
                       {option}
@@ -351,52 +366,6 @@ const AdvertiserData = () => {
           return text;
         },
       })),
-    // {
-    //   title: "Actions",
-    //   fixed: "right",
-    //   render: (_, record) => {
-    //     const createdAt = dayjs(record.created_at);
-    //     const hoursSinceCreation = dayjs().diff(createdAt, "hour");
-    //     const remainingHours = Math.max(24 - hoursSinceCreation, 0);
-    //     const isEditable = dayjs().diff(createdAt, "day") <= 3;
-    //     const isDeletable = hoursSinceCreation < 24; // Delete button active for only 24 hours
-
-    //     return (
-    //       <div style={{ display: "flex", gap: "8px" }}>
-    //         {editingKey === record.id ? (
-    //           <Button
-    //             type="primary"
-    //             icon={<SaveOutlined />}
-    //             onClick={handleSave}
-    //           />
-    //         ) : (
-    //           <Tooltip
-    //             title={
-    //               !isEditable && !allowedFieldsAfter3Days.length
-    //                 ? "You can't edit because time is over"
-    //                 : ""
-    //             }>
-    //             <Button
-    //               icon={<EditOutlined />}
-    //               onClick={() => handleEdit(record.id)}
-    //               disabled={!isEditable && !allowedFieldsAfter3Days.length}
-    //             />
-    //           </Tooltip>
-    //         )}
-
-    //         {isDeletable && (
-    //           <Tooltip title={`Delete option available for ${remainingHours}h`}>
-    //             <Button
-    //               type="danger"
-    //               icon={<DeleteOutlined />}
-    //               onClick={() => handleDelete(record.id)}
-    //             />
-    //           </Tooltip>
-    //         )}
-    //       </div>
-    //     );
-    //   },
-    // },
     {
       title: "Actions",
       fixed: "right",
@@ -405,23 +374,14 @@ const AdvertiserData = () => {
         const hoursSinceCreation = dayjs().diff(createdAt, "hour");
         const remainingHours = Math.max(24 - hoursSinceCreation, 0);
         const isEditable = dayjs().diff(createdAt, "day") <= 3;
-        const isDeletable = hoursSinceCreation < 24; // Delete button active for only 24 hours
-
+        const isDeletable = hoursSinceCreation < 24;
+  
         return (
           <div style={{ display: "flex", gap: "8px" }}>
             {editingKey === record.id ? (
-              <Button
-                type="primary"
-                icon={<SaveOutlined />}
-                onClick={handleSave}
-              />
+              <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} />
             ) : (
-              <Tooltip
-                title={
-                  !isEditable && !allowedFieldsAfter3Days.length
-                    ? "You can't edit because time is over"
-                    : ""
-                }>
+              <Tooltip title={!isEditable && !allowedFieldsAfter3Days.length ? "You can't edit because time is over" : ""}>
                 <Button
                   icon={<EditOutlined />}
                   onClick={() => handleEdit(record.id)}
@@ -429,7 +389,7 @@ const AdvertiserData = () => {
                 />
               </Tooltip>
             )}
-
+  
             {isDeletable && (
               <Tooltip title={`Delete option available for ${remainingHours}h`}>
                 <Button
@@ -440,13 +400,9 @@ const AdvertiserData = () => {
                 />
               </Tooltip>
             )}
-
-            {/* Copy Button */}
+  
             <Tooltip title="Copy this row">
-              <Button
-                icon={<CopyOutlined />}
-                onClick={() => handleCopyRow(record)}
-              />
+              <Button icon={<CopyOutlined />} onClick={() => handleCopyRow(record)} />
             </Tooltip>
           </div>
         );
