@@ -3,10 +3,49 @@ import axios from "axios";
 import { Table, Spin, Alert, Select, Button, Space } from "antd";
 import { useSelector } from "react-redux";
 import geoData from "../Data/geoData.json";
+import SubAdminPubnameData from "./SubAdminPubnameData";
 
 const { Option } = Select;
 
 const apiUrl = import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
+
+const PublisherIDDashboard = () => {
+  const user = useSelector((state) => state.auth.user);
+  const [activeTab, setActiveTab] = useState("yourData");
+
+  const showAssignPubTab = user?.role === "publisher_manager";
+
+  return (
+    <div className="p-4">
+      <div className="flex space-x-4 mb-4">
+        <button
+          className={`px-4 py-2 rounded ${activeTab === "yourData" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
+          onClick={() => setActiveTab("yourData")}
+        >
+          Your Data
+        </button>
+
+        {showAssignPubTab && (
+          <button
+            className={`px-4 py-2 rounded ${activeTab === "assignPub" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
+            onClick={() => setActiveTab("assignPub")}
+          >
+            Assign Pub Data
+          </button>
+        )}
+      </div>
+
+      {activeTab === "yourData" ? (
+        <PublisherCreateForm />
+      ) : showAssignPubTab ? (
+        <SubAdminPubnameData />
+      ) : null}
+    </div>
+  );
+};
+
+export default PublisherIDDashboard;
+
 
 const PublisherCreateForm = () => {
   const user = useSelector((state) => state.auth.user);
@@ -324,4 +363,3 @@ const PublisherCreateForm = () => {
   );
 };
 
-export default PublisherCreateForm;

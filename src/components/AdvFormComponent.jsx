@@ -3,9 +3,47 @@ import axios from "axios";
 import { Table, Select, Button, Space } from "antd";
 import { useSelector } from "react-redux";
 import geoData from "../Data/geoData.json";
-
+import SubAdminAdvnameData from "./SubAdminAdvnameData";
 const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
+
+
+  const AdvertiserIDDashboard = () => {
+    const user = useSelector((state) => state.auth.user);
+    const [activeTab, setActiveTab] = useState("yourData");
+  
+    const showAssignPubTab = user?.role === "advertiser_manager";
+  
+    return (
+      <div className="p-4">
+        <div className="flex space-x-4 mb-4">
+          <button
+            className={`px-4 py-2 rounded ${activeTab === "yourData" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
+            onClick={() => setActiveTab("yourData")}
+          >
+            Your Data
+          </button>
+  
+          {showAssignPubTab && (
+            <button
+              className={`px-4 py-2 rounded ${activeTab === "assignAdv" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
+              onClick={() => setActiveTab("assignAdv")}
+            >
+              Assign Adv Data
+            </button>
+          )}
+        </div>
+  
+        {activeTab === "yourData" ? (
+          <AdvertiserCreateForm />
+        ) : showAssignPubTab ? (
+          <SubAdminAdvnameData />
+        ) : null}
+      </div>
+    );
+  };
+  
+  export default AdvertiserIDDashboard;
 
 const AdvertiserCreateForm = () => {
   const user = useSelector((state) => state.auth.user);
@@ -301,4 +339,3 @@ const AdvertiserCreateForm = () => {
   );
 };
 
-export default AdvertiserCreateForm;

@@ -26,6 +26,8 @@ const ManagerHomepage = ({}) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showNotificationDot, setShowNotificationDot] = useState(false);
   const [showNewRequestDot, setShowNewRequestDot] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -83,7 +85,7 @@ const ManagerHomepage = ({}) => {
         <div className="flex justify-between items-center px-4">
           {sidebarOpen && (
             <h2 className="text-xl font-semibold transition-opacity md:block">
-            Advertiser Manager Panel
+              Advertiser Manager Panel
             </h2>
           )}
           <button
@@ -150,7 +152,7 @@ const ManagerHomepage = ({}) => {
               onClick={() => setActiveComponent("pubdata")}>
               Previous Publisher Data
             </button> */}
-            <button
+            {/* <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "pid" ? "bg-blue-700" : "hover:bg-blue-600"
               }`}
@@ -166,6 +168,72 @@ const ManagerHomepage = ({}) => {
               onClick={() => setActiveComponent("payableevent")}>
               Add Payable Event
             </button>
+            <button
+              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
+                activeComponent === "mmptracker"
+                  ? "bg-blue-700"
+                  : "hover:bg-blue-600"
+              }`}
+              onClick={() => setActiveComponent("mmptracker")}>
+              Add MMP tracker
+            </button> */}
+            {/* Dropdown Toggle */}
+            <div>
+              <button
+                onClick={() => setIsOpen(!isOpen)}
+                className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center justify-between gap-2 ${
+                  ["pid", "payableevent", "mmptracker"].includes(
+                    activeComponent
+                  )
+                    ? "bg-blue-700"
+                    : "hover:bg-blue-600"
+                }`}>
+                Addition (Dropdown)
+                <span>{isOpen ? "▲" : "▼"}</span>
+              </button>
+
+              {/* Dropdown Items */}
+              {isOpen && (
+                <div className="space-y-1 mt-1 ml-4">
+                  <button
+                    className={`w-full text-left px-4 py-2 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
+                      activeComponent === "pid"
+                        ? "bg-blue-700 text-white"
+                        : "hover:bg-blue-600 hover:text-white"
+                    }`}
+                    onClick={() => {
+                      setActiveComponent("pid");
+                      setIsOpen(false);
+                    }}>
+                    Add PID
+                  </button>
+                  <button
+                    className={`w-full text-left px-4 py-2 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
+                      activeComponent === "payableevent"
+                        ? "bg-blue-700 text-white"
+                        : "hover:bg-blue-600 hover:text-white"
+                    }`}
+                    onClick={() => {
+                      setActiveComponent("payableevent");
+                      setIsOpen(false);
+                    }}>
+                    Add Payable Event
+                  </button>
+                  <button
+                    className={`w-full text-left px-4 py-2 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
+                      activeComponent === "mmptracker"
+                        ? "bg-blue-700 text-white"
+                        : "hover:bg-blue-600 hover:text-white"
+                    }`}
+                    onClick={() => {
+                      setActiveComponent("mmptracker");
+                      setIsOpen(false);
+                    }}>
+                    Add MMP tracker
+                  </button>
+                </div>
+              )}
+            </div>
             {/* <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "makerequest"
@@ -191,15 +259,6 @@ const ManagerHomepage = ({}) => {
               )}
             </button>
 
-            <button
-              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
-                activeComponent === "mmptracker"
-                  ? "bg-blue-700"
-                  : "hover:bg-blue-600"
-              }`}
-              onClick={() => setActiveComponent("mmptracker")}>
-              Add MMP tracker
-            </button>
             {/* <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "pubnameData"
@@ -241,11 +300,24 @@ const ManagerHomepage = ({}) => {
             {sidebarOpen ? <FaTimes /> : <FaBars />}
           </button>
           <h2 className="text-xl font-semibold">Manager Dashboard</h2>
-          <button
-            className="bg-red-500 text-black font-semibold px-5 py-3 rounded-lg hover:bg-red-600 transition"
-            onClick={handleLogout}>
-            Logout
-          </button>
+          <div className="flex items-center gap-4">
+            {/* Bell Icon */}
+            <button
+              className="relative"
+              onClick={() => setActiveComponent("viewRequest")}>
+              <FaBell className="text-2xl text-blue-700 hover:text-blue-900 transition" />
+              {showNewRequestDot && (
+                <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
+              )}
+            </button>
+
+            {/* Logout */}
+            <button
+              className="bg-red-500 text-black font-semibold px-5 py-3 rounded-lg hover:bg-red-600 transition"
+              onClick={handleLogout}>
+              Logout
+            </button>
+          </div>
         </header>
 
         {/* Main Content Area */}
