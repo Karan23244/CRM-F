@@ -13,7 +13,7 @@ import {
 import axios from "axios";
 import { subscribeToNotifications } from "./Socket";
 import { useSelector } from "react-redux";
-
+import { AutoComplete } from "antd";
 const { Option } = Select;
 const apiUrl = import.meta.env.VITE_API_URL || "https://apii.clickorbits.in";
 const apiUrl1 =
@@ -244,39 +244,33 @@ const PublisherRequest = () => {
           <Form.Item
             label="PID"
             name="pid"
-            rules={[{ required: true, message: "Please select a PID" }]}>
-            <Select
-              showSearch
-              placeholder="Select PID"
-              optionFilterProp="children"
-              filterOption={(input, option) =>
-                option?.children?.toLowerCase().includes(input.toLowerCase())
-              }>
-              {dropdownOptions.pid?.map((pidValue) => (
-                <Option key={pidValue} value={pidValue}>
-                  {pidValue}
-                </Option>
-              ))}
-            </Select>
+            rules={[
+              { required: true, message: "Please enter or select a PID" },
+            ]}>
+            <AutoComplete
+              options={dropdownOptions.pid?.map((pid) => ({ value: pid }))}
+              placeholder="Enter or select PID"
+              filterOption={(inputValue, option) =>
+                option.value.toLowerCase().includes(inputValue.toLowerCase())
+              }
+            />
           </Form.Item>
 
           <Form.Item
             label="PUB ID"
             name="pub_id"
-            rules={[{ required: true, message: "Please select a PUB ID" }]}>
-            <Select
-              showSearch
-              placeholder="Select PUB ID"
-              optionFilterProp="children"
-              filterOption={(input, option) =>
-                option?.children?.toLowerCase().includes(input.toLowerCase())
-              }>
-              {dropdownOptions.pub_id?.map((pubIdValue) => (
-                <Option key={pubIdValue} value={pubIdValue}>
-                  {pubIdValue}
-                </Option>
-              ))}
-            </Select>
+            rules={[
+              { required: true, message: "Please enter or select a PUB ID" },
+            ]}>
+            <AutoComplete
+              options={dropdownOptions.pub_id?.map((pubId) => ({
+                value: pubId,
+              }))}
+              placeholder="Enter or select PUB ID"
+              filterOption={(inputValue, option) =>
+                option.value.toLowerCase().includes(inputValue.toLowerCase())
+              }
+            />
           </Form.Item>
         </Form>
       </Modal>
