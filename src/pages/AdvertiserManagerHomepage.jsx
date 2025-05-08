@@ -85,7 +85,7 @@ const ManagerHomepage = ({}) => {
         <div className="flex justify-between items-center px-4">
           {sidebarOpen && (
             <h2 className="text-xl font-semibold transition-opacity md:block">
-              Advertiser Manager Panel
+               Manager Panel
             </h2>
           )}
           <button
@@ -299,7 +299,7 @@ const ManagerHomepage = ({}) => {
             onClick={() => setSidebarOpen(!sidebarOpen)}>
             {sidebarOpen ? <FaTimes /> : <FaBars />}
           </button>
-          <h2 className="text-xl font-semibold">Manager Dashboard</h2>
+          <h2 className="text-xl font-semibold">Advertiser Manager Dashboard</h2>
           <div className="flex items-center gap-4">
             {/* Bell Icon */}
             <button

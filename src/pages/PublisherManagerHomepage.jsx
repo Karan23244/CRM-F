@@ -153,7 +153,7 @@ const ManagerHomepage = ({}) => {
               Previous Publisher Data
             </button>
             {/* Dropdown Toggle */}
-            <div>
+            {/* <div>
               <button
                 onClick={() => setIsOpen(!isOpen)}
                 className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center justify-between gap-2 ${
@@ -165,10 +165,10 @@ const ManagerHomepage = ({}) => {
                 }`}>
                 Addition (Dropdown)
                 <span>{isOpen ? "▲" : "▼"}</span>
-              </button>
+              </button> */}
 
               {/* Dropdown Items */}
-              {isOpen && (
+              {/* {isOpen && (
                 <div className="space-y-1 mt-1 ml-4">
                   <button
                     className={`w-full text-left px-4 py-2 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
@@ -208,7 +208,7 @@ const ManagerHomepage = ({}) => {
                   </button>
                 </div>
               )}
-            </div>
+            </div> */}
 
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
