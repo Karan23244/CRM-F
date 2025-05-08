@@ -478,21 +478,7 @@ import { exportToExcel } from "./exportExcel";
 const { Option } = Select;
 const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
-
-const columnHeadingsAdv = {
-  username: "Adv AM",
-  campaign_name: "Campaign Name",
-  geo: "GEO",
-  city: "State Or City",
-  os: "OS",
-  payable_event: "Payable Event",
-  mmp_tracker: "MMP Tracker",
-  pub_id: "PubID",
-  pid: "PID",
-  pay_out: "PUB Payout $",
-  shared_date: "Shared Date",
-  paused_date: "Paused Date",
-};
+  
 
 const PublisherPayoutData = () => {
   const [advData, setAdvData] = useState([]);
@@ -503,6 +489,7 @@ const PublisherPayoutData = () => {
   const [editedRow, setEditedRow] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
   const [showSubadminData, setShowSubadminData] = useState(false);
+  const [visibleData, setVisibleData] = useState([]);
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1); // First day of current month
@@ -511,6 +498,24 @@ const PublisherPayoutData = () => {
   const [subAdmins, setSubAdmins] = useState([]);
 
   const user = useSelector((state) => state.auth.user);
+  console.log(filteredData)
+
+  const columnHeadingsAdv = {
+    ...(selectedSubAdmins?.length > 0 && { pub_name: "PUBM Name" }),
+    username: "Adv AM",
+    campaign_name: "Campaign Name",
+    geo: "GEO",
+    city: "State Or City",
+    os: "OS",
+    payable_event: "Payable Event",
+    mmp_tracker: "MMP Tracker",
+    pub_id: "PubID",
+    pid: "PID",
+    pay_out: "PUB Payout $",
+    shared_date: "Shared Date",
+    paused_date: "Paused Date",
+  };
+  
 
   const fetchAdvData = async () => {
     try {
@@ -649,19 +654,16 @@ const PublisherPayoutData = () => {
   };
 
   useEffect(() => {
+    let data;
     if (selectedSubAdmins?.length > 0) {
-      const filtered = advData.filter(
-        (item) => selectedSubAdmins.includes(item.pub_name) // Matching pub_name with selected username
+      data = advData.filter((item) =>
+        selectedSubAdmins.includes(item.pub_name)
       );
-      console.log(filtered);
-      setFilteredData(filtered);
-      generateUniqueValues(filtered);
     } else {
-      // When no sub-admin is selected, reset to default filtered data
-      const currentMonth = dayjs().month(); // 0-based (0 = January)
+      const currentMonth = dayjs().month();
       const currentYear = dayjs().year();
-
-      const data = advData.filter((row) => {
+  
+      data = advData.filter((row) => {
         const createdDate = dayjs(row.created_at);
         return (
           row.pub_name === user?.username &&
@@ -669,11 +671,29 @@ const PublisherPayoutData = () => {
           createdDate.year() === currentYear
         );
       });
-
-      setFilteredData(data);
-      generateUniqueValues(data);
     }
+    setVisibleData(data);
   }, [selectedSubAdmins, advData, user]);
+  
+  useEffect(() => {
+    const filtered = visibleData.filter((item) => {
+      const matchesFilters = Object.keys(filters).every((key) =>
+        filters[key] ? item[key] === filters[key] : true
+      );
+  
+      const matchesSearch = !searchTerm.trim()
+        ? true
+        : Object.values(item).some((val) =>
+            String(val).toLowerCase().includes(searchTerm.toLowerCase())
+          );
+  
+      return matchesFilters && matchesSearch;
+    });
+  
+    setFilteredData(filtered);
+    generateUniqueValues(filtered);
+  }, [filters, searchTerm, visibleData]);
+    
 
   const getColumns = (columnHeadings) => {
     return [
@@ -807,188 +827,3 @@ const PublisherPayoutData = () => {
 };
 
 export default PublisherPayoutData;
-
-const PublisherComponent = ({ data, name, fetchData }) => {
-  const [editingKey, setEditingKey] = useState(null);
-  const [editedRow, setEditedRow] = useState({});
-  const [loading, setLoading] = useState(false);
-  const [filters, setFilters] = useState({});
-  console.log("Data:", data);
-  // Check if a column has all empty values
-  const isColumnEmpty = (data, key) => {
-    return data.every(
-      (item) =>
-        item[key] === null || item[key] === "" || item[key] === undefined
-    );
-  };
-
-  // Enable editing for the selected row
-  const handleEdit = (id) => {
-    setEditingKey(id);
-    setEditedRow(data.find((row) => row.id === id) || {});
-  };
-
-  // Save updated data to backend
-  const handleSave = async () => {
-    try {
-      const updatedData = {
-        ...editedRow,
-      };
-      // // Send the updated data to the API
-      await axios.post(`${apiUrl}/pubdata-update/${editingKey}`, updatedData, {
-        headers: { "Content-Type": "application/json" },
-      });
-
-      setEditingKey(null);
-      alert("Data updated successfully");
-      fetchData();
-    } catch (error) {
-      alert("Failed to update data", error);
-    }
-  };
-
-  // Handle change for editable fields
-  const handleChange = (value, key) => {
-    setEditedRow((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-  };
-
-  // Handle filters for date and other fields
-  const handleFilterChange = (value, key) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
-  };
-
-  // Apply filters to data
-  const filteredRecords = data.filter((item) => {
-    return Object.keys(filters).every((key) => {
-      if (!filters[key]) return true;
-
-      if (Array.isArray(filters[key]) && filters[key].length === 2) {
-        const [start, end] = filters[key];
-        return dayjs(item[key]).isBetween(start, end, null, "[]");
-      }
-
-      return item[key] === filters[key];
-    });
-  });
-
-  // Define editable column headings
-  const columnHeadings = {
-    adv_name: "ADVM Name",
-    campaign_name: "Campaign Name",
-    geo: "GEO",
-    city: "State Or City",
-    os: "OS",
-    payable_event: "Payable Event",
-    mmp_tracker: "MMP Tracker",
-    pub_id: "Pub ID",
-    p_id: "PID",
-    pub_payout: "Pub Payout $",
-    shared_date: "Shared Date",
-    paused_date: "Paused Date",
-    review: "Review",
-    pub_total_numbers: "PUB Total Numbers",
-    pub_deductions: "PUB Deductions",
-    pub_approved_numbers: "PUB Approved Numbers",
-  };
-
-  // Define editable keys
-  const editableFields = [
-    "paused_date",
-    "pub_total_numbers",
-    "pub_deductions",
-    "pub_approved_numbers",
-  ];
-
-  // Define table columns with editable fields
-  const columns = [
-    ...Object.keys(data[0] || {})
-      .filter(
-        (key) =>
-          !["id", "user_id", "key", "created_at"].includes(key) &&
-          // ✅ Exclude `adv_name` if it's empty
-          !(key === "adv_name" && isColumnEmpty(data, "adv_name"))
-      )
-      .map((key) => ({
-        title: columnHeadings[key] || key,
-        dataIndex: key,
-        key,
-        filters: Array.from(new Set(data.map((item) => item[key]))).map(
-          (val) => ({
-            text: val,
-            value: val,
-          })
-        ),
-        onFilter: (value, record) => record[key] === value,
-        render: (text, record) => {
-          // Show editable fields for specific columns
-          if (editingKey === record.id && editableFields.includes(key)) {
-            if (key.toLowerCase().includes("date")) {
-              return (
-                <DatePicker
-                  value={editedRow[key] ? dayjs(editedRow[key]) : null}
-                  onChange={(date, dateString) => handleChange(dateString, key)}
-                  style={{ width: "100%" }}
-                />
-              );
-            } else {
-              return (
-                <Input
-                  value={editedRow[key]}
-                  onChange={(e) => handleChange(e.target.value, key)}
-                />
-              );
-            }
-          }
-          return text;
-        },
-      })),
-    {
-      title: "Actions",
-      fixed: "right",
-      key: "actions",
-      render: (_, record) =>
-        editingKey === record.id ? (
-          <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} />
-        ) : (
-          <Button
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record.id)}
-          />
-        ),
-    },
-  ];
-
-  return (
-    <div className="p-4 flex flex-col">
-      <Button
-        type="primary"
-        onClick={() => exportToExcel(data, "Sub-publisher-data.xlsx")}
-        className="w-3xs mb-5">
-        Download Excel
-      </Button>
-      <div>
-        <h1 className="text-lg font-semibold">Publisher Data of {name}</h1>
-      </div>
-      <div className="w-full overflow-auto bg-white p-4 rounded shadow-md">
-        <Table
-          columns={columns}
-          dataSource={filteredRecords}
-          pagination={{
-            pageSizeOptions: ["10", "20", "50", "100"], // Define available page sizes
-            showSizeChanger: true, // Allow changing page size
-            defaultPageSize: 10, // Set the default page size
-            showTotal: (total, range) =>
-              `${range[0]}-${range[1]} of ${total} items`, // Optional: Show total records
-          }}
-          bordered
-          loading={loading}
-          rowKey="id"
-          scroll={{ x: "max-content" }}
-        />
-      </div>
-    </div>
-  );
-};
