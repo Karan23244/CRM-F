@@ -38,7 +38,7 @@ const AdvertiserData = () => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1); // First day of current month
   });
-  
+
   const [dropdownOptions, setDropdownOptions] = useState({
     os: ["Android", "APK", "iOS"],
   });
@@ -85,7 +85,8 @@ const AdvertiserData = () => {
         pub_name:
           advmName.data?.data
             ?.filter(
-              (item) => item.role === "publisher_manager" || item.role === "publisher"
+              (item) =>
+                item.role === "publisher_manager" || item.role === "publisher"
             )
             .map((item) => item.username) || [],
         payable_event:
@@ -240,11 +241,10 @@ const AdvertiserData = () => {
     const selectedDate = selectedMonth ? new Date(selectedMonth) : new Date(); // Fallback to current date
     const selectedMonthValue = selectedDate.getMonth();
     const selectedYear = selectedDate.getFullYear();
-    
+
     if (itemMonth !== selectedMonthValue || itemYear !== selectedYear) {
       return false;
     }
-    
 
     // If there's no search term, include the item
     if (!searchTerm.trim()) return true;
@@ -276,7 +276,7 @@ const AdvertiserData = () => {
     "adv_deductions",
     "adv_approved_no",
   ];
-  
+
   const columns = [
     ...desiredOrder
       .filter((key) => data[0] && key in data[0]) // ensure key exists in data
@@ -287,7 +287,9 @@ const AdvertiserData = () => {
         filterDropdown: () =>
           key.toLowerCase().includes("date") ? (
             <DatePicker
-              onChange={(date, dateString) => handleFilterChange(dateString, key)}
+              onChange={(date, dateString) =>
+                handleFilterChange(dateString, key)
+              }
               style={{ width: "100%" }}
             />
           ) : dropdownOptions[key] ? (
@@ -300,8 +302,7 @@ const AdvertiserData = () => {
               placeholder="Search..."
               filterOption={(input, option) =>
                 option.children.toLowerCase().includes(input.toLowerCase())
-              }
-            >
+              }>
               {dropdownOptions[key].map((option) => (
                 <Option key={option} value={option}>
                   {option}
@@ -319,15 +320,20 @@ const AdvertiserData = () => {
           if (key.toLowerCase().includes("date")) {
             return dayjs(record[key]).isSame(dayjs(value), "day");
           }
-          return record[key]?.toString().toLowerCase().includes(value.toLowerCase());
+          return record[key]
+            ?.toString()
+            .toLowerCase()
+            .includes(value.toLowerCase());
         },
         render: (text, record) => {
           const createdAt = dayjs(record.created_at);
           const isEditableAfter3Days =
-            dayjs().diff(createdAt, "day") > 3 && allowedFieldsAfter3Days.includes(key);
-  
+            dayjs().diff(createdAt, "day") > 3 &&
+            allowedFieldsAfter3Days.includes(key);
+
           if (editingKey === record.id) {
-            return isEditableAfter3Days || dayjs().diff(createdAt, "day") <= 3 ? (
+            return isEditableAfter3Days ||
+              dayjs().diff(createdAt, "day") <= 3 ? (
               dropdownOptions[key] ? (
                 <Select
                   showSearch
@@ -339,8 +345,7 @@ const AdvertiserData = () => {
                   placeholder="Search..."
                   filterOption={(input, option) =>
                     option.children.toLowerCase().includes(input.toLowerCase())
-                  }
-                >
+                  }>
                   {dropdownOptions[key].map((option) => (
                     <Option key={option} value={option}>
                       {option}
@@ -375,13 +380,22 @@ const AdvertiserData = () => {
         const remainingHours = Math.max(24 - hoursSinceCreation, 0);
         const isEditable = dayjs().diff(createdAt, "day") <= 3;
         const isDeletable = hoursSinceCreation < 24;
-  
+
         return (
           <div style={{ display: "flex", gap: "8px" }}>
             {editingKey === record.id ? (
-              <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} />
+              <Button
+                type="primary"
+                icon={<SaveOutlined />}
+                onClick={handleSave}
+              />
             ) : (
-              <Tooltip title={!isEditable && !allowedFieldsAfter3Days.length ? "You can't edit because time is over" : ""}>
+              <Tooltip
+                title={
+                  !isEditable && !allowedFieldsAfter3Days.length
+                    ? "You can't edit because time is over"
+                    : ""
+                }>
                 <Button
                   icon={<EditOutlined />}
                   onClick={() => handleEdit(record.id)}
@@ -389,7 +403,7 @@ const AdvertiserData = () => {
                 />
               </Tooltip>
             )}
-  
+
             {isDeletable && (
               <Tooltip title={`Delete option available for ${remainingHours}h`}>
                 <Button
@@ -400,9 +414,12 @@ const AdvertiserData = () => {
                 />
               </Tooltip>
             )}
-  
+
             <Tooltip title="Copy this row">
-              <Button icon={<CopyOutlined />} onClick={() => handleCopyRow(record)} />
+              <Button
+                icon={<CopyOutlined />}
+                onClick={() => handleCopyRow(record)}
+              />
             </Tooltip>
           </div>
         );
@@ -411,89 +428,91 @@ const AdvertiserData = () => {
   ];
 
   return (
-    <div className="p-4 bg-gray-100 min-h-screen flex flex-col items-center">
-      <div className="w-full bg-white p-6 rounded shadow-md relative">
-        {/* Sticky Top Bar */}
-        <div className="sticky top-0 left-0 right-0 z-20 bg-white p-4 rounded shadow-md flex flex-col md:flex-row md:items-center md:justify-between gap-4 border border-gray-200">
-          {/* Buttons Section */}
-          <div className="flex flex-wrap items-center gap-4">
-            {!showSubadminData ? (
-              <>
-                <Button
-                  type="primary"
-                  onClick={() => exportToExcel(data, "advertiser-data.xlsx")}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200">
-                  📥 Download Excel
-                </Button>
-
-                {user?.role === "advertiser_manager" && (
+    <>
+      <div className="p-4 bg-gray-100 min-h-screen flex flex-col items-center">
+        <div className="w-full bg-white p-6 rounded shadow-md relative">
+          {/* Sticky Top Bar */}
+          <div className="sticky top-0 left-0 right-0 z-20 bg-white p-4 rounded shadow-md flex flex-col md:flex-row md:items-center md:justify-between gap-4 border border-gray-200">
+            {/* Buttons Section */}
+            <div className="flex flex-wrap items-center gap-4">
+              {!showSubadminData ? (
+                <>
                   <Button
                     type="primary"
-                    onClick={() => setShowSubadminData(true)}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200">
-                    📊 Assigned Sub-Admin Data
+                    onClick={() => exportToExcel(data, "advertiser-data.xlsx")}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200">
+                    📥 Download Excel
                   </Button>
-                )}
 
+                  {user?.role === "advertiser_manager" && (
+                    <Button
+                      type="primary"
+                      onClick={() => setShowSubadminData(true)}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200">
+                      📊 Assigned Sub-Admin Data
+                    </Button>
+                  )}
+
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={handleAddRow}
+                    className="bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200">
+                    Add Row
+                  </Button>
+                  <DatePicker
+                    picker="month"
+                    onChange={(date) => setSelectedMonth(date)}
+                    placeholder="🗓 Filter by Month"
+                    allowClear
+                    className="w-full md:w-48 rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition"
+                  />
+                </>
+              ) : (
                 <Button
                   type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={handleAddRow}
-                  className="bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200">
-                  Add Row
+                  onClick={() => setShowSubadminData(false)}
+                  className="bg-red-500 hover:bg-red-600 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200">
+                  ← Back to Table
                 </Button>
-                <DatePicker
-                  picker="month"
-                  onChange={(date) => setSelectedMonth(date)}
-                  placeholder="🗓 Filter by Month"
-                  allowClear
-                  className="w-full md:w-48 rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition"
-                />
-              </>
+              )}
+            </div>
+
+            {/* Search Input */}
+            <div className="w-full md:w-auto">
+              <Input
+                placeholder="Search by Username, Pub Name, or Campaign Name"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full md:w-80 px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
+            </div>
+          </div>
+
+          {/* Table or Component View */}
+          <div className="overflow-auto max-h-[70vh] mt-4">
+            {!showSubadminData ? (
+              <Table
+                columns={columns}
+                dataSource={finalFilteredData}
+                pagination={{
+                  pageSizeOptions: ["10", "20", "50", "100"],
+                  showSizeChanger: true,
+                  defaultPageSize: 10,
+                  showTotal: (total, range) =>
+                    `${range[0]}-${range[1]} of ${total} items`,
+                }}
+                bordered
+                loading={loading}
+                scroll={{ x: "max-content" }}
+              />
             ) : (
-              <Button
-                type="primary"
-                onClick={() => setShowSubadminData(false)}
-                className="bg-red-500 hover:bg-red-600 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200">
-                ← Back to Table
-              </Button>
+              <MainComponent />
             )}
           </div>
-
-          {/* Search Input */}
-          <div className="w-full md:w-auto">
-            <Input
-              placeholder="Search by Username, Pub Name, or Campaign Name"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full md:w-80 px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-          </div>
-        </div>
-
-        {/* Table or Component View */}
-        <div className="overflow-auto max-h-[70vh] mt-4">
-          {!showSubadminData ? (
-            <Table
-              columns={columns}
-              dataSource={finalFilteredData}
-              pagination={{
-                pageSizeOptions: ["10", "20", "50", "100"],
-                showSizeChanger: true,
-                defaultPageSize: 10,
-                showTotal: (total, range) =>
-                  `${range[0]}-${range[1]} of ${total} items`,
-              }}
-              bordered
-              loading={loading}
-              scroll={{ x: "max-content" }}
-            />
-          ) : (
-            <MainComponent />
-          )}
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

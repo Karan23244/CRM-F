@@ -238,7 +238,7 @@ const PublisherRequest = () => {
               <Option value="Android">Android</Option>
               <Option value="iOS">iOS</Option>
               <Option value="apk">apk</Option>
-              <Option value="iOS">Both</Option>
+              <Option value="both">Both</Option>
             </Select>
           </Form.Item>
           <Form.Item
