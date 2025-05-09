@@ -268,7 +268,7 @@ const ManagerHomepage = ({}) => {
               onClick={() => setActiveComponent("pubnameData")}>
               Assigned Sub-Admin Publisher Data
             </button> */}
-            <button
+            {/* <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "advnameData"
                   ? "bg-blue-700"
@@ -276,7 +276,7 @@ const ManagerHomepage = ({}) => {
               }`}
               onClick={() => setActiveComponent("advnameData")}>
               Assigned Sub-Admin Advertiser Data
-            </button>
+            </button> */}
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "changepassword"
@@ -351,7 +351,7 @@ const ManagerHomepage = ({}) => {
           {/* {activeComponent === "makerequest" && <MakeRequest />} */}
           {activeComponent === "viewRequest" && <NewRequest />}
           {/* {activeComponent === "pubnameData" && <SubAdminPubnameData />} */}
-          {activeComponent === "advnameData" && <SubAdminAdvnameData />}
+          {/* {activeComponent === "advnameData" && <SubAdminAdvnameData />} */}
           {activeComponent === "changepassword" && <ChangePassword />}
         </main>
       </div>

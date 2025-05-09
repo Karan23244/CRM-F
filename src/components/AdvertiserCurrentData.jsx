@@ -112,6 +112,7 @@ const AdvertiserData = () => {
       "adv_total_no",
       "adv_deductions",
       "adv_approved_no",
+      "pay_out",
     ];
 
     const isEmptyField = Object.entries(editedRow)
@@ -226,6 +227,7 @@ const AdvertiserData = () => {
     "adv_total_no",
     "adv_deductions",
     "adv_approved_no",
+    "pay_out",
   ];
   const handleFilterChange = (value, key) => {
     setFilters((prev) => ({ ...prev, [key]: value }));

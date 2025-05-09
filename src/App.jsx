@@ -58,9 +58,6 @@ const AppRoutes = () => {
               }
             />
           </Route>
-          <Route element={<ProtectedRoute allowedRoles={["manager"]} />}>
-            <Route path="/manager-home" element={<ManagerHomepage />} />
-          </Route>
         </Routes>
       </Router>
     </>
