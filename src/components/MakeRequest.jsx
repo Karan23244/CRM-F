@@ -222,11 +222,12 @@ const PublisherRequest = () => {
           <Form.Item
             label="Payout"
             name="payout"
-            rules={[{ required: true, message: "Please enter payout amount" }]}>
-            <InputNumber
-              min={0}
+            rules={[
+              { required: true, message: "Please enter payout amounts" },
+            ]}>
+            <Input
               style={{ width: "100%" }}
-              placeholder="Enter payout in USD"
+              placeholder="Enter payout values (e.g., 100, 200, 300)"
             />
           </Form.Item>
 
@@ -279,7 +280,7 @@ const PublisherRequest = () => {
         className="mt-4"
         dataSource={requests}
         columns={columns}
-        pagination={{ pageSize: 5 }}
+        pagination={{ pageSize: 15 }}
       />
     </div>
   );
