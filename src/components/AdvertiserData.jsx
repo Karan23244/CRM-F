@@ -242,10 +242,22 @@ const AdvertiserData = () => {
   const handleFilterChange = (value, key) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
+  const finalFilteredData = data.filter((item) => {
+    const createdAt = new Date(item.created_at);
+    const itemMonth = createdAt.getMonth();
+    const itemYear = createdAt.getFullYear();
 
-  const filteredRecords = data.filter((item) => {
-    // Apply existing filters
-    const matchesFilters = Object.keys(filters).every((key) => {
+    // Filter by selectedMonth (if selected)
+    const selectedDate = selectedMonth ? new Date(selectedMonth) : new Date();
+    const selectedMonthValue = selectedDate.getMonth();
+    const selectedYear = selectedDate.getFullYear();
+
+    if (itemMonth !== selectedMonthValue || itemYear !== selectedYear) {
+      return false;
+    }
+
+    // Apply advanced filters
+    const passesAdvancedFilters = Object.keys(filters).every((key) => {
       if (!filters[key]) return true;
 
       // Date range filter
@@ -260,27 +272,7 @@ const AdvertiserData = () => {
         .includes(filters[key].toString().toLowerCase());
     });
 
-    // Apply monthly filter (checks created_at field)
-    const matchesMonth = selectedMonth
-      ? dayjs(item.created_at).isSame(selectedMonth, "month")
-      : true;
-
-    return matchesFilters && matchesMonth;
-  });
-  const finalFilteredData = data.filter((item) => {
-    const createdAt = new Date(item.created_at);
-    const itemMonth = createdAt.getMonth();
-    const itemYear = createdAt.getFullYear();
-
-    // Filter by selectedMonth (if selected)
-    if (selectedMonth) {
-      const selectedDate = new Date(selectedMonth);
-      const selectedMonthValue = selectedDate.getMonth();
-      const selectedYear = selectedDate.getFullYear();
-      if (itemMonth !== selectedMonthValue || itemYear !== selectedYear) {
-        return false;
-      }
-    }
+    if (!passesAdvancedFilters) return false;
 
     // If there's no search term, include the item
     if (!searchTerm.trim()) return true;

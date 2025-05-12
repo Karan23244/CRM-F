@@ -50,7 +50,7 @@ const AdvertiserData = () => {
       fetchDropdowns();
     }
   }, [user]);
-
+  console.log(filters);
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -232,21 +232,37 @@ const AdvertiserData = () => {
   const handleFilterChange = (value, key) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
-
-  // Final filtered data based on selectedMonth and searchTerm
   const finalFilteredData = data.filter((item) => {
     const createdAt = new Date(item.created_at);
     const itemMonth = createdAt.getMonth();
     const itemYear = createdAt.getFullYear();
 
     // Filter by selectedMonth (if selected)
-    const selectedDate = selectedMonth ? new Date(selectedMonth) : new Date(); // Fallback to current date
+    const selectedDate = selectedMonth ? new Date(selectedMonth) : new Date();
     const selectedMonthValue = selectedDate.getMonth();
     const selectedYear = selectedDate.getFullYear();
 
     if (itemMonth !== selectedMonthValue || itemYear !== selectedYear) {
       return false;
     }
+
+    // Apply advanced filters
+    const passesAdvancedFilters = Object.keys(filters).every((key) => {
+      if (!filters[key]) return true;
+
+      // Date range filter
+      if (Array.isArray(filters[key]) && filters[key].length === 2) {
+        const [start, end] = filters[key];
+        return dayjs(item[key]).isBetween(start, end, null, "[]");
+      }
+
+      return item[key]
+        ?.toString()
+        .toLowerCase()
+        .includes(filters[key].toString().toLowerCase());
+    });
+
+    if (!passesAdvancedFilters) return false;
 
     // If there's no search term, include the item
     if (!searchTerm.trim()) return true;
@@ -258,6 +274,32 @@ const AdvertiserData = () => {
       String(value).toLowerCase().includes(lowerSearchTerm)
     );
   });
+
+  // Final filtered data based on selectedMonth and searchTerm
+  // const finalFilteredData = data.filter((item) => {
+  //   const createdAt = new Date(item.created_at);
+  //   const itemMonth = createdAt.getMonth();
+  //   const itemYear = createdAt.getFullYear();
+
+  //   // Filter by selectedMonth (if selected)
+  //   const selectedDate = selectedMonth ? new Date(selectedMonth) : new Date(); // Fallback to current date
+  //   const selectedMonthValue = selectedDate.getMonth();
+  //   const selectedYear = selectedDate.getFullYear();
+
+  //   if (itemMonth !== selectedMonthValue || itemYear !== selectedYear) {
+  //     return false;
+  //   }
+
+  //   // If there's no search term, include the item
+  //   if (!searchTerm.trim()) return true;
+
+  //   const lowerSearchTerm = searchTerm.toLowerCase();
+
+  //   // Check if any value in the item includes the search term
+  //   return Object.values(item).some((value) =>
+  //     String(value).toLowerCase().includes(lowerSearchTerm)
+  //   );
+  // });
   const desiredOrder = [
     "adv_id",
     "campaign_name",
