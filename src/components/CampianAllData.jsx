@@ -77,10 +77,6 @@ const CampianAllData = () => {
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  useEffect(() => {
-    setSelectedMonth(dayjs());
-  }, []);
-
   // Fetch Publisher Data
   const fetchPubData = async () => {
     try {
@@ -124,21 +120,23 @@ const CampianAllData = () => {
     generateUniqueValues(data);
     const filtered = data.filter((item) => {
       const createdAt = new Date(item.created_at);
-      const itemMonth = createdAt.getMonth();
-      const itemYear = createdAt.getFullYear();
 
-      const selectedDate = selectedMonth ? new Date(selectedMonth) : new Date();
-      const selectedMonthValue = selectedDate.getMonth();
-      const selectedYear = selectedDate.getFullYear();
+      // If a month is selected, apply filtering
+      if (selectedMonth) {
+        const itemMonth = createdAt.getMonth();
+        const itemYear = createdAt.getFullYear();
+        const selectedDate = new Date(selectedMonth);
+        const selectedMonthValue = selectedDate.getMonth();
+        const selectedYear = selectedDate.getFullYear();
 
-      if (itemMonth !== selectedMonthValue || itemYear !== selectedYear) {
-        return false;
+        if (itemMonth !== selectedMonthValue || itemYear !== selectedYear) {
+          return false;
+        }
       }
 
       const passesAdvancedFilters = Object.keys(filters).every((key) => {
         if (!filters[key]) return true;
 
-        // Range filter (e.g. date)
         if (Array.isArray(filters[key]) && filters[key].length === 2) {
           const [start, end] = filters[key];
           return dayjs(item[key]).isBetween(start, end, null, "[]");
