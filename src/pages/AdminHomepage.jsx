@@ -9,6 +9,7 @@ import ChangePassword from "../components/ChangePassword";
 import PubnameData from "../components/PubnameData";
 import AdvnameData from "../components/AdvnameData";
 import CampianData from "../components/CampianData";
+import CampianAllData from "../components/CampianAllData";
 const AdminHomepage = () => {
   const [activeComponent, setActiveComponent] = useState("subadmin");
   const [sidebarOpen, setSidebarOpen] = useState(true); // Default open for large screens
@@ -73,12 +74,21 @@ const AdminHomepage = () => {
             </button>
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
+                activeComponent === "allcurrentdata"
+                  ? "bg-blue-700"
+                  : "hover:bg-blue-600"
+              }`}
+              onClick={() => setActiveComponent("allcurrentdata")}>
+              Campaign Current Data
+            </button>
+              <button
+              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "alldata"
                   ? "bg-blue-700"
                   : "hover:bg-blue-600"
               }`}
               onClick={() => setActiveComponent("alldata")}>
-              Campaign Data
+              Campaign All Data
             </button>
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
@@ -136,9 +146,14 @@ const AdminHomepage = () => {
               <ReviewForm />
             </>
           )}
-          {activeComponent === "alldata" && (
+          {activeComponent === "allcurrentdata" && (
             <div>
               <CampianData />
+            </div>
+          )}
+             {activeComponent === "alldata" && (
+            <div>
+              <CampianAllData />
             </div>
           )}
           {activeComponent === "advertiserdata" && (

@@ -249,13 +249,22 @@ const AdvertiserData = () => {
     const itemMonth = createdAt.getMonth();
     const itemYear = createdAt.getFullYear();
 
-    // Filter by selectedMonth (if selected)
-    const selectedDate = selectedMonth ? new Date(selectedMonth) : new Date();
-    const selectedMonthValue = selectedDate.getMonth();
-    const selectedYear = selectedDate.getFullYear();
+    // // Filter by selectedMonth (if selected)
+    // const selectedDate = selectedMonth ? new Date(selectedMonth) : new Date();
+    // const selectedMonthValue = selectedDate.getMonth();
+    // const selectedYear = selectedDate.getFullYear();
 
-    if (itemMonth !== selectedMonthValue || itemYear !== selectedYear) {
-      return false;
+    // if (itemMonth !== selectedMonthValue || itemYear !== selectedYear) {
+    //   return false;
+    // }
+    if (selectedMonth) {
+      const selectedDate = new Date(selectedMonth);
+      const selectedMonthValue = selectedDate.getMonth();
+      const selectedYear = selectedDate.getFullYear();
+
+      if (itemMonth !== selectedMonthValue || itemYear !== selectedYear) {
+        return false;
+      }
     }
 
     // Apply advanced filters
@@ -467,12 +476,13 @@ const AdvertiserData = () => {
           </div>
 
           {/* Right Section: Filters */}
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full md:w-auto">
+          <div className="flex flex-col md:flex-row items-start gap-4 w-full md:w-auto">
             <DatePicker
               picker="month"
-              onChange={(date) => setSelectedMonth(date)}
-              placeholder="🗓 Filter by Month"
+              onChange={(date, dateString) => setSelectedMonth(dateString)}
               allowClear
+              style={{ marginBottom: 16 }}
+              placeholder="Select Month (optional)"
               className="w-full md:w-48 rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition"
             />
 

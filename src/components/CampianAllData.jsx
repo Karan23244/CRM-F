@@ -62,7 +62,7 @@ const columnHeadingsAdv = {
   adv_approved_no: "ADV Approved Numbers",
 };
 
-const CampianData = () => {
+const CampianAllData = () => {
   const [advData, setAdvData] = useState([]);
   const [pubData, setPubData] = useState([]);
   const [selectedType, setSelectedType] = useState("publisher");
@@ -74,12 +74,13 @@ const CampianData = () => {
   const [dropdownOptions, setDropdownOptions] = useState({
     os: ["Android", "APK", "iOS"],
   });
-  const [selectedMonth, setSelectedMonth] = useState(() => {
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), 1); // First day of current month
-  });
+  const [selectedMonth, setSelectedMonth] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  console.log("Selected Month", selectedMonth);
+
+  useEffect(() => {
+    setSelectedMonth(dayjs());
+  }, []);
+
   // Fetch Publisher Data
   const fetchPubData = async () => {
     try {
@@ -239,15 +240,15 @@ const CampianData = () => {
   };
 
   // Apply filters
-  // useEffect(() => {
-  //   const data = selectedType === "publisher" ? pubData : advData;
-  //   const filtered = data.filter((item) =>
-  //     Object.keys(filters).every((key) =>
-  //       filters[key] ? item[key] === filters[key] : true
-  //     )
-  //   );
-  //   setFilteredData(filtered.filter((row) => !isRowEmpty(row)));
-  // }, [filters, pubData, advData, selectedType]);
+  useEffect(() => {
+    const data = selectedType === "publisher" ? pubData : advData;
+    const filtered = data.filter((item) =>
+      Object.keys(filters).every((key) =>
+        filters[key] ? item[key] === filters[key] : true
+      )
+    );
+    setFilteredData(filtered.filter((row) => !isRowEmpty(row)));
+  }, [filters, pubData, advData, selectedType]);
 
   // Handle Edit
   const handleEdit = (id) => {
@@ -458,4 +459,4 @@ const CampianData = () => {
   );
 };
 
-export default CampianData;
+export default CampianAllData;
