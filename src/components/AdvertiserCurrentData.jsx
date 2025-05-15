@@ -233,9 +233,9 @@ const AdvertiserData = () => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
   const finalFilteredData = data.filter((item) => {
-    const createdAt = new Date(item.created_at);
-    const itemMonth = createdAt.getMonth();
-    const itemYear = createdAt.getFullYear();
+    const sharedDate = new Date(item.shared_date);
+    const itemMonth = sharedDate.getMonth();
+    const itemYear = sharedDate.getFullYear();
 
     // Filter by selectedMonth (if selected)
     const selectedDate = selectedMonth ? new Date(selectedMonth) : new Date();

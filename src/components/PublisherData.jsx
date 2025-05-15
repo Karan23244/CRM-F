@@ -571,10 +571,10 @@ const PublisherPayoutData = () => {
   }, []);
 
   const filteredData = advData.filter((item) => {
-    const createdDate = dayjs(item.created_at);
+    const sharedDate = dayjs(item.shared_date);
     const matchesMonth = selectedMonth
-      ? createdDate.month() === dayjs(selectedMonth).month() &&
-        createdDate.year() === dayjs(selectedMonth).year()
+      ? sharedDate.month() === dayjs(selectedMonth).month() &&
+        sharedDate.year() === dayjs(selectedMonth).year()
       : true;
 
     const matchesPub = item.pub_name === user?.username;

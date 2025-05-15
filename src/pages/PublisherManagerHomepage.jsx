@@ -25,7 +25,6 @@ const ManagerHomepage = ({}) => {
   const [activeComponent, setActiveComponent] = useState("pubform");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showNotificationDot, setShowNotificationDot] = useState(false);
-  const [showNewRequestDot, setShowNewRequestDot] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
   const dispatch = useDispatch();
@@ -49,21 +48,6 @@ const ManagerHomepage = ({}) => {
   useEffect(() => {
     if (activeComponent === "makerequest") {
       setShowNotificationDot(false);
-    }
-  }, [activeComponent]);
-
-  useEffect(() => {
-    subscribeToNotifications((data) => {
-      if (data?.campaign_name && data?.id) {
-        if (activeComponent !== "viewRequest") {
-          setShowNewRequestDot(true); // Show dot only if not already on viewRequest
-        }
-      }
-    });
-  }, [activeComponent]);
-  useEffect(() => {
-    if (activeComponent === "viewRequest") {
-      setShowNewRequestDot(false);
     }
   }, [activeComponent]);
 
@@ -283,7 +267,7 @@ const ManagerHomepage = ({}) => {
               className="relative"
               onClick={() => setActiveComponent("makerequest")}>
               <FaBell className="text-2xl text-blue-700 hover:text-blue-900 transition" />
-              {showNewRequestDot && (
+              {showNotificationDot && (
                 <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
               )}
             </button>

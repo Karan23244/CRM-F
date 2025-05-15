@@ -478,7 +478,6 @@ import { exportToExcel } from "./exportExcel";
 const { Option } = Select;
 const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
-  
 
 const PublisherPayoutData = () => {
   const [advData, setAdvData] = useState([]);
@@ -498,7 +497,7 @@ const PublisherPayoutData = () => {
   const [subAdmins, setSubAdmins] = useState([]);
 
   const user = useSelector((state) => state.auth.user);
-  console.log(filteredData)
+  console.log(filteredData);
 
   const columnHeadingsAdv = {
     ...(selectedSubAdmins?.length > 0 && { pub_name: "PUBM Name" }),
@@ -515,7 +514,6 @@ const PublisherPayoutData = () => {
     shared_date: "Shared Date",
     paused_date: "Paused Date",
   };
-  
 
   const fetchAdvData = async () => {
     try {
@@ -562,11 +560,11 @@ const PublisherPayoutData = () => {
     const currentYear = dayjs().year();
 
     const data = advData.filter((row) => {
-      const createdDate = dayjs(row.created_at);
+      const sharedDate = dayjs(row.shared_date);
       return (
         row.pub_name === user?.username &&
-        createdDate.month() === currentMonth &&
-        createdDate.year() === currentYear
+        sharedDate.month() === currentMonth &&
+        sharedDate.year() === currentYear
       );
     });
 
@@ -597,34 +595,36 @@ const PublisherPayoutData = () => {
     }));
   };
 
-  useEffect(() => {
-    const currentMonth = dayjs().month();
-    const currentYear = dayjs().year();
+useEffect(() => {
+  const currentMonth = dayjs().month();
+  const currentYear = dayjs().year();
 
-    const filtered = advData.filter((item) => {
-      const createdDate = dayjs(item.created_at);
-      const matchesMonth =
-        createdDate.month() === currentMonth &&
-        createdDate.year() === currentYear;
+  const filtered = advData.filter((item) => {
+    const sharedDate = dayjs(item.shared_date); // FIXED LINE
 
-      const matchesPub = item.pub_name === user?.username;
+    const matchesMonth =
+      sharedDate?.month() === currentMonth &&
+      sharedDate?.year() === currentYear;
 
-      const matchesFilters = Object.keys(filters).every((key) =>
-        filters[key] ? item[key] === filters[key] : true
-      );
+    const matchesPub = item.pub_name === user?.username;
 
-      const matchesSearch = !searchTerm.trim()
-        ? true
-        : Object.values(item).some((val) =>
-            String(val).toLowerCase().includes(searchTerm.toLowerCase())
-          );
+    const matchesFilters = Object.keys(filters).every((key) =>
+      filters[key] ? item[key] === filters[key] : true
+    );
 
-      return matchesMonth && matchesPub && matchesFilters && matchesSearch;
-    });
+    const matchesSearch = !searchTerm.trim()
+      ? true
+      : Object.values(item).some((val) =>
+          String(val).toLowerCase().includes(searchTerm.toLowerCase())
+        );
 
-    setFilteredData(filtered);
-    generateUniqueValues(filtered);
-  }, [filters, advData, searchTerm, user]);
+    return matchesMonth && matchesPub && matchesFilters && matchesSearch;
+  });
+
+  setFilteredData(filtered);
+  generateUniqueValues(filtered);
+}, [filters, advData, searchTerm, user]);
+
 
   const handleEdit = (id) => {
     const row = filteredData.find((row) => row.id === id);
@@ -662,38 +662,37 @@ const PublisherPayoutData = () => {
     } else {
       const currentMonth = dayjs().month();
       const currentYear = dayjs().year();
-  
+
       data = advData.filter((row) => {
-        const createdDate = dayjs(row.created_at);
+        const sharedDate = dayjs(row.shared_date);
         return (
           row.pub_name === user?.username &&
-          createdDate.month() === currentMonth &&
-          createdDate.year() === currentYear
+          sharedDate.month() === currentMonth &&
+          sharedDate.year() === currentYear
         );
       });
     }
     setVisibleData(data);
   }, [selectedSubAdmins, advData, user]);
-  
+
   useEffect(() => {
     const filtered = visibleData.filter((item) => {
       const matchesFilters = Object.keys(filters).every((key) =>
         filters[key] ? item[key] === filters[key] : true
       );
-  
+
       const matchesSearch = !searchTerm.trim()
         ? true
         : Object.values(item).some((val) =>
             String(val).toLowerCase().includes(searchTerm.toLowerCase())
           );
-  
+
       return matchesFilters && matchesSearch;
     });
-  
+
     setFilteredData(filtered);
     generateUniqueValues(filtered);
   }, [filters, searchTerm, visibleData]);
-    
 
   const getColumns = (columnHeadings) => {
     return [

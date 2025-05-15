@@ -101,6 +101,9 @@ const PublisherHomepage = ({}) => {
               }`}
               onClick={() => setActiveComponent("makerequest")}>
               Make Request
+              {showNotificationDot && (
+                <span className="w-2 h-2 bg-red-500 rounded-full ml-1"></span>
+              )}
             </button>
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
@@ -132,7 +135,7 @@ const PublisherHomepage = ({}) => {
               className="relative"
               onClick={() => setActiveComponent("makerequest")}>
               <FaBell className="text-2xl text-blue-700 hover:text-blue-900 transition" />
-              {showNewRequestDot && (
+              {showNotificationDot && (
                 <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
               )}
             </button>

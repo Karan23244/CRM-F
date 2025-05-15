@@ -120,12 +120,12 @@ const CampianAllData = () => {
     const data = selectedType === "publisher" ? pubData : advData;
     generateUniqueValues(data);
     const filtered = data.filter((item) => {
-      const createdAt = new Date(item.created_at);
+      const sharedDate = new Date(item.shared_date);
 
       // If a month is selected, apply filtering
       if (selectedMonth) {
-        const itemMonth = createdAt.getMonth();
-        const itemYear = createdAt.getFullYear();
+        const itemMonth = sharedDate.getMonth();
+        const itemYear = sharedDate.getFullYear();
         const selectedDate = new Date(selectedMonth);
         const selectedMonthValue = selectedDate.getMonth();
         const selectedYear = selectedDate.getFullYear();

@@ -26,6 +26,9 @@ const PublisherRequest = () => {
   const [requests, setRequests] = useState([]);
   const [advertisers, setAdvertisers] = useState([]);
   const [dropdownOptions, setDropdownOptions] = useState({});
+  const [searchText, setSearchText] = useState("");
+  const [filteredRequests, setFilteredRequests] = useState([]);
+
   console.log(dropdownOptions);
   useEffect(() => {
     fetchAdvertisers();
@@ -40,6 +43,15 @@ const PublisherRequest = () => {
       }
     });
   }, []);
+  useEffect(() => {
+    const filtered = requests.filter((item) =>
+      Object.values(item)
+        .join(" ")
+        .toLowerCase()
+        .includes(searchText.toLowerCase())
+    );
+    setFilteredRequests(filtered);
+  }, [requests, searchText]);
 
   const fetchRequests = async () => {
     try {
@@ -104,6 +116,7 @@ const PublisherRequest = () => {
         os: values.os,
         pid: values.pid,
         pub_id: values.pub_id,
+        geo: values.geo, // ✅ Add this line
       };
 
       console.log(requestData);
@@ -156,6 +169,12 @@ const PublisherRequest = () => {
       key: "os",
     },
     {
+      title: "Geo",
+      dataIndex: "geo",
+      key: "geo",
+    },
+
+    {
       title: "PID",
       dataIndex: "pid",
       key: "pid",
@@ -186,9 +205,32 @@ const PublisherRequest = () => {
 
   return (
     <div className="p-4">
-      <Button type="primary" onClick={showModal}>
-        Request New Campaign Link
-      </Button>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "1rem",
+          marginBottom: 20,
+        }}>
+        <Button type="primary" onClick={showModal}>
+          ➕ Request New Campaign Link
+        </Button>
+
+        <Input.Search
+          placeholder="Search by Advertiser, Campaign, PID, etc."
+          allowClear
+          enterButton
+          onChange={(e) => setSearchText(e.target.value)}
+          style={{
+            width: 400,
+            maxWidth: "100%",
+            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+            borderRadius: 6,
+          }}
+        />
+      </div>
 
       <Modal
         title="Request New Link"
@@ -243,6 +285,13 @@ const PublisherRequest = () => {
             </Select>
           </Form.Item>
           <Form.Item
+            label="Geo"
+            name="geo"
+            rules={[{ required: true, message: "Please enter geo location" }]}>
+            <Input placeholder="Enter Geo (e.g., US, IN, UK)" />
+          </Form.Item>
+
+          <Form.Item
             label="PID"
             name="pid"
             rules={[
@@ -275,10 +324,9 @@ const PublisherRequest = () => {
           </Form.Item>
         </Form>
       </Modal>
-
       <Table
         className="mt-4"
-        dataSource={requests}
+        dataSource={filteredRequests}
         columns={columns}
         pagination={{ pageSize: 15 }}
       />

@@ -15,7 +15,7 @@ import ReportForm from "../components/ReportForm";
 import NewRequest from "../components/NewRequest";
 import ExcelGraphCompare from "../components/Graph";
 import { subscribeToNotifications } from "../components/Socket";
-import { FaBell } from 'react-icons/fa';
+import { FaBell } from "react-icons/fa";
 const AdvHomepage = ({}) => {
   const user = useSelector((state) => state.auth.user);
   const [activeComponent, setActiveComponent] = useState("form");
@@ -158,7 +158,18 @@ const AdvHomepage = ({}) => {
                 </div>
               )}
             </div>
-
+            <button
+              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
+                activeComponent === "viewRequest"
+                  ? "bg-blue-700"
+                  : "hover:bg-blue-600"
+              }`}
+              onClick={() => setActiveComponent("viewRequest")}>
+              New Request
+              {showNewRequestDot && (
+                <span className="w-2 h-2 bg-red-500 rounded-full ml-1"></span>
+              )}
+            </button>
             {allowedUserIds.includes(Number(user?.id)) && (
               <>
                 <button
