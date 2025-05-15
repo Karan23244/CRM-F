@@ -54,6 +54,7 @@ const columnHeadingsAdv = {
   adv_id: "ADV ID",
   adv_payout: "ADV Payout $",
   pub_id: "PubID",
+  pay_out: "Pub Payout $",
   pid: "PID",
   shared_date: "Shared Date",
   paused_date: "Paused Date",
@@ -65,7 +66,7 @@ const columnHeadingsAdv = {
 const CampianData = () => {
   const [advData, setAdvData] = useState([]);
   const [pubData, setPubData] = useState([]);
-  const [selectedType, setSelectedType] = useState("publisher");
+  const [selectedType, setSelectedType] = useState("advertiser");
   const [filters, setFilters] = useState({});
   const [filteredData, setFilteredData] = useState([]);
   const [uniqueValues, setUniqueValues] = useState({});
@@ -380,19 +381,19 @@ const CampianData = () => {
         <h2 className="text-xl font-bold mb-3 text-gray-700">Data Type</h2>
         <div className="flex flex-wrap gap-4">
           <Checkbox
-            checked={selectedType === "publisher"}
-            onChange={() => handleCheckboxChange("publisher")}
-            className="flex items-center space-x-2">
-            <span className="text-base font-medium text-gray-800">
-              Publisher Data
-            </span>
-          </Checkbox>
-          <Checkbox
             checked={selectedType === "advertiser"}
             onChange={() => handleCheckboxChange("advertiser")}
             className="flex items-center space-x-2">
             <span className="text-base font-medium text-gray-800">
               Advertiser Data
+            </span>
+          </Checkbox>
+          <Checkbox
+            checked={selectedType === "publisher"}
+            onChange={() => handleCheckboxChange("publisher")}
+            className="flex items-center space-x-2">
+            <span className="text-base font-medium text-gray-800">
+              Publisher Data
             </span>
           </Checkbox>
         </div>
