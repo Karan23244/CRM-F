@@ -234,10 +234,15 @@ const AdvertiserData = () => {
   };
   const finalFilteredData = data.filter((item) => {
     const sharedDate = new Date(item.shared_date);
+
+    // Skip month/year filter if shared_date is invalid
+    if (!item.shared_date || isNaN(sharedDate.getTime())) {
+      return true; // <-- Include item with missing date
+    }
+
     const itemMonth = sharedDate.getMonth();
     const itemYear = sharedDate.getFullYear();
 
-    // Filter by selectedMonth (if selected)
     const selectedDate = selectedMonth ? new Date(selectedMonth) : new Date();
     const selectedMonthValue = selectedDate.getMonth();
     const selectedYear = selectedDate.getFullYear();
@@ -246,11 +251,9 @@ const AdvertiserData = () => {
       return false;
     }
 
-    // Apply advanced filters
     const passesAdvancedFilters = Object.keys(filters).every((key) => {
       if (!filters[key]) return true;
 
-      // Date range filter
       if (Array.isArray(filters[key]) && filters[key].length === 2) {
         const [start, end] = filters[key];
         return dayjs(item[key]).isBetween(start, end, null, "[]");
@@ -264,12 +267,10 @@ const AdvertiserData = () => {
 
     if (!passesAdvancedFilters) return false;
 
-    // If there's no search term, include the item
     if (!searchTerm.trim()) return true;
 
     const lowerSearchTerm = searchTerm.toLowerCase();
 
-    // Check if any value in the item includes the search term
     return Object.values(item).some((value) =>
       String(value).toLowerCase().includes(lowerSearchTerm)
     );
