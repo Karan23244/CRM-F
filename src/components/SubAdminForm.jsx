@@ -17,8 +17,6 @@ const SubAdminForm = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [subAdminOptions, setSubAdminOptions] = useState([]);
-  console.log(selectedSubAdmin);
-  console.log(subAdmins)
   useEffect(() => {
     fetchSubAdmins();
   }, []);

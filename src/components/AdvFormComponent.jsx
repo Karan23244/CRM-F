@@ -7,43 +7,46 @@ import SubAdminAdvnameData from "./SubAdminAdvnameData";
 const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 
+const AdvertiserIDDashboard = () => {
+  const user = useSelector((state) => state.auth.user);
+  const [activeTab, setActiveTab] = useState("yourData");
 
-  const AdvertiserIDDashboard = () => {
-    const user = useSelector((state) => state.auth.user);
-    const [activeTab, setActiveTab] = useState("yourData");
-  
-    const showAssignPubTab = user?.role === "advertiser_manager";
-  
-    return (
-      <div className="p-4">
-        <div className="flex space-x-4 mb-4">
+  const showAssignPubTab = user?.role === "advertiser_manager";
+
+  return (
+    <div className="p-4">
+      <div className="flex space-x-4 mb-4">
+        <button
+          className={`px-4 py-2 rounded ${
+            activeTab === "yourData" ? "bg-blue-600 text-white" : "bg-gray-200"
+          }`}
+          onClick={() => setActiveTab("yourData")}>
+          Your Data
+        </button>
+
+        {showAssignPubTab && (
           <button
-            className={`px-4 py-2 rounded ${activeTab === "yourData" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
-            onClick={() => setActiveTab("yourData")}
-          >
-            Your Data
+            className={`px-4 py-2 rounded ${
+              activeTab === "assignAdv"
+                ? "bg-blue-600 text-white"
+                : "bg-gray-200"
+            }`}
+            onClick={() => setActiveTab("assignAdv")}>
+            Assign Adv Data
           </button>
-  
-          {showAssignPubTab && (
-            <button
-              className={`px-4 py-2 rounded ${activeTab === "assignAdv" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
-              onClick={() => setActiveTab("assignAdv")}
-            >
-              Assign Adv Data
-            </button>
-          )}
-        </div>
-  
-        {activeTab === "yourData" ? (
-          <AdvertiserCreateForm />
-        ) : showAssignPubTab ? (
-          <SubAdminAdvnameData />
-        ) : null}
+        )}
       </div>
-    );
-  };
-  
-  export default AdvertiserIDDashboard;
+
+      {activeTab === "yourData" ? (
+        <AdvertiserCreateForm />
+      ) : showAssignPubTab ? (
+        <SubAdminAdvnameData />
+      ) : null}
+    </div>
+  );
+};
+
+export default AdvertiserIDDashboard;
 
 const AdvertiserCreateForm = () => {
   const user = useSelector((state) => state.auth.user);
@@ -58,8 +61,15 @@ const AdvertiserCreateForm = () => {
   const [usedIds, setUsedIds] = useState(new Set());
   const [editingAdv, setEditingAdv] = useState(null);
   const [target, setTarget] = useState("");
-  console.log(user)
+  const [acc_email, setAcc_email] = useState("");
+  const [poc_email, setPoc_email] = useState("");
+  const [assign_user, setAssign_user] = useState("");
+  const [assign_id, setAssign_id] = useState("");
+  const [subAdmins, setSubAdmins] = useState([]);
+  const [loadingSubAdmins, setLoadingSubAdmins] = useState(false);
+  const [errorSubAdmins, setErrorSubAdmins] = useState(null);
   // **Initialize available IDs from user.ranges**
+  console.log(subAdmins);
   useEffect(() => {
     if (user && user.ranges && user.ranges.length > 0) {
       let allAvailableIds = [];
@@ -79,7 +89,6 @@ const AdvertiserCreateForm = () => {
       setAvailableIds(allAvailableIds);
     }
   }, [user]);
-
   // **Fetch advertisers and remove used IDs**
   useEffect(() => {
     const fetchAdvertisers = async () => {
@@ -108,7 +117,32 @@ const AdvertiserCreateForm = () => {
 
     fetchAdvertisers();
   }, [userId]);
+  useEffect(() => {
+    const fetchSubAdmins = async () => {
+      setLoadingSubAdmins(true);
+      try {
+        const response = await fetch(`${apiUrl}/get-subadmin`);
+        const data = await response.json();
+        console.log(response);
+        console.log(data);
 
+        if (response.ok) {
+          const filtered = data.data.filter((subAdmin) =>
+            ["advertiser_manager"].includes(subAdmin.role)
+          );
+          setSubAdmins(filtered);
+        } else {
+          setErrorSubAdmins(data.message || "Failed to fetch sub-admins.");
+        }
+      } catch (err) {
+        setErrorSubAdmins("An error occurred while fetching sub-admins.");
+      } finally {
+        setLoadingSubAdmins(false);
+      }
+    };
+
+    fetchSubAdmins();
+  }, []);
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -124,6 +158,10 @@ const AdvertiserCreateForm = () => {
       note: note || "",
       target: target || "",
       user_id: userId,
+      acc_email: acc_email,
+      poc_email: poc_email,
+      assign_user: assign_user,
+      assign_id: assign_id,
     };
     console.log(newAdv);
     try {
@@ -173,6 +211,10 @@ const AdvertiserCreateForm = () => {
     setGeo(record.geo);
     setNote(record.note || "");
     setTarget(record.target || "");
+    setAcc_email(record.acc_email);
+    setPoc_email(record.poc_email);
+    setAssign_user(record.assign_user);
+    setAssign_id(record.assign_id);
   };
 
   // Reset Form
@@ -182,6 +224,10 @@ const AdvertiserCreateForm = () => {
     setGeo("");
     setNote("");
     setTarget("");
+    setAcc_email("");
+    setPoc_email("");
+    setAssign_user("");
+    setAssign_id("");
     setEditingAdv(null);
   };
 
@@ -191,6 +237,11 @@ const AdvertiserCreateForm = () => {
     { title: "Geo", dataIndex: "geo", key: "geo" },
     { title: "Note", dataIndex: "note", key: "note" },
     { title: "Target", dataIndex: "target", key: "target" },
+    { title: "acc_email", dataIndex: "acc_email", key: "acc_email" },
+    { title: "poc_email", dataIndex: "poc_email", key: "poc_email" },
+    { title: "assign_user", dataIndex: "assign_user", key: "assign_user" },
+    { title: "assign_id", dataIndex: "assign_id", key: "assign_id" },
+
     {
       title: "Actions",
       key: "actions",
@@ -301,6 +352,49 @@ const AdvertiserCreateForm = () => {
             </div>
           </>
         )}
+        <div>
+          <label className="block text-lg font-medium">Account Email</label>
+          <input
+            type="text"
+            value={acc_email}
+            onChange={(e) => setAcc_email(e.target.value)}
+            className="w-full p-2 border border-gray-300 rounded-lg"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-lg font-medium">Poc Email</label>
+          <input
+            type="text"
+            value={poc_email}
+            onChange={(e) => setPoc_email(e.target.value)}
+            className="w-full p-2 border border-gray-300 rounded-lg"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-lg font-medium">Assign User</label>
+          <select
+            className="w-full p-2 border border-gray-300 rounded-lg"
+            value={assign_id}
+            onChange={(e) => {
+              const selectedId = e.target.value;
+              const selectedUser = subAdmins.find(
+                (admin) => admin.id.toString() === selectedId
+              );
+              setAssign_id(selectedId);
+              setAssign_user(selectedUser ? selectedUser.username : "");
+            }}
+            required>
+            <option value="">Select Sub Admin</option>
+            {subAdmins.map((admin) => (
+              <option key={admin.id} value={admin.id}>
+                {admin.username}
+              </option>
+            ))}
+          </select>
+        </div>
 
         {/* Submit Button */}
         <button
@@ -338,4 +432,3 @@ const AdvertiserCreateForm = () => {
     </div>
   );
 };
-
