@@ -140,6 +140,7 @@ const SubAdminForm = () => {
     setRole("publisher");
     setRanges([{ start: "", end: "" }]);
     setAssignedSubAdmins([]);
+    setSelectedSubAdmin(null);
   };
 
   const handleEdit = (subAdmin) => {
