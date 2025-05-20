@@ -237,10 +237,9 @@ const AdvertiserCreateForm = () => {
     { title: "Geo", dataIndex: "geo", key: "geo" },
     { title: "Note", dataIndex: "note", key: "note" },
     { title: "Target", dataIndex: "target", key: "target" },
-    { title: "acc_email", dataIndex: "acc_email", key: "acc_email" },
-    { title: "poc_email", dataIndex: "poc_email", key: "poc_email" },
-    { title: "assign_user", dataIndex: "assign_user", key: "assign_user" },
-    { title: "assign_id", dataIndex: "assign_id", key: "assign_id" },
+    { title: "Acc Email", dataIndex: "acc_email", key: "acc_email" },
+    { title: "POC Email", dataIndex: "poc_email", key: "poc_email" },
+    { title: "Assign User", dataIndex: "assign_user", key: "assign_user" },
 
     {
       title: "Actions",
@@ -359,7 +358,6 @@ const AdvertiserCreateForm = () => {
             value={acc_email}
             onChange={(e) => setAcc_email(e.target.value)}
             className="w-full p-2 border border-gray-300 rounded-lg"
-            required
           />
         </div>
 
@@ -370,7 +368,6 @@ const AdvertiserCreateForm = () => {
             value={poc_email}
             onChange={(e) => setPoc_email(e.target.value)}
             className="w-full p-2 border border-gray-300 rounded-lg"
-            required
           />
         </div>
         <div>
