@@ -17,12 +17,14 @@ import {
   CopyOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
+import isBetween from "dayjs/plugin/isBetween";
 import { useSelector } from "react-redux";
 import geoData from "../Data/geoData.json";
 import { exportToExcel } from "./exportExcel";
 import { Modal, message as antdMessage } from "antd";
 import MainComponent from "../components/ManagerAllData";
-
+dayjs.extend(isBetween);
+const { RangePicker } = DatePicker;
 const { Option } = Select;
 const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
@@ -33,6 +35,12 @@ const AdvertiserData = () => {
   const [editingKey, setEditingKey] = useState(null);
   const [editedRow, setEditedRow] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
+  const [uniqueValues, setUniqueValues] = useState({});
+  const [selectedDateRange, setSelectedDateRange] = useState([
+    dayjs().startOf("month"),
+    dayjs().endOf("month"),
+  ]);
+
   const [showSubadminData, setShowSubadminData] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
@@ -50,23 +58,45 @@ const AdvertiserData = () => {
       fetchDropdowns();
     }
   }, [user]);
-  console.log(filters);
+
   const fetchData = async () => {
     try {
       setLoading(true);
       const response = await axios.get(`${apiUrl}/advdata-byuser/${user.id}`);
+      const formatted = response.data.reverse().map((item) => ({
+        ...item,
+        key: item.id,
+      }));
       // Store all data, no filtering yet
-      setData(
-        response.data.reverse().map((item) => ({
-          ...item,
-          key: item.id,
-        }))
-      );
+      // setData(
+      //   response.data.reverse().map((item) => ({
+      //     ...item,
+      //     key: item.id,
+      //   }))
+      // );
+      setData(formatted);
+      generateUniqueValues(formatted);
     } catch (error) {
       message.error("Failed to fetch data");
     } finally {
       setLoading(false);
     }
+  };
+  const generateUniqueValues = (data) => {
+    const uniqueVals = {};
+    data.forEach((item) => {
+      Object.keys(item).forEach((key) => {
+        if (!uniqueVals[key]) uniqueVals[key] = new Set();
+        uniqueVals[key].add(item[key]);
+      });
+    });
+
+    const formattedValues = {};
+    Object.keys(uniqueVals).forEach((key) => {
+      formattedValues[key] = Array.from(uniqueVals[key]);
+    });
+
+    setUniqueValues(formattedValues);
   };
 
   const fetchDropdowns = async () => {
@@ -233,27 +263,25 @@ const AdvertiserData = () => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
   const finalFilteredData = data.filter((item) => {
-    const sharedDate = new Date(item.shared_date);
+    const sharedDate = dayjs(item.shared_date);
 
-    // Skip month/year filter if shared_date is invalid
-    if (!item.shared_date || isNaN(sharedDate.getTime())) {
-      return true; // <-- Include item with missing date
+    if (
+      selectedDateRange &&
+      selectedDateRange.length === 2 &&
+      selectedDateRange[0] &&
+      selectedDateRange[1]
+    ) {
+      const [start, end] = selectedDateRange;
+      if (!sharedDate.isBetween(start, end, null, "[]")) {
+        return false;
+      }
     }
 
-    const itemMonth = sharedDate.getMonth();
-    const itemYear = sharedDate.getFullYear();
-
-    const selectedDate = selectedMonth ? new Date(selectedMonth) : new Date();
-    const selectedMonthValue = selectedDate.getMonth();
-    const selectedYear = selectedDate.getFullYear();
-
-    if (itemMonth !== selectedMonthValue || itemYear !== selectedYear) {
-      return false;
-    }
-
+    // Apply advanced filters
     const passesAdvancedFilters = Object.keys(filters).every((key) => {
       if (!filters[key]) return true;
 
+      // Date range filter
       if (Array.isArray(filters[key]) && filters[key].length === 2) {
         const [start, end] = filters[key];
         return dayjs(item[key]).isBetween(start, end, null, "[]");
@@ -267,40 +295,14 @@ const AdvertiserData = () => {
 
     if (!passesAdvancedFilters) return false;
 
+    // Search term filter
     if (!searchTerm.trim()) return true;
 
     const lowerSearchTerm = searchTerm.toLowerCase();
-
     return Object.values(item).some((value) =>
       String(value).toLowerCase().includes(lowerSearchTerm)
     );
   });
-
-  // Final filtered data based on selectedMonth and searchTerm
-  // const finalFilteredData = data.filter((item) => {
-  //   const createdAt = new Date(item.created_at);
-  //   const itemMonth = createdAt.getMonth();
-  //   const itemYear = createdAt.getFullYear();
-
-  //   // Filter by selectedMonth (if selected)
-  //   const selectedDate = selectedMonth ? new Date(selectedMonth) : new Date(); // Fallback to current date
-  //   const selectedMonthValue = selectedDate.getMonth();
-  //   const selectedYear = selectedDate.getFullYear();
-
-  //   if (itemMonth !== selectedMonthValue || itemYear !== selectedYear) {
-  //     return false;
-  //   }
-
-  //   // If there's no search term, include the item
-  //   if (!searchTerm.trim()) return true;
-
-  //   const lowerSearchTerm = searchTerm.toLowerCase();
-
-  //   // Check if any value in the item includes the search term
-  //   return Object.values(item).some((value) =>
-  //     String(value).toLowerCase().includes(lowerSearchTerm)
-  //   );
-  // });
   const desiredOrder = [
     "adv_id",
     "campaign_name",
@@ -321,39 +323,40 @@ const AdvertiserData = () => {
     "adv_deductions",
     "adv_approved_no",
   ];
-
   const columns = [
     ...desiredOrder
-      .filter((key) => data[0] && key in data[0]) // ensure key exists in data
+      .filter((key) => data[0] && key in data[0])
       .map((key) => ({
         title: columnHeadings[key] || key.replace(/([A-Z])/g, " $1").trim(),
         dataIndex: key,
         key,
         filterDropdown: () =>
-          key.toLowerCase().includes("date") ? (
+          uniqueValues[key]?.length > 0 ? (
+            <div style={{ padding: 8 }}>
+              <Select
+                allowClear
+                showSearch
+                placeholder={`Select ${columnHeadings[key]}`}
+                style={{ width: 200 }}
+                value={filters[key]}
+                onChange={(value) => handleFilterChange(value, key)}
+                filterOption={(input, option) =>
+                  option.children.toLowerCase().includes(input.toLowerCase())
+                }>
+                {uniqueValues[key].map((val) => (
+                  <Option key={val} value={val}>
+                    {val}
+                  </Option>
+                ))}
+              </Select>
+            </div>
+          ) : key.toLowerCase().includes("date") ? (
             <DatePicker
               onChange={(date, dateString) =>
                 handleFilterChange(dateString, key)
               }
               style={{ width: "100%" }}
             />
-          ) : dropdownOptions[key] ? (
-            <Select
-              showSearch
-              onChange={(value) => handleFilterChange(value, key)}
-              style={{ width: "100%" }}
-              dropdownMatchSelectWidth={false}
-              allowClear
-              placeholder="Search..."
-              filterOption={(input, option) =>
-                option.children.toLowerCase().includes(input.toLowerCase())
-              }>
-              {dropdownOptions[key].map((option) => (
-                <Option key={option} value={option}>
-                  {option}
-                </Option>
-              ))}
-            </Select>
           ) : (
             <Input
               onChange={(e) => handleFilterChange(e.target.value, key)}
@@ -505,12 +508,18 @@ const AdvertiserData = () => {
                     className="bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200">
                     Add Row
                   </Button>
-                  <DatePicker
-                    picker="month"
-                    onChange={(date) => setSelectedMonth(date)}
-                    placeholder="🗓 Filter by Month"
-                    allowClear
-                    className="w-full md:w-48 rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition"
+                  <RangePicker
+                    value={selectedDateRange}
+                    onChange={(dates) => {
+                      if (!dates || dates.length === 0) {
+                        // Reset to current month if cleared
+                        const start = dayjs().startOf("month");
+                        const end = dayjs().endOf("month");
+                        setSelectedDateRange([start, end]);
+                      } else {
+                        setSelectedDateRange(dates);
+                      }
+                    }}
                   />
                 </>
               ) : (

@@ -511,14 +511,15 @@ import {
 import { FilterOutlined } from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
+import isBetween from "dayjs/plugin/isBetween";
 import utc from "dayjs/plugin/utc";
 import "../index.css";
 import geoData from "../Data/geoData.json";
 import { useSelector } from "react-redux";
 import { exportToExcel } from "./exportExcel";
-
+dayjs.extend(isBetween);
 dayjs.extend(utc);
-
+const { RangePicker } = DatePicker;
 const { Option } = Select;
 const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
@@ -542,7 +543,7 @@ const PublisherPayoutData = () => {
   const [advData, setAdvData] = useState([]);
   const [filters, setFilters] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedMonth, setSelectedMonth] = useState(null);
+  const [selectedDateRange, setSelectedDateRange] = useState([]);
   const [uniqueValues, setUniqueValues] = useState({});
   const user = useSelector((state) => state.auth.user);
 
@@ -572,10 +573,17 @@ const PublisherPayoutData = () => {
 
   const filteredData = advData.filter((item) => {
     const sharedDate = dayjs(item.shared_date);
-    const matchesMonth = selectedMonth
-      ? sharedDate.month() === dayjs(selectedMonth).month() &&
-        sharedDate.year() === dayjs(selectedMonth).year()
-      : true;
+    if (
+      selectedDateRange &&
+      selectedDateRange.length === 2 &&
+      selectedDateRange[0] &&
+      selectedDateRange[1]
+    ) {
+      const [start, end] = selectedDateRange;
+      if (!sharedDate.isBetween(start, end, null, "[]")) {
+        return false;
+      }
+    }
 
     const matchesPub = item.pub_name === user?.username;
 
@@ -589,7 +597,7 @@ const PublisherPayoutData = () => {
           String(val).toLowerCase().includes(searchTerm.toLowerCase())
         );
 
-    return matchesMonth && matchesPub && matchesFilters && matchesSearch;
+    return matchesPub && matchesFilters && matchesSearch;
   });
 
   const handleFilterChange = (value, key) => {
@@ -614,8 +622,7 @@ const PublisherPayoutData = () => {
                       className="w-full"
                       placeholder={`Filter ${key}`}
                       value={filters[key]}
-                      onChange={(value) => handleFilterChange(value, key)}
-                    >
+                      onChange={(value) => handleFilterChange(value, key)}>
                       {uniqueValues[key]?.map((val) => (
                         <Option key={val} value={val}>
                           {val}
@@ -626,8 +633,7 @@ const PublisherPayoutData = () => {
                 </Menu>
               }
               trigger={["click"]}
-              placement="bottomRight"
-            >
+              placement="bottomRight">
               <FilterOutlined className="cursor-pointer text-gray-500 hover:text-black ml-2" />
             </Dropdown>
           )}
@@ -646,8 +652,7 @@ const PublisherPayoutData = () => {
           <Button
             type="primary"
             onClick={() => exportToExcel(filteredData, "publisher-data.xlsx")}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
+            className="bg-blue-600 hover:bg-blue-700 text-white">
             📥 Download Excel
           </Button>
 
@@ -658,11 +663,11 @@ const PublisherPayoutData = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-[220px]"
             />
-            <DatePicker
-              picker="month"
-              value={selectedMonth ? dayjs(selectedMonth) : null}
-              onChange={(date) => setSelectedMonth(date ? date.toDate() : null)}
-              className="w-[160px]"
+            <RangePicker
+              onChange={(dates) => setSelectedDateRange(dates)}
+              allowClear
+              placeholder={["Start Date", "End Date"]}
+              className="w-full md:w-48 rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition"
             />
           </div>
         </div>

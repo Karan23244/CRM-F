@@ -471,10 +471,12 @@ import { FilterOutlined, EditOutlined, SaveOutlined } from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
 import "../index.css";
+import isBetween from "dayjs/plugin/isBetween";
 import geoData from "../Data/geoData.json";
 import { useSelector } from "react-redux";
 import { exportToExcel } from "./exportExcel";
-
+dayjs.extend(isBetween);
+const { RangePicker } = DatePicker;
 const { Option } = Select;
 const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
@@ -486,6 +488,11 @@ const PublisherPayoutData = () => {
   const [uniqueValues, setUniqueValues] = useState({});
   const [editingKey, setEditingKey] = useState(null);
   const [editedRow, setEditedRow] = useState({});
+  const [selectedDateRange, setSelectedDateRange] = useState([
+    dayjs().startOf("month"),
+    dayjs().endOf("month"),
+  ]);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [showSubadminData, setShowSubadminData] = useState(false);
   const [visibleData, setVisibleData] = useState([]);
@@ -498,7 +505,14 @@ const PublisherPayoutData = () => {
 
   const user = useSelector((state) => state.auth.user);
   console.log(filteredData);
-
+  const handleDateRangeChange = (dates) => {
+    if (!dates || dates.length === 0) {
+      // Reset to current month
+      setSelectedDateRange([dayjs().startOf("month"), dayjs().endOf("month")]);
+    } else {
+      setSelectedDateRange(dates);
+    }
+  };
   const columnHeadingsAdv = {
     ...(selectedSubAdmins?.length > 0 && { pub_name: "PUBM Name" }),
     username: "Adv AM",
@@ -595,36 +609,46 @@ const PublisherPayoutData = () => {
     }));
   };
 
-useEffect(() => {
-  const currentMonth = dayjs().month();
-  const currentYear = dayjs().year();
+  useEffect(() => {
+    const currentMonth = dayjs().month();
+    const currentYear = dayjs().year();
 
-  const filtered = advData.filter((item) => {
-    const sharedDate = dayjs(item.shared_date); // FIXED LINE
+    const filtered = advData.filter((item) => {
+      const sharedDate = dayjs(item.shared_date); // FIXED LINE
 
-    const matchesMonth =
-      sharedDate?.month() === currentMonth &&
-      sharedDate?.year() === currentYear;
+      const matchesMonth =
+        sharedDate?.month() === currentMonth &&
+        sharedDate?.year() === currentYear;
 
-    const matchesPub = item.pub_name === user?.username;
+      const matchesPub = item.pub_name === user?.username;
 
-    const matchesFilters = Object.keys(filters).every((key) =>
-      filters[key] ? item[key] === filters[key] : true
-    );
+      const matchesFilters = Object.keys(filters).every((key) =>
+        filters[key] ? item[key] === filters[key] : true
+      );
 
-    const matchesSearch = !searchTerm.trim()
-      ? true
-      : Object.values(item).some((val) =>
-          String(val).toLowerCase().includes(searchTerm.toLowerCase())
-        );
+      if (
+        selectedDateRange &&
+        selectedDateRange.length === 2 &&
+        selectedDateRange[0] &&
+        selectedDateRange[1]
+      ) {
+        const [start, end] = selectedDateRange;
+        if (!sharedDate.isBetween(start, end, null, "[]")) {
+          return false;
+        }
+      }
+      const matchesSearch = !searchTerm.trim()
+        ? true
+        : Object.values(item).some((val) =>
+            String(val).toLowerCase().includes(searchTerm.toLowerCase())
+          );
 
-    return matchesMonth && matchesPub && matchesFilters && matchesSearch;
-  });
+      return matchesPub && matchesFilters && matchesSearch;
+    });
 
-  setFilteredData(filtered);
-  generateUniqueValues(filtered);
-}, [filters, advData, searchTerm, user]);
-
+    setFilteredData(filtered);
+    generateUniqueValues(filtered);
+  }, [filters, advData, searchTerm, user]);
 
   const handleEdit = (id) => {
     const row = filteredData.find((row) => row.id === id);
@@ -677,6 +701,8 @@ useEffect(() => {
 
   useEffect(() => {
     const filtered = visibleData.filter((item) => {
+      const sharedDate = dayjs(item.shared_date);
+
       const matchesFilters = Object.keys(filters).every((key) =>
         filters[key] ? item[key] === filters[key] : true
       );
@@ -687,12 +713,25 @@ useEffect(() => {
             String(val).toLowerCase().includes(searchTerm.toLowerCase())
           );
 
-      return matchesFilters && matchesSearch;
+      const matchesDateRange =
+        Array.isArray(selectedDateRange) &&
+        selectedDateRange.length === 2 &&
+        selectedDateRange[0] &&
+        selectedDateRange[1]
+          ? sharedDate.isBetween(
+              selectedDateRange[0],
+              selectedDateRange[1],
+              null,
+              "[]"
+            )
+          : true;
+
+      return matchesFilters && matchesSearch && matchesDateRange;
     });
 
     setFilteredData(filtered);
     generateUniqueValues(filtered);
-  }, [filters, searchTerm, visibleData]);
+  }, [filters, searchTerm, visibleData, selectedDateRange]);
 
   const getColumns = (columnHeadings) => {
     return [
@@ -771,46 +810,50 @@ useEffect(() => {
   return (
     <div className="p-6 bg-gray-50 min-h-screen flex flex-col items-center">
       <div className="w-full bg-white p-6 rounded-xl shadow-lg border border-gray-200">
-        <div className="sticky top-0 z-30 bg-white -mx-6 px-6 pt-4 pb-4 border-b border-gray-200 flex items-center justify-between gap-6">
-          {/* Download Excel Button */}
-          <Button
-            type="primary"
-            onClick={() => exportToExcel(data, "advertiser-data.xlsx")}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg shadow-sm transition-all duration-300 transform hover:scale-105">
-            📥 Download Excel
-          </Button>
+        <div className="sticky top-0 z-30 bg-white -mx-6 px-6 pt-4 pb-4 border-b border-gray-200">
+          <div className="flex flex-wrap md:flex-nowrap items-center justify-between gap-4 md:gap-6">
+            {/* Download Excel Button */}
+            <Button
+              type="primary"
+              onClick={() => exportToExcel(data, "advertiser-data.xlsx")}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-lg shadow-md transition duration-300 transform hover:scale-105">
+              📥 <span>Download Excel</span>
+            </Button>
 
-          {/* Select Subadmins Dropdown */}
-          <Select
-            mode="multiple"
-            allowClear
-            placeholder="Select Subadmins"
-            value={selectedSubAdmins}
-            onChange={setSelectedSubAdmins}
-            onClear={() => setFilters({})} // Reset filters when cleared
-            className="w-1/4 border border-gray-300 rounded-lg py-2 px-3 shadow-sm hover:border-blue-500 focus:ring-2 focus:ring-blue-400">
-            {subAdmins?.map((subAdmin) => (
-              <Option key={subAdmin.label} value={subAdmin.label}>
-                {subAdmin.label}
-              </Option>
-            ))}
-          </Select>
+            {/* Subadmins Dropdown */}
+            {user?.role === "publisher_manager" && (
+              <Select
+                mode="multiple"
+                allowClear
+                placeholder="Select Subadmins"
+                value={selectedSubAdmins}
+                onChange={setSelectedSubAdmins}
+                onClear={() => setFilters({})}
+                className="min-w-[200px] md:min-w-[250px] border border-gray-300 rounded-lg py-2 px-3 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400 transition">
+                {subAdmins?.map((subAdmin) => (
+                  <Option key={subAdmin.label} value={subAdmin.label}>
+                    {subAdmin.label}
+                  </Option>
+                ))}
+              </Select>
+            )}
 
-          {/* Search Input */}
-          <Input
-            placeholder="Search"
-            className="w-1/3 border border-gray-300 rounded-lg py-2 px-3 shadow-sm focus:ring-2 focus:ring-blue-400"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+            {/* Search Input */}
+            <Input
+              placeholder="Search"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full md:w-1/3 border border-gray-300 rounded-lg py-2 px-4 shadow-sm focus:ring-2 focus:ring-blue-400 transition"
+            />
 
-          {/* Date Picker */}
-          <DatePicker
-            className="ml-4 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400"
-            value={dayjs(selectedMonth)}
-            onChange={(date) => setSelectedMonth(date)}
-            picker="month"
-          />
+            {/* Date Picker */}
+            <RangePicker
+              onChange={handleDateRangeChange}
+              allowClear
+              placeholder={["Start Date", "End Date"]}
+              className="w-full md:w-[220px] rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition"
+            />
+          </div>
         </div>
 
         <Table

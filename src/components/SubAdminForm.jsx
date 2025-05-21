@@ -25,8 +25,8 @@ const SubAdminForm = () => {
     setLoading(true);
     try {
       const response = await fetch(`${apiUrl}/get-subadmin`);
-
       const data = await response.json();
+      console.log(data);
       if (response.ok) {
         setSubAdmins(
           data.data.filter((subAdmin) =>
@@ -35,7 +35,7 @@ const SubAdminForm = () => {
               "publisher",
               "advertiser_manager",
               "publisher_manager",
-              "manager"
+              "manager",
             ].includes(subAdmin.role)
           )
         );
@@ -89,7 +89,10 @@ const SubAdminForm = () => {
         start: `${String(start)}`,
         end: `${String(end)}`,
       })),
-      assigned_subadmins: role === "manager" ? assignedSubAdmins : [],
+      assigned_subadmins:
+        role === "publisher_manager" || role === "advertiser_manager"
+          ? assignedSubAdmins
+          : [],
     };
 
     if (selectedSubAdmin) {
@@ -144,11 +147,12 @@ const SubAdminForm = () => {
   };
 
   const handleEdit = (subAdmin) => {
+    console.log(subAdmin);
     setSelectedSubAdmin(subAdmin.id);
     setUsername(subAdmin.username);
     setRole(subAdmin.role);
     setRanges(subAdmin.ranges);
-    setAssignedSubAdmins(subAdmin.assigned_subadmins || []);
+    setAssignedSubAdmins(subAdmin.assigned_subadmins);
   };
   const handleDeleteSubAdmin = async (id) => {
     const confirmed = window.confirm(
@@ -253,21 +257,6 @@ const SubAdminForm = () => {
           </Form.Item>
 
           {role === "advertiser_manager" && (
-            <Form.Item label="Assign Sub-Admins">
-              <Select
-                mode="multiple"
-                value={assignedSubAdmins}
-                onChange={setAssignedSubAdmins}
-                placeholder="Select sub-admins">
-                {subAdminOptions.map((subAdmin) => (
-                  <Option key={subAdmin.id} value={subAdmin.id}>
-                    {subAdmin.username} ({subAdmin.role})
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-          )}
-              {role === "manager" && (
             <Form.Item label="Assign Sub-Admins">
               <Select
                 mode="multiple"

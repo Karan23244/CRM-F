@@ -237,8 +237,19 @@ const AdvertiserCreateForm = () => {
     { title: "Geo", dataIndex: "geo", key: "geo" },
     { title: "Note", dataIndex: "note", key: "note" },
     { title: "Target", dataIndex: "target", key: "target" },
-    { title: "Acc Email", dataIndex: "acc_email", key: "acc_email" },
-    { title: "POC Email", dataIndex: "poc_email", key: "poc_email" },
+    {
+      title: "Acc Email",
+      dataIndex: "acc_email",
+      key: "acc_email",
+      render: (text) => (user?.role === "advertiser" ? "*****" : text),
+    },
+    {
+      title: "POC Email",
+      dataIndex: "poc_email",
+      key: "poc_email",
+      render: (text) => (user?.role === "advertiser" ? "*****" : text),
+    },
+
     { title: "Assign User", dataIndex: "assign_user", key: "assign_user" },
 
     {
