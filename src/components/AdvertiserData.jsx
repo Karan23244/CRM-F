@@ -17,7 +17,7 @@ import {
   CopyOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
-import isBetween from 'dayjs/plugin/isBetween';
+import isBetween from "dayjs/plugin/isBetween";
 import { useSelector } from "react-redux";
 import geoData from "../Data/geoData.json";
 import { exportToExcel } from "./exportExcel";
@@ -372,7 +372,9 @@ const AdvertiserData = () => {
                 value={filters[key]}
                 onChange={(value) => handleFilterChange(value, key)}
                 filterOption={(input, option) =>
-                  option.children.toLowerCase().includes(input.toLowerCase())
+                  String(option?.children || "")
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
                 }>
                 {uniqueValues[key].map((val) => (
                   <Option key={val} value={val}>

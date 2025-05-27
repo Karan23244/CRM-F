@@ -618,11 +618,18 @@ const PublisherPayoutData = () => {
                 <Menu>
                   <div className="p-3 w-48">
                     <Select
+                      showSearch
                       allowClear
                       className="w-full"
                       placeholder={`Filter ${key}`}
                       value={filters[key]}
-                      onChange={(value) => handleFilterChange(value, key)}>
+                      onChange={(value) => handleFilterChange(value, key)}
+                      optionFilterProp="children"
+                      filterOption={(input, option) =>
+                        option?.children
+                          ?.toLowerCase()
+                          .includes(input.toLowerCase())
+                      }>
                       {uniqueValues[key]?.map((val) => (
                         <Option key={val} value={val}>
                           {val}

@@ -341,7 +341,9 @@ const AdvertiserData = () => {
                 value={filters[key]}
                 onChange={(value) => handleFilterChange(value, key)}
                 filterOption={(input, option) =>
-                  option.children.toLowerCase().includes(input.toLowerCase())
+                  String(option?.children || "")
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
                 }>
                 {uniqueValues[key].map((val) => (
                   <Option key={val} value={val}>
@@ -363,6 +365,7 @@ const AdvertiserData = () => {
               placeholder={`Search ${columnHeadings[key] || key}`}
             />
           ),
+
         onFilter: (value, record) => {
           if (!value) return true;
           if (key.toLowerCase().includes("date")) {
