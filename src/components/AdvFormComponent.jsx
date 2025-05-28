@@ -143,6 +143,7 @@ const AdvertiserCreateForm = () => {
 
     fetchSubAdmins();
   }, []);
+  console.log(user?.role);
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -157,11 +158,21 @@ const AdvertiserCreateForm = () => {
       geo: geo,
       note: note || "",
       target: target || "",
-      user_id: userId,
+      user_id: editingAdv
+        ? user?.role === "advertiser_manager"
+          ? editingAdv.user_id // Preserve original user_id on update
+          : userId // Don't send if not needed
+        : userId, // For new creation
       acc_email: acc_email,
       poc_email: poc_email,
-      assign_user: assign_user,
-      assign_id: assign_id,
+      assign_user:
+        editingAdv && user?.role === "advertiser_manager"
+          ? editingAdv.assign_user
+          : assign_user,
+      assign_id:
+        editingAdv && user?.role === "advertiser_manager"
+          ? editingAdv.assign_id
+          : assign_id,
     };
     console.log(newAdv);
     try {
@@ -360,49 +371,52 @@ const AdvertiserCreateForm = () => {
                 rows="3"
               />
             </div>
+            <div>
+              <label className="block text-lg font-medium">Account Email</label>
+              <input
+                type="text"
+                value={acc_email}
+                onChange={(e) => setAcc_email(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-lg"
+              />
+            </div>
+
+            <div>
+              <label className="block text-lg font-medium">Poc Email</label>
+              <input
+                type="text"
+                value={poc_email}
+                onChange={(e) => setPoc_email(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-lg"
+              />
+            </div>
           </>
         )}
-        <div>
-          <label className="block text-lg font-medium">Account Email</label>
-          <input
-            type="text"
-            value={acc_email}
-            onChange={(e) => setAcc_email(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded-lg"
-          />
-        </div>
 
-        <div>
-          <label className="block text-lg font-medium">Poc Email</label>
-          <input
-            type="text"
-            value={poc_email}
-            onChange={(e) => setPoc_email(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded-lg"
-          />
-        </div>
-        <div>
-          <label className="block text-lg font-medium">Assign User</label>
-          <select
-            className="w-full p-2 border border-gray-300 rounded-lg"
-            value={assign_id}
-            onChange={(e) => {
-              const selectedId = e.target.value;
-              const selectedUser = subAdmins.find(
-                (admin) => admin.id.toString() === selectedId
-              );
-              setAssign_id(selectedId);
-              setAssign_user(selectedUser ? selectedUser.username : "");
-            }}
-            required>
-            <option value="">Select Sub Admin</option>
-            {subAdmins.map((admin) => (
-              <option key={admin.id} value={admin.id}>
-                {admin.username}
-              </option>
-            ))}
-          </select>
-        </div>
+        {user?.role !== "advertiser_manager" && (
+          <div>
+            <label className="block text-lg font-medium">Assign User</label>
+            <select
+              className="w-full p-2 border border-gray-300 rounded-lg"
+              value={assign_id}
+              onChange={(e) => {
+                const selectedId = e.target.value;
+                const selectedUser = subAdmins.find(
+                  (admin) => admin.id.toString() === selectedId
+                );
+                setAssign_id(selectedId);
+                setAssign_user(selectedUser ? selectedUser.username : "");
+              }}
+              required>
+              <option value="">Select Sub Admin</option>
+              {subAdmins.map((admin) => (
+                <option key={admin.id} value={admin.id}>
+                  {admin.username}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Submit Button */}
         <button

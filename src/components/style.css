@@ -1,0 +1,941 @@
+      .s1 {
+        color: #001f5f;
+        font-family: Calibri, sans-serif;
+        font-style: normal;
+        font-weight: bold;
+        text-decoration: none;
+        font-size: 10.5pt;
+      }
+
+      .s2 {
+        color: #001f5f;
+        font-family: "Times New Roman", serif;
+        font-style: normal;
+        font-weight: normal;
+        text-decoration: none;
+        font-size: 10.5pt;
+      }
+
+      .s3 {
+        color: black;
+        font-family: Calibri, sans-serif;
+        font-style: normal;
+        font-weight: normal;
+        text-decoration: none;
+        font-size: 6.5pt;
+      }
+
+      .s4 {
+        color: black;
+        font-family: "Times New Roman", serif;
+        font-style: normal;
+        font-weight: normal;
+        text-decoration: none;
+        font-size: 6.5pt;
+      }
+
+      .s5 {
+        color: black;
+        font-family: Calibri, sans-serif;
+        font-style: normal;
+        font-weight: normal;
+        text-decoration: none;
+        font-size: 5.5pt;
+      }
+
+      .s6 {
+        color: black;
+        font-family: "Times New Roman", serif;
+        font-style: normal;
+        font-weight: normal;
+        text-decoration: none;
+        font-size: 5.5pt;
+      }
+
+      .s7 {
+        color: #001f5f;
+        font-family: Calibri, sans-serif;
+        font-style: normal;
+        font-weight: bold;
+        text-decoration: none;
+        font-size: 9.5pt;
+      }
+
+      .s8 {
+        color: #001f5f;
+        font-family: "Times New Roman", serif;
+        font-style: normal;
+        font-weight: normal;
+        text-decoration: none;
+        font-size: 9.5pt;
+      }
+
+      .s9 {
+        color: black;
+        font-family: Calibri, sans-serif;
+        font-style: normal;
+        font-weight: bold;
+        text-decoration: none;
+        font-size: 7.5pt;
+      }
+
+      .s10 {
+        color: black;
+        font-family: "Times New Roman", serif;
+        font-style: normal;
+        font-weight: normal;
+        text-decoration: none;
+        font-size: 7.5pt;
+      }
+
+      .s11 {
+        color: black;
+        font-family: Calibri, sans-serif;
+        font-style: normal;
+        font-weight: normal;
+        text-decoration: none;
+        font-size: 7.5pt;
+      }
+
+      .s12 {
+        color: black;
+        font-family: Calibri, sans-serif;
+        font-style: normal;
+        font-weight: bold;
+        text-decoration: none;
+        font-size: 6.5pt;
+      }
+
+      .s13 {
+        color: black;
+        font-family: Calibri, sans-serif;
+        font-style: normal;
+        font-weight: bold;
+        text-decoration: none;
+        font-size: 5.5pt;
+      }
+
+      .s14 {
+        color: #454645;
+        font-family: Arial, sans-serif;
+        font-style: normal;
+        font-weight: bold;
+        text-decoration: none;
+        font-size: 6.5pt;
+      }
+
+      .s15 {
+        color: black;
+        font-family: Calibri, sans-serif;
+        font-style: italic;
+        font-weight: bold;
+        text-decoration: none;
+        font-size: 5.5pt;
+      }
+
+      li {
+        display: block;
+      }
+
+      #l1 {
+        padding-left: 0pt;
+        counter-reset: c1 1;
+      }
+
+      #l1 > li > *:first-child:before {
+        counter-increment: c1;
+        content: counter(c1, decimal) ". ";
+        color: black;
+        font-style: normal;
+        font-weight: normal;
+        text-decoration: none;
+      }
+
+      #l1 > li:first-child > *:first-child:before {
+        counter-increment: c1 0;
+      }
+
+      li {
+        display: block;
+      }
+
+      #l2 {
+        padding-left: 0pt;
+        counter-reset: d1 3;
+      }
+
+      #l2 > li > *:first-child:before {
+        counter-increment: d1;
+        content: counter(d1, decimal) ". ";
+        color: black;
+        font-family: Calibri, sans-serif;
+        font-style: normal;
+        font-weight: bold;
+        text-decoration: none;
+        font-size: 5.5pt;
+      }
+
+      #l2 > li:first-child > *:first-child:before {
+        counter-increment: d1 0;
+      }
+
+      table,
+      tbody {
+        vertical-align: top;
+        overflow: visible;
+      }
+      .custom-class-385 {
+        border-collapse: collapse;
+        margin-left: 6.26pt;
+      }
+
+      .custom-class-617 {
+        height: 63pt;
+      }
+
+      .custom-class-69 {
+        width: 539pt;
+        border-top-style: solid;
+        border-top-width: 1pt;
+        border-left-style: solid;
+        border-left-width: 1pt;
+        border-bottom-style: solid;
+        border-bottom-width: 1pt;
+        border-right-style: solid;
+        border-right-width: 1pt;
+      }
+
+      .custom-class-961 {
+        padding-top: 1pt;
+        padding-left: 318pt;
+        text-indent: 0pt;
+        text-align: left;
+      }
+
+      .custom-class-970 {
+        padding-top: 5pt;
+        padding-left: 318pt;
+        text-indent: 0pt;
+        text-align: left;
+      }
+
+      .custom-class-445 {
+        text-indent: 0pt;
+        text-align: left;
+      }
+
+      .custom-class-737 {
+        padding-left: 318pt;
+        text-indent: 0pt;
+        text-align: left;
+      }
+
+      .custom-class-300 {
+        height: 13pt;
+      }
+
+      .custom-class-29 {
+        width: 539pt;
+        border-top-style: solid;
+        border-top-width: 1pt;
+        border-left-style: solid;
+        border-left-width: 1pt;
+        border-bottom-style: solid;
+        border-bottom-width: 1pt;
+        border-right-style: solid;
+        border-right-width: 1pt;
+      }
+
+      .custom-class-425 {
+        text-indent: 0pt;
+        line-height: 10pt;
+        text-align: center;
+      }
+
+      .custom-class-76 {
+        height: 46pt;
+      }
+
+      .custom-class-383 {
+        width: 66pt;
+        border-top-style: solid;
+        border-top-width: 1pt;
+        border-left-style: solid;
+        border-left-width: 1pt;
+        border-bottom-style: solid;
+        border-bottom-width: 1pt;
+        border-right-style: solid;
+        border-right-width: 1pt;
+      }
+
+      .custom-class-997 {
+        padding-left: 1pt;
+        text-indent: 0pt;
+        text-align: left;
+      }
+
+      .custom-class-320 {
+        padding-top: 5pt;
+        padding-left: 1pt;
+        text-indent: 0pt;
+        line-height: 10pt;
+        text-align: left;
+      }
+
+      .custom-class-488 {
+        width: 251pt;
+        border-top-style: solid;
+        border-top-width: 1pt;
+        border-left-style: solid;
+        border-left-width: 1pt;
+        border-bottom-style: solid;
+        border-bottom-width: 1pt;
+        border-right-style: solid;
+        border-right-width: 1pt;
+      }
+
+      .custom-class-659 {
+        text-indent: 0pt;
+        text-align: left;
+      }
+
+      .custom-class-453 {
+        padding-left: 1pt;
+        padding-right: 183pt;
+        text-indent: 0pt;
+        text-align: left;
+      }
+
+      .custom-class-891 {
+        padding-top: 6pt;
+        padding-left: 1pt;
+        padding-right: 183pt;
+        text-indent: 0pt;
+        line-height: 10pt;
+        text-align: left;
+      }
+
+      .custom-class-381 {
+        width: 81pt;
+        border-top-style: solid;
+        border-top-width: 1pt;
+        border-left-style: solid;
+        border-left-width: 1pt;
+        border-bottom-style: solid;
+        border-bottom-width: 1pt;
+        border-right-style: solid;
+        border-right-width: 1pt;
+      }
+
+      .custom-class-81 {
+        padding-left: 1pt;
+        padding-right: 7pt;
+        text-indent: 0pt;
+        text-align: left;
+      }
+
+      .custom-class-196 {
+        padding-top: 7pt;
+        padding-left: 1pt;
+        text-indent: 0pt;
+        text-align: left;
+      }
+
+      .custom-class-324 {
+        padding-top: 1pt;
+        padding-left: 1pt;
+        text-indent: 0pt;
+        line-height: 9pt;
+        text-align: left;
+      }
+
+      .custom-class-736 {
+        width: 141pt;
+        border-top-style: solid;
+        border-top-width: 1pt;
+        border-left-style: solid;
+        border-left-width: 1pt;
+        border-bottom-style: solid;
+        border-bottom-width: 1pt;
+        border-right-style: solid;
+        border-right-width: 1pt;
+      }
+
+      .custom-class-309 {
+        padding-left: 3pt;
+        text-indent: 0pt;
+        line-height: 9pt;
+        text-align: left;
+      }
+
+      .custom-class-120 {
+        padding-left: 1pt;
+        text-indent: 0pt;
+        line-height: 9pt;
+        text-align: left;
+      }
+
+      .custom-class-31 {
+        padding-top: 7pt;
+        padding-left: 1pt;
+        text-indent: 0pt;
+        text-align: left;
+      }
+
+      .custom-class-708 {
+        padding-top: 1pt;
+        padding-left: 1pt;
+        text-indent: 0pt;
+        line-height: 8pt;
+        text-align: left;
+      }
+
+      .custom-class-366 {
+        height: 13pt;
+      }
+
+      .custom-class-4 {
+        width: 66pt;
+        border-top-style: solid;
+        border-top-width: 1pt;
+        border-left-style: solid;
+        border-left-width: 1pt;
+        border-bottom-style: solid;
+        border-bottom-width: 1pt;
+        border-right-style: solid;
+        border-right-width: 1pt;
+      }
+
+      .custom-class-873 {
+        text-indent: 0pt;
+        line-height: 10pt;
+        text-align: center;
+      }
+
+      .custom-class-479 {
+        width: 142pt;
+        border-top-style: solid;
+        border-top-width: 1pt;
+        border-left-style: solid;
+        border-left-width: 1pt;
+        border-bottom-style: solid;
+        border-bottom-width: 1pt;
+        border-right-style: solid;
+        border-right-width: 1pt;
+      }
+
+      .custom-class-246 {
+        padding-left: 1pt;
+        text-indent: 0pt;
+        line-height: 10pt;
+        text-align: left;
+      }
+
+      .custom-class-438 {
+        width: 143pt;
+        border-top-style: solid;
+        border-top-width: 1pt;
+        border-left-style: solid;
+        border-left-width: 1pt;
+        border-bottom-style: solid;
+        border-bottom-width: 1pt;
+        border-right-style: solid;
+        border-right-width: 1pt;
+      }
+
+      .custom-class-618 {
+        text-indent: 0pt;
+        line-height: 11pt;
+        text-align: center;
+      }
+
+      .custom-class-162 {
+        width: 47pt;
+        border-top-style: solid;
+        border-top-width: 1pt;
+        border-left-style: solid;
+        border-left-width: 1pt;
+        border-bottom-style: solid;
+        border-bottom-width: 1pt;
+        border-right-style: solid;
+        border-right-width: 1pt;
+      }
+
+      .custom-class-962 {
+        padding-left: 1pt;
+        text-indent: 0pt;
+        line-height: 10pt;
+        text-align: left;
+      }
+
+      .custom-class-540 {
+        width: 50pt;
+        border-top-style: solid;
+        border-top-width: 1pt;
+        border-left-style: solid;
+        border-left-width: 1pt;
+        border-bottom-style: solid;
+        border-bottom-width: 1pt;
+        border-right-style: solid;
+        border-right-width: 1pt;
+      }
+
+      .custom-class-825 {
+        padding-left: 14pt;
+        text-indent: 0pt;
+        line-height: 10pt;
+        text-align: left;
+      }
+
+      .custom-class-240 {
+        width: 91pt;
+        border-top-style: solid;
+        border-top-width: 1pt;
+        border-left-style: solid;
+        border-left-width: 1pt;
+        border-bottom-style: solid;
+        border-bottom-width: 1pt;
+        border-right-style: solid;
+        border-right-width: 1pt;
+      }
+
+      .custom-class-919 {
+        text-indent: 0pt;
+        line-height: 10pt;
+        text-align: center;
+      }
+
+      .custom-class-878 {
+        height: 277pt;
+      }
+
+      .custom-class-570 {
+        width: 66pt;
+        border-top-style: solid;
+        border-top-width: 1pt;
+        border-left-style: solid;
+        border-left-width: 1pt;
+        border-bottom-style: solid;
+        border-bottom-width: 1pt;
+        border-right-style: solid;
+        border-right-width: 1pt;
+      }
+
+      .custom-class-59 {
+        text-indent: 0pt;
+        text-align: left;
+      }
+
+      .custom-class-236 {
+        text-indent: 0pt;
+        text-align: center;
+      }
+
+      .custom-class-558 {
+        width: 142pt;
+        border-top-style: solid;
+        border-top-width: 1pt;
+        border-left-style: solid;
+        border-left-width: 1pt;
+        border-bottom-style: solid;
+        border-bottom-width: 1pt;
+        border-right-style: solid;
+        border-right-width: 1pt;
+      }
+
+      .custom-class-650 {
+        text-indent: 0pt;
+        text-align: left;
+      }
+
+      .custom-class-427 {
+        padding-left: 1pt;
+        text-indent: 0pt;
+        text-align: left;
+      }
+
+      .custom-class-632 {
+        width: 143pt;
+        border-top-style: solid;
+        border-top-width: 1pt;
+        border-left-style: solid;
+        border-left-width: 1pt;
+        border-bottom-style: solid;
+        border-bottom-width: 1pt;
+        border-right-style: solid;
+        border-right-width: 1pt;
+      }
+
+      .custom-class-864 {
+        text-indent: 0pt;
+        text-align: left;
+      }
+
+      .custom-class-974 {
+        text-indent: 0pt;
+        text-align: center;
+      }
+
+      .custom-class-950 {
+        width: 47pt;
+        border-top-style: solid;
+        border-top-width: 1pt;
+        border-left-style: solid;
+        border-left-width: 1pt;
+        border-bottom-style: solid;
+        border-bottom-width: 1pt;
+        border-right-style: solid;
+        border-right-width: 1pt;
+      }
+
+      .custom-class-882 {
+        text-indent: 0pt;
+        text-align: left;
+      }
+
+      .custom-class-232 {
+        width: 50pt;
+        border-top-style: solid;
+        border-top-width: 1pt;
+        border-left-style: solid;
+        border-left-width: 1pt;
+        border-bottom-style: solid;
+        border-bottom-width: 1pt;
+        border-right-style: solid;
+        border-right-width: 1pt;
+      }
+
+      .custom-class-443 {
+        text-indent: 0pt;
+        text-align: left;
+      }
+
+      .custom-class-454 {
+        width: 91pt;
+        border-top-style: solid;
+        border-top-width: 1pt;
+        border-left-style: solid;
+        border-left-width: 1pt;
+        border-bottom-style: solid;
+        border-bottom-width: 1pt;
+        border-right-style: solid;
+        border-right-width: 1pt;
+      }
+
+      .custom-class-722 {
+        text-indent: 0pt;
+        text-align: left;
+      }
+
+      .custom-class-598 {
+        padding-left: 1pt;
+        text-indent: 0pt;
+        text-align: center;
+      }
+
+      .custom-class-392 {
+        height: 9pt;
+      }
+
+      .custom-class-418 {
+        width: 351pt;
+        border-top-style: solid;
+        border-top-width: 1pt;
+        border-left-style: solid;
+        border-left-width: 1pt;
+        border-bottom-style: solid;
+        border-bottom-width: 1pt;
+        border-right-style: solid;
+        border-right-width: 1pt;
+      }
+
+      .custom-class-474 {
+        text-indent: 0pt;
+        line-height: 7pt;
+        text-align: left;
+      }
+
+      .custom-class-935 {
+        width: 97pt;
+        border-top-style: solid;
+        border-top-width: 1pt;
+        border-left-style: solid;
+        border-left-width: 1pt;
+        border-bottom-style: solid;
+        border-bottom-width: 1pt;
+        border-right-style: solid;
+        border-right-width: 1pt;
+      }
+
+      .custom-class-52 {
+        padding-left: 1pt;
+        text-indent: 0pt;
+        line-height: 7pt;
+        text-align: left;
+      }
+
+      .custom-class-958 {
+        width: 91pt;
+        border-top-style: solid;
+        border-top-width: 1pt;
+        border-left-style: solid;
+        border-left-width: 1pt;
+        border-bottom-style: solid;
+        border-bottom-width: 1pt;
+        border-right-style: solid;
+        border-right-width: 1pt;
+      }
+
+      .custom-class-680 {
+        padding-left: 1pt;
+        text-indent: 0pt;
+        line-height: 7pt;
+        text-align: center;
+      }
+
+      .custom-class-18 {
+        height: 10pt;
+      }
+
+      .custom-class-811 {
+        width: 208pt;
+        border-top-style: solid;
+        border-top-width: 1pt;
+        border-left-style: solid;
+        border-left-width: 1pt;
+        border-bottom-style: solid;
+        border-bottom-width: 1pt;
+        border-right-style: solid;
+        border-right-width: 1pt;
+      }
+
+      .custom-class-469 {
+        text-indent: 0pt;
+        line-height: 7pt;
+        text-align: left;
+      }
+
+      .custom-class-674 {
+        width: 143pt;
+        border-top-style: solid;
+        border-top-width: 1pt;
+        border-left-style: solid;
+        border-left-width: 1pt;
+        border-bottom-style: solid;
+        border-bottom-width: 1pt;
+        border-right-style: solid;
+        border-right-width: 1pt;
+      }
+
+      .custom-class-293 {
+        padding-left: 1pt;
+        text-indent: 0pt;
+        line-height: 8pt;
+        text-align: left;
+      }
+
+      .custom-class-276 {
+        width: 97pt;
+        border-top-style: solid;
+        border-top-width: 1pt;
+        border-left-style: solid;
+        border-left-width: 1pt;
+        border-bottom-style: solid;
+        border-bottom-width: 1pt;
+        border-right-style: solid;
+        border-right-width: 1pt;
+      }
+
+      .custom-class-50 {
+        text-indent: 0pt;
+        text-align: left;
+      }
+
+      .custom-class-915 {
+        width: 91pt;
+        border-top-style: solid;
+        border-top-width: 1pt;
+        border-left-style: solid;
+        border-left-width: 1pt;
+        border-bottom-style: solid;
+        border-bottom-width: 1pt;
+        border-right-style: solid;
+        border-right-width: 1pt;
+      }
+
+      .custom-class-945 {
+        text-indent: 0pt;
+        text-align: left;
+      }
+
+      .custom-class-312 {
+        height: 36pt;
+      }
+
+      .custom-class-315 {
+        width: 351pt;
+        border-top-style: solid;
+        border-top-width: 1pt;
+        border-left-style: solid;
+        border-left-width: 1pt;
+        border-bottom-style: solid;
+        border-bottom-width: 1pt;
+        border-bottom-color: #ffffff;
+        border-right-style: solid;
+        border-right-width: 1pt;
+      }
+
+      .custom-class-213 {
+        text-indent: 0pt;
+        line-height: 7pt;
+        text-align: left;
+      }
+
+      .custom-class-662 {
+        padding-top: 1pt;
+        padding-right: 1pt;
+        text-indent: 0pt;
+        line-height: 113%;
+        text-align: left;
+      }
+
+      .custom-class-849 {
+        padding-top: 3pt;
+        padding-left: 7pt;
+        text-indent: -6pt;
+        line-height: 7pt;
+        text-align: left;
+      }
+
+      .custom-class-668 {
+        width: 188pt;
+        border-top-style: solid;
+        border-top-width: 1pt;
+        border-left-style: solid;
+        border-left-width: 1pt;
+        border-bottom-style: solid;
+        border-bottom-width: 1pt;
+        border-right-style: solid;
+        border-right-width: 1pt;
+      }
+
+      .custom-class-393 {
+        text-indent: 0pt;
+        text-align: left;
+      }
+
+      .custom-class-924 {
+        padding-left: 1pt;
+        text-indent: 0pt;
+        text-align: left;
+      }
+
+      .custom-class-821 {
+        padding-top: 2pt;
+        padding-left: 172pt;
+        text-indent: 0pt;
+        text-align: left;
+      }
+
+      .custom-class-836 {
+        height: 27pt;
+      }
+
+      .custom-class-774 {
+        width: 351pt;
+        border-top-style: solid;
+        border-top-width: 1pt;
+        border-top-color: #ffffff;
+        border-left-style: solid;
+        border-left-width: 1pt;
+        border-bottom-style: solid;
+        border-bottom-width: 1pt;
+        border-right-style: solid;
+        border-right-width: 1pt;
+      }
+
+      .custom-class-559 {
+        text-indent: 0pt;
+        text-align: left;
+      }
+
+      .custom-class-288 {
+        padding-right: 241pt;
+        text-indent: 0pt;
+        line-height: 112%;
+        text-align: left;
+      }
+
+      .custom-class-194 {
+        text-indent: 0pt;
+        line-height: 8pt;
+        text-align: left;
+      }
+
+      .custom-class-784 {
+        text-indent: 0pt;
+        line-height: 8pt;
+        text-align: left;
+      }
+
+      .custom-class-401 {
+        padding-right: 7pt;
+        text-indent: 0pt;
+        line-height: 113%;
+        text-align: left;
+      }
+
+      .custom-class-862 {
+        padding-left: 6pt;
+        text-indent: -5pt;
+        text-align: left;
+      }
+
+      .custom-class-572 {
+        height: 56pt;
+      }
+
+      .custom-class-254 {
+        width: 188pt;
+        border-top-style: solid;
+        border-top-width: 1pt;
+        border-left-style: solid;
+        border-left-width: 1pt;
+        border-bottom-style: solid;
+        border-bottom-width: 1pt;
+        border-right-style: solid;
+        border-right-width: 1pt;
+      }
+
+      .custom-class-625 {
+        text-indent: 0pt;
+        text-align: left;
+      }
+
+      .custom-class-356 {
+        padding-left: 1pt;
+        text-indent: 0pt;
+        text-align: center;
+      }
+
+      .custom-class-566 {
+        height: 8pt;
+      }
+
+      .custom-class-291 {
+        width: 539pt;
+        border-top-style: solid;
+        border-top-width: 1pt;
+        border-left-style: solid;
+        border-left-width: 1pt;
+        border-bottom-style: solid;
+        border-bottom-width: 1pt;
+        border-right-style: solid;
+        border-right-width: 1pt;
+      }
+
+      .custom-class-299 {
+        text-indent: 0pt;
+        line-height: 5pt;
+        text-align: center;
+      }

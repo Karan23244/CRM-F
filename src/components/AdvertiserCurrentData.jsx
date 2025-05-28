@@ -23,6 +23,7 @@ import geoData from "../Data/geoData.json";
 import { exportToExcel } from "./exportExcel";
 import { Modal, message as antdMessage } from "antd";
 import MainComponent from "../components/ManagerAllData";
+import Validation from "./Validation";
 dayjs.extend(isBetween);
 const { RangePicker } = DatePicker;
 const { Option } = Select;
@@ -36,6 +37,7 @@ const AdvertiserData = () => {
   const [editedRow, setEditedRow] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
   const [uniqueValues, setUniqueValues] = useState({});
+  const [showValidation, setShowValidation] = useState(false);
   const [selectedDateRange, setSelectedDateRange] = useState([
     dayjs().startOf("month"),
     dayjs().endOf("month"),
@@ -486,7 +488,7 @@ const AdvertiserData = () => {
           <div className="sticky top-0 left-0 right-0 z-20 bg-white p-4 rounded shadow-md flex flex-col md:flex-row md:items-center md:justify-between gap-4 border border-gray-200">
             {/* Buttons Section */}
             <div className="flex flex-wrap items-center gap-4">
-              {!showSubadminData ? (
+              {!showSubadminData && !showValidation ? (
                 <>
                   <Button
                     type="primary"
@@ -496,12 +498,20 @@ const AdvertiserData = () => {
                   </Button>
 
                   {user?.role === "advertiser_manager" && (
-                    <Button
-                      type="primary"
-                      onClick={() => setShowSubadminData(true)}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200">
-                      📊 Assigned Sub-Admin Data
-                    </Button>
+                    <>
+                      <Button
+                        type="primary"
+                        onClick={() => setShowSubadminData(true)}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200">
+                        📊 Assigned Sub-Admin Data
+                      </Button>
+                      <Button
+                        onClick={() => setShowValidation(true)}
+                        type="primary"
+                        className="bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200">
+                        ✅ Start Validation
+                      </Button>
+                    </>
                   )}
 
                   <Button
@@ -509,13 +519,13 @@ const AdvertiserData = () => {
                     icon={<PlusOutlined />}
                     onClick={handleAddRow}
                     className="bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200">
-                    Add Row
+                    ➕ Add Row
                   </Button>
+
                   <RangePicker
                     value={selectedDateRange}
                     onChange={(dates) => {
                       if (!dates || dates.length === 0) {
-                        // Reset to current month if cleared
                         const start = dayjs().startOf("month");
                         const end = dayjs().endOf("month");
                         setSelectedDateRange([start, end]);
@@ -525,11 +535,19 @@ const AdvertiserData = () => {
                     }}
                   />
                 </>
-              ) : (
+              ) : showSubadminData ? (
                 <Button
                   type="primary"
                   onClick={() => setShowSubadminData(false)}
                   className="bg-red-500 hover:bg-red-600 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200">
+                  ← Back to Table
+                </Button>
+              ) : (
+                // Validation View with Back Button
+                <Button
+                  type="primary"
+                  onClick={() => setShowValidation(false)}
+                  className="bg-gray-600 hover:bg-gray-700 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200">
                   ← Back to Table
                 </Button>
               )}
@@ -548,7 +566,11 @@ const AdvertiserData = () => {
 
           {/* Table or Component View */}
           <div className="overflow-auto max-h-[70vh] mt-4">
-            {!showSubadminData ? (
+            {showValidation ? (
+              <div className="w-full">
+                <Validation />
+              </div>
+            ) : !showSubadminData ? (
               <Table
                 columns={columns}
                 dataSource={finalFilteredData}
