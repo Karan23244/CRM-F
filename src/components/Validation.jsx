@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Select, Input, Checkbox, DatePicker, Upload, Button } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import axios from "axios";
@@ -10,13 +10,16 @@ const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 
 function Validation() {
+  const invoiceRef = useRef();
   const [advData, setAdvData] = useState([]);
   const [advAllData, setAllAdvData] = useState([]);
   const [selectedAdv, setSelectedAdv] = useState([]);
   const [toEmails, setToEmails] = useState("");
   const [ccEmails, setCcEmails] = useState("");
   const [bccEmails, setBccEmails] = useState("");
+  const [address, setAddress] = useState("");
   const [subject, setSubject] = useState("");
+  const [pdfUrl, setPdfUrl] = useState(null);
   const [textContent, setTextContent] = useState(`Hi Team,
 
 Greetings from Click Orbits!!
@@ -52,6 +55,10 @@ For any clarification, kindly feel free to get in touch with us.`);
     }
   };
 
+  const amountWithSign = calculatedResult
+    ? `${isINR ? "₹" : "$"}${calculatedResult}`
+    : "";
+
   const handleAdvChange = (selectedValues) => {
     setSelectedAdv(selectedValues);
     const selectedAdvs = advData.filter((item) =>
@@ -69,7 +76,6 @@ For any clarification, kindly feel free to get in touch with us.`);
     setCcEmails(accEmails);
   };
 
-  // Convert plain text into HTML (basic wrapping only)
   useEffect(() => {
     if (textContent.trim()) {
       const html = textContent
@@ -124,8 +130,10 @@ For any clarification, kindly feel free to get in touch with us.`);
       setAttachmentName(info.file.name);
     }
   };
-  const handleSubmit = () => {
-    const formData = {
+
+  const handleSubmit = async () => {
+    const formData = new FormData();
+    const formValues = {
       selectedAdv,
       toEmails,
       ccEmails,
@@ -140,9 +148,50 @@ For any clarification, kindly feel free to get in touch with us.`);
         ? dayjs(selectedMonth).format("YYYY-MM")
         : null,
       calculatedResult,
+      address,
     };
 
-    console.log("Submitted Form Data:", formData);
+    Object.entries(formValues).forEach(([key, val]) => {
+      const valueToAppend = Array.isArray(val)
+        ? JSON.stringify(val)
+        : val ?? "";
+      formData.append(key, valueToAppend);
+    });
+
+    if (attachment) {
+      formData.append("attachment", attachment);
+    }
+
+    try {
+      const { jsPDF } = await import("jspdf");
+      const html2canvas = (await import("html2canvas")).default;
+
+      const invoiceElement = invoiceRef.current;
+      if (!invoiceElement) {
+        console.error("Invoice element not found!");
+        return;
+      }
+
+      const canvas = await html2canvas(invoiceElement, { scale: 2 });
+      const imgData = canvas.toDataURL("image/png");
+
+      const pdf = new jsPDF("p", "mm", "a4");
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      const pdfBlob = pdf.output("blob");
+
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      setPdfUrl(pdfUrl);
+      window.open(pdfUrl);
+
+      formData.append("invoice_pdf", pdfBlob, "invoice.pdf");
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      alert("PDF generation failed.");
+    }
   };
 
   return (
@@ -211,10 +260,13 @@ For any clarification, kindly feel free to get in touch with us.`);
             placeholder="Plain text message"
           />
         </div>
-
-        {/* Hidden HTML preview */}
-        <div className="hidden">
-          <Input.TextArea rows={4} value={htmlContent} readOnly />
+        <div className="col-span-1 md:col-span-2">
+          <label className="block font-medium mb-1">Address</label>
+          <Input
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="Enter address"
+          />
         </div>
 
         <div className="col-span-1 md:col-span-2">
@@ -257,28 +309,27 @@ For any clarification, kindly feel free to get in touch with us.`);
           <DatePicker
             picker="month"
             className="w-full"
-            onChange={(date) => setSelectedMonth(date)}
-            placeholder="Select month"
+            onChange={(value) => setSelectedMonth(value)}
           />
         </div>
 
-        {calculatedResult && (
-          <div className="col-span-1 md:col-span-2 p-4 bg-green-100 text-green-800 rounded text-center mt-2">
-            Total Payout:{" "}
-            <strong>
-              {isINR ? "₹" : "$"}
-              {calculatedResult}
-            </strong>
-          </div>
-        )}
-        <div className="col-span-1 w-full md:col-span-2 text-center mt-6">
-          <Button type="primary" size="large" onClick={handleSubmit}>
-            Submit
+        <div className="col-span-1 md:col-span-2 text-right">
+          <Button type="primary" onClick={handleSubmit}>
+            Generate & Submit PDF
           </Button>
         </div>
       </div>
-      <div className="py-4">
-        <InvoiceComponent />
+
+      {/* 🛠 Hidden component for PDF rendering */}
+      <div className="hidden">
+        <div ref={invoiceRef}>
+          <InvoiceComponent
+            advertisers={selectedAdv}
+            address={address}
+            month={selectedMonth}
+            amount={amountWithSign}
+          />
+        </div>
       </div>
     </div>
   );
