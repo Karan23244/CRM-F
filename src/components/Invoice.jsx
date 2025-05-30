@@ -13,7 +13,7 @@ const getCurrentMonth = () => {
 };
 
 let invoiceCounter = 1000; // In production, use backend or persistent storage
-const InvoiceComponent = ({ selectedAdvertisers, address, amount }) => {
+const InvoiceComponent = ({ selectedAdvertisers = [], address, amount }) => {
   const [invoiceNumber, setInvoiceNumber] = useState("");
 
   useEffect(() => {
@@ -23,6 +23,7 @@ const InvoiceComponent = ({ selectedAdvertisers, address, amount }) => {
   }, []);
 
   const advertiserName = selectedAdvertisers?.join(", ");
+  console.log(advertiserName)
   const currentDate = getCurrentDate();
   const month = getCurrentMonth();
   return (
