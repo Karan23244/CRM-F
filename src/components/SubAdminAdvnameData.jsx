@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Table, Input, Select, Button, Space } from "antd";
 import { useSelector } from "react-redux";
+import Swal from "sweetalert2"; // <-- Import SweetAlert2
 import geoData from "../Data/geoData.json";
 
 const { Option } = Select;
@@ -11,7 +12,6 @@ const apiUrl =
 const AdvnameData = () => {
   const user = useSelector((state) => state.auth.user);
   const userId = user?.id || null;
-    console.log(user);
   const [tableData, setTableData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingAdv, setEditingAdv] = useState(null);
@@ -23,7 +23,7 @@ const AdvnameData = () => {
   const [note, setNote] = useState("");
   const [advUserId, setAdvUserId] = useState(null);
   const [target, setTarget] = useState("");
-  console.log(tableData);
+
   // **Fetch advertiser data**
   useEffect(() => {
     const fetchData = async () => {
@@ -46,19 +46,29 @@ const AdvnameData = () => {
   }, []);
 
   const filteredData = tableData
-  .filter((item) => user?.assigned_subadmins?.includes(item.user_id))
-  .filter((item) =>
-    [item.username, item.adv_name, item.adv_id, item.geo, item.note,item.target].some(
-      (field) =>
+    .filter((item) => user?.assigned_subadmins?.includes(item.user_id))
+    .filter((item) =>
+      [
+        item.username,
+        item.adv_name,
+        item.adv_id,
+        item.geo,
+        item.note,
+        item.target,
+      ].some((field) =>
         field?.toString().toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  );
-    console.log(filteredData);
+      )
+    );
+
   // **Handle Form Submission for Updating**
   const handleUpdate = async (e) => {
     e.preventDefault();
     if (!name || !selectedId || !geo) {
-      alert("Please fill all required fields.");
+      Swal.fire({
+        icon: "warning",
+        title: "Oops...",
+        text: "Please fill all required fields.",
+      });
       return;
     }
 
@@ -70,13 +80,17 @@ const AdvnameData = () => {
       target: target || "",
       user_id: advUserId,
     };
-    console.log(updatedAdv);
     try {
       // **Update existing advertiser**
       const response = await axios.put(`${apiUrl}/update-advid`, updatedAdv);
-      console.log(response);
       if (response.data.success) {
-        alert("Advertiser updated successfully.");
+        Swal.fire({
+          icon: "success",
+          title: "Success",
+          text: "Advertiser updated successfully.",
+          timer: 2000,
+          showConfirmButton: false,
+        });
 
         // Refresh table data after update
         const { data } = await axios.get(`${apiUrl}/get-NameAdv/`);
@@ -88,7 +102,11 @@ const AdvnameData = () => {
       }
     } catch (error) {
       console.error("Error updating advertiser:", error);
-      alert("Error updating advertiser. Please try again.");
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Error updating advertiser. Please try again.",
+      });
     }
   };
 
@@ -112,6 +130,7 @@ const AdvnameData = () => {
     setTarget("");
     setEditingAdv(null);
   };
+
   const handlePause = async (record) => {
     try {
       const response = await axios.post(`${apiUrl}/advid-pause`, {
@@ -120,7 +139,13 @@ const AdvnameData = () => {
       });
 
       if (response.data.success) {
-        alert(`Advertiser ${record.adv_id} has been paused.`);
+        Swal.fire({
+          icon: "success",
+          title: "Paused",
+          text: `Advertiser ${record.adv_id} has been paused.`,
+          timer: 2000,
+          showConfirmButton: false,
+        });
 
         // ✅ Refresh data after pause
         const { data } = await axios.get(`${apiUrl}/get-NameAdv/`);
@@ -128,14 +153,21 @@ const AdvnameData = () => {
           setTableData(data.data);
         }
       } else {
-        alert(`Failed to pause advertiser ${record.pub_id}.`);
+        Swal.fire({
+          icon: "error",
+          title: "Failed",
+          text: `Failed to pause advertiser ${record.pub_id}.`,
+        });
       }
     } catch (error) {
       console.error("Error pausing advertiser:", error);
-      alert("Error occurred while pausing advertiser.");
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Error occurred while pausing advertiser.",
+      });
     }
   };
-
 
   // **Table Columns**
   const columns = [

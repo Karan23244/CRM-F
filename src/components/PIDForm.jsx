@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import axios from "axios";
-import { Table, Button, Input, message } from "antd";
+import { Table, Button, Input } from "antd";
+import Swal from "sweetalert2";
 
 const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
@@ -12,6 +13,7 @@ const PIDForm = () => {
   const [pids, setPids] = useState([]);
   const [editIndex, setEditIndex] = useState(null);
   const [editId, setEditId] = useState(null);
+
   // Function to fetch all PIDs
   const fetchPids = async () => {
     try {
@@ -26,63 +28,61 @@ const PIDForm = () => {
     }
   };
 
-  // Fetch PIDs on component mount
   useEffect(() => {
     fetchPids();
   }, []);
 
-  // Function to handle form submission
   const handleSubmit = async () => {
-    const trimmedPid = pid.trim(); // Trim front and back spaces
-    if (!trimmedPid) return; // Prevent submission of empty or space-only PID
+    const trimmedPid = pid.trim();
+    if (!trimmedPid) return;
+
     try {
       if (editIndex !== null) {
-        // Update existing PID
         const response = await axios.post(`${apiUrl}/update-pid/${editId}`, {
           user_id: user?.id,
           pid: trimmedPid,
         });
 
         if (response.data.success) {
-          alert("PID updated successfully");
-          fetchPids(); // Refresh the PID list
+          Swal.fire("Updated!", "PID updated successfully.", "success");
+          fetchPids();
           setEditIndex(null);
           setEditId(null);
         } else {
-          alert("Failed to update PID");
+          Swal.fire("Error!", "Failed to update PID.", "error");
         }
       } else {
-        // Add new PID
         const response = await axios.post(`${apiUrl}/add-pid`, {
           user_id: user?.id,
           pid: trimmedPid,
         });
+
         if (response.status === 500) {
-          alert("PID already exists! Please use a different PID.");
+          Swal.fire("Warning", "PID already exists!", "warning");
         } else if (response.data.success) {
-          alert("PID added successfully");
-          fetchPids(); // Refresh the PID list
+          Swal.fire("Success!", "PID added successfully.", "success");
+          fetchPids();
         } else {
-          alert("Failed to add PID");
+          Swal.fire("Error!", "Failed to add PID.", "error");
         }
       }
     } catch (error) {
       if (error.response && error.response.status === 500) {
-        alert("PID already exists! Please choose a different PID.");
+        Swal.fire("Warning", "PID already exists!", "warning");
       } else {
         console.error("Error:", error);
-        alert("Something went wrong. Please try again later.");
+        Swal.fire("Error", "Something went wrong. Please try again.", "error");
       }
-      setPid("");
     }
+
+    setPid("");
   };
-  // Function to handle edit button click
+
   const handleEdit = (record) => {
     setPid(record.pid);
     setEditId(record.id);
   };
 
-  // Define table columns
   const columns = [
     {
       title: "#",
@@ -118,14 +118,13 @@ const PIDForm = () => {
         {editIndex !== null ? "Update" : "Submit"}
       </Button>
 
-      {/* Data Table */}
       {pids.length > 0 && (
         <div className="mt-6">
           <h3 className="text-md font-semibold mb-2">PID List</h3>
           <Table
             columns={columns}
             dataSource={pids}
-            rowKey={pids.id}
+            rowKey={(record) => record.id}
             pagination={{ pageSize: 10 }}
           />
         </div>

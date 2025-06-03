@@ -69,7 +69,7 @@ const ManagerHomepage = ({}) => {
         <div className="flex justify-between items-center px-4">
           {sidebarOpen && (
             <h2 className="text-xl font-semibold transition-opacity md:block">
-               Manager Panel
+              Manager Panel
             </h2>
           )}
           <button
@@ -88,25 +88,22 @@ const ManagerHomepage = ({}) => {
                   ? "bg-blue-700"
                   : "hover:bg-blue-600"
               }`}
-              onClick={() => setActiveComponent("advform")}>
+              onClick={() => {
+                setActiveComponent("advform");
+                setSidebarOpen(false);
+              }}>
               Advertiser Form
             </button>
-            {/* <button
-              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
-                activeComponent === "pubform"
-                  ? "bg-blue-700"
-                  : "hover:bg-blue-600"
-              }`}
-              onClick={() => setActiveComponent("pubform")}>
-              Publisher Form
-            </button> */}
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "currentadvdata"
                   ? "bg-blue-700"
                   : "hover:bg-blue-600"
               }`}
-              onClick={() => setActiveComponent("currentadvdata")}>
+              onClick={() => {
+                setActiveComponent("currentadvdata");
+                setSidebarOpen(false);
+              }}>
               Current Advertiser Data
             </button>
             <button
@@ -115,52 +112,12 @@ const ManagerHomepage = ({}) => {
                   ? "bg-blue-700"
                   : "hover:bg-blue-600"
               }`}
-              onClick={() => setActiveComponent("advdata")}>
+              onClick={() => {
+                setActiveComponent("advdata");
+                setSidebarOpen(false);
+              }}>
               Previous Advertiser Data
             </button>
-            {/* <button
-              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
-                activeComponent === "currentpubdata"
-                  ? "bg-blue-700"
-                  : "hover:bg-blue-600"
-              }`}
-              onClick={() => setActiveComponent("currentpubdata")}>
-              Current Publisher Data
-            </button>
-            <button
-              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
-                activeComponent === "pubdata"
-                  ? "bg-blue-700"
-                  : "hover:bg-blue-600"
-              }`}
-              onClick={() => setActiveComponent("pubdata")}>
-              Previous Publisher Data
-            </button> */}
-            {/* <button
-              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
-                activeComponent === "pid" ? "bg-blue-700" : "hover:bg-blue-600"
-              }`}
-              onClick={() => setActiveComponent("pid")}>
-              Add PID
-            </button>
-            <button
-              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
-                activeComponent === "payableevent"
-                  ? "bg-blue-700"
-                  : "hover:bg-blue-600"
-              }`}
-              onClick={() => setActiveComponent("payableevent")}>
-              Add Payable Event
-            </button>
-            <button
-              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
-                activeComponent === "mmptracker"
-                  ? "bg-blue-700"
-                  : "hover:bg-blue-600"
-              }`}
-              onClick={() => setActiveComponent("mmptracker")}>
-              Add MMP tracker
-            </button> */}
             {/* Dropdown Toggle */}
             <div>
               <button
@@ -188,6 +145,7 @@ const ManagerHomepage = ({}) => {
                     onClick={() => {
                       setActiveComponent("pid");
                       setIsOpen(false);
+                      setSidebarOpen(false);
                     }}>
                     Add PID
                   </button>
@@ -200,6 +158,7 @@ const ManagerHomepage = ({}) => {
                     onClick={() => {
                       setActiveComponent("payableevent");
                       setIsOpen(false);
+                      setSidebarOpen(false);
                     }}>
                     Add Payable Event
                   </button>
@@ -212,62 +171,38 @@ const ManagerHomepage = ({}) => {
                     onClick={() => {
                       setActiveComponent("mmptracker");
                       setIsOpen(false);
+                      setSidebarOpen(false);
                     }}>
                     Add MMP tracker
                   </button>
                 </div>
               )}
             </div>
-            {/* <button
-              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
-                activeComponent === "makerequest"
-                  ? "bg-blue-700"
-                  : "hover:bg-blue-600"
-              }`}
-              onClick={() => setActiveComponent("makerequest")}>
-              Make Request
-              {showNotificationDot && (
-                <span className="w-2 h-2 bg-red-500 rounded-full ml-1"></span>
-              )}
-            </button> */}
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "viewRequest"
                   ? "bg-blue-700"
                   : "hover:bg-blue-600"
               }`}
-              onClick={() => setActiveComponent("viewRequest")}>
+              onClick={() => {
+                setActiveComponent("viewRequest");
+                setSidebarOpen(false);
+              }}>
               New Request
               {showNotificationDot && (
                 <span className="w-2 h-2 bg-red-500 rounded-full ml-1"></span>
               )}
             </button>
-
-            {/* <button
-              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
-                activeComponent === "pubnameData"
-                  ? "bg-blue-700"
-                  : "hover:bg-blue-600"
-              }`}
-              onClick={() => setActiveComponent("pubnameData")}>
-              Assigned Sub-Admin Publisher Data
-            </button> */}
-            {/* <button
-              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
-                activeComponent === "advnameData"
-                  ? "bg-blue-700"
-                  : "hover:bg-blue-600"
-              }`}
-              onClick={() => setActiveComponent("advnameData")}>
-              Assigned Sub-Admin Advertiser Data
-            </button> */}
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "changepassword"
                   ? "bg-blue-700"
                   : "hover:bg-blue-600"
               }`}
-              onClick={() => setActiveComponent("changepassword")}>
+              onClick={() => {
+                setActiveComponent("changepassword");
+                setSidebarOpen(false);
+              }}>
               Change Password
             </button>
           </nav>
@@ -283,7 +218,9 @@ const ManagerHomepage = ({}) => {
             onClick={() => setSidebarOpen(!sidebarOpen)}>
             {sidebarOpen ? <FaTimes /> : <FaBars />}
           </button>
-          <h2 className="text-xl font-semibold">Advertiser Manager Dashboard</h2>
+          <h2 className="text-xl font-semibold">
+            Advertiser Manager Dashboard
+          </h2>
           <div className="flex items-center gap-4">
             {/* Bell Icon */}
             <button

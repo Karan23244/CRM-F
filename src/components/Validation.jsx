@@ -6,7 +6,7 @@ import dayjs from "dayjs";
 import InvoiceComponent from "./Invoice";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-
+import ReactDOMServer from "react-dom/server";
 const { Option } = Select;
 const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
@@ -131,33 +131,66 @@ For any clarification, kindly feel free to get in touch with us.`);
       setAttachmentName(info.file.name);
     }
   };
-  const handleSubmit = async () => {
-    const dataToSend = {
-      selectedAdv,
-      toEmails,
-      ccEmails,
-      bccEmails,
-      subject,
-      textContent,
-      htmlContent,
-      attachmentName,
-      isINR,
-      inrValue,
-      selectedMonth: selectedMonth
-        ? dayjs(selectedMonth).format("YYYY-MM")
-        : null,
-      calculatedResult,
-    };
+  // const handleSubmit = async () => {
+  //   const dataToSend = {
+  //     selectedAdv,
+  //     toEmails,
+  //     ccEmails,
+  //     bccEmails,
+  //     subject,
+  //     textContent,
+  //     htmlContent,
+  //     attachmentName,
+  //     isINR,
+  //     inrValue,
+  //     selectedMonth: selectedMonth
+  //       ? dayjs(selectedMonth).format("YYYY-MM")
+  //       : null,
+  //     calculatedResult,
+  //   };
 
+  //   try {
+  //     if (!invoiceRef.current) {
+  //       alert("Invoice preview is not ready.");
+  //       return;
+  //     }
+
+  //     const canvas = await html2canvas(invoiceRef.current);
+  //     const imgData = canvas.toDataURL("image/png");
+
+  //     const pdf = new jsPDF();
+  //     const imgProps = pdf.getImageProperties(imgData);
+  //     const pdfWidth = pdf.internal.pageSize.getWidth();
+  //     const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+  //     pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+  //     const pdfBlob = pdf.output("blob");
+
+  //     const formDataToSend = new FormData();
+  //     formDataToSend.append("invoice", pdfBlob, "invoice.pdf");
+  //     formDataToSend.append("data", JSON.stringify(dataToSend));
+
+  //     // You can use fetch or axios to send this to your backend
+  //     console.log("Form data prepared:", formDataToSend);
+  //     alert("Invoice PDF generated successfully!");
+  //   } catch (error) {
+  //     console.error("Error generating PDF:", error);
+  //     alert("Failed to generate invoice. Please try again.");
+  //   }
+  // };
+
+  const handleSubmit = async () => {
     try {
       if (!invoiceRef.current) {
         alert("Invoice preview is not ready.");
         return;
       }
 
+      // Generate image from invoice DOM
       const canvas = await html2canvas(invoiceRef.current);
       const imgData = canvas.toDataURL("image/png");
 
+      // Create PDF
       const pdf = new jsPDF();
       const imgProps = pdf.getImageProperties(imgData);
       const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -166,16 +199,58 @@ For any clarification, kindly feel free to get in touch with us.`);
       pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
       const pdfBlob = pdf.output("blob");
 
-      const formDataToSend = new FormData();
-      formDataToSend.append("invoice", pdfBlob, "invoice.pdf");
-      formDataToSend.append("data", JSON.stringify(dataToSend));
+      // Optional: Preview PDF
+      const previewUrl = URL.createObjectURL(pdfBlob);
+      window.open(previewUrl);
 
-      // You can use fetch or axios to send this to your backend
-      console.log("Form data prepared:", formDataToSend);
-      alert("Invoice PDF generated successfully!");
+      const fileName = `Invoice-${Date.now()}.pdf`;
+
+      // ✅ Convert JSX/HTML to static string
+      const EmailTemplate = () => (
+        <div>
+          <p>Hi Team,</p>
+          <p>Greetings from Click Orbits!!</p>
+          <p>
+            Kindly find attached the invoice for <strong>MONTH YYYY</strong>.
+          </p>
+          <p>
+            At the outset, we'd like to thank you for your continued support and
+            relationship. It's a privilege for us to work with{" "}
+            <strong>ADV NAME</strong> and a pleasure for us to provide you with
+            the best of our services.
+          </p>
+          <p>
+            For any clarification, kindly feel free to get in touch with us.
+          </p>
+        </div>
+      );
+
+      const htmlContent = ReactDOMServer.renderToStaticMarkup(
+        <EmailTemplate />
+      );
+
+      // ✅ Prepare email payload
+      const emailPayload = {
+        to: toEmails.split(",").map((e) => e.trim()),
+        cc: ccEmails.split(",").map((e) => e.trim()),
+        bcc: bccEmails.split(",").map((e) => e.trim()),
+        subject,
+        text: textContent, // plain text version
+        html: htmlContent, // fixed HTML string
+        attachmentName: fileName,
+      };
+
+      // ✅ FormData to send to backend
+      const formData = new FormData();
+      formData.append("invoice", pdfBlob, fileName);
+      formData.append("emailData", JSON.stringify(emailPayload));
+
+      await axios.post(`${apiUrl}/email`, formData);
+
+      alert("✅ Invoice emailed successfully!");
     } catch (error) {
-      console.error("Error generating PDF:", error);
-      alert("Failed to generate invoice. Please try again.");
+      console.error("❌ Error generating or sending PDF:", error);
+      alert("Failed to generate or send invoice. Please try again.");
     }
   };
 
@@ -319,26 +394,22 @@ For any clarification, kindly feel free to get in touch with us.`);
             ref={invoiceRef}
             style={{ position: "absolute", left: "-9999px", top: "-9999px" }}>
             <InvoiceComponent
-              selectedAdv={selectedAdv}
-              calculatedResult={calculatedResult}
+              selectedAdvertisers={selectedAdv}
+              amount={calculatedResult}
               isINR={isINR}
-              selectedMonth={
-                selectedMonth ? dayjs(selectedMonth).format("MMMM YYYY") : ""
-              }
+              selectedMonth={selectedMonth}
               address={address}
             />
           </div>
 
           {/* Visible Invoice Preview */}
           {showPreview && (
-            <div className="mt-6 border p-6 bg-white shadow-md">
+            <div className="mt-6 p-6">
               <InvoiceComponent
-                selectedAdv={selectedAdv}
-                calculatedResult={calculatedResult}
+                selectedAdvertisers={selectedAdv}
+                amount={calculatedResult}
                 isINR={isINR}
-                selectedMonth={
-                  selectedMonth ? dayjs(selectedMonth).format("MMMM YYYY") : ""
-                }
+                selectedMonth={selectedMonth}
                 address={address}
               />
             </div>

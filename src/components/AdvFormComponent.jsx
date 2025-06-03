@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import Swal from "sweetalert2";
 import { Table, Select, Button, Space } from "antd";
 import { useSelector } from "react-redux";
 import geoData from "../Data/geoData.json";
@@ -69,7 +70,6 @@ const AdvertiserCreateForm = () => {
   const [loadingSubAdmins, setLoadingSubAdmins] = useState(false);
   const [errorSubAdmins, setErrorSubAdmins] = useState(null);
   // **Initialize available IDs from user.ranges**
-  console.log(subAdmins);
   useEffect(() => {
     if (user && user.ranges && user.ranges.length > 0) {
       let allAvailableIds = [];
@@ -123,8 +123,6 @@ const AdvertiserCreateForm = () => {
       try {
         const response = await fetch(`${apiUrl}/get-subadmin`);
         const data = await response.json();
-        console.log(response);
-        console.log(data);
 
         if (response.ok) {
           const filtered = data.data.filter((subAdmin) =>
@@ -143,12 +141,15 @@ const AdvertiserCreateForm = () => {
 
     fetchSubAdmins();
   }, []);
-  console.log(user?.role);
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name || !selectedId || !geo) {
-      alert("Please fill all required fields.");
+      Swal.fire({
+        icon: "warning",
+        title: "Missing Fields",
+        text: "Please fill all required fields.",
+      });
       return;
     }
 
@@ -174,7 +175,6 @@ const AdvertiserCreateForm = () => {
           ? editingAdv.assign_id
           : assign_id,
     };
-    console.log(newAdv);
     try {
       if (editingAdv) {
         // **Update existing advertiser**
@@ -182,9 +182,13 @@ const AdvertiserCreateForm = () => {
           `${apiUrl}/update-advid`, // Correct endpoint
           newAdv
         );
-        console.log(response);
+
         if (response.data.success) {
-          alert("Advertiser updated successfully");
+          Swal.fire({
+            icon: "success",
+            title: "Updated",
+            text: "Advertiser updated successfully!",
+          });
         }
         setEditingAdv(null);
       } else {
@@ -209,8 +213,11 @@ const AdvertiserCreateForm = () => {
       // Reset form
       resetForm();
     } catch (error) {
-      console.log(error);
-      alert("Error creating/updating advertiser:");
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Error creating/updating advertiser.",
+      });
     }
   };
 

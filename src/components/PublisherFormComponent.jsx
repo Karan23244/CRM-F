@@ -4,10 +4,11 @@ import { Table, Spin, Alert, Select, Button, Space } from "antd";
 import { useSelector } from "react-redux";
 import geoData from "../Data/geoData.json";
 import SubAdminPubnameData from "./SubAdminPubnameData";
-
+import Swal from "sweetalert2";
 const { Option } = Select;
 
-const apiUrl = import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
+const apiUrl =
+  import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 
 const PublisherIDDashboard = () => {
   const user = useSelector((state) => state.auth.user);
@@ -19,17 +20,21 @@ const PublisherIDDashboard = () => {
     <div className="p-4">
       <div className="flex space-x-4 mb-4">
         <button
-          className={`px-4 py-2 rounded ${activeTab === "yourData" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
-          onClick={() => setActiveTab("yourData")}
-        >
+          className={`px-4 py-2 rounded ${
+            activeTab === "yourData" ? "bg-blue-600 text-white" : "bg-gray-200"
+          }`}
+          onClick={() => setActiveTab("yourData")}>
           Your Data
         </button>
 
         {showAssignPubTab && (
           <button
-            className={`px-4 py-2 rounded ${activeTab === "assignPub" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
-            onClick={() => setActiveTab("assignPub")}
-          >
+            className={`px-4 py-2 rounded ${
+              activeTab === "assignPub"
+                ? "bg-blue-600 text-white"
+                : "bg-gray-200"
+            }`}
+            onClick={() => setActiveTab("assignPub")}>
             Assign Pub Data
           </button>
         )}
@@ -45,7 +50,6 @@ const PublisherIDDashboard = () => {
 };
 
 export default PublisherIDDashboard;
-
 
 const PublisherCreateForm = () => {
   const user = useSelector((state) => state.auth.user);
@@ -120,7 +124,11 @@ const PublisherCreateForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name || !selectedId || !geo) {
-      setError("Publisher Name, Publisher ID, and Geo are required.");
+      Swal.fire({
+        icon: "error",
+        title: "Validation Error",
+        text: "Publisher Name, Publisher ID, and Geo are required.",
+      });
       return;
     }
 
@@ -128,38 +136,44 @@ const PublisherCreateForm = () => {
       pub_name: name,
       pub_id: selectedId,
       geo: geo,
-      note: note || "", 
+      note: note || "",
       target: target || "",
       user_id: userId,
     };
 
     setLoading(true);
-    console.log(newPub);
     try {
       if (editingPub) {
-        // **Update existing publisher using PUT request**
-        const response = await axios.put(
-          `${apiUrl}/update-pubid`, // Correct endpoint
-          newPub
-        );
-        console.log(response);
+        // Update existing publisher using PUT request
+        const response = await axios.put(`${apiUrl}/update-pubid`, newPub);
         if (response.data.success) {
-          alert("Publisher updated successfully");
+          Swal.fire({
+            icon: "success",
+            title: "Updated!",
+            text: "Publisher updated successfully",
+            timer: 2000,
+            showConfirmButton: false,
+          });
         }
         setEditingPub(null);
       } else {
-        // **Create new publisher**
+        // Create new publisher
         await axios.post(`${apiUrl}/create-pubid`, newPub);
+        Swal.fire({
+          icon: "success",
+          title: "Created!",
+          text: "Publisher created successfully",
+          timer: 2000,
+          showConfirmButton: false,
+        });
       }
 
       // Refresh publishers after submission
       const { data } = await axios.get(`${apiUrl}/pubid-data/${userId}`);
       if (data.success && Array.isArray(data.Publisher)) {
         setPublishers(data.Publisher);
-
         // Extract used IDs
         const usedIds = new Set(data.Publisher.map((pub) => pub.pub_id));
-
         // Update available IDs
         setAvailableIds((prevIds) => prevIds.filter((id) => !usedIds.has(id)));
       }
@@ -169,6 +183,12 @@ const PublisherCreateForm = () => {
     } catch (error) {
       console.error("Error creating/updating publisher:", error);
       setError("Failed to create/update publisher. Please try again.");
+
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: "Failed to create/update publisher. Please try again.",
+      });
     } finally {
       setLoading(false);
     }
@@ -362,4 +382,3 @@ const PublisherCreateForm = () => {
     </div>
   );
 };
-

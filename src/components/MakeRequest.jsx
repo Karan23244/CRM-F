@@ -10,6 +10,7 @@ import {
   message,
   notification,
 } from "antd";
+import Swal from "sweetalert2";
 import axios from "axios";
 import { subscribeToNotifications } from "./Socket";
 import { useSelector } from "react-redux";
@@ -118,11 +119,8 @@ const PublisherRequest = () => {
         pub_id: values.pub_id,
         geo: values.geo, // ✅ Add this line
       };
-
-      console.log(requestData);
       // Sending the form data to the API endpoint
       const response = await axios.post(`${apiUrl}/addPubRequest`, requestData);
-      console.log(response);
       if (response.status === 201) {
         // Update the local state with the new request (optional, depending on your needs)
         const newRequest = {
@@ -134,15 +132,27 @@ const PublisherRequest = () => {
           link: "Pending",
         };
         setRequests([...requests, newRequest]);
-        alert("Request submitted successfully");
+        Swal.fire({
+          icon: "success",
+          title: "Success",
+          text: "Request submitted successfully!",
+        });
       } else {
-        alert("Failed to submit request");
+        Swal.fire({
+          icon: "error",
+          title: "Oops...",
+          text: "Failed to submit request!",
+        });
       }
 
       setIsModalVisible(false);
       form.resetFields();
     } catch (error) {
-      message.error("Failed to submit request");
+      Swal.fire({
+        icon: "error",
+        title: "Submission Error",
+        text: "Failed to submit request",
+      });
       console.error(error);
     }
   };

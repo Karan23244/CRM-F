@@ -4,6 +4,8 @@ import axios from "axios";
 import { subscribeToNotifications } from "./Socket";
 import { notification } from "antd";
 import { useSelector } from "react-redux";
+import Swal from "sweetalert2";
+
 const { Option } = Select;
 
 const apiUrl = import.meta.env.VITE_API_URL || "https://apii.clickorbits.in";
@@ -11,7 +13,6 @@ const apiUrl = import.meta.env.VITE_API_URL || "https://apii.clickorbits.in";
 const NewRequest = () => {
   const user = useSelector((state) => state.auth.user);
   const username = user?.username || null;
-  console.log(username);
   const [requests, setRequests] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [editingRequest, setEditingRequest] = useState(null);
@@ -21,7 +22,6 @@ const NewRequest = () => {
     fetchRequests();
 
     subscribeToNotifications((data) => {
-      console.log(data);
       if (data?.id !== null) {
         fetchRequests();
       }
@@ -60,11 +60,20 @@ const NewRequest = () => {
         id,
         adv_res: status,
       });
-      message.success(`Status updated to "${status}"`);
+      Swal.fire({
+        icon: "success",
+        title: "Updated!",
+        text: `Status updated to "${status}"`,
+      });
+
       fetchRequests(); // Refresh data
     } catch (error) {
       console.error("Failed to update status:", error);
-      message.error("Failed to update status");
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: "Failed to update status",
+      });
     }
   };
 
@@ -96,7 +105,14 @@ const NewRequest = () => {
           defaultValue={record.adv_res}
           style={{ width: 120 }}
           onChange={(value) => handleStatusUpdate(record.id, value)}>
-          {["waiting", "shared", "rejected", "Handshake Pending", "in-use","poor performance",].map((status) => (
+          {[
+            "waiting",
+            "shared",
+            "rejected",
+            "Handshake Pending",
+            "in-use",
+            "poor performance",
+          ].map((status) => (
             <Option key={status} value={status}>
               {status.charAt(0).toUpperCase() + status.slice(1)}
             </Option>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import Swal from "sweetalert2";
 import axios from "axios";
 import { Table, Input, Select, Button, Space } from "antd";
 import { useSelector } from "react-redux";
@@ -23,7 +24,6 @@ const AdvnameData = () => {
   const [note, setNote] = useState("");
   const [advUserId, setAdvUserId] = useState(null);
   const [target, setTarget] = useState("");
-  console.log(tableData);
   // **Fetch advertiser data**
   useEffect(() => {
     const fetchData = async () => {
@@ -47,17 +47,27 @@ const AdvnameData = () => {
 
   // **Filtered data for search**
   const filteredData = tableData.filter((item) =>
-    [item.username, item.adv_name, item.adv_id, item.geo, item.note,item.target].some(
-      (field) =>
-        field?.toString().toLowerCase().includes(searchTerm.toLowerCase())
+    [
+      item.username,
+      item.adv_name,
+      item.adv_id,
+      item.geo,
+      item.note,
+      item.target,
+    ].some((field) =>
+      field?.toString().toLowerCase().includes(searchTerm.toLowerCase())
     )
   );
-  console.log(tableData);
   // **Handle Form Submission for Updating**
   const handleUpdate = async (e) => {
     e.preventDefault();
     if (!name || !selectedId || !geo) {
-      alert("Please fill all required fields.");
+      Swal.fire(
+        "Missing Fields",
+        "Please fill all required fields.",
+        "warning"
+      );
+
       return;
     }
 
@@ -69,13 +79,11 @@ const AdvnameData = () => {
       target: target || "",
       user_id: advUserId,
     };
-    console.log(updatedAdv);
     try {
       // **Update existing advertiser**
       const response = await axios.put(`${apiUrl}/update-advid`, updatedAdv);
-      console.log(response);
       if (response.data.success) {
-        alert("Advertiser updated successfully.");
+        Swal.fire("Success", "Advertiser updated successfully.", "success");
 
         // Refresh table data after update
         const { data } = await axios.get(`${apiUrl}/get-NameAdv/`);
@@ -87,7 +95,11 @@ const AdvnameData = () => {
       }
     } catch (error) {
       console.error("Error updating advertiser:", error);
-      alert("Error updating advertiser. Please try again.");
+      Swal.fire(
+        "Error",
+        "Error updating advertiser. Please try again.",
+        "error"
+      );
     }
   };
 
@@ -119,7 +131,11 @@ const AdvnameData = () => {
       });
 
       if (response.data.success) {
-        alert(`Advertiser ${record.adv_id} has been paused.`);
+        Swal.fire(
+          "Paused",
+          `Advertiser ${record.adv_id} has been paused.`,
+          "success"
+        );
 
         // ✅ Refresh data after pause
         const { data } = await axios.get(`${apiUrl}/get-NameAdv/`);
@@ -127,11 +143,15 @@ const AdvnameData = () => {
           setTableData(data.data);
         }
       } else {
-        alert(`Failed to pause advertiser ${record.pub_id}.`);
+        Swal.fire(
+          "Failed",
+          `Failed to pause advertiser ${record.pub_id}.`,
+          "error"
+        );
       }
     } catch (error) {
       console.error("Error pausing advertiser:", error);
-      alert("Error occurred while pausing advertiser.");
+      Swal.fire("Error", "Error occurred while pausing advertiser.", "error");
     }
   };
   // **Table Columns**

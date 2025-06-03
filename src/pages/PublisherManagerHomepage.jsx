@@ -97,34 +97,22 @@ const ManagerHomepage = ({}) => {
                   ? "bg-blue-700"
                   : "hover:bg-blue-600"
               }`}
-              onClick={() => setActiveComponent("pubform")}>
+              onClick={() => {
+                setActiveComponent("pubform");
+                setSidebarOpen(false);
+              }}>
               Publisher Form
             </button>
-            {/* <button
-              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
-                activeComponent === "currentadvdata"
-                  ? "bg-blue-700"
-                  : "hover:bg-blue-600"
-              }`}
-              onClick={() => setActiveComponent("currentadvdata")}>
-              Current Advertiser Data
-            </button>
-            <button
-              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
-                activeComponent === "advdata"
-                  ? "bg-blue-700"
-                  : "hover:bg-blue-600"
-              }`}
-              onClick={() => setActiveComponent("advdata")}>
-              Previous Advertiser Data
-            </button> */}
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "currentpubdata"
                   ? "bg-blue-700"
                   : "hover:bg-blue-600"
               }`}
-              onClick={() => setActiveComponent("currentpubdata")}>
+              onClick={() => {
+                setActiveComponent("currentpubdata");
+                setSidebarOpen(false);
+              }}>
               Current Publisher Data
             </button>
             <button
@@ -133,66 +121,12 @@ const ManagerHomepage = ({}) => {
                   ? "bg-blue-700"
                   : "hover:bg-blue-600"
               }`}
-              onClick={() => setActiveComponent("pubdata")}>
+              onClick={() => {
+                setActiveComponent("pubdata");
+                setSidebarOpen(false);
+              }}>
               Previous Publisher Data
             </button>
-            {/* Dropdown Toggle */}
-            {/* <div>
-              <button
-                onClick={() => setIsOpen(!isOpen)}
-                className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center justify-between gap-2 ${
-                  ["pid", "payableevent", "mmptracker"].includes(
-                    activeComponent
-                  )
-                    ? "bg-blue-700"
-                    : "hover:bg-blue-600"
-                }`}>
-                Addition (Dropdown)
-                <span>{isOpen ? "▲" : "▼"}</span>
-              </button> */}
-
-              {/* Dropdown Items */}
-              {/* {isOpen && (
-                <div className="space-y-1 mt-1 ml-4">
-                  <button
-                    className={`w-full text-left px-4 py-2 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
-                      activeComponent === "pid"
-                        ? "bg-blue-700 text-white"
-                        : "hover:bg-blue-600 hover:text-white"
-                    }`}
-                    onClick={() => {
-                      setActiveComponent("pid");
-                      setIsOpen(false);
-                    }}>
-                    Add PID
-                  </button>
-                  <button
-                    className={`w-full text-left px-4 py-2 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
-                      activeComponent === "payableevent"
-                        ? "bg-blue-700 text-white"
-                        : "hover:bg-blue-600 hover:text-white"
-                    }`}
-                    onClick={() => {
-                      setActiveComponent("payableevent");
-                      setIsOpen(false);
-                    }}>
-                    Add Payable Event
-                  </button>
-                  <button
-                    className={`w-full text-left px-4 py-2 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
-                      activeComponent === "mmptracker"
-                        ? "bg-blue-700 text-white"
-                        : "hover:bg-blue-600 hover:text-white"
-                    }`}
-                    onClick={() => {
-                      setActiveComponent("mmptracker");
-                      setIsOpen(false);
-                    }}>
-                    Add MMP tracker
-                  </button>
-                </div>
-              )}
-            </div> */}
 
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
@@ -200,7 +134,10 @@ const ManagerHomepage = ({}) => {
                   ? "bg-blue-700"
                   : "hover:bg-blue-600"
               }`}
-              onClick={() => setActiveComponent("makerequest")}>
+              onClick={() => {
+                setActiveComponent("makerequest");
+                setSidebarOpen(false);
+              }}>
               Make Request
               {showNotificationDot && (
                 <span className="w-2 h-2 bg-red-500 rounded-full ml-1"></span>
@@ -244,7 +181,10 @@ const ManagerHomepage = ({}) => {
                   ? "bg-blue-700"
                   : "hover:bg-blue-600"
               }`}
-              onClick={() => setActiveComponent("changepassword")}>
+              onClick={() => {
+                setActiveComponent("changepassword");
+                setSidebarOpen(false);
+              }}>
               Change Password
             </button>
           </nav>

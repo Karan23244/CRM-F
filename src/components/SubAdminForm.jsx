@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Table, Input, Select, Button, Form, message, Spin, Card } from "antd";
 import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
-
+import Swal from "sweetalert2";
 const { Option } = Select;
 const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
@@ -26,7 +26,6 @@ const SubAdminForm = () => {
     try {
       const response = await fetch(`${apiUrl}/get-subadmin`);
       const data = await response.json();
-      console.log(data);
       if (response.ok) {
         setSubAdmins(
           data.data.filter((subAdmin) =>
@@ -77,7 +76,11 @@ const SubAdminForm = () => {
       (!selectedSubAdmin && !password) ||
       ranges.some((range) => !range.start || !range.end)
     ) {
-      alert("Please fill all fields!");
+      Swal.fire({
+        icon: "warning",
+        title: "Oops...",
+        text: "Please fill all fields!",
+      });
       return;
     }
 
@@ -98,7 +101,6 @@ const SubAdminForm = () => {
     if (selectedSubAdmin) {
       payload.id = selectedSubAdmin; // Include ID only for update
     }
-    console.log(payload);
     try {
       const response = await fetch(
         `${apiUrl}/${
@@ -110,29 +112,34 @@ const SubAdminForm = () => {
           body: JSON.stringify(payload),
         }
       );
-      console.log(response);
       const data = await response.json();
-      console.log(data);
       if (response.ok) {
-        alert(
-          `Sub-Admin ${selectedSubAdmin ? "updated" : "created"} successfully!`
-        );
+        Swal.fire({
+          icon: "success",
+          title: "Success!",
+          text: `Sub-Admin ${
+            selectedSubAdmin ? "updated" : "created"
+          } successfully!`,
+        });
         resetForm();
         fetchSubAdmins();
       } else {
-        alert(
-          `Error: ${
+        Swal.fire({
+          icon: "error",
+          title: "Error!",
+          text:
             data.message ||
-            `Failed to ${selectedSubAdmin ? "update" : "create"} sub-admin`
-          }`
-        );
+            `Failed to ${selectedSubAdmin ? "update" : "create"} sub-admin`,
+        });
       }
     } catch (error) {
-      alert(
-        `An error occurred while ${
+      Swal.fire({
+        icon: "error",
+        title: "Error!",
+        text: `An error occurred while ${
           selectedSubAdmin ? "updating" : "creating"
-        } the sub-admin.`
-      );
+        } the sub-admin.`,
+      });
     }
   };
 
@@ -147,7 +154,6 @@ const SubAdminForm = () => {
   };
 
   const handleEdit = (subAdmin) => {
-    console.log(subAdmin);
     setSelectedSubAdmin(subAdmin.id);
     setUsername(subAdmin.username);
     setRole(subAdmin.role);
@@ -155,10 +161,18 @@ const SubAdminForm = () => {
     setAssignedSubAdmins(subAdmin.assigned_subadmins);
   };
   const handleDeleteSubAdmin = async (id) => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this sub-admin?"
-    );
-    if (!confirmed) return;
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "Do you want to delete this sub-admin?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "Cancel",
+    });
+
+    if (!result.isConfirmed) return;
 
     try {
       const response = await fetch(`${apiUrl}/delete-sub-admin`, {
@@ -171,29 +185,24 @@ const SubAdminForm = () => {
         throw new Error("Failed to delete sub-admin");
       }
 
-      const result = await response.json();
-      alert("Sub-admin deleted successfully");
+      await response.json();
+
+      Swal.fire({
+        icon: "success",
+        title: "Deleted!",
+        text: "Sub-admin deleted successfully.",
+      });
+
       fetchSubAdmins(); // Refresh the list
     } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "Error!",
+        text: "Error deleting sub-admin.",
+      });
       console.error("Error deleting sub-admin:", error);
     }
   };
-
-  // Define Table Columns
-  // const columns = [
-  //   { title: "Username", dataIndex: "username", key: "username" },
-  //   { title: "Role", dataIndex: "role", key: "role" },
-  //   {
-  //     title: "Ranges",
-  //     key: "ranges",
-  //     render: (record) =>
-  //       record?.ranges?.map((range, i) => (
-  //         <div key={i}>
-  //           {range.start} - {range.end}
-  //         </div>
-  //       )),
-  //   },
-  // ];
   const columns = [
     { title: "Username", dataIndex: "username", key: "username" },
     { title: "Role", dataIndex: "role", key: "role" },

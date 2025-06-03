@@ -14,6 +14,7 @@ import { FilterOutlined, EditOutlined, SaveOutlined } from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
 import "../index.css";
+import Swal from "sweetalert2";
 import geoData from "../Data/geoData.json";
 import { exportToExcel } from "./exportExcel";
 const { Option } = Select;
@@ -274,11 +275,23 @@ const CampianAllData = () => {
         headers: { "Content-Type": "application/json" },
       });
       setEditingKey(null);
-      alert("Data updated successfully");
+      // Replace alert with SweetAlert2 success
+      Swal.fire({
+        icon: "success",
+        title: "Success",
+        text: "Data updated successfully",
+        timer: 2000,
+        showConfirmButton: false,
+      });
       fetchPubData();
       fetchAdvData();
     } catch (error) {
-      alert("Failed to update data");
+      // Replace alert with SweetAlert2 error
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: "Failed to update data",
+      });
     }
   };
 
@@ -372,7 +385,6 @@ const CampianAllData = () => {
       },
     ];
   };
-  console.log("Filtered Data", filteredData);
   return (
     <div className="p-6 bg-gradient-to-br from-gray-100 to-gray-200 min-h-screen">
       {/* Toggle Section */}

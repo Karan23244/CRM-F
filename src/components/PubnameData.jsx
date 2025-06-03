@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Table, Input, Select, Button, Space } from "antd";
 import geoData from "../Data/geoData.json";
+import Swal from "sweetalert2";
 
 const { Option } = Select;
 const apiUrl =
@@ -20,7 +21,6 @@ const PubnameData = () => {
   const [pubUserId, setPubUserId] = useState(null);
   const [target, setTarget] = useState("");
 
-  console.log(tableData);
   // **Fetch publisher data**
   useEffect(() => {
     const fetchData = async () => {
@@ -59,7 +59,7 @@ const PubnameData = () => {
   const handleUpdate = async (e) => {
     e.preventDefault();
     if (!name || !selectedId || !geo) {
-      alert("Please fill all required fields.");
+      Swal.fire("Error", "Please fill all required fields.", "error");
       return;
     }
 
@@ -76,7 +76,7 @@ const PubnameData = () => {
       // **Update existing publisher**
       const response = await axios.put(`${apiUrl}/update-pubid`, updatedPub);
       if (response.data.success) {
-        alert("Publisher updated successfully.");
+        Swal.fire("Success", "Publisher updated successfully.", "success");
 
         // Refresh table data after update
         const { data } = await axios.get(`${apiUrl}/get-Namepub/`);
@@ -122,7 +122,11 @@ const PubnameData = () => {
       });
 
       if (response.data.success) {
-        alert(`Publisher ${record.pub_id} has been paused.`);
+        Swal.fire(
+          "Paused",
+          `Publisher ${record.pub_id} has been paused.`,
+          "success"
+        );
 
         // ✅ Refresh data after pause
         const { data } = await axios.get(`${apiUrl}/get-Namepub/`);
@@ -130,11 +134,15 @@ const PubnameData = () => {
           setTableData(data.data);
         }
       } else {
-        alert(`Failed to pause publisher ${record.pub_id}.`);
+        Swal.fire(
+          "Failed",
+          `Failed to pause publisher ${record.pub_id}.`,
+          "error"
+        );
       }
     } catch (error) {
       console.error("Error pausing publisher:", error);
-      alert("Error occurred while pausing publisher.");
+      Swal.fire("Error", "Error occurred while pausing publisher.", "error");
     }
   };
 

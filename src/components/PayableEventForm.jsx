@@ -3,6 +3,7 @@ import InputField from "./InputField";
 import axios from "axios";
 import { useSelector } from "react-redux";
 import { Table, Button } from "antd";
+import Swal from "sweetalert2";
 
 const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
@@ -37,52 +38,84 @@ const PayableEventForm = () => {
 
   // Function to handle form submission
   const handleSubmit = async () => {
-    const trimmedEvent = event.trim(); // Trim front and back spaces
-    if (!trimmedEvent) return; // Prevent submission of empty or space-only Event
-    console.log(trimmedEvent);
+    const trimmedEvent = event.trim();
+    if (!trimmedEvent) return;
+
     try {
-      if (editIndex !== null) {
+      if (editId !== null) {
         const response = await axios.post(`${apiUrl}/update-event/${editId}`, {
           user_id: user?.id,
           payble_event: trimmedEvent,
         });
+
         if (response.data.success === true) {
+          Swal.fire({
+            icon: "success",
+            title: "Updated!",
+            text: "Payable Event updated successfully",
+            timer: 2000,
+            showConfirmButton: false,
+          });
           const updatedEvents = [...events];
           updatedEvents[editIndex] = response.data;
           setEvents(updatedEvents);
-          setEditIndex(null);
           fetchEvents();
+          setEditIndex(null);
           setEditId(null);
         } else {
-          alert("Failed to update Payable Event");
+          Swal.fire({
+            icon: "error",
+            title: "Update Failed",
+            text: "Failed to update Payable Event",
+          });
         }
       } else {
         const response = await axios.post(`${apiUrl}/add-paybleevernt`, {
           user_id: user?.id,
           payble_event: trimmedEvent,
         });
+
         if (response.status === 500) {
-          alert(
-            "Payable Event is already exists! Please use a different Payable Event."
-          );
+          Swal.fire({
+            icon: "warning",
+            title: "Duplicate Event",
+            text: "Payable Event already exists! Please use a different one.",
+          });
         } else if (response.data.success) {
-          alert("Payable Event added successfully");
+          Swal.fire({
+            icon: "success",
+            title: "Added!",
+            text: "Payable Event added successfully",
+            timer: 2000,
+            showConfirmButton: false,
+          });
           setEvents([...events, response.data]);
           fetchEvents();
         } else {
-          alert("Failed to add Payable Event");
+          Swal.fire({
+            icon: "error",
+            title: "Add Failed",
+            text: "Failed to add Payable Event",
+          });
         }
       }
     } catch (error) {
       if (error.response && error.response.status === 500) {
-        alert(
-          "Payable Event already exists! Please choose a different Payable Event."
-        );
+        Swal.fire({
+          icon: "warning",
+          title: "Duplicate Event",
+          text: "Payable Event already exists! Please choose a different one.",
+        });
       } else {
         console.error("Error:", error);
-        alert("Something went wrong. Please try again later.");
+        Swal.fire({
+          icon: "error",
+          title: "Server Error",
+          text: "Something went wrong. Please try again later.",
+        });
       }
     }
+
     setEvent("");
   };
 

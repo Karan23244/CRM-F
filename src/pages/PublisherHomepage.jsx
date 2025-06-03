@@ -74,7 +74,10 @@ const PublisherHomepage = ({}) => {
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "form" ? "bg-blue-700" : "hover:bg-blue-600"
               }`}
-              onClick={() => setActiveComponent("form")}>
+              onClick={() => {
+                setActiveComponent("form");
+                setSidebarOpen(false);
+              }}>
               Publisher from/data
             </button>
             <button
@@ -83,14 +86,20 @@ const PublisherHomepage = ({}) => {
                   ? "bg-blue-700"
                   : "hover:bg-blue-600"
               }`}
-              onClick={() => setActiveComponent("currentpubdata")}>
+              onClick={() => {
+                setActiveComponent("currentpubdata");
+                setSidebarOpen(false);
+              }}>
               Current Pub Campaign data
             </button>
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "data" ? "bg-blue-700" : "hover:bg-blue-600"
               }`}
-              onClick={() => setActiveComponent("data")}>
+              onClick={() => {
+                setActiveComponent("data");
+                setSidebarOpen(false);
+              }}>
               Previous Pub Campaign data
             </button>
             <button
@@ -99,7 +108,10 @@ const PublisherHomepage = ({}) => {
                   ? "bg-blue-700"
                   : "hover:bg-blue-600"
               }`}
-              onClick={() => setActiveComponent("makerequest")}>
+              onClick={() => {
+                setActiveComponent("makerequest");
+                setSidebarOpen(false);
+              }}>
               Make Request
               {showNotificationDot && (
                 <span className="w-2 h-2 bg-red-500 rounded-full ml-1"></span>
@@ -111,7 +123,10 @@ const PublisherHomepage = ({}) => {
                   ? "bg-blue-700"
                   : "hover:bg-blue-600"
               }`}
-              onClick={() => setActiveComponent("changepassword")}>
+              onClick={() => {
+                setActiveComponent("changepassword");
+                setSidebarOpen(false);
+              }}>
               Change Password
             </button>
           </nav>

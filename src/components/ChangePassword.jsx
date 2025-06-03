@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useSelector } from "react-redux";
 
-const apiUrl = import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
+const apiUrl =
+  import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 
 const ChangePassword = () => {
   const user = useSelector((state) => state.auth.user);
-  
+
   // State to store password fields and response messages
   const [formData, setFormData] = useState({
     currentPassword: "",
@@ -25,7 +26,11 @@ const ChangePassword = () => {
     e.preventDefault();
 
     if (formData.newPassword !== formData.confirmNewPassword) {
-      setMessage({ type: "error", text: "New passwords do not match!" });
+      Swal.fire({
+        icon: "error",
+        title: "Mismatch",
+        text: "New passwords do not match!",
+      });
       return;
     }
 
@@ -39,15 +44,31 @@ const ChangePassword = () => {
         body: JSON.stringify(formData),
       });
       const data = await response.json();
-      
+
       if (response.ok) {
-        setMessage({ type: "success", text: "Password changed successfully!" });
-        setFormData({ currentPassword: "", newPassword: "", confirmNewPassword: "" }); // Clear form after success
+        Swal.fire({
+          icon: "success",
+          title: "Success",
+          text: "Password changed successfully!",
+        });
+        setFormData({
+          currentPassword: "",
+          newPassword: "",
+          confirmNewPassword: "",
+        });
       } else {
-        setMessage({ type: "error", text: data.message || "Failed to change password." });
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: data.message || "Failed to change password.",
+        });
       }
     } catch (error) {
-      setMessage({ type: "error", text: "Something went wrong. Try again!" });
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Something went wrong. Try again!",
+      });
     }
     setLoading(false);
   };
@@ -55,12 +76,9 @@ const ChangePassword = () => {
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-100 px-4">
       <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-        <h2 className="text-2xl font-semibold text-center mb-4">Change Password</h2>
-        {message && (
-          <p className={`text-sm p-2 rounded mb-3 text-center ${message.type === "success" ? "text-green-600 bg-green-100" : "text-red-600 bg-red-100"}`}>
-            {message.text}
-          </p>
-        )}
+        <h2 className="text-2xl font-semibold text-center mb-4">
+          Change Password
+        </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-gray-700">Current Password</label>
@@ -101,8 +119,7 @@ const ChangePassword = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition duration-300 disabled:opacity-50"
-          >
+            className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition duration-300 disabled:opacity-50">
             {loading ? "Changing..." : "Change Password"}
           </button>
         </form>

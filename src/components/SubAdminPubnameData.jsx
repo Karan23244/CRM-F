@@ -3,6 +3,7 @@ import axios from "axios";
 import { Table, Input, Select, Button, Space } from "antd";
 import geoData from "../Data/geoData.json";
 import { useSelector } from "react-redux";
+import Swal from "sweetalert2";
 
 const { Option } = Select;
 const apiUrl =
@@ -22,7 +23,7 @@ const SubAdminPubnameData = () => {
   const [pubUserId, setPubUserId] = useState(null);
   const [target, setTarget] = useState("");
 
-  // **Fetch publisher data**
+  // Fetch publisher data
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -42,7 +43,7 @@ const SubAdminPubnameData = () => {
     fetchData();
   }, []);
 
-  // **Filtered data for search**
+  // Filtered data for search
   const filteredData = tableData
     .filter((item) => user?.assigned_subadmins?.includes(item.user_id))
     .filter((item) =>
@@ -58,12 +59,15 @@ const SubAdminPubnameData = () => {
       )
     );
 
-  // **Handle Form Submission for Updating**
+  // Handle Form Submission for Updating
   const handleUpdate = async (e) => {
     e.preventDefault();
     if (!name || !selectedId || !geo) {
-      alert("Please fill all required fields.");
-      return;
+      return Swal.fire({
+        icon: "warning",
+        title: "Oops...",
+        text: "Please fill all required fields.",
+      });
     }
 
     const updatedPub = {
@@ -76,10 +80,15 @@ const SubAdminPubnameData = () => {
     };
 
     try {
-      // **Update existing publisher**
       const response = await axios.put(`${apiUrl}/update-pubid`, updatedPub);
       if (response.data.success) {
-        alert("Publisher updated successfully.");
+        await Swal.fire({
+          icon: "success",
+          title: "Success",
+          text: "Publisher updated successfully.",
+          timer: 2000,
+          showConfirmButton: false,
+        });
 
         // Refresh table data after update
         const { data } = await axios.get(`${apiUrl}/get-Namepub/`);
@@ -91,11 +100,15 @@ const SubAdminPubnameData = () => {
       }
     } catch (error) {
       console.error("Error updating publisher:", error);
-      alert("Error updating publisher. Please try again.");
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Error updating publisher. Please try again.",
+      });
     }
   };
 
-  // **Handle Edit Button**
+  // Handle Edit Button
   const handleEdit = (record) => {
     setEditingPub(record);
     setName(record.pub_name);
@@ -106,7 +119,7 @@ const SubAdminPubnameData = () => {
     setPubUserId(record.user_id); // Set original creator's user_id for updating
   };
 
-  // **Reset Form**
+  // Reset Form
   const resetForm = () => {
     setName("");
     setSelectedId("");
@@ -117,7 +130,7 @@ const SubAdminPubnameData = () => {
     setEditingPub(null);
   };
 
-  // **Table Columns**
+  // Table Columns
   const columns = [
     { title: "UserName", dataIndex: "username", key: "username" },
     { title: "Publisher Name", dataIndex: "pub_name", key: "pub_name" },

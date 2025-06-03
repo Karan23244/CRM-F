@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { setUser } from "../redux/authSlice";
 import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
 
 const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
@@ -9,35 +10,50 @@ const apiUrl =
 const LoginForm = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
+const handleLogin = async (e) => {
+  e.preventDefault();
+  setLoading(true);
 
-    if (!username || !password) {
-      setError("Both fields are required.");
-      setLoading(false);
-      return;
-    }
+  // Trim username and password to remove leading/trailing spaces
+  const trimmedUsername = username.trim();
+  const trimmedPassword = password.trim();
 
-    try {
-      const response = await fetch(`${apiUrl}/login-subadmin`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
+  if (!trimmedUsername || !trimmedPassword) {
+    setLoading(false);
+    Swal.fire({
+      icon: "error",
+      title: "Oops...",
+      text: "Both username and password are required.",
+    });
+    return;
+  }
 
-      const data = await response.json();
-      console.log("Login Response:", data);
-      if (!response.ok) throw new Error(data.message || "Login failed");
+  try {
+    const response = await fetch(`${apiUrl}/login-subadmin`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: trimmedUsername, password: trimmedPassword }),
+    });
 
-      dispatch(setUser(data.subAdmin)); // Store user in Redux & localStorage
+    const data = await response.json();
 
+    if (!response.ok) throw new Error(data.message || "Login failed");
+
+    dispatch(setUser(data.subAdmin)); // Store user in Redux & localStorage
+
+    Swal.fire({
+      icon: "success",
+      title: "Logged in!",
+      text: `Welcome back, ${data.subAdmin.username || "User"}!`,
+      timer: 1500,
+      showConfirmButton: false,
+    });
+
+    setTimeout(() => {
       switch (data.subAdmin.role) {
         case "admin":
           navigate("/admin-home");
@@ -60,12 +76,18 @@ const LoginForm = () => {
         default:
           navigate("/");
       }
-    } catch (error) {
-      setError(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    }, 1500);
+  } catch (error) {
+    Swal.fire({
+      icon: "error",
+      title: "Login failed",
+      text: error.message,
+    });
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -74,10 +96,6 @@ const LoginForm = () => {
           Login
         </h2>
 
-        {error && (
-          <p className="text-red-500 text-sm text-center mt-2">{error}</p>
-        )}
-
         <form onSubmit={handleLogin} className="mt-4">
           <div className="mb-4">
             <label className="block text-gray-600 text-sm font-medium mb-1">
@@ -85,29 +103,31 @@ const LoginForm = () => {
             </label>
             <input
               type="text"
-              className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
+              className="block w-full px-2 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
               placeholder="Enter your username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username"
             />
           </div>
 
-          <div className="mb-4">
+          <div className="mb-6">
             <label className="block text-gray-600 text-sm font-medium mb-1">
               Password
             </label>
             <input
               type="password"
-              className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
+              className="block w-full px-2 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
               placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
             />
           </div>
 
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition"
+            className="block w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition"
             disabled={loading}>
             {loading ? "Logging in..." : "Login"}
           </button>

@@ -60,7 +60,10 @@ const AdminHomepage = () => {
                   ? "bg-blue-700"
                   : "hover:bg-blue-600"
               }`}
-              onClick={() => setActiveComponent("subadmin")}>
+              onClick={() => {
+                setActiveComponent("subadmin");
+                setSidebarOpen(false);
+              }}>
               Sub Admin Form
             </button>
             <button
@@ -69,7 +72,10 @@ const AdminHomepage = () => {
                   ? "bg-blue-700"
                   : "hover:bg-blue-600"
               }`}
-              onClick={() => setActiveComponent("review")}>
+              onClick={() => {
+                setActiveComponent("review");
+                setSidebarOpen(false);
+              }}>
               Review
             </button>
             <button
@@ -78,16 +84,22 @@ const AdminHomepage = () => {
                   ? "bg-blue-700"
                   : "hover:bg-blue-600"
               }`}
-              onClick={() => setActiveComponent("allcurrentdata")}>
+              onClick={() => {
+                setActiveComponent("allcurrentdata");
+                setSidebarOpen(false);
+              }}>
               Campaign Current Data
             </button>
-              <button
+            <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "alldata"
                   ? "bg-blue-700"
                   : "hover:bg-blue-600"
               }`}
-              onClick={() => setActiveComponent("alldata")}>
+              onClick={() => {
+                setActiveComponent("alldata");
+                setSidebarOpen(false);
+              }}>
               Campaign All Data
             </button>
             <button
@@ -96,7 +108,10 @@ const AdminHomepage = () => {
                   ? "bg-blue-700"
                   : "hover:bg-blue-600"
               }`}
-              onClick={() => setActiveComponent("advertiserdata")}>
+              onClick={() => {
+                setActiveComponent("advertiserdata");
+                setSidebarOpen(false);
+              }}>
               Advertiser Data
             </button>
             <button
@@ -105,7 +120,10 @@ const AdminHomepage = () => {
                   ? "bg-blue-700"
                   : "hover:bg-blue-600"
               }`}
-              onClick={() => setActiveComponent("publisherdata")}>
+              onClick={() => {
+                setActiveComponent("publisherdata");
+                setSidebarOpen(false);
+              }}>
               Publisher Data
             </button>
             <button
@@ -114,7 +132,10 @@ const AdminHomepage = () => {
                   ? "bg-blue-700"
                   : "hover:bg-blue-600"
               }`}
-              onClick={() => setActiveComponent("changepassword")}>
+              onClick={() => {
+                setActiveComponent("changepassword");
+                setSidebarOpen(false);
+              }}>
               Change Password
             </button>
           </nav>
@@ -151,7 +172,7 @@ const AdminHomepage = () => {
               <CampianData />
             </div>
           )}
-             {activeComponent === "alldata" && (
+          {activeComponent === "alldata" && (
             <div>
               <CampianAllData />
             </div>

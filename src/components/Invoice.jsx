@@ -11,9 +11,18 @@ const getCurrentMonth = () => {
   const date = new Date();
   return date.toLocaleString("default", { month: "long", year: "numeric" });
 };
-
+// Utility to format selected month and year
+const formatSelectedMonth = (dateObj) => {
+  if (!dateObj) return "";
+  return dateObj.toLocaleString("default", { month: "long", year: "numeric" });
+};
 let invoiceCounter = 1000; // In production, use backend or persistent storage
-const InvoiceComponent = ({ selectedAdvertisers = [], address, amount }) => {
+const InvoiceComponent = ({
+  selectedAdvertisers = [],
+  address,
+  amount,
+  selectedMonth,
+}) => {
   const [invoiceNumber, setInvoiceNumber] = useState("");
 
   useEffect(() => {
@@ -23,9 +32,15 @@ const InvoiceComponent = ({ selectedAdvertisers = [], address, amount }) => {
   }, []);
 
   const advertiserName = selectedAdvertisers?.join(", ");
-  console.log(advertiserName)
   const currentDate = getCurrentDate();
-  const month = getCurrentMonth();
+  const selectedDate = selectedMonth?.$d
+    ? new Date(selectedMonth.$d)
+    : new Date();
+  const month = selectedDate.toLocaleString("default", {
+    month: "long",
+    year: "numeric",
+  });
+
   return (
     <>
       <div>
@@ -33,26 +48,39 @@ const InvoiceComponent = ({ selectedAdvertisers = [], address, amount }) => {
           <tbody>
             <tr className="custom-class-617">
               <td colSpan={6} className="custom-class-69">
-                <p className="s1 custom-class-961">
-                  CLICK<span className="s2"> </span>ORBITS
-                  <span className="s2"> </span>PTE<span className="s2"> </span>
-                  LTD
-                </p>
-                <p className="s3 custom-class-970">
-                  10<span className="s4"> </span>ANSON
-                  <span className="s4"> </span>ROAD,
-                  <span className="s4"> </span>#33-10,
-                  <span className="s4"> </span>INTERNATIONAL
-                  <span className="s4"> </span>PLAZA,
-                  <span className="s4"></span>SINGAPORE
-                  <span className="s4"> </span>(079903)
-                </p>
-                <p className="custom-class-445">
-                  <br />
-                </p>
-                <p className="s5 custom-class-737">
-                  UEN:<span className="s6"> </span>202415100W
-                </p>
+                <div className="flex items-center gap-4">
+                  {/* Logo Image */}
+                  <img
+                    src="/AdsprosperLogo.png"
+                    alt="Company Logo"
+                    className="w-16 h-16 object-contain"
+                  />
+
+                  {/* Company Info */}
+                  <div>
+                    <p className="s1 custom-class-961">
+                      CLICK<span className="s2"> </span>ORBITS
+                      <span className="s2"> </span>PTE
+                      <span className="s2"> </span>
+                      LTD
+                    </p>
+                    <p className="s3 custom-class-970">
+                      10<span className="s4"> </span>ANSON
+                      <span className="s4"> </span>ROAD,
+                      <span className="s4"> </span>#33-10,
+                      <span className="s4"> </span>INTERNATIONAL
+                      <span className="s4"> </span>PLAZA,
+                      <span className="s4"></span>SINGAPORE
+                      <span className="s4"> </span>(079903)
+                    </p>
+                    <p className="custom-class-445">
+                      <br />
+                    </p>
+                    <p className="s5 custom-class-737">
+                      UEN:<span className="s6"> </span>202415100W
+                    </p>
+                  </div>
+                </div>
               </td>
             </tr>
             <tr className="custom-class-300">
@@ -270,99 +298,73 @@ const InvoiceComponent = ({ selectedAdvertisers = [], address, amount }) => {
             </tr>
             <tr className="custom-class-836">
               <td colSpan={3} rowSpan={2} className="custom-class-774">
-                <p className="s14 custom-class-559">USD Account Details</p>
-                <p className="s4 custom-class-288">
-                  <span className="s12">Account</span>{" "}
-                  <span className="s12">holder</span>
-                  <span className="s3">:</span>{" "}
-                  <span className="s3">Click</span>
-                  <span className="s3">Orbits</span>{" "}
-                  <span className="s3">Pte.</span>
-                  <span className="s3">Ltd.</span>{" "}
-                  <span className="s12">Routing</span>
-                  <span className="s12">number</span>
-                  <span className="s3">:</span>
-                  <span className="s3">026073150</span>
-                  <span className="s12">Swift/BIC</span>
-                  <span className="s3">:</span>
-                  <span className="s3">CMFGUS33</span>
-                </p>
-                <p className="s12 custom-class-194">
-                  Account<span className="s4"> </span>number
-                  <span className="s3">:</span>
-                  <span className="s4"> </span>
-                  <span className="s3">8314363233</span>
-                </p>
-                <p className="s4 custom-class-784">
-                  <span className="s12">Wise's</span>{" "}
-                  <span className="s12">address</span>
-                  <span className="s3">:</span> <span className="s3">30</span>
-                  <span className="s3">W.</span>{" "}
-                  <span className="s3">26th</span>
-                  <span className="s3">Street,</span>{" "}
-                  <span className="s3">Sixth</span>
-                  <span className="s3">Floor</span>{" "}
-                  <span className="s3">New</span>
-                  <span className="s3">York</span>{" "}
-                  <span className="s3">NY</span>
-                  <span className="s3">10010</span>{" "}
-                  <span className="s3">United</span>
-                </p>
-                <ol id="l2">
-                  <li data-list-text={3}>
-                    <p className="s5 custom-class-401">
-                      The<span className="s6"> </span>Invoice
-                      <span className="s6"> </span>is
-                      <span className="s6"> </span>considered
-                      <span className="s6"> </span>accepted
-                      <span className="s6"> </span>if
-                      <span className="s6"> </span>no
-                      <span className="s6"> </span>discrepancy
-                      <span className="s6"></span>is
-                      <span className="s6"> </span>reported
-                      <span className="s6"> </span>within
-                      <span className="s6"> </span>5
-                      <span className="s6"> </span>business
-                      <span className="s6"> </span>days
-                      <span className="s6"> </span>of
-                      <span className="s6"> </span>receipt
-                      <span className="s6"> </span>of
-                      <span className="s6"> </span>the
-                      <span className="s6"> </span>Invoice
-                      <span className="s6"> </span>and
-                      <span className="s6"> </span>payment
-                      <span className="s6"> </span>is
-                      <span className="s6"> </span>to
-                      <span className="s6"> </span>be
-                      <span className="s6"> </span>made
-                      <span className="s6"> </span>in
-                      <span className="s6"> </span>full
+                <div className="flex justify-between gap-8">
+                  {/* USD Account Details (Left) */}
+                  <div className="w-1/2">
+                    <p className="s14 custom-class-559">USD Account Details</p>
+                    <p className="s4 custom-class-194">
+                      <span className="s12">Account holder</span>
+                      <span className="s3">: Click Orbits Pte. Ltd.</span>
+                      <span className="s12"> Routing number</span>
+                      <span className="s3">: 026073150</span>
+                      <span className="s12"> <br/>Swift/BIC</span>
+                      <span className="s3">: CMFGUS33</span>
                     </p>
-                  </li>
-                  <li data-list-text={4}>
-                    <p className="s5 custom-class-862">
-                      In<span className="s6"> </span>case
-                      <span className="s6"> </span>of
-                      <span className="s6"> </span>any
-                      <span className="s6"> </span>discrepancy
-                      <span className="s6"> </span>or
-                      <span className="s6"></span>questions
-                      <span className="s6"> </span>regarding
-                      <span className="s6"></span>this
-                      <span className="s6"> </span>invoice,
-                      <span className="s6"> </span>please
-                      <span className="s6"> </span>contact
-                      <span className="s6"></span>accounting
-                      <span className="s6"> </span>and/or
-                      <span className="s6"></span>your
-                      <span className="s6"> </span>account
-                      <span className="s6"> </span>manager
-                      <span className="s6"> </span>ASAP
+                    <p className="s12 custom-class-194">
+                      Account number<span className="s3">: 8314363233</span>
                     </p>
-                  </li>
-                </ol>
+
+                    <p className="s4 custom-class-784">
+                      <span className="s12">Wise's address</span>
+                      <span className="s3">
+                        : 30 W. 26th Street, Sixth Floor New York NY 10010
+                        United
+                      </span>
+                    </p>
+
+                    <ol id="l2">
+                      <li data-list-text={3}>
+                        <p className="s5 custom-class-401">
+                          The Invoice is considered accepted if no discrepancy
+                          is reported within 5 business days of receipt of the
+                          Invoice and payment is to be made in full
+                        </p>
+                      </li>
+                      <li data-list-text={4}>
+                        <p className="s5 custom-class-862">
+                          In case of any discrepancy or questions regarding this
+                          invoice, please contact accounting and/or your account
+                          manager ASAP
+                        </p>
+                      </li>
+                    </ol>
+                  </div>
+
+                  {/* EURO Account Details (Right) */}
+                  <div className="w-1/2">
+                    <p className="s12 font-semibold mb-2">
+                      EURO Account Details
+                    </p>
+                    <p className="s4 custom-class-194">
+                      <span className="s12">Name</span>
+                      <span className="s3">: Click Orbits Pte. Ltd. <br/></span>
+                      <span className="s12"> IBAN</span>
+                      <span className="s3">: BE25 9679 6422 0782</span>
+                      <span className="s12"><br/> Swift/BIC:</span>
+                      <span className="s3">: TRWIBEB1XXX</span>
+                    </p>
+                    <p className="s12 custom-class-194">
+                      Address
+                      <span className="s3">
+                        : Wise, Rue du Trône 100, 3rd floor, Brussels, 1050,
+                        Belgium
+                      </span>
+                    </p>
+                  </div>
+                </div>
               </td>
             </tr>
+
             <tr className="custom-class-572">
               <td colSpan={3} className="custom-class-254">
                 <p className="custom-class-625">

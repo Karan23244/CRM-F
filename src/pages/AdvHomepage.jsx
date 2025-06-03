@@ -79,7 +79,10 @@ const AdvHomepage = ({}) => {
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "form" ? "bg-blue-700" : "hover:bg-blue-600"
               }`}
-              onClick={() => setActiveComponent("form")}>
+              onClick={() => {
+                setActiveComponent("form");
+                setSidebarOpen(false);
+              }}>
               Advertiser form/data
             </button>
 
@@ -89,7 +92,10 @@ const AdvHomepage = ({}) => {
                   ? "bg-blue-700"
                   : "hover:bg-blue-600"
               }`}
-              onClick={() => setActiveComponent("currentadvdata")}>
+              onClick={() => {
+                setActiveComponent("currentadvdata");
+                setSidebarOpen(false);
+              }}>
               Current Adv Campaign data
             </button>
 
@@ -97,7 +103,10 @@ const AdvHomepage = ({}) => {
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "data" ? "bg-blue-700" : "hover:bg-blue-600"
               }`}
-              onClick={() => setActiveComponent("data")}>
+              onClick={() => {
+                setActiveComponent("data");
+                setSidebarOpen(false);
+              }}>
               Previous Adv Campaign data
             </button>
 
@@ -128,6 +137,7 @@ const AdvHomepage = ({}) => {
                     onClick={() => {
                       setActiveComponent("pid");
                       setIsOpen(false);
+                      setSidebarOpen(false);
                     }}>
                     Add PID
                   </button>
@@ -140,6 +150,7 @@ const AdvHomepage = ({}) => {
                     onClick={() => {
                       setActiveComponent("payableevent");
                       setIsOpen(false);
+                      setSidebarOpen(false);
                     }}>
                     Add Payable Event
                   </button>
@@ -152,6 +163,7 @@ const AdvHomepage = ({}) => {
                     onClick={() => {
                       setActiveComponent("mmptracker");
                       setIsOpen(false);
+                      setSidebarOpen(false);
                     }}>
                     Add MMP tracker
                   </button>
@@ -164,7 +176,10 @@ const AdvHomepage = ({}) => {
                   ? "bg-blue-700"
                   : "hover:bg-blue-600"
               }`}
-              onClick={() => setActiveComponent("viewRequest")}>
+              onClick={() => {
+                setActiveComponent("viewRequest");
+                setSidebarOpen(false);
+              }}>
               New Request
               {showNewRequestDot && (
                 <span className="w-2 h-2 bg-red-500 rounded-full ml-1"></span>
@@ -178,7 +193,10 @@ const AdvHomepage = ({}) => {
                       ? "bg-blue-700"
                       : "hover:bg-blue-600"
                   }`}
-                  onClick={() => setActiveComponent("reportform")}>
+                  onClick={() => {
+                    setActiveComponent("reportform");
+                    setSidebarOpen(false);
+                  }}>
                   Report Form
                 </button>
                 <button
@@ -187,7 +205,10 @@ const AdvHomepage = ({}) => {
                       ? "bg-blue-700"
                       : "hover:bg-blue-600"
                   }`}
-                  onClick={() => setActiveComponent("genrategraph")}>
+                  onClick={() => {
+                    setActiveComponent("genrategraph");
+                    setSidebarOpen(false);
+                  }}>
                   Generate Graph
                 </button>
               </>
@@ -199,7 +220,10 @@ const AdvHomepage = ({}) => {
                   ? "bg-blue-700"
                   : "hover:bg-blue-600"
               }`}
-              onClick={() => setActiveComponent("changepassword")}>
+              onClick={() => {
+                setActiveComponent("changepassword");
+                setSidebarOpen(false);
+              }}>
               Change Password
             </button>
           </nav>

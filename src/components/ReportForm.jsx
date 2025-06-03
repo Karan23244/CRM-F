@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import * as XLSX from "xlsx";
 import axios from "axios";
-
+import Swal from "sweetalert2";
 const ExcelUploader = () => {
   const apiUrl = import.meta.env.VITE_API_URL || "https://apii.clickorbits.in";
   const [files, setFiles] = useState([]);
@@ -14,16 +14,71 @@ const ExcelUploader = () => {
     setFiles((prevFiles) => {
       const allFiles = [...prevFiles, ...selectedFiles];
       // Remove duplicates by file name
-      const uniqueFiles = Array.from(new Map(allFiles.map(file => [file.name, file])).values());
+      const uniqueFiles = Array.from(
+        new Map(allFiles.map((file) => [file.name, file])).values()
+      );
       return uniqueFiles;
     });
   };
 
+  // const handleSubmit = async (e) => {
+  //   e.preventDefault();
+
+  //   if (files.length === 0 || !inputText) {
+  //     alert("Please provide both at least one file and a column name.");
+  //     return;
+  //   }
+
+  //   const formData = new FormData();
+  //   files.forEach((file, index) => {
+  //     formData.append("files", file);
+  //   });
+  //   formData.append("column", inputText);
+
+  //   // ✅ Log the FormData contents
+  //   // for (let [key, value] of formData.entries()) {
+  //   //   console.log(`${key}:`, value);
+  //   // }
+
+  //   setLoading(true);
+
+  //   try {
+  //     const response = await axios.post(`${apiUrl}/upload`, formData, {
+  //       headers: {
+  //         "Content-Type": "multipart/form-data",
+  //       },
+  //       responseType: "blob",
+  //     });
+
+  //     const url = window.URL.createObjectURL(new Blob([response.data]));
+  //     const link = document.createElement("a");
+  //     link.href = url;
+  //     link.setAttribute("download", "grouped_data.zip");
+  //     document.body.appendChild(link);
+  //     link.click();
+  //     link.remove();
+  //   } catch (error) {
+  //     console.error("Upload failed:", error);
+  //     alert("Something went wrong while uploading.");
+  //   } finally {
+  //     setLoading(false);
+  //     alert("File(s) processed and downloaded successfully.");
+  //     setFiles([]);
+  //     setInputText("");
+  //     if (fileInputRef.current) {
+  //       fileInputRef.current.value = null; // Clear input
+  //     }
+  //   }
+  // };
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (files.length === 0 || !inputText) {
-      alert("Please provide both at least one file and a column name.");
+      Swal.fire({
+        icon: "warning",
+        title: "Missing Input",
+        text: "Please provide both at least one file and a column name.",
+      });
       return;
     }
 
@@ -34,42 +89,62 @@ const ExcelUploader = () => {
     });
     formData.append("column", inputText);
 
-    // ✅ Log the FormData contents
     for (let [key, value] of formData.entries()) {
       console.log(`${key}:`, value);
     }
 
     setLoading(true);
+    const startTime = Date.now();
 
     try {
-      const response = await axios.post(`${apiUrl}/upload`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-        responseType: "blob",
+      const uploadRes = await axios.post(`${apiUrl}/upload`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
 
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", "grouped_data.zip");
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      if (uploadRes.status !== 200 || !uploadRes.data.zips?.length) {
+        throw new Error("Upload succeeded but no zip files returned.");
+      }
+
+      const zipFiles = uploadRes.data.zips;
+
+      for (const zipFile of zipFiles) {
+        console.log(`Downloading: ${zipFile}`);
+        const downloadRes = await axios.get(`${apiUrl}/download/${zipFile}`, {
+          responseType: "blob",
+        });
+
+        const url = window.URL.createObjectURL(new Blob([downloadRes.data]));
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute("download", zipFile);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }
+
+      const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+
+      Swal.fire({
+        icon: "success",
+        title: "Done!",
+        text: `File(s) processed and downloaded in ${totalTime} seconds.`,
+      });
     } catch (error) {
-      console.error("Upload failed:", error);
-      alert("Something went wrong while uploading.");
+      console.error("Upload or download failed:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: "Something went wrong. Check the console for details.",
+      });
     } finally {
       setLoading(false);
-      alert("File(s) processed and downloaded successfully.");
       setFiles([]);
       setInputText("");
       if (fileInputRef.current) {
-        fileInputRef.current.value = null; // Clear input
+        fileInputRef.current.value = null;
       }
     }
   };
-
   return (
     <div className="mt-[10%] flex items-center justify-center px-4">
       <div className="w-full max-w-xl bg-white shadow-2xl rounded-2xl p-8">

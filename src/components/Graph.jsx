@@ -4,6 +4,7 @@ import { saveAs } from "file-saver";
 import html2canvas from "html2canvas";
 import JSZip from "jszip";
 import Chart from "chart.js/auto";
+import Swal from "sweetalert2";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -142,7 +143,11 @@ const ExcelGraphCompare = () => {
       setChartData(newCharts);
     } catch (error) {
       console.error("❌ Error processing file:", error);
-      alert("❌ Failed to process file.");
+      Swal.fire({
+        icon: "error",
+        title: "File Processing Failed",
+        text: "❌ Failed to process the uploaded Excel file. Please try again.",
+      });
     } finally {
       setLoading(false);
     }
@@ -151,7 +156,6 @@ const ExcelGraphCompare = () => {
     setZipLoading(true);
     const zip = new JSZip();
     const folder = zip.folder("charts");
-    console.log(chartRefs.current.length);
     // Uncomment the logic below once you're sure chartRefs is correct
     for (let i = 0; i < chartRefs.current.length; i++) {
       const chartNode = chartRefs.current[i];
@@ -172,8 +176,6 @@ const ExcelGraphCompare = () => {
     saveAs(zipBlob, "charts.zip");
     setZipLoading(false);
   };
-  
-  
 
   return (
     <div className="p-4 max-w-7xl mx-auto">

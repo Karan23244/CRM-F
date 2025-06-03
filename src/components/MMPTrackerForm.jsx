@@ -3,6 +3,7 @@ import InputField from "./InputField";
 import axios from "axios";
 import { useSelector } from "react-redux";
 import { Table, Button, message } from "antd";
+import Swal from "sweetalert2";
 
 const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
@@ -36,11 +37,11 @@ const MMPTrackerForm = () => {
   // Function to handle form submission
   const handleSubmit = async () => {
     if (!tracker.trim()) return;
-    const trimmedTracker = tracker.trim(); // Trim front and back spaces
-    if (!trimmedTracker) return; // Prevent submission of empty or space-only Tracker
+    const trimmedTracker = tracker.trim();
+    if (!trimmedTracker) return;
+
     try {
-      if (editIndex !== null) {
-        // Update existing tracker
+      if (editId !== null) {
         const response = await axios.post(
           `${apiUrl}/update-mmptracker/${editId}`,
           {
@@ -49,30 +50,49 @@ const MMPTrackerForm = () => {
           }
         );
         if (response.data.success === true) {
-          alert("Tracker updated successfully");
-          fetchTrackers(); // Refresh the tracker list
-          setEditIndex(null);
+          Swal.fire({
+            icon: "success",
+            title: "Success!",
+            text: "Tracker updated successfully",
+            timer: 2000,
+            showConfirmButton: false,
+          });
+          fetchTrackers();
           setEditId(null);
         }
       } else {
-        // Add new tracker
         const response = await axios.post(`${apiUrl}/add-mmptracker`, {
           user_id: user?.id,
           mmptext: trimmedTracker,
         });
         if (response.data.success === true) {
-          alert("Tracker added successfully");
-          fetchTrackers(); // Refresh the tracker list
+          Swal.fire({
+            icon: "success",
+            title: "Success!",
+            text: "Tracker added successfully",
+            timer: 2000,
+            showConfirmButton: false,
+          });
+          fetchTrackers();
         }
       }
     } catch (error) {
       if (error.response && error.response.status === 500) {
-        alert("Tracker already exists! Please choose a different Tracker.");
+        Swal.fire({
+          icon: "error",
+          title: "Duplicate Tracker!",
+          text: "Tracker already exists. Please use a different one.",
+        });
       } else {
         console.error("Error:", error);
-        alert("Something went wrong. Please try again later.");
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "Something went wrong. Please try again later.",
+        });
       }
     }
+
     setTracker("");
   };
 

@@ -16,6 +16,7 @@ import dayjs from "dayjs";
 import "../index.css";
 import geoData from "../Data/geoData.json";
 import { exportToExcel } from "./exportExcel";
+import Swal from "sweetalert2";
 const { Option } = Select;
 const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
@@ -80,7 +81,6 @@ const CampianData = () => {
     return new Date(now.getFullYear(), now.getMonth(), 1); // First day of current month
   });
   const [searchTerm, setSearchTerm] = useState("");
-  console.log("Selected Month", selectedMonth);
   // Fetch Publisher Data
   const fetchPubData = async () => {
     try {
@@ -239,17 +239,6 @@ const CampianData = () => {
     }));
   };
 
-  // Apply filters
-  // useEffect(() => {
-  //   const data = selectedType === "publisher" ? pubData : advData;
-  //   const filtered = data.filter((item) =>
-  //     Object.keys(filters).every((key) =>
-  //       filters[key] ? item[key] === filters[key] : true
-  //     )
-  //   );
-  //   setFilteredData(filtered.filter((row) => !isRowEmpty(row)));
-  // }, [filters, pubData, advData, selectedType]);
-
   // Handle Edit
   const handleEdit = (id) => {
     setEditingKey(id);
@@ -275,11 +264,23 @@ const CampianData = () => {
         headers: { "Content-Type": "application/json" },
       });
       setEditingKey(null);
-      alert("Data updated successfully");
+      await Swal.fire({
+        icon: "success",
+        title: "Success",
+        text: "Data updated successfully",
+        timer: 2000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+      });
       fetchPubData();
       fetchAdvData();
     } catch (error) {
-      alert("Failed to update data");
+      await Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Failed to update data",
+        confirmButtonText: "OK",
+      });
     }
   };
 
@@ -373,7 +374,6 @@ const CampianData = () => {
       },
     ];
   };
-  console.log("Filtered Data", filteredData);
   return (
     <div className="p-6 bg-gradient-to-br from-gray-100 to-gray-200 min-h-screen">
       {/* Toggle Section */}

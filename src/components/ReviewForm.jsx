@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import InputField from "./InputField";
 import axios from "axios";
-import { Table, Button, message } from "antd";
+import { Table, Button } from "antd";
 import { useSelector } from "react-redux";
+import Swal from "sweetalert2"; // ✅ Import SweetAlert2
 
 const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
@@ -13,6 +14,7 @@ const ReviewForm = () => {
   const [reviews, setReviews] = useState([]);
   const [editIndex, setEditIndex] = useState(null);
   const [editId, setEditId] = useState(null);
+
   // Fetch all reviews
   const fetchReviews = async () => {
     try {
@@ -27,7 +29,6 @@ const ReviewForm = () => {
     }
   };
 
-  // Fetch reviews on component mount
   useEffect(() => {
     fetchReviews();
   }, []);
@@ -47,10 +48,12 @@ const ReviewForm = () => {
           }
         );
         if (response.data.success) {
-          message.success("Review updated successfully");
-          fetchReviews(); // Refresh the review list
+          Swal.fire("Success", "Review updated successfully", "success");
+          fetchReviews();
           setEditIndex(null);
           setEditId(null);
+        } else {
+          Swal.fire("Error", "Failed to update review", "error");
         }
       } else {
         // Add new review
@@ -59,23 +62,30 @@ const ReviewForm = () => {
           review_text: review,
         });
         if (response.data.success) {
-          message.success("Review added successfully");
-          fetchReviews(); // Refresh the review list
+          Swal.fire("Success", "Review added successfully", "success");
+          fetchReviews();
+        } else {
+          Swal.fire("Error", "Failed to add review", "error");
         }
       }
     } catch (error) {
       console.error("Error submitting review:", error);
-      message.error("An error occurred while submitting the review");
+      Swal.fire(
+        "Error",
+        "An error occurred while submitting the review",
+        "error"
+      );
     }
+
     setReview("");
   };
 
-  // Handle edit button click
   const handleEdit = (record) => {
     setReview(record.review_text);
     setEditId(record.id);
+    setEditIndex(true);
   };
-  // Define table columns
+
   const columns = [
     {
       title: "#",
@@ -107,7 +117,6 @@ const ReviewForm = () => {
         {editIndex !== null ? "Update" : "Submit"}
       </Button>
 
-      {/* Data Table */}
       {reviews.length > 0 && (
         <div className="mt-6">
           <h3 className="text-md font-semibold mb-2">Review List</h3>

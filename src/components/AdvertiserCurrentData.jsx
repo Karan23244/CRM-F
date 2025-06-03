@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
+import Swal from "sweetalert2";
 import {
   Table,
   Input,
@@ -38,6 +39,7 @@ const AdvertiserData = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [uniqueValues, setUniqueValues] = useState({});
   const [showValidation, setShowValidation] = useState(false);
+  const [editingCell, setEditingCell] = useState({ key: null, field: null });
   const [selectedDateRange, setSelectedDateRange] = useState([
     dayjs().startOf("month"),
     dayjs().endOf("month"),
@@ -118,9 +120,13 @@ const AdvertiserData = () => {
           advmName.data?.data
             ?.filter(
               (item) =>
-                item.role === "publisher_manager" || item.role === "publisher"
+                (item.role === "publisher_manager" ||
+                  item.role === "publisher") &&
+                item.username !== "AtiqueADV" &&
+                item.username !== "AnveshaADV"
             )
             .map((item) => item.username) || [],
+
         payable_event:
           payableEvent.data?.data?.map((item) => item.payble_event) || [],
         mmp_tracker: mmpTracker.data?.data?.map((item) => item.mmptext) || [],
@@ -185,21 +191,25 @@ const AdvertiserData = () => {
 
       setEditedRow({});
       fetchData();
-      alert("Data added successfully");
+      Swal.fire("Success", "Data added successfully", "success");
     } catch (error) {
-      alert("Failed to add data");
+      Swal.fire("Error", "Failed to add data", "error");
     }
   };
   const handleCopyRow = async (record) => {
     try {
       if (!user?.id) {
-        message.error("User ID is missing. Please login again.");
+        Swal.fire({
+          icon: "error",
+          title: "User ID missing",
+          text: "Please login again.",
+        });
         return;
       }
 
       const copiedRow = {
         ...record,
-        id: undefined, // Remove the existing ID so a new one gets created
+        id: undefined, // Remove existing ID
         user_id: user.id,
         createdAt: new Date().toISOString(),
       };
@@ -209,9 +219,20 @@ const AdvertiserData = () => {
       });
 
       fetchData();
-      message.success("Row copied successfully!");
+
+      Swal.fire({
+        icon: "success",
+        title: "Copied!",
+        text: "Row copied successfully.",
+        timer: 2000,
+        showConfirmButton: false,
+      });
     } catch (error) {
-      message.error("Failed to copy row");
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Failed to copy row.",
+      });
     }
   };
 
@@ -219,19 +240,25 @@ const AdvertiserData = () => {
     setEditedRow((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleDelete = (id) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this item? This action cannot be undone."
-    );
-    if (!confirmDelete) return;
+  const handleDelete = async (id) => {
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "This action cannot be undone.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "Cancel",
+    });
 
-    axios
-      .post(`${apiUrl}/advdata-delete-data/${id}`)
-      .then(() => {
-        alert("Data deleted");
+    if (result.isConfirmed) {
+      try {
+        await axios.post(`${apiUrl}/advdata-delete-data/${id}`);
         fetchData();
-      })
-      .catch((err) => console.error("Error deleting Data:", err));
+        Swal.fire("Deleted!", "Data has been deleted.", "success");
+      } catch (error) {
+        Swal.fire("Error", "Failed to delete data", "error");
+      }
+    }
   };
   const columnHeadings = {
     pub_name: "PUBM Name",
@@ -325,6 +352,7 @@ const AdvertiserData = () => {
     "adv_deductions",
     "adv_approved_no",
   ];
+
   const columns = [
     ...desiredOrder
       .filter((key) => data[0] && key in data[0])
@@ -332,6 +360,96 @@ const AdvertiserData = () => {
         title: columnHeadings[key] || key.replace(/([A-Z])/g, " $1").trim(),
         dataIndex: key,
         key,
+        render: (text, record) => {
+          const value = record[key];
+          const createdAt = dayjs(record.created_at);
+          const isWithin3Days = dayjs().diff(createdAt, "day") <= 3;
+          const isAllowedField = allowedFieldsAfter3Days.includes(key);
+          const editable = isWithin3Days || isAllowedField;
+
+          const isEditing =
+            editingCell.key === record.id && editingCell.field === key;
+
+          const checkEditableAndAlert = () => {
+            if (!editable) {
+              message.warning("You can't edit this field after 3 days.");
+              return false;
+            }
+            return true;
+          };
+
+          const handleAutoSave = async (newValue) => {
+            if (!checkEditableAndAlert()) return;
+            if (newValue === record[key]) return;
+
+            const updated = { ...record, [key]: newValue };
+            try {
+              await axios.post(
+                `${apiUrl}/advdata-update/${record.id}`,
+                updated,
+                {
+                  headers: { "Content-Type": "application/json" },
+                }
+              );
+              message.success("Auto-saved");
+              fetchData();
+            } catch (err) {
+              message.error("Failed to auto-save");
+            }
+          };
+
+          // Dropdown Field Editing
+          if (isEditing && dropdownOptions[key]) {
+            return (
+              <Select
+                defaultValue={value}
+                style={{ width: 120 }}
+                onBlur={() => setEditingCell({ key: null, field: null })}
+                onChange={(val) => {
+                  handleAutoSave(val);
+                  setEditingCell({ key: null, field: null });
+                }}
+                autoFocus>
+                {dropdownOptions[key].map((opt) => (
+                  <Select.Option key={opt} value={opt}>
+                    {opt}
+                  </Select.Option>
+                ))}
+              </Select>
+            );
+          }
+
+          // Text Input Field Editing
+          if (isEditing) {
+            return (
+              <Input
+                defaultValue={value}
+                autoFocus
+                onBlur={(e) => {
+                  handleAutoSave(e.target.value);
+                  setEditingCell({ key: null, field: null });
+                }}
+                onPressEnter={(e) => {
+                  handleAutoSave(e.target.value);
+                  setEditingCell({ key: null, field: null });
+                }}
+              />
+            );
+          }
+
+          // Display-only Cell (Click to Edit)
+          return (
+            <div
+              style={{ cursor: editable ? "pointer" : "default" }}
+              onClick={() => {
+                if (!checkEditableAndAlert()) return;
+                setEditingCell({ key: record.id, field: key });
+              }}>
+              {value || "-"}
+            </div>
+          );
+        },
+
         filterDropdown: () =>
           uniqueValues[key]?.length > 0 ? (
             <div style={{ padding: 8 }}>
@@ -347,82 +465,17 @@ const AdvertiserData = () => {
                     .toLowerCase()
                     .includes(input.toLowerCase())
                 }>
-                {uniqueValues[key].map((val) => (
-                  <Option key={val} value={val}>
-                    {val}
-                  </Option>
-                ))}
+                {[...uniqueValues[key]]
+                  .filter((val) => val !== null && val !== undefined)
+                  .sort((a, b) => a.localeCompare(b))
+                  .map((val) => (
+                    <Select.Option key={val} value={val}>
+                      {val}
+                    </Select.Option>
+                  ))}
               </Select>
             </div>
-          ) : key.toLowerCase().includes("date") ? (
-            <DatePicker
-              onChange={(date, dateString) =>
-                handleFilterChange(dateString, key)
-              }
-              style={{ width: "100%" }}
-            />
-          ) : (
-            <Input
-              onChange={(e) => handleFilterChange(e.target.value, key)}
-              placeholder={`Search ${columnHeadings[key] || key}`}
-            />
-          ),
-
-        onFilter: (value, record) => {
-          if (!value) return true;
-          if (key.toLowerCase().includes("date")) {
-            return dayjs(record[key]).isSame(dayjs(value), "day");
-          }
-          return record[key]
-            ?.toString()
-            .toLowerCase()
-            .includes(value.toLowerCase());
-        },
-        render: (text, record) => {
-          const createdAt = dayjs(record.created_at);
-          const isEditableAfter3Days =
-            dayjs().diff(createdAt, "day") > 3 &&
-            allowedFieldsAfter3Days.includes(key);
-
-          if (editingKey === record.id) {
-            return isEditableAfter3Days ||
-              dayjs().diff(createdAt, "day") <= 3 ? (
-              dropdownOptions[key] ? (
-                <Select
-                  showSearch
-                  value={editedRow[key]}
-                  onChange={(value) => handleChange(value, key)}
-                  style={{ width: "100%" }}
-                  dropdownMatchSelectWidth={false}
-                  allowClear
-                  placeholder="Search..."
-                  filterOption={(input, option) =>
-                    option.children.toLowerCase().includes(input.toLowerCase())
-                  }>
-                  {dropdownOptions[key].map((option) => (
-                    <Option key={option} value={option}>
-                      {option}
-                    </Option>
-                  ))}
-                </Select>
-              ) : key.toLowerCase().includes("date") ? (
-                <DatePicker
-                  value={editedRow[key] ? dayjs(editedRow[key]) : null}
-                  onChange={(date, dateString) => handleChange(dateString, key)}
-                  style={{ width: "100%" }}
-                />
-              ) : (
-                <Input
-                  value={editedRow[key]}
-                  onChange={(e) => handleChange(e.target.value, key)}
-                />
-              )
-            ) : (
-              text
-            );
-          }
-          return text;
-        },
+          ) : null,
       })),
     {
       title: "Actions",
@@ -436,27 +489,6 @@ const AdvertiserData = () => {
 
         return (
           <div style={{ display: "flex", gap: "8px" }}>
-            {editingKey === record.id ? (
-              <Button
-                type="primary"
-                icon={<SaveOutlined />}
-                onClick={handleSave}
-              />
-            ) : (
-              <Tooltip
-                title={
-                  !isEditable && !allowedFieldsAfter3Days.length
-                    ? "You can't edit because time is over"
-                    : ""
-                }>
-                <Button
-                  icon={<EditOutlined />}
-                  onClick={() => handleEdit(record.id)}
-                  disabled={!isEditable && !allowedFieldsAfter3Days.length}
-                />
-              </Tooltip>
-            )}
-
             {isDeletable && (
               <Tooltip title={`Delete option available for ${remainingHours}h`}>
                 <Button
@@ -519,7 +551,7 @@ const AdvertiserData = () => {
                     icon={<PlusOutlined />}
                     onClick={handleAddRow}
                     className="bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200">
-                    ➕ Add Row
+                    Add Row
                   </Button>
 
                   <RangePicker
