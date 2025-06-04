@@ -189,6 +189,7 @@ For any clarification, kindly feel free to get in touch with us.`);
       // Generate image from invoice DOM
       const canvas = await html2canvas(invoiceRef.current);
       const imgData = canvas.toDataURL("image/png");
+      console.log("📷 Captured image data:", imgData);
 
       // Create PDF
       const pdf = new jsPDF();
@@ -198,14 +199,17 @@ For any clarification, kindly feel free to get in touch with us.`);
 
       pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
       const pdfBlob = pdf.output("blob");
+      console.log("📄 Generated PDF blob:", pdfBlob);
 
       // Optional: Preview PDF
       const previewUrl = URL.createObjectURL(pdfBlob);
+      console.log("🔗 Preview URL:", previewUrl);
       window.open(previewUrl);
 
       const fileName = `Invoice-${Date.now()}.pdf`;
+      console.log("📁 File name:", fileName);
 
-      // ✅ Convert JSX/HTML to static string
+      // JSX to static HTML string
       const EmailTemplate = () => (
         <div>
           <p>Hi Team,</p>
@@ -228,22 +232,23 @@ For any clarification, kindly feel free to get in touch with us.`);
       const htmlContent = ReactDOMServer.renderToStaticMarkup(
         <EmailTemplate />
       );
+      console.log("📧 Rendered HTML email content:", htmlContent);
 
-      // ✅ Prepare email payload
       const emailPayload = {
         to: toEmails.split(",").map((e) => e.trim()),
         cc: ccEmails.split(",").map((e) => e.trim()),
         bcc: bccEmails.split(",").map((e) => e.trim()),
         subject,
-        text: textContent, // plain text version
-        html: htmlContent, // fixed HTML string
+        text: textContent,
+        html: htmlContent,
         attachmentName: fileName,
       };
+      console.log("📦 Email payload:", emailPayload);
 
-      // ✅ FormData to send to backend
       const formData = new FormData();
       formData.append("invoice", pdfBlob, fileName);
       formData.append("emailData", JSON.stringify(emailPayload));
+      console.log("📤 FormData prepared for sending.");
 
       await axios.post(`${apiUrl}/email`, formData);
 

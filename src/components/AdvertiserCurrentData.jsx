@@ -24,6 +24,7 @@ import geoData from "../Data/geoData.json";
 import { exportToExcel } from "./exportExcel";
 import { Modal, message as antdMessage } from "antd";
 import MainComponent from "../components/ManagerAllData";
+import { PushpinOutlined, PushpinFilled } from "@ant-design/icons";
 import Validation from "./Validation";
 dayjs.extend(isBetween);
 const { RangePicker } = DatePicker;
@@ -40,6 +41,8 @@ const AdvertiserData = () => {
   const [uniqueValues, setUniqueValues] = useState({});
   const [showValidation, setShowValidation] = useState(false);
   const [editingCell, setEditingCell] = useState({ key: null, field: null });
+  const [stickyColumns, setStickyColumns] = useState([]);
+
   const [selectedDateRange, setSelectedDateRange] = useState([
     dayjs().startOf("month"),
     dayjs().endOf("month"),
@@ -62,7 +65,11 @@ const AdvertiserData = () => {
       fetchDropdowns();
     }
   }, [user]);
-
+  const toggleStickyColumn = (key) => {
+    setStickyColumns((prev) =>
+      prev.includes(key) ? prev.filter((col) => col !== key) : [...prev, key]
+    );
+  };
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -357,8 +364,26 @@ const AdvertiserData = () => {
     ...desiredOrder
       .filter((key) => data[0] && key in data[0])
       .map((key) => ({
-        title: columnHeadings[key] || key.replace(/([A-Z])/g, " $1").trim(),
+        title: (
+          <div className="flex items-center gap-2">
+            {columnHeadings[key] || key}
+            <Tooltip title={stickyColumns.includes(key) ? "Unpin" : "Pin"}>
+              <Button
+                size="small"
+                icon={
+                  stickyColumns.includes(key) ? (
+                    <PushpinFilled style={{ color: "#1677ff" }} />
+                  ) : (
+                    <PushpinOutlined />
+                  )
+                }
+                onClick={() => toggleStickyColumn(key)}
+              />
+            </Tooltip>
+          </div>
+        ),
         dataIndex: key,
+        fixed: stickyColumns.includes(key) ? "left" : undefined,
         key,
         render: (text, record) => {
           const value = record[key];
@@ -420,17 +445,36 @@ const AdvertiserData = () => {
           }
 
           // Text Input Field Editing
+          // Date Field Editing
           if (isEditing) {
+            if (["shared_date", "paused_date"].includes(key)) {
+              return (
+                <DatePicker
+                  defaultValue={value ? dayjs(value) : null}
+                  format="YYYY-MM-DD"
+                  onBlur={() => setEditingCell({ key: null, field: null })}
+                  onChange={(date) => {
+                    if (date) {
+                      handleAutoSave(date.format("YYYY-MM-DD"));
+                    }
+                    setEditingCell({ key: null, field: null });
+                  }}
+                  autoFocus
+                  open
+                />
+              );
+            }
+
             return (
               <Input
                 defaultValue={value}
                 autoFocus
                 onBlur={(e) => {
-                  handleAutoSave(e.target.value);
+                  handleAutoSave(e.target.value.trim());
                   setEditingCell({ key: null, field: null });
                 }}
                 onPressEnter={(e) => {
-                  handleAutoSave(e.target.value);
+                  handleAutoSave(e.target.value.trim());
                   setEditingCell({ key: null, field: null });
                 }}
               />

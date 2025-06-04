@@ -17,6 +17,7 @@ import "../index.css";
 import Swal from "sweetalert2";
 import geoData from "../Data/geoData.json";
 import { exportToExcel } from "./exportExcel";
+import { PushpinOutlined, PushpinFilled } from "@ant-design/icons";
 const { Option } = Select;
 const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
@@ -73,12 +74,17 @@ const CampianAllData = () => {
   const [uniqueValues, setUniqueValues] = useState({});
   const [editingKey, setEditingKey] = useState(null);
   const [editedRow, setEditedRow] = useState({});
+  const [stickyColumns, setStickyColumns] = useState([]);
   const [dropdownOptions, setDropdownOptions] = useState({
     os: ["Android", "APK", "iOS"],
   });
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-
+  const toggleStickyColumn = (key) => {
+    setStickyColumns((prev) =>
+      prev.includes(key) ? prev.filter((col) => col !== key) : [...prev, key]
+    );
+  };
   // Fetch Publisher Data
   const fetchPubData = async () => {
     try {
@@ -302,6 +308,19 @@ const CampianAllData = () => {
         title: (
           <div className="flex items-center justify-between">
             <span className="font-medium">{columnHeadings[key]}</span>
+            <Tooltip title={stickyColumns.includes(key) ? "Unpin" : "Pin"}>
+              <Button
+                size="small"
+                icon={
+                  stickyColumns.includes(key) ? (
+                    <PushpinFilled style={{ color: "#1677ff" }} />
+                  ) : (
+                    <PushpinOutlined />
+                  )
+                }
+                onClick={() => toggleStickyColumn(key)}
+              />
+            </Tooltip>
             {uniqueValues[key]?.length > 1 && (
               <Dropdown
                 overlay={
@@ -330,6 +349,7 @@ const CampianAllData = () => {
           </div>
         ),
         dataIndex: key,
+        fixed: stickyColumns.includes(key) ? "left" : undefined,
         key,
         render: (text, record) => {
           return editingKey === record.id ? (
