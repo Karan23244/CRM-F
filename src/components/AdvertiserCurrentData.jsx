@@ -403,11 +403,35 @@ const AdvertiserData = () => {
             return true;
           };
 
+          // const handleAutoSave = async (newValue) => {
+          //   if (!checkEditableAndAlert()) return;
+          //   if (newValue === record[key]) return;
+
+          //   const updated = { ...record, [key]: newValue };
+          //   try {
+          //     await axios.post(
+          //       `${apiUrl}/advdata-update/${record.id}`,
+          //       updated,
+          //       {
+          //         headers: { "Content-Type": "application/json" },
+          //       }
+          //     );
+          //     message.success("Auto-saved");
+          //     fetchData();
+          //   } catch (err) {
+          //     message.error("Failed to auto-save");
+          //   }
+          // };
           const handleAutoSave = async (newValue) => {
             if (!checkEditableAndAlert()) return;
-            if (newValue === record[key]) return;
 
-            const updated = { ...record, [key]: newValue };
+            const oldValue = record[key] ?? "";
+            const newVal = newValue ?? "";
+
+            if (oldValue === newVal) return;
+
+            const updated = { ...record, [key]: newValue }; // newValue may be null
+
             try {
               await axios.post(
                 `${apiUrl}/advdata-update/${record.id}`,
@@ -452,19 +476,16 @@ const AdvertiserData = () => {
             if (["shared_date", "paused_date"].includes(key)) {
               return (
                 <DatePicker
+                  allowClear
                   defaultValue={value ? dayjs(value) : null}
                   format="YYYY-MM-DD"
                   onChange={(date) => {
-                    if (date) {
-                      handleAutoSave(date.format("YYYY-MM-DD")).finally(() => {
-                        setEditingCell({ key: null, field: null });
-                      });
-                    } else {
+                    const newValue = date ? date.format("YYYY-MM-DD") : null;
+                    handleAutoSave(newValue).finally(() => {
                       setEditingCell({ key: null, field: null });
-                    }
+                    });
                   }}
                   autoFocus
-                  open
                 />
               );
             }
