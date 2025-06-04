@@ -427,6 +427,8 @@ const AdvertiserData = () => {
           if (isEditing && dropdownOptions[key]) {
             return (
               <Select
+                allowClear
+                showSearch
                 defaultValue={value}
                 style={{ width: 120 }}
                 onBlur={() => setEditingCell({ key: null, field: null })}
@@ -452,12 +454,14 @@ const AdvertiserData = () => {
                 <DatePicker
                   defaultValue={value ? dayjs(value) : null}
                   format="YYYY-MM-DD"
-                  onBlur={() => setEditingCell({ key: null, field: null })}
                   onChange={(date) => {
                     if (date) {
-                      handleAutoSave(date.format("YYYY-MM-DD"));
+                      handleAutoSave(date.format("YYYY-MM-DD")).finally(() => {
+                        setEditingCell({ key: null, field: null });
+                      });
+                    } else {
+                      setEditingCell({ key: null, field: null });
                     }
-                    setEditingCell({ key: null, field: null });
                   }}
                   autoFocus
                   open

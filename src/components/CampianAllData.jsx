@@ -330,6 +330,7 @@ const CampianAllData = () => {
                     <div className="p-3 w-48">
                       <Select
                         allowClear
+                        showSearch
                         className="w-full"
                         placeholder={`Filter ${key}`}
                         value={filters[key]}

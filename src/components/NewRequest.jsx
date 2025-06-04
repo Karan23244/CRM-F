@@ -60,11 +60,11 @@ const NewRequest = () => {
         id,
         adv_res: status,
       });
-      Swal.fire({
-        icon: "success",
-        title: "Updated!",
-        text: `Status updated to "${status}"`,
-      });
+      // Swal.fire({
+      //   icon: "success",
+      //   title: "Updated!",
+      //   text: `Status updated to "${status}"`,
+      // });
 
       fetchRequests(); // Refresh data
     } catch (error) {

@@ -410,6 +410,8 @@ const AdvertiserData = () => {
           if (isEditing && dropdownOptions[key]) {
             return (
               <Select
+                allowClear
+                showSearch
                 defaultValue={value}
                 style={{ width: 120 }}
                 onBlur={() => setEditingCell({ key: null, field: null })}
