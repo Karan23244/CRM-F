@@ -84,6 +84,9 @@ const CampianData = () => {
     return new Date(now.getFullYear(), now.getMonth(), 1); // First day of current month
   });
   const [searchTerm, setSearchTerm] = useState("");
+  const clearAllFilters = () => {
+    setFilters({});
+  };
   // Fetch Publisher Data
   const fetchPubData = async () => {
     try {
@@ -151,10 +154,10 @@ const CampianData = () => {
           return dayjs(item[key]).isBetween(start, end, null, "[]");
         }
 
-        return item[key]
-          ?.toString()
-          .toLowerCase()
-          .includes(filters[key].toString().toLowerCase());
+        return (
+          item[key]?.toString().toLowerCase() ===
+          filters[key].toString().toLowerCase()
+        );
       });
 
       if (!passesAdvancedFilters) return false;
@@ -325,11 +328,21 @@ const CampianData = () => {
                         placeholder={`Filter ${key}`}
                         value={filters[key]}
                         onChange={(value) => handleFilterChange(value, key)}>
-                        {uniqueValues[key]?.map((val) => (
-                          <Option key={val} value={val}>
-                            {val}
-                          </Option>
-                        ))}
+                        {uniqueValues[key]
+                          ?.filter((val) => val !== null && val !== undefined)
+                          .sort((a, b) => {
+                            const aNum = parseFloat(a);
+                            const bNum = parseFloat(b);
+                            const isNumeric = !isNaN(aNum) && !isNaN(bNum);
+
+                            if (isNumeric) return aNum - bNum;
+                            return a.toString().localeCompare(b.toString());
+                          })
+                          .map((val) => (
+                            <Option key={val} value={val}>
+                              {val}
+                            </Option>
+                          ))}
                       </Select>
                     </div>
                   </Menu>
@@ -452,6 +465,12 @@ const CampianData = () => {
           allowClear
           className="w-full md:w-56 border border-gray-300 rounded-lg shadow-sm"
         />
+        <Button
+          onClick={clearAllFilters}
+          type="default"
+          className="w-full md:w-56 border border-gray-300 rounded-lg shadow-sm">
+          Remove All Filters
+        </Button>
       </div>
 
       {/* Table Section */}

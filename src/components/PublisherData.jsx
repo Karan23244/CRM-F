@@ -1,5 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { Table, Select, Button, Input, Dropdown, Menu, DatePicker,Tooltip } from "antd";
+import {
+  Table,
+  Select,
+  Button,
+  Input,
+  Dropdown,
+  Menu,
+  DatePicker,
+  Tooltip,
+} from "antd";
 import { FilterOutlined } from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
@@ -47,6 +56,9 @@ const PublisherPayoutData = () => {
     setStickyColumns((prev) =>
       prev.includes(key) ? prev.filter((col) => col !== key) : [...prev, key]
     );
+  };
+  const clearAllFilters = () => {
+    setFilters({});
   };
   const fetchAdvData = async () => {
     try {
@@ -167,7 +179,14 @@ const PublisherPayoutData = () => {
                       }>
                       {[...uniqueValues[key]]
                         .filter((val) => val !== null && val !== undefined) // remove null/undefined
-                        .sort((a, b) => a.localeCompare(b))
+                        .sort((a, b) => {
+                          const aNum = parseFloat(a);
+                          const bNum = parseFloat(b);
+                          const isNumeric = !isNaN(aNum) && !isNaN(bNum);
+
+                          if (isNumeric) return aNum - bNum;
+                          return a.toString().localeCompare(b.toString());
+                        })
                         .map((val) => (
                           <Option key={val} value={val}>
                             {val}
@@ -212,7 +231,11 @@ const PublisherPayoutData = () => {
             className="bg-blue-600 hover:bg-blue-700 text-white">
             📥 Download Excel
           </Button>
-
+          <div className="flex justify-end">
+            <Button onClick={clearAllFilters} type="default">
+              Remove All Filters
+            </Button>
+          </div>
           <div className="flex gap-3">
             <Input
               placeholder="🔍 Search"
@@ -235,7 +258,6 @@ const PublisherPayoutData = () => {
             dataSource={filteredData}
             columns={getColumns(columnHeadingsAdv)}
             rowKey="id"
-            scroll={{ x: true }}
             pagination={{
               pageSizeOptions: ["10", "20", "50"],
               defaultPageSize: 10,
@@ -244,6 +266,7 @@ const PublisherPayoutData = () => {
                 `${range[0]}-${range[1]} of ${total} items`,
             }}
             bordered
+            scroll={{ x: "max-content" }}
           />
         </div>
       </div>

@@ -57,6 +57,9 @@ const PublisherPayoutData = () => {
       setSelectedDateRange(dates);
     }
   };
+  const clearAllFilters = () => {
+    setFilters({});
+  };
   const columnHeadingsAdv = {
     ...(selectedSubAdmins?.length > 0 && { pub_name: "PUBM Name" }),
     username: "Adv AM",
@@ -330,7 +333,14 @@ const PublisherPayoutData = () => {
                         }>
                         {[...uniqueValues[key]]
                           .filter((val) => val !== null && val !== undefined) // remove null/undefined
-                          .sort((a, b) => a.localeCompare(b))
+                          .sort((a, b) => {
+                            const aNum = parseFloat(a);
+                            const bNum = parseFloat(b);
+                            const isNumeric = !isNaN(aNum) && !isNaN(bNum);
+
+                            if (isNumeric) return aNum - bNum;
+                            return a.toString().localeCompare(b.toString());
+                          })
                           .map((val) => (
                             <Option key={val} value={val}>
                               {val}
@@ -401,7 +411,11 @@ const PublisherPayoutData = () => {
               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-lg shadow-md transition duration-300 transform hover:scale-105">
               📥 <span>Download Excel</span>
             </Button>
-
+            <div className="flex justify-end">
+              <Button onClick={clearAllFilters} type="default">
+                Remove All Filters
+              </Button>
+            </div>
             {/* Subadmins Dropdown */}
             {user?.role === "publisher_manager" && (
               <Select
@@ -442,8 +456,14 @@ const PublisherPayoutData = () => {
           columns={getColumns(columnHeadingsAdv)}
           dataSource={filteredData}
           rowKey="id"
-          pagination={{ pageSize: 10 }}
-          scroll={{ x: 1500 }}
+          pagination={{
+            pageSizeOptions: ["10", "20", "50", "100"],
+            showSizeChanger: true,
+            defaultPageSize: 10,
+            showTotal: (total, range) =>
+              `${range[0]}-${range[1]} of ${total} items`,
+          }}
+          scroll={{ x: "max-content" }}
         />
       </div>
     </div>

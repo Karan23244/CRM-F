@@ -50,6 +50,9 @@ const AdvertiserData = () => {
       fetchDropdowns();
     }
   }, [user]);
+  const clearAllFilters = () => {
+    setFilters({});
+  };
 
   const fetchData = async () => {
     try {
@@ -327,10 +330,10 @@ const AdvertiserData = () => {
         return dayjs(item[key]).isBetween(start, end, null, "[]");
       }
 
-      return item[key]
-        ?.toString()
-        .toLowerCase()
-        .includes(filters[key].toString().toLowerCase());
+      return (
+        item[key]?.toString().toLowerCase() ===
+        filters[key].toString().toLowerCase()
+      );
     });
 
     if (!passesAdvancedFilters) return false;
@@ -496,7 +499,14 @@ const AdvertiserData = () => {
                 }>
                 {[...uniqueValues[key]]
                   .filter((val) => val !== null && val !== undefined)
-                  .sort((a, b) => a.localeCompare(b))
+                  .sort((a, b) => {
+                    const aNum = parseFloat(a);
+                    const bNum = parseFloat(b);
+                    const isNumeric = !isNaN(aNum) && !isNaN(bNum);
+
+                    if (isNumeric) return aNum - bNum;
+                    return a.toString().localeCompare(b.toString());
+                  })
                   .map((val) => (
                     <Select.Option key={val} value={val}>
                       {val}
@@ -577,6 +587,11 @@ const AdvertiserData = () => {
               placeholder={["Start Date", "End Date"]}
               className="w-full md:w-80 rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition"
             />
+            <div className="flex justify-end mb-2">
+              <Button onClick={clearAllFilters} type="default">
+                Remove All Filters
+              </Button>
+            </div>
 
             <Input
               placeholder="🔍 Search Username / Publisher / Campaign"
@@ -592,6 +607,7 @@ const AdvertiserData = () => {
           <Table
             columns={columns}
             dataSource={finalFilteredData}
+            rowKey="id"
             pagination={{
               pageSizeOptions: ["10", "20", "50", "100"],
               showSizeChanger: true,
