@@ -426,15 +426,50 @@ const AdvertiserData = () => {
           //     message.error("Failed to auto-save");
           //   }
           // };
+          // const handleAutoSave = async (newValue) => {
+          //   if (!checkEditableAndAlert()) return;
+
+          //   const oldValue = record[key] ?? "";
+          //   const newVal = newValue ?? "";
+
+          //   if (oldValue === newVal) return;
+
+          //   const updated = { ...record, [key]: newValue }; // newValue may be null
+
+          //   try {
+          //     await axios.post(
+          //       `${apiUrl}/advdata-update/${record.id}`,
+          //       updated,
+          //       {
+          //         headers: { "Content-Type": "application/json" },
+          //       }
+          //     );
+          //     message.success("Auto-saved");
+          //     fetchData();
+          //   } catch (err) {
+          //     message.error("Failed to auto-save");
+          //   }
+          // };
           const handleAutoSave = async (newValue) => {
             if (!checkEditableAndAlert()) return;
+            if (newValue === record[key]) return;
 
-            const oldValue = record[key] ?? "";
-            const newVal = newValue ?? "";
+            const updated = { ...record, [key]: newValue };
 
-            if (oldValue === newVal) return;
+            // Auto-calculate adv_approved_no if relevant fields are updated
+            if (key === "adv_total_no" || key === "adv_deductions") {
+              const total =
+                key === "adv_total_no" ? newValue : record.adv_total_no;
+              const deductions =
+                key === "adv_deductions" ? newValue : record.adv_deductions;
 
-            const updated = { ...record, [key]: newValue }; // newValue may be null
+              const parsedTotal = parseFloat(total);
+              const parsedDeductions = parseFloat(deductions);
+
+              if (!isNaN(parsedTotal) && !isNaN(parsedDeductions)) {
+                updated.adv_approved_no = parsedTotal - parsedDeductions;
+              }
+            }
 
             try {
               await axios.post(
