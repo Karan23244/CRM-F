@@ -9,6 +9,7 @@ import {
   Dropdown,
   Menu,
   message,
+  Tooltip,
 } from "antd";
 import { FilterOutlined, EditOutlined, SaveOutlined } from "@ant-design/icons";
 import axios from "axios";
@@ -307,10 +308,11 @@ const CampianAllData = () => {
       ...Object.keys(columnHeadings).map((key) => ({
         title: (
           <div className="flex items-center justify-between">
-            <span className="font-medium">{columnHeadings[key]}</span>
-            <Tooltip title={stickyColumns.includes(key) ? "Unpin" : "Pin"}>
+            <span className="font-medium p-3">{columnHeadings[key]}</span>
+            <Tooltip title={stickyColumns.includes(key) ? "Unpin" : "Pin"}  className="p-3">
               <Button
                 size="small"
+               
                 icon={
                   stickyColumns.includes(key) ? (
                     <PushpinFilled style={{ color: "#1677ff" }} />

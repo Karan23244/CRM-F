@@ -427,43 +427,6 @@ const AdvertiserData = () => {
             );
           }
 
-          // Text Input Field Editing
-          // Date Field Editing
-          if (isEditing) {
-            if (["shared_date", "paused_date"].includes(key)) {
-              return (
-                <DatePicker
-                  defaultValue={value ? dayjs(value) : null}
-                  format="YYYY-MM-DD"
-                  onBlur={() => setEditingCell({ key: null, field: null })}
-                  onChange={(date) => {
-                    if (date) {
-                      handleAutoSave(date.format("YYYY-MM-DD"));
-                    }
-                    setEditingCell({ key: null, field: null });
-                  }}
-                  autoFocus
-                  open
-                />
-              );
-            }
-
-            return (
-              <Input
-                defaultValue={value}
-                autoFocus
-                onBlur={(e) => {
-                  handleAutoSave(e.target.value.trim());
-                  setEditingCell({ key: null, field: null });
-                }}
-                onPressEnter={(e) => {
-                  handleAutoSave(e.target.value.trim());
-                  setEditingCell({ key: null, field: null });
-                }}
-              />
-            );
-          }
-
           // Display-only Cell (Click to Edit)
           return (
             <div

@@ -9,6 +9,7 @@ import {
   Dropdown,
   Menu,
   message,
+  Tooltip,
 } from "antd";
 import { FilterOutlined, EditOutlined, SaveOutlined } from "@ant-design/icons";
 import axios from "axios";
@@ -17,6 +18,7 @@ import "../index.css";
 import geoData from "../Data/geoData.json";
 import { exportToExcel } from "./exportExcel";
 import Swal from "sweetalert2";
+import { PushpinOutlined, PushpinFilled } from "@ant-design/icons";
 const { Option } = Select;
 const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
@@ -73,6 +75,7 @@ const CampianData = () => {
   const [uniqueValues, setUniqueValues] = useState({});
   const [editingKey, setEditingKey] = useState(null);
   const [editedRow, setEditedRow] = useState({});
+  const [stickyColumns, setStickyColumns] = useState([]);
   const [dropdownOptions, setDropdownOptions] = useState({
     os: ["Android", "APK", "iOS"],
   });
@@ -92,7 +95,11 @@ const CampianData = () => {
       console.error("Error fetching publisher data:", error);
     }
   };
-
+  const toggleStickyColumn = (key) => {
+    setStickyColumns((prev) =>
+      prev.includes(key) ? prev.filter((col) => col !== key) : [...prev, key]
+    );
+  };
   // Fetch Advertiser Data
   const fetchAdvData = async () => {
     try {
@@ -290,7 +297,22 @@ const CampianData = () => {
       ...Object.keys(columnHeadings).map((key) => ({
         title: (
           <div className="flex items-center justify-between">
-            <span className="font-medium">{columnHeadings[key]}</span>
+            <span className="font-medium p-3">{columnHeadings[key]}</span>
+            <Tooltip
+              title={stickyColumns.includes(key) ? "Unpin" : "Pin"}
+              className="p-3">
+              <Button
+                size="small"
+                icon={
+                  stickyColumns.includes(key) ? (
+                    <PushpinFilled style={{ color: "#1677ff" }} />
+                  ) : (
+                    <PushpinOutlined />
+                  )
+                }
+                onClick={() => toggleStickyColumn(key)}
+              />
+            </Tooltip>
             {uniqueValues[key]?.length > 1 && (
               <Dropdown
                 overlay={
@@ -319,6 +341,7 @@ const CampianData = () => {
           </div>
         ),
         dataIndex: key,
+        fixed: stickyColumns.includes(key) ? "left" : undefined,
         key,
         render: (text, record) => {
           return editingKey === record.id ? (
