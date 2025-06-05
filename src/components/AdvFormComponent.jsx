@@ -175,25 +175,58 @@ const AdvertiserCreateForm = () => {
           ? editingAdv.assign_id
           : assign_id,
     };
+    console.log("Submitting advertiser:", newAdv);
     try {
-      if (editingAdv) {
-        // **Update existing advertiser**
-        const response = await axios.put(
-          `${apiUrl}/update-advid`, // Correct endpoint
-          newAdv
-        );
+      try {
+        if (editingAdv) {
+          // **Update existing advertiser**
+          const response = await axios.put(`${apiUrl}/update-advid`, newAdv);
 
-        if (response.data.success) {
-          Swal.fire({
-            icon: "success",
-            title: "Updated",
-            text: "Advertiser updated successfully!",
-          });
+          if (response.data.success) {
+            Swal.fire({
+              icon: "success",
+              title: "Updated",
+              text: "Advertiser updated successfully!",
+            });
+          } else {
+            Swal.fire({
+              icon: "error",
+              title: "Update Failed",
+              text:
+                response.data.message || "Something went wrong while updating.",
+            });
+          }
+
+          setEditingAdv(null);
+        } else {
+          // **Create new advertiser**
+          const response = await axios.post(`${apiUrl}/create-advid`, newAdv);
+          console.log("Response from create-advid:", response.data);
+
+          if (response.data.success) {
+            Swal.fire({
+              icon: "success",
+              title: "Created",
+              text: "Advertiser created successfully!",
+            });
+          } else {
+            Swal.fire({
+              icon: "error",
+              title: "Creation Failed",
+              text:
+                response.data.message || "Something went wrong while creating.",
+            });
+          }
         }
-        setEditingAdv(null);
-      } else {
-        // **Create new advertiser**
-        await axios.post(`${apiUrl}/create-advid`, newAdv);
+      } catch (error) {
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text:
+            error.response?.data?.message ||
+            error.message ||
+            "Unexpected error occurred.",
+        });
       }
 
       // Refresh advertisers after submission
@@ -413,8 +446,7 @@ const AdvertiserCreateForm = () => {
                 );
                 setAssign_id(selectedId);
                 setAssign_user(selectedUser ? selectedUser.username : "");
-              }}
-              required>
+              }}>
               <option value="">Select Sub Admin</option>
               {subAdmins.map((admin) => (
                 <option key={admin.id} value={admin.id}>

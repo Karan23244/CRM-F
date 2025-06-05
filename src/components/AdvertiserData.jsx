@@ -31,6 +31,7 @@ const apiUrl =
 
 const AdvertiserData = () => {
   const user = useSelector((state) => state.auth.user);
+  const userId = user?.id || null;
   const [data, setData] = useState([]);
   const [editingKey, setEditingKey] = useState(null);
   const [editedRow, setEditedRow] = useState({});
@@ -95,13 +96,14 @@ const AdvertiserData = () => {
   };
   const fetchDropdowns = async () => {
     try {
-      const [advmName, payableEvent, mmpTracker, pid, pub_id] =
+      const [advmName, payableEvent, mmpTracker, pid, pub_id, adv_id] =
         await Promise.all([
           axios.get(`${apiUrl}/get-subadmin`),
           axios.get(`${apiUrl}/get-paybleevernt`),
           axios.get(`${apiUrl}/get-mmptracker`),
           axios.get(`${apiUrl}/get-pid`),
           axios.get(`${apiUrl}/get-allpub`),
+          axios.get(`${apiUrl}/advid-data/${userId}`),
         ]);
       setDropdownOptions((prev) => ({
         ...prev,
@@ -122,6 +124,7 @@ const AdvertiserData = () => {
         pid: pid.data?.data?.map((item) => item.pid) || [],
         pub_id: pub_id.data?.data?.map((item) => item.pub_id) || [],
         geo: geoData.geo?.map((item) => item.code) || [],
+        adv_id: adv_id?.data?.advertisements?.map((item) => item.adv_id) || [],
       }));
     } catch (error) {
       message.error("Failed to fetch dropdown options");
@@ -352,7 +355,13 @@ const AdvertiserData = () => {
       .map((key) => ({
         title: (
           <div className="flex items-center gap-2">
-            {columnHeadings[key] || key}
+            <span
+              style={{
+                color: filters[key] ? "#1677ff" : "inherit",
+                fontWeight: filters[key] ? "bold" : "normal",
+              }}>
+              {columnHeadings[key] || key}
+            </span>
             <Tooltip title={stickyColumns.includes(key) ? "Unpin" : "Pin"}>
               <Button
                 size="small"
@@ -595,7 +604,7 @@ const AdvertiserData = () => {
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
             <Button
               type="primary"
-              onClick={() => exportToExcel(data, "advertiser-data.xlsx")}
+              onClick={() => exportToExcel(finalFilteredData, "advertiser-data.xlsx")}
               className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded-lg transition-all duration-200">
               📥 Download Excel
             </Button>

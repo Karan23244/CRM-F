@@ -143,7 +143,13 @@ const PublisherPayoutData = () => {
     return Object.keys(columnHeadings).map((key) => ({
       title: (
         <div className="flex items-center justify-between">
-          <span className="font-medium p-3">{columnHeadings[key]}</span>
+          <span
+            style={{
+              color: filters[key] ? "#1677ff" : "inherit",
+              fontWeight: filters[key] ? "bold" : "normal",
+            }}>
+            {columnHeadings[key] || key}
+          </span>
           <Tooltip
             title={stickyColumns.includes(key) ? "Unpin" : "Pin"}
             className="p-3">
@@ -159,7 +165,7 @@ const PublisherPayoutData = () => {
               onClick={() => toggleStickyColumn(key)}
             />
           </Tooltip>
-          {uniqueValues[key]?.length > 1 && (
+          {uniqueValues[key] && (
             <Dropdown
               overlay={
                 <Menu>
@@ -225,13 +231,13 @@ const PublisherPayoutData = () => {
       <div className="w-full bg-white p-4 rounded shadow-md">
         {/* Header Bar */}
         <div className="mb-4 flex flex-col md:flex-row gap-3 items-center justify-between">
-          <Button
-            type="primary"
-            onClick={handleExport} // <-- Use handleExport with alert
-            className="bg-blue-600 hover:bg-blue-700 text-white">
-            📥 Download Excel
-          </Button>
-          <div className="flex justify-end">
+          <div className="flex gap-3">
+            <Button
+              type="primary"
+              onClick={handleExport} // <-- Use handleExport with alert
+              className="bg-blue-600 hover:bg-blue-700 text-white">
+              📥 Download Excel
+            </Button>
             <Button onClick={clearAllFilters} type="default">
               Remove All Filters
             </Button>

@@ -76,6 +76,7 @@ const CampianData = () => {
   const [editingKey, setEditingKey] = useState(null);
   const [editedRow, setEditedRow] = useState({});
   const [stickyColumns, setStickyColumns] = useState([]);
+  const [editingCell, setEditingCell] = useState({ key: null, field: null });
   const [dropdownOptions, setDropdownOptions] = useState({
     os: ["Android", "APK", "iOS"],
   });
@@ -194,13 +195,14 @@ const CampianData = () => {
   // Fetch Dropdown Options
   const fetchDropdowns = async () => {
     try {
-      const [advmName, payableEvent, mmpTracker, pid, review] =
+      const [advmName, payableEvent, mmpTracker, pid, review, adv_id] =
         await Promise.all([
           axios.get(`${apiUrl}/get-subadmin`),
           axios.get(`${apiUrl}/get-paybleevernt`),
           axios.get(`${apiUrl}/get-mmptracker`),
           axios.get(`${apiUrl}/get-pid`),
           axios.get(`${apiUrl}/get-reviews`),
+          axios.get(`${apiUrl}/get-NameAdv`),
         ]);
       setDropdownOptions((prev) => ({
         ...prev,
@@ -219,9 +221,10 @@ const CampianData = () => {
         payable_event:
           payableEvent.data?.data?.map((item) => item.payble_event) || [],
         mmp_tracker: mmpTracker.data?.data?.map((item) => item.mmptext) || [],
-        p_id: pid.data?.data?.map((item) => item.pid) || [],
+        pid: pid.data?.data?.map((item) => item.pid) || [],
         review: review.data?.data?.map((item) => item.review_text) || [],
         geo: geoData.geo?.map((item) => item.code) || [],
+        adv_id: adv_id?.data?.data?.map((item) => item.adv_id) || [],
       }));
     } catch (error) {
       message.error("Failed to fetch dropdown options");
@@ -295,12 +298,183 @@ const CampianData = () => {
   };
 
   // Generate Columns Dynamically with Edit + Filters
+  // const getColumns = (columnHeadings) => {
+  //   return [
+  //     ...Object.keys(columnHeadings).map((key) => ({
+  //       title: (
+  //         <div className="flex items-center justify-between">
+  //           <span
+  //             style={{
+  //               color: filters[key] ? "#1677ff" : "inherit",
+  //               fontWeight: filters[key] ? "bold" : "normal",
+  //             }}>
+  //             {columnHeadings[key] || key}
+  //           </span>
+  //           <Tooltip
+  //             title={stickyColumns.includes(key) ? "Unpin" : "Pin"}
+  //             className="p-3">
+  //             <Button
+  //               size="small"
+  //               icon={
+  //                 stickyColumns.includes(key) ? (
+  //                   <PushpinFilled style={{ color: "#1677ff" }} />
+  //                 ) : (
+  //                   <PushpinOutlined />
+  //                 )
+  //               }
+  //               onClick={() => toggleStickyColumn(key)}
+  //             />
+  //           </Tooltip>
+  //           {uniqueValues[key]?.length > 1 && (
+  //             <Dropdown
+  //               overlay={
+  //                 <Menu>
+  //                   <div className="p-3 w-48">
+  //                     <Select
+  //                       allowClear
+  //                       showSearch
+  //                       className="w-full"
+  //                       placeholder={`Filter ${key}`}
+  //                       value={filters[key]}
+  //                       onChange={(value) => handleFilterChange(value, key)}>
+  //                       {uniqueValues[key]
+  //                         ?.filter((val) => val !== null && val !== undefined)
+  //                         .sort((a, b) => {
+  //                           const aNum = parseFloat(a);
+  //                           const bNum = parseFloat(b);
+  //                           const isNumeric = !isNaN(aNum) && !isNaN(bNum);
+
+  //                           if (isNumeric) return aNum - bNum;
+  //                           return a.toString().localeCompare(b.toString());
+  //                         })
+  //                         .map((val) => (
+  //                           <Option key={val} value={val}>
+  //                             {val}
+  //                           </Option>
+  //                         ))}
+  //                     </Select>
+  //                   </div>
+  //                 </Menu>
+  //               }
+  //               trigger={["click"]}
+  //               placement="bottomRight">
+  //               <FilterOutlined className="cursor-pointer text-gray-500 hover:text-black ml-2" />
+  //             </Dropdown>
+  //           )}
+  //         </div>
+  //       ),
+  //       dataIndex: key,
+  //       fixed: stickyColumns.includes(key) ? "left" : undefined,
+  //       key,
+  //       render: (text, record) => {
+  //         return editingKey === record.id ? (
+  //           dropdownOptions[key] ? (
+  //             <Select
+  //               showSearch
+  //               value={editedRow[key]}
+  //               onChange={(value) => handleChange(value, key)}
+  //               style={{ width: "100%" }}>
+  //               {dropdownOptions[key]?.map((option) => (
+  //                 <Option key={option} value={option}>
+  //                   {option}
+  //                 </Option>
+  //               ))}
+  //             </Select>
+  //           ) : key.toLowerCase().includes("date") ? (
+  //             <DatePicker
+  //               value={editedRow[key] ? dayjs(editedRow[key]) : null}
+  //               onChange={(date, dateString) => handleChange(dateString, key)}
+  //               style={{ width: "100%" }}
+  //             />
+  //           ) : (
+  //             <Input
+  //               value={editedRow[key]}
+  //               onChange={(e) => handleChange(e.target.value, key)}
+  //             />
+  //           )
+  //         ) : (
+  //           text
+  //         );
+  //       },
+  //     })),
+  //     {
+  //       title: "Actions",
+  //       fixed: "right",
+  //       key: "actions",
+  //       render: (record) =>
+  //         editingKey === record.id ? (
+  //           <Button
+  //             type="primary"
+  //             icon={<SaveOutlined />}
+  //             onClick={handleSave}
+  //             className="mr-2">
+  //             Save
+  //           </Button>
+  //         ) : (
+  //           <Button
+  //             icon={<EditOutlined />}
+  //             onClick={() => handleEdit(record.id)}>
+  //             Edit
+  //           </Button>
+  //         ),
+  //     },
+  //   ];
+  // };
+  const handleAutoSave = async (newValue, record, key) => {
+    console.log("Auto-saving", newValue, record, key);
+    const updateUrl =
+      selectedType === "publisher"
+        ? `${apiUrl}/pubdata-update/${record.id}`
+        : `${apiUrl}/advdata-update/${record.id}`;
+
+    const updated = { ...record, [key]: newValue };
+
+    // Auto-calculate adv_approved_no
+    if (key === "adv_total_no" || key === "adv_deductions") {
+      const total = key === "adv_total_no" ? newValue : record.adv_total_no;
+      const deductions =
+        key === "adv_deductions" ? newValue : record.adv_deductions;
+
+      const parsedTotal = parseFloat(total);
+      const parsedDeductions = parseFloat(deductions);
+
+      if (!isNaN(parsedTotal) && !isNaN(parsedDeductions)) {
+        updated.adv_approved_no = parsedTotal - parsedDeductions;
+      }
+    }
+
+    try {
+      await axios.post(updateUrl, updated, {
+        headers: { "Content-Type": "application/json" },
+      });
+      // Swal.fire({
+      //   icon: "success",
+      //   title: "Auto-Saved",
+      //   timer: 1000,
+      //   showConfirmButton: false,
+      // });
+      fetchPubData();
+      fetchAdvData();
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "Failed to Auto-Save",
+      });
+    }
+  };
+
   const getColumns = (columnHeadings) => {
     return [
       ...Object.keys(columnHeadings).map((key) => ({
         title: (
           <div className="flex items-center justify-between">
-            <span className="font-medium p-3">{columnHeadings[key]}</span>
+            <span
+              style={{
+                color: filters[key] ? "#1677ff" : "inherit",
+                fontWeight: filters[key] ? "bold" : "normal",
+              }}>
+              {columnHeadings[key] || key}
+            </span>
             <Tooltip
               title={stickyColumns.includes(key) ? "Unpin" : "Pin"}
               className="p-3">
@@ -334,7 +508,6 @@ const CampianData = () => {
                             const aNum = parseFloat(a);
                             const bNum = parseFloat(b);
                             const isNumeric = !isNaN(aNum) && !isNaN(bNum);
-
                             if (isNumeric) return aNum - bNum;
                             return a.toString().localeCompare(b.toString());
                           })
@@ -358,57 +531,87 @@ const CampianData = () => {
         fixed: stickyColumns.includes(key) ? "left" : undefined,
         key,
         render: (text, record) => {
-          return editingKey === record.id ? (
-            dropdownOptions[key] ? (
-              <Select
-                showSearch
-                value={editedRow[key]}
-                onChange={(value) => handleChange(value, key)}
-                style={{ width: "100%" }}>
-                {dropdownOptions[key]?.map((option) => (
-                  <Option key={option} value={option}>
-                    {option}
-                  </Option>
-                ))}
-              </Select>
-            ) : key.toLowerCase().includes("date") ? (
-              <DatePicker
-                value={editedRow[key] ? dayjs(editedRow[key]) : null}
-                onChange={(date, dateString) => handleChange(dateString, key)}
-                style={{ width: "100%" }}
-              />
-            ) : (
-              <Input
-                value={editedRow[key]}
-                onChange={(e) => handleChange(e.target.value, key)}
-              />
-            )
-          ) : (
-            text
+          const isEditing =
+            editingCell.key === record.id && editingCell.field === key;
+          const value = record[key];
+
+          if (isEditing) {
+            if (dropdownOptions[key]) {
+              return (
+                <Select
+                  defaultValue={value}
+                  autoFocus
+                  style={{ width: "100%" }}
+                  onChange={(val) => {
+                    handleAutoSave(val, record, key);
+                    setEditingCell({ key: null, field: null });
+                  }}
+                  onBlur={() => setEditingCell({ key: null, field: null })}>
+                  {dropdownOptions[key].map((opt) => (
+                    <Option key={opt} value={opt}>
+                      {opt}
+                    </Option>
+                  ))}
+                </Select>
+              );
+            } else if (key.toLowerCase().includes("date")) {
+              return (
+                <DatePicker
+                  allowClear
+                  value={value ? dayjs(value) : null}
+                  format="YYYY-MM-DD"
+                  onChange={(date) => {
+                    const formattedDate = date ? date.format("YYYY-MM-DD") : "";
+                    handleAutoSave(formattedDate, record, key); // ✅ Now record/key passed correctly
+                    setEditingCell({ key: null, field: null });
+                  }}
+                  autoFocus
+                />
+              );
+            } else {
+              return (
+                <Input
+                  defaultValue={value}
+                  autoFocus
+                  onBlur={(e) => {
+                    handleAutoSave(e.target.value.trim(), record, key);
+                    setEditingCell({ key: null, field: null });
+                  }}
+                  onPressEnter={(e) => {
+                    handleAutoSave(e.target.value.trim(), record, key);
+                    setEditingCell({ key: null, field: null });
+                  }}
+                />
+              );
+            }
+          }
+
+          return (
+            <div
+              style={{ cursor: "pointer" }}
+              onClick={() => setEditingCell({ key: record.id, field: key })}>
+              {value || "-"}
+            </div>
           );
         },
       })),
-      {
-        title: "Actions",
-        fixed: "right",
-        key: "actions",
-        render: (record) =>
-          editingKey === record.id ? (
-            <Button
-              type="primary"
-              icon={<SaveOutlined />}
-              onClick={handleSave}
-              className="mr-2">
-              Save
-            </Button>
-          ) : (
-            <Button
-              icon={<EditOutlined />}
-              onClick={() => handleEdit(record.id)}>
-              Edit
-            </Button>
-          ),
-      },
+      // {
+      //   title: "Actions",
+      //   fixed: "right",
+      //   key: "actions",
+      //   render: (record) => (
+      //     <Button
+      //       icon={<EditOutlined />}
+      //       onClick={() =>
+      //         setEditingCell({
+      //           key: record.id,
+      //           field: Object.keys(columnHeadings)[0],
+      //         })
+      //       }>
+      //       Edit
+      //     </Button>
+      //   ),
+      // },
     ];
   };
   return (
@@ -439,14 +642,15 @@ const CampianData = () => {
       {/* Controls Section */}
       <div className="bg-white rounded-lg shadow-md p-4 mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <button
-          onClick={() =>
-            exportToExcel(
-              selectedType === "publisher" ? pubData : advData,
-              selectedType === "publisher"
-                ? "publisher-data.xlsx"
-                : "advertiser-data.xlsx"
-            )
-          }
+          // onClick={() =>
+          //   exportToExcel(
+          //     selectedType === "publisher" ? pubData : advData,
+          //     selectedType === "publisher"
+          //       ? "publisher-data.xlsx"
+          //       : "advertiser-data.xlsx"
+          //   )
+          // }
+          onClick={() => exportToExcel(filteredData, "advertiser-data.xlsx")}
           className="bg-blue-600 hover:bg-blue-700 transition text-white px-5 py-2 rounded-lg font-medium shadow">
           📥 Download Excel
         </button>

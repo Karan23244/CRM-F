@@ -293,112 +293,81 @@ const PublisherPayoutData = () => {
   }, [filters, searchTerm, visibleData, selectedDateRange]);
 
   const getColumns = (columnHeadings) => {
-    return [
-      ...Object.keys(columnHeadings).map((key) => ({
-        title: (
-          <div className="flex items-center justify-between">
-            <span className="font-medium p-3">{columnHeadings[key]}</span>
-            <Tooltip
-              title={stickyColumns.includes(key) ? "Unpin" : "Pin"}
-              className="p-3">
-              <Button
-                size="small"
-                icon={
-                  stickyColumns.includes(key) ? (
-                    <PushpinFilled style={{ color: "#1677ff" }} />
-                  ) : (
-                    <PushpinOutlined />
-                  )
-                }
-                onClick={() => toggleStickyColumn(key)}
-              />
-            </Tooltip>
-            {uniqueValues[key]?.length > 1 && (
-              <Dropdown
-                overlay={
-                  <Menu>
-                    <div className="p-3 w-48">
-                      <Select
-                        showSearch
-                        allowClear
-                        className="w-full"
-                        placeholder={`Filter ${key}`}
-                        value={filters[key]}
-                        onChange={(value) => handleFilterChange(value, key)}
-                        optionFilterProp="children"
-                        filterOption={(input, option) =>
-                          option?.children
-                            ?.toLowerCase()
-                            .includes(input.toLowerCase())
-                        }>
-                        {[...uniqueValues[key]]
-                          .filter((val) => val !== null && val !== undefined) // remove null/undefined
-                          .sort((a, b) => {
-                            const aNum = parseFloat(a);
-                            const bNum = parseFloat(b);
-                            const isNumeric = !isNaN(aNum) && !isNaN(bNum);
-
-                            if (isNumeric) return aNum - bNum;
-                            return a.toString().localeCompare(b.toString());
-                          })
-                          .map((val) => (
-                            <Option key={val} value={val}>
-                              {val}
-                            </Option>
-                          ))}
-                      </Select>
-                    </div>
-                  </Menu>
-                }
-                trigger={["click"]}
-                placement="bottomRight">
-                <FilterOutlined className="cursor-pointer text-gray-500 hover:text-black ml-2" />
-              </Dropdown>
-            )}
-          </div>
-        ),
-        dataIndex: key,
-        fixed: stickyColumns.includes(key) ? "left" : undefined,
-        key,
-        render: (text, record) =>
-          editingKey === record.id && key === "pay_out" ? (
-            <Input
-              value={editedRow[key]}
-              onChange={(e) => handleChange(e.target.value, key)}
+    return Object.keys(columnHeadings).map((key) => ({
+      title: (
+        <div className="flex items-center justify-between">
+          <span
+            style={{
+              color: filters[key] ? "#1677ff" : "inherit",
+              fontWeight: filters[key] ? "bold" : "normal",
+            }}>
+            {columnHeadings[key] || key}
+          </span>
+          <Tooltip
+            title={stickyColumns.includes(key) ? "Unpin" : "Pin"}
+            className="p-3">
+            <Button
+              size="small"
+              icon={
+                stickyColumns.includes(key) ? (
+                  <PushpinFilled style={{ color: "#1677ff" }} />
+                ) : (
+                  <PushpinOutlined />
+                )
+              }
+              onClick={() => toggleStickyColumn(key)}
             />
-          ) : (
-            text
-          ),
-      })),
-      {
-        title: "Actions",
-        fixed: "right",
-        key: "actions",
-        render: (record) => {
-          const createdDate = dayjs(record.created_at);
-          const threeDaysAgo = dayjs().subtract(3, "day");
-          const isEditDisabled = createdDate.isBefore(threeDaysAgo);
+          </Tooltip>
+          {uniqueValues[key] && (
+            <Dropdown
+              overlay={
+                <Menu>
+                  <div className="p-3 w-48">
+                    <Select
+                      showSearch
+                      allowClear
+                      className="w-full"
+                      placeholder={`Filter ${key}`}
+                      value={filters[key]}
+                      onChange={(value) => handleFilterChange(value, key)}
+                      optionFilterProp="children"
+                      filterOption={(input, option) =>
+                        option?.children
+                          ?.toLowerCase()
+                          .includes(input.toLowerCase())
+                      }>
+                      {[...uniqueValues[key]]
+                        .filter((val) => val !== null && val !== undefined) // remove null/undefined
+                        .sort((a, b) => {
+                          const aNum = parseFloat(a);
+                          const bNum = parseFloat(b);
+                          const isNumeric = !isNaN(aNum) && !isNaN(bNum);
 
-          return editingKey === record.id ? (
-            <Button
-              type="primary"
-              icon={<SaveOutlined />}
-              onClick={handleSave}
-              className="mr-2">
-              Save
-            </Button>
-          ) : (
-            <Button
-              icon={<EditOutlined />}
-              onClick={() => handleEdit(record.id)}
-              disabled={isEditDisabled}>
-              Edit
-            </Button>
-          );
-        },
-      },
-    ];
+                          if (isNumeric) return aNum - bNum;
+                          return a.toString().localeCompare(b.toString());
+                        })
+                        .map((val) => (
+                          <Option key={val} value={val}>
+                            {val}
+                          </Option>
+                        ))}
+                    </Select>
+                  </div>
+                </Menu>
+              }
+              trigger={["click"]}
+              placement="bottomRight">
+              <FilterOutlined className="cursor-pointer text-gray-500 hover:text-black ml-2" />
+            </Dropdown>
+          )}
+        </div>
+      ),
+      dataIndex: key,
+      fixed: stickyColumns.includes(key) ? "left" : undefined,
+      key,
+    }));
   };
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen flex flex-col items-center">
       <div className="w-full bg-white p-6 rounded-xl shadow-lg border border-gray-200">
@@ -407,7 +376,7 @@ const PublisherPayoutData = () => {
             {/* Download Excel Button */}
             <Button
               type="primary"
-              onClick={() => exportToExcel(data, "advertiser-data.xlsx")}
+              onClick={() => exportToExcel(filteredData, "advertiser-data.xlsx")}
               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-lg shadow-md transition duration-300 transform hover:scale-105">
               📥 <span>Download Excel</span>
             </Button>
