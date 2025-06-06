@@ -44,7 +44,7 @@ const columnHeadingsAdv = {
   shared_date: "Shared Date",
   paused_date: "Paused Date",
   adv_total_no: "ADV Total Numbers",
-  adv_approved_no: "ADV Approved Numbers",
+  pub_Apno: "Pub Total Numbers",
 };
 
 const PublisherPayoutData = () => {

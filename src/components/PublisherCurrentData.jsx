@@ -75,7 +75,8 @@ const PublisherPayoutData = () => {
     pay_out: "PUB Payout $",
     shared_date: "Shared Date",
     paused_date: "Paused Date",
-    pub_Apno: "Pub Approved Numbers",
+    adv_total_no: "ADV Total Numbers",
+    pub_Apno: "Pub Total Numbers",
   };
   const toggleStickyColumn = (key) => {
     setStickyColumns((prev) =>
