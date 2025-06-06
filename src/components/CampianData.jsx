@@ -245,12 +245,28 @@ const CampianData = () => {
     }
   };
   // Handle Filter Change
+  // Handle Filter Change
   const handleFilterChange = (value, key) => {
     setFilters((prev) => ({
       ...prev,
-      [key]: value,
+      [key]: value?.length ? value : undefined,
     }));
   };
+
+  // Apply filters
+  useEffect(() => {
+    const data = selectedType === "publisher" ? pubData : advData;
+    const filtered = data.filter((item) =>
+      Object.keys(filters).every((key) => {
+        if (!filters[key]) return true;
+        if (Array.isArray(filters[key])) {
+          return filters[key].includes(item[key]);
+        }
+        return item[key] === filters[key];
+      })
+    );
+    setFilteredData(filtered.filter((row) => !isRowEmpty(row)));
+  }, [filters, pubData, advData, selectedType]);
 
   // Handle Edit
   const handleEdit = (id) => {
@@ -491,17 +507,19 @@ const CampianData = () => {
               />
             </Tooltip>
             {uniqueValues[key]?.length > 1 && (
-              <Dropdown
+             <Dropdown
                 overlay={
                   <Menu>
                     <div className="p-3 w-48">
                       <Select
+                        mode="multiple"
                         allowClear
                         showSearch
                         className="w-full"
                         placeholder={`Filter ${key}`}
-                        value={filters[key]}
-                        onChange={(value) => handleFilterChange(value, key)}>
+                        value={filters[key] || []}
+                        onChange={(value) => handleFilterChange(value, key)}
+                        optionLabelProp="label">
                         {uniqueValues[key]
                           ?.filter((val) => val !== null && val !== undefined)
                           .sort((a, b) => {
@@ -512,8 +530,10 @@ const CampianData = () => {
                             return a.toString().localeCompare(b.toString());
                           })
                           .map((val) => (
-                            <Option key={val} value={val}>
-                              {val}
+                            <Option key={val} value={val} label={val}>
+                              <Checkbox checked={filters[key]?.includes(val)}>
+                                {val}
+                              </Checkbox>
                             </Option>
                           ))}
                       </Select>

@@ -17,26 +17,45 @@ function Validation() {
   const [selectedAdv, setSelectedAdv] = useState([]);
   const [toEmails, setToEmails] = useState("");
   const [ccEmails, setCcEmails] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [bccEmails, setBccEmails] = useState("");
   const [address, setAddress] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState(null);
   const [subject, setSubject] = useState("");
-  const [textContent, setTextContent] = useState(`Hi Team,
-
-Greetings from Click Orbits!!
-Kindly find attached the invoice for MONTH YYYY,
-At the outset, we'd like to thank you for your continued support and relationship. 
-It's a privilege for us to work with ADV NAME and a pleasure for us to provide you with the best of our services. 
-
-For any clarification, kindly feel free to get in touch with us.`);
+  const [textContent, setTextContent] = useState(``);
   const [htmlContent, setHtmlContent] = useState("");
   const [attachment, setAttachment] = useState(null);
   const [attachmentName, setAttachmentName] = useState("");
   const [isINR, setIsINR] = useState(false);
   const [inrValue, setInrValue] = useState("");
-  const [selectedMonth, setSelectedMonth] = useState(null);
   const [calculatedResult, setCalculatedResult] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
   const invoiceRef = useRef(null);
+  useEffect(() => {
+    const formattedMonth = selectedMonth
+      ? dayjs(selectedMonth).format("MMMM YYYY")
+      : "[Select Month]";
+    const formattedAdvs = selectedAdv.join(", ") || "[Select Advertiser]";
+
+    const updatedText = `Hi Team,
+
+Greetings from Click Orbits!!
+Kindly find attached the invoice for ${formattedMonth}.
+At the outset, we'd like to thank you for your continued support and relationship. 
+It's a privilege for us to work with ${formattedAdvs} and a pleasure for us to provide you with the best of our services. 
+
+For any clarification, kindly feel free to get in touch with us.`;
+
+    setTextContent(updatedText);
+  }, [selectedMonth, selectedAdv]);
+
+  const selectedDate = selectedMonth?.$d
+    ? new Date(selectedMonth.$d)
+    : new Date();
+  const month = selectedDate.toLocaleString("default", {
+    month: "long",
+    year: "numeric",
+  });
   useEffect(() => {
     fetchAdvData();
     axios
@@ -131,141 +150,115 @@ For any clarification, kindly feel free to get in touch with us.`);
       setAttachmentName(info.file.name);
     }
   };
-  // const handleSubmit = async () => {
-  //   const dataToSend = {
-  //     selectedAdv,
-  //     toEmails,
-  //     ccEmails,
-  //     bccEmails,
-  //     subject,
-  //     textContent,
-  //     htmlContent,
-  //     attachmentName,
-  //     isINR,
-  //     inrValue,
-  //     selectedMonth: selectedMonth
-  //       ? dayjs(selectedMonth).format("YYYY-MM")
-  //       : null,
-  //     calculatedResult,
-  //   };
-
-  //   try {
-  //     if (!invoiceRef.current) {
-  //       alert("Invoice preview is not ready.");
-  //       return;
-  //     }
-
-  //     const canvas = await html2canvas(invoiceRef.current);
-  //     const imgData = canvas.toDataURL("image/png");
-
-  //     const pdf = new jsPDF();
-  //     const imgProps = pdf.getImageProperties(imgData);
-  //     const pdfWidth = pdf.internal.pageSize.getWidth();
-  //     const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-  //     pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-  //     const pdfBlob = pdf.output("blob");
-
-  //     const formDataToSend = new FormData();
-  //     formDataToSend.append("invoice", pdfBlob, "invoice.pdf");
-  //     formDataToSend.append("data", JSON.stringify(dataToSend));
-
-  //     // You can use fetch or axios to send this to your backend
-  //     console.log("Form data prepared:", formDataToSend);
-  //     alert("Invoice PDF generated successfully!");
-  //   } catch (error) {
-  //     console.error("Error generating PDF:", error);
-  //     alert("Failed to generate invoice. Please try again.");
-  //   }
-  // };
 
   const handleSubmit = async () => {
+    setIsSubmitting(true);
     try {
       if (!invoiceRef.current) {
         alert("Invoice preview is not ready.");
         return;
       }
 
-      // Generate image from invoice DOM
-      const canvas = await html2canvas(invoiceRef.current);
+      // Generate canvas from the invoice DOM
+      const canvas = await html2canvas(invoiceRef.current, { scale: 1 }); // Scale 1 for smaller size
       const imgData = canvas.toDataURL("image/png");
-      console.log("📷 Captured image data:", imgData);
 
-      // Create PDF
+      // Create PDF from canvas image
       const pdf = new jsPDF();
       const imgProps = pdf.getImageProperties(imgData);
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
       pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-      const pdfBlob = pdf.output("blob");
-      console.log("📄 Generated PDF blob:", pdfBlob);
-
-      // Optional: Preview PDF
-      const previewUrl = URL.createObjectURL(pdfBlob);
-      console.log("🔗 Preview URL:", previewUrl);
-      window.open(previewUrl);
-
+      const pdfBlob = pdf.output("blob"); // 📌 Actual file, not base64
       const fileName = `Invoice-${Date.now()}.pdf`;
-      console.log("📁 File name:", fileName);
 
-      // JSX to static HTML string
+      // Email HTML content
       const EmailTemplate = () => (
         <div>
           <p>Hi Team,</p>
           <p>Greetings from Click Orbits!!</p>
           <p>
-            Kindly find attached the invoice for <strong>MONTH YYYY</strong>.
+            Kindly find attached the invoice for <strong>{month}</strong>.
           </p>
           <p>
             At the outset, we'd like to thank you for your continued support and
             relationship. It's a privilege for us to work with{" "}
-            <strong>ADV NAME</strong> and a pleasure for us to provide you with
-            the best of our services.
+            <strong>{selectedAdv}</strong> and a pleasure for us to provide you
+            with the best of our services.
           </p>
           <p>
             For any clarification, kindly feel free to get in touch with us.
           </p>
         </div>
       );
-
       const htmlContent = ReactDOMServer.renderToStaticMarkup(
         <EmailTemplate />
       );
-      console.log("📧 Rendered HTML email content:", htmlContent);
 
-      const emailPayload = {
-        to: toEmails.split(",").map((e) => e.trim()),
-        cc: ccEmails.split(",").map((e) => e.trim()),
-        bcc: bccEmails.split(",").map((e) => e.trim()),
-        subject,
-        text: textContent,
-        html: htmlContent,
-        attachmentName: fileName,
-      };
-      console.log("📦 Email payload:", emailPayload);
+      // Clean email lists
+      const toList = toEmails
+        .split(",")
+        .map((e) => e.trim())
+        .filter(Boolean);
+      const ccList = ccEmails
+        .split(",")
+        .map((e) => e.trim())
+        .filter(Boolean);
+      const bccList = bccEmails
+        .split(",")
+        .map((e) => e.trim())
+        .filter(Boolean);
 
+      // Create FormData payload
       const formData = new FormData();
-      formData.append("invoice", pdfBlob, fileName);
-      formData.append("emailData", JSON.stringify(emailPayload));
-      console.log("📤 FormData prepared for sending.");
+      formData.append("to", JSON.stringify(toList));
+      formData.append("cc", JSON.stringify(ccList));
+      formData.append("bcc", JSON.stringify(bccList));
+      formData.append("subject", subject);
+      formData.append("text", textContent);
+      formData.append("html", htmlContent);
+      formData.append("attachment", pdfBlob, fileName); // ✅ actual file, no base64
+      // for (let [key, value] of formData.entries()) {
+      //   if (value instanceof Blob) {
+      //     console.log(
+      //       `${key}: [Blob] name=${value.name}, type=${value.type}, size=${value.size}`
+      //     );
+      //   } else {
+      //     console.log(`${key}: ${value}`);
+      //   }
+      // }
 
-      await axios.post(`${apiUrl}/email`, formData);
+      // Send request
+      const response = await fetch(`${apiUrl}/email`, {
+        method: "POST",
+        body: formData,
+      });
 
+      // if (!response.ok) throw new Error("Failed to send email");
       alert("✅ Invoice emailed successfully!");
+      // 👉 Open the PDF in new browser tab
+      const pdfURL = URL.createObjectURL(pdfBlob);
+      window.open(pdfURL, "_blank");
     } catch (error) {
-      console.error("❌ Error generating or sending PDF:", error);
-      alert("Failed to generate or send invoice. Please try again.");
+      console.error("❌ Error sending PDF:", error);
+      alert("Failed to send invoice. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="max-w-8xl mx-auto my-2 p-6 bg-white shadow-lg rounded-xl">
-      <h1 className="text-3xl font-bold text-center mb-6">Validation Form</h1>
+    <div className="max-w-8xl mx-auto my-8 p-8 bg-white shadow-2xl rounded-2xl border border-gray-200">
+      <h1 className="text-4xl font-bold text-center text-blue-800 mb-10">
+        📩 Validation Form
+      </h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Advertisers */}
         <div>
-          <label className="block font-medium mb-1">Advertisers</label>
+          <label className="block text-lg font-semibold text-gray-700 mb-2">
+            Advertisers
+          </label>
           <Select
             mode="multiple"
             allowClear
@@ -280,8 +273,11 @@ For any clarification, kindly feel free to get in touch with us.`);
           </Select>
         </div>
 
+        {/* To */}
         <div>
-          <label className="block font-medium mb-1">To</label>
+          <label className="block text-lg font-semibold text-gray-700 mb-2">
+            To
+          </label>
           <Input
             value={toEmails}
             onChange={(e) => setToEmails(e.target.value)}
@@ -289,8 +285,11 @@ For any clarification, kindly feel free to get in touch with us.`);
           />
         </div>
 
+        {/* CC */}
         <div>
-          <label className="block font-medium mb-1">CC</label>
+          <label className="block text-lg font-semibold text-gray-700 mb-2">
+            CC
+          </label>
           <Input
             value={ccEmails}
             onChange={(e) => setCcEmails(e.target.value)}
@@ -298,8 +297,11 @@ For any clarification, kindly feel free to get in touch with us.`);
           />
         </div>
 
+        {/* BCC */}
         <div>
-          <label className="block font-medium mb-1">BCC</label>
+          <label className="block text-lg font-semibold text-gray-700 mb-2">
+            BCC
+          </label>
           <Input
             value={bccEmails}
             onChange={(e) => setBccEmails(e.target.value)}
@@ -307,8 +309,11 @@ For any clarification, kindly feel free to get in touch with us.`);
           />
         </div>
 
+        {/* Subject */}
         <div className="col-span-1 md:col-span-2">
-          <label className="block font-medium mb-1">Subject</label>
+          <label className="block text-lg font-semibold text-gray-700 mb-2">
+            Subject
+          </label>
           <Input
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
@@ -316,17 +321,24 @@ For any clarification, kindly feel free to get in touch with us.`);
           />
         </div>
 
+        {/* Text Content */}
         <div className="col-span-1 md:col-span-2">
-          <label className="block font-medium mb-1">Plain Text</label>
+          <label className="block text-lg font-semibold text-gray-700 mb-2">
+            Plain Text
+          </label>
           <Input.TextArea
-            rows={15}
+            rows={8}
             value={textContent}
             onChange={(e) => setTextContent(e.target.value)}
             placeholder="Plain text message"
           />
         </div>
+
+        {/* Address */}
         <div className="col-span-1 md:col-span-2">
-          <label className="block font-medium mb-1">Address</label>
+          <label className="block text-lg font-semibold text-gray-700 mb-2">
+            Address
+          </label>
           <Input
             value={address}
             onChange={(e) => setAddress(e.target.value)}
@@ -334,12 +346,11 @@ For any clarification, kindly feel free to get in touch with us.`);
           />
         </div>
 
-        {/* Hidden HTML preview */}
-        <div className="hidden">
-          <Input.TextArea rows={4} value={htmlContent} readOnly />
-        </div>
-
+        {/* File Upload */}
         <div className="col-span-1 md:col-span-2">
+          <label className="block text-lg font-semibold text-gray-700 mb-2">
+            Attachment
+          </label>
           <Upload
             beforeUpload={() => false}
             onChange={handleAttachmentChange}
@@ -347,13 +358,14 @@ For any clarification, kindly feel free to get in touch with us.`);
             <Button icon={<UploadOutlined />}>Attach File</Button>
           </Upload>
           {attachmentName && (
-            <p className="mt-1 text-sm text-gray-600">
+            <p className="mt-2 text-sm text-green-600 font-medium">
               Attached: {attachmentName}
             </p>
           )}
         </div>
 
-        <div className="col-span-1 md:col-span-2 flex flex-wrap gap-4 items-center">
+        {/* Currency & Value */}
+        <div className="col-span-1 md:col-span-2 flex flex-wrap items-center gap-6">
           <Checkbox
             checked={isINR}
             onChange={(e) => setIsINR(e.target.checked)}>
@@ -364,10 +376,11 @@ For any clarification, kindly feel free to get in touch with us.`);
             onChange={(e) => setIsINR(!e.target.checked)}>
             ClickOrbits Pte Ltd (USD)
           </Checkbox>
+
           {isINR && (
             <Input
               type="number"
-              className="w-40"
+              className="w-52"
               value={inrValue}
               onChange={(e) => setInrValue(e.target.value)}
               placeholder="INR Rate (e.g., 83.5)"
@@ -375,7 +388,11 @@ For any clarification, kindly feel free to get in touch with us.`);
           )}
         </div>
 
+        {/* Month Picker */}
         <div className="col-span-1 md:col-span-2">
+          <label className="block text-lg font-semibold text-gray-700 mb-2">
+            Month
+          </label>
           <DatePicker
             picker="month"
             className="w-full"
@@ -384,8 +401,9 @@ For any clarification, kindly feel free to get in touch with us.`);
           />
         </div>
 
+        {/* Calculated Result */}
         {calculatedResult && (
-          <div className="col-span-1 md:col-span-2 p-4 bg-green-100 text-green-800 rounded text-center mt-2">
+          <div className="col-span-1 md:col-span-2 p-4 bg-green-100 text-green-800 text-lg rounded-lg text-center">
             Total Payout:{" "}
             <strong>
               {isINR ? "₹" : "$"}
@@ -393,8 +411,12 @@ For any clarification, kindly feel free to get in touch with us.`);
             </strong>
           </div>
         )}
-        <div className="py-4">
-          {/* Hidden Invoice Preview for PDF Generation */}
+
+        {/* Hidden Invoice for PDF */}
+        <div className="hidden">
+          <Input.TextArea rows={4} value={htmlContent} readOnly />
+        </div>
+        <div className="hidden">
           <div
             ref={invoiceRef}
             style={{ position: "absolute", left: "-9999px", top: "-9999px" }}>
@@ -406,29 +428,38 @@ For any clarification, kindly feel free to get in touch with us.`);
               address={address}
             />
           </div>
-
-          {/* Visible Invoice Preview */}
-          {showPreview && (
-            <div className="mt-6 p-6">
-              <InvoiceComponent
-                selectedAdvertisers={selectedAdv}
-                amount={calculatedResult}
-                isINR={isINR}
-                selectedMonth={selectedMonth}
-                address={address}
-              />
-            </div>
-          )}
         </div>
 
-        <div className="text-center">
+        {/* Preview Invoice */}
+        {showPreview && (
+          <div className="col-span-1 md:col-span-2 bg-gray-50 p-6 rounded-lg mt-6 shadow">
+            <InvoiceComponent
+              selectedAdvertisers={selectedAdv}
+              amount={calculatedResult}
+              isINR={isINR}
+              selectedMonth={selectedMonth}
+              address={address}
+            />
+          </div>
+        )}
+
+        {/* Preview Toggle */}
+        <div className="col-span-1 md:col-span-2 text-center mt-4">
           <Button type="default" onClick={() => setShowPreview(!showPreview)}>
             {showPreview ? "Hide Invoice Preview" : "Show Invoice Preview"}
           </Button>
         </div>
-        <div className="col-span-1 w-full md:col-span-2 text-center mt-6">
-          <Button type="primary" size="large" onClick={handleSubmit}>
-            Submit
+
+        {/* Submit Button */}
+        <div className="col-span-1 md:col-span-2 text-center mt-8">
+          <Button
+            type="primary"
+            size="large"
+            className="px-10"
+            onClick={handleSubmit}
+            loading={isSubmitting}
+            disabled={isSubmitting}>
+            {isSubmitting ? "Submitting..." : "Submit"}
           </Button>
         </div>
       </div>

@@ -42,6 +42,8 @@ const columnHeadingsAdv = {
   pay_out: "PUB Payout $",
   shared_date: "Shared Date",
   paused_date: "Paused Date",
+  adv_total_no: "ADV Total Numbers",
+  adv_approved_no: "ADV Approved Numbers",
 };
 
 const PublisherPayoutData = () => {
@@ -118,10 +120,13 @@ const PublisherPayoutData = () => {
     }
 
     const matchesPub = item.pub_name === user?.username;
-
-    const matchesFilters = Object.keys(filters).every((key) =>
-      filters[key] ? item[key] === filters[key] : true
-    );
+    const matchesFilters = Object.keys(filters).every((key) => {
+      if (!filters[key]) return true;
+      if (Array.isArray(filters[key])) {
+        return filters[key].includes(item[key]);
+      }
+      return item[key] === filters[key];
+    });
 
     const matchesSearch = !searchTerm.trim()
       ? true
@@ -135,7 +140,7 @@ const PublisherPayoutData = () => {
   const handleFilterChange = (value, key) => {
     setFilters((prev) => ({
       ...prev,
-      [key]: value,
+      [key]: value?.length ? value : undefined,
     }));
   };
 
@@ -169,34 +174,38 @@ const PublisherPayoutData = () => {
             <Dropdown
               overlay={
                 <Menu>
-                  <div className="p-3 w-48">
+                  <div className="p-3 w-60">
                     <Select
+                      mode="multiple"
                       showSearch
                       allowClear
                       className="w-full"
                       placeholder={`Filter ${key}`}
-                      value={filters[key]}
+                      value={filters[key] || []}
                       onChange={(value) => handleFilterChange(value, key)}
-                      optionFilterProp="children"
+                      optionLabelProp="label"
+                      maxTagCount="responsive"
                       filterOption={(input, option) =>
                         option?.children
                           ?.toLowerCase()
                           .includes(input.toLowerCase())
                       }>
                       {[...uniqueValues[key]]
-                        .filter((val) => val !== null && val !== undefined) // remove null/undefined
+                        .filter((val) => val !== null && val !== undefined)
                         .sort((a, b) => {
                           const aNum = parseFloat(a);
                           const bNum = parseFloat(b);
                           const isNumeric = !isNaN(aNum) && !isNaN(bNum);
-
-                          if (isNumeric) return aNum - bNum;
-                          return a.toString().localeCompare(b.toString());
+                          return isNumeric
+                            ? aNum - bNum
+                            : a.toString().localeCompare(b.toString());
                         })
                         .map((val) => (
-                          <Option key={val} value={val}>
-                            {val}
-                          </Option>
+                          <Select.Option key={val} value={val} label={val}>
+                            <Checkbox checked={filters[key]?.includes(val)}>
+                              {val}
+                            </Checkbox>
+                          </Select.Option>
                         ))}
                     </Select>
                   </div>

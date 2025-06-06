@@ -249,7 +249,7 @@ const CampianAllData = () => {
   const handleFilterChange = (value, key) => {
     setFilters((prev) => ({
       ...prev,
-      [key]: value,
+      [key]: value?.length ? value : undefined,
     }));
   };
 
@@ -257,9 +257,13 @@ const CampianAllData = () => {
   useEffect(() => {
     const data = selectedType === "publisher" ? pubData : advData;
     const filtered = data.filter((item) =>
-      Object.keys(filters).every((key) =>
-        filters[key] ? item[key] === filters[key] : true
-      )
+      Object.keys(filters).every((key) => {
+        if (!filters[key]) return true;
+        if (Array.isArray(filters[key])) {
+          return filters[key].includes(item[key]);
+        }
+        return item[key] === filters[key];
+      })
     );
     setFilteredData(filtered.filter((row) => !isRowEmpty(row)));
   }, [filters, pubData, advData, selectedType]);
@@ -308,130 +312,6 @@ const CampianAllData = () => {
       });
     }
   };
-
-  // Generate Columns Dynamically with Edit + Filters
-  // const getColumns = (columnHeadings) => {
-  //   return [
-  //     ...Object.keys(columnHeadings).map((key) => ({
-  //       title: (
-  //         <div className="flex items-center justify-between">
-  //           <span
-  //             style={{
-  //               color: filters[key] ? "#1677ff" : "inherit",
-  //               fontWeight: filters[key] ? "bold" : "normal",
-  //             }}>
-  //             {columnHeadings[key] || key}
-  //           </span>
-  //           <Tooltip
-  //             title={stickyColumns.includes(key) ? "Unpin" : "Pin"}
-  //             className="p-3">
-  //             <Button
-  //               size="small"
-  //               icon={
-  //                 stickyColumns.includes(key) ? (
-  //                   <PushpinFilled style={{ color: "#1677ff" }} />
-  //                 ) : (
-  //                   <PushpinOutlined />
-  //                 )
-  //               }
-  //               onClick={() => toggleStickyColumn(key)}
-  //             />
-  //           </Tooltip>
-  //           {uniqueValues[key]?.length > 1 && (
-  //             <Dropdown
-  //               overlay={
-  //                 <Menu>
-  //                   <div className="p-3 w-48">
-  //                     <Select
-  //                       allowClear
-  //                       showSearch
-  //                       className="w-full"
-  //                       placeholder={`Filter ${key}`}
-  //                       value={filters[key]}
-  //                       onChange={(value) => handleFilterChange(value, key)}>
-  //                       {uniqueValues[key]
-  //                         ?.filter((val) => val !== null && val !== undefined)
-  //                         .sort((a, b) => {
-  //                           const aNum = parseFloat(a);
-  //                           const bNum = parseFloat(b);
-  //                           const isNumeric = !isNaN(aNum) && !isNaN(bNum);
-
-  //                           if (isNumeric) return aNum - bNum;
-  //                           return a.toString().localeCompare(b.toString());
-  //                         })
-  //                         .map((val) => (
-  //                           <Option key={val} value={val}>
-  //                             {val}
-  //                           </Option>
-  //                         ))}
-  //                     </Select>
-  //                   </div>
-  //                 </Menu>
-  //               }
-  //               trigger={["click"]}
-  //               placement="bottomRight">
-  //               <FilterOutlined className="cursor-pointer text-gray-500 hover:text-black ml-2" />
-  //             </Dropdown>
-  //           )}
-  //         </div>
-  //       ),
-  //       dataIndex: key,
-  //       fixed: stickyColumns.includes(key) ? "left" : undefined,
-  //       key,
-  //       render: (text, record) => {
-  //         return editingKey === record.id ? (
-  //           dropdownOptions[key] ? (
-  //             <Select
-  //               showSearch
-  //               value={editedRow[key]}
-  //               onChange={(value) => handleChange(value, key)}
-  //               style={{ width: "100%" }}>
-  //               {dropdownOptions[key]?.map((option) => (
-  //                 <Option key={option} value={option}>
-  //                   {option}
-  //                 </Option>
-  //               ))}
-  //             </Select>
-  //           ) : key.toLowerCase().includes("date") ? (
-  //             <DatePicker
-  //               value={editedRow[key] ? dayjs(editedRow[key]) : null}
-  //               onChange={(date, dateString) => handleChange(dateString, key)}
-  //               style={{ width: "100%" }}
-  //             />
-  //           ) : (
-  //             <Input
-  //               value={editedRow[key]}
-  //               onChange={(e) => handleChange(e.target.value, key)}
-  //             />
-  //           )
-  //         ) : (
-  //           text
-  //         );
-  //       },
-  //     })),
-  //     {
-  //       title: "Actions",
-  //       fixed: "right",
-  //       key: "actions",
-  //       render: (record) =>
-  //         editingKey === record.id ? (
-  //           <Button
-  //             type="primary"
-  //             icon={<SaveOutlined />}
-  //             onClick={handleSave}
-  //             className="mr-2">
-  //             Save
-  //           </Button>
-  //         ) : (
-  //           <Button
-  //             icon={<EditOutlined />}
-  //             onClick={() => handleEdit(record.id)}>
-  //             Edit
-  //           </Button>
-  //         ),
-  //     },
-  //   ];
-  // };
   const handleAutoSave = async (newValue, record, key) => {
     console.log("Auto-saving", newValue, record, key);
     const updateUrl =
@@ -508,12 +388,14 @@ const CampianAllData = () => {
                   <Menu>
                     <div className="p-3 w-48">
                       <Select
+                        mode="multiple"
                         allowClear
                         showSearch
                         className="w-full"
                         placeholder={`Filter ${key}`}
-                        value={filters[key]}
-                        onChange={(value) => handleFilterChange(value, key)}>
+                        value={filters[key] || []}
+                        onChange={(value) => handleFilterChange(value, key)}
+                        optionLabelProp="label">
                         {uniqueValues[key]
                           ?.filter((val) => val !== null && val !== undefined)
                           .sort((a, b) => {
@@ -524,8 +406,10 @@ const CampianAllData = () => {
                             return a.toString().localeCompare(b.toString());
                           })
                           .map((val) => (
-                            <Option key={val} value={val}>
-                              {val}
+                            <Option key={val} value={val} label={val}>
+                              <Checkbox checked={filters[key]?.includes(val)}>
+                                {val}
+                              </Checkbox>
                             </Option>
                           ))}
                       </Select>
@@ -663,9 +547,7 @@ const CampianAllData = () => {
           //       : "advertiser-data.xlsx"
           //   )
           // }
-          onClick={() =>
-            exportToExcel(filteredData, "advertiser-data.xlsx")
-          }
+          onClick={() => exportToExcel(filteredData, "advertiser-data.xlsx")}
           className="bg-blue-600 hover:bg-blue-700 transition text-white px-5 py-2 rounded-lg font-medium shadow">
           📥 Download Excel
         </button>

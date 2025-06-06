@@ -22,9 +22,9 @@ const InvoiceComponent = ({
   address,
   amount,
   selectedMonth,
+  isINR,
 }) => {
   const [invoiceNumber, setInvoiceNumber] = useState("");
-
   useEffect(() => {
     // Generate unique invoice number
     const serial = invoiceCounter++;
@@ -156,10 +156,7 @@ const InvoiceComponent = ({
                 <p className="s7 custom-class-825">RATE</p>
               </td>
               <td className="custom-class-240">
-                <p className="s7 custom-class-919">
-                  AMOUNT<span className="s8"> </span>IN
-                  <span className="s8"> </span>Currency
-                </p>
+                <p className="s7 custom-class-919">AMOUNT IN Currency</p>
               </td>
             </tr>
             <tr className="custom-class-878">
@@ -195,7 +192,10 @@ const InvoiceComponent = ({
                 <p className="custom-class-722">
                   <br />
                 </p>
-                <p className="s12 custom-class-598">{amount}</p>
+                <p className="s12 custom-class-598">
+                  {isINR ? "₹" : "$"}
+                  {amount}
+                </p>
               </td>
             </tr>
             <tr className="custom-class-392">
@@ -211,7 +211,10 @@ const InvoiceComponent = ({
                 </p>
               </td>
               <td className="custom-class-958">
-                <p className="s12 custom-class-680">{amount}</p>
+                <p className="s12 custom-class-680">
+                  {isINR ? "₹" : "$"}
+                  {amount}
+                </p>
               </td>
             </tr>
             <tr className="custom-class-18">
@@ -307,7 +310,11 @@ const InvoiceComponent = ({
                       <span className="s3">: Click Orbits Pte. Ltd.</span>
                       <span className="s12"> Routing number</span>
                       <span className="s3">: 026073150</span>
-                      <span className="s12"> <br/>Swift/BIC</span>
+                      <span className="s12">
+                        {" "}
+                        <br />
+                        Swift/BIC
+                      </span>
                       <span className="s3">: CMFGUS33</span>
                     </p>
                     <p className="s12 custom-class-194">
@@ -347,10 +354,14 @@ const InvoiceComponent = ({
                     </p>
                     <p className="s4 custom-class-194">
                       <span className="s12">Name</span>
-                      <span className="s3">: Click Orbits Pte. Ltd. <br/></span>
+                      <span className="s3">
+                        : Click Orbits Pte. Ltd. <br />
+                      </span>
                       <span className="s12"> IBAN</span>
                       <span className="s3">: BE25 9679 6422 0782</span>
-                      <span className="s12"><br/> Swift/BIC:</span>
+                      <span className="s12">
+                        <br /> Swift/BIC:
+                      </span>
                       <span className="s3">: TRWIBEB1XXX</span>
                     </p>
                     <p className="s12 custom-class-194">

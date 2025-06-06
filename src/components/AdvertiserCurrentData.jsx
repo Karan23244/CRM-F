@@ -8,6 +8,7 @@ import {
   Select,
   DatePicker,
   message,
+  Checkbox,
   Tooltip,
 } from "antd";
 import {
@@ -126,7 +127,6 @@ const AdvertiserData = () => {
           axios.get(`${apiUrl}/get-allpub`),
           axios.get(`${apiUrl}/advid-data/${userId}`),
         ]);
-      console.log(adv_id);
       setDropdownOptions((prev) => ({
         ...prev,
         // pub_name: advmName.data?.data?.map((item) => item.username) || [],
@@ -297,11 +297,29 @@ const AdvertiserData = () => {
   };
 
   const allowedFieldsAfter3Days = [
+    "adv_id",
+    "campaign_name",
+    "geo",
+    "city",
+    "os",
+    "payable_event",
+    "mmp_tracker",
+    "adv_payout",
+    "pub_name",
+    "pub_id",
+    "pub_am",
+    "pid",
+    "pay_out",
+    "shared_date",
     "paused_date",
     "adv_total_no",
     "adv_deductions",
     "adv_approved_no",
-    "pay_out",
+    // "paused_date",
+    // "adv_total_no",
+    // "adv_deductions",
+    // "adv_approved_no",
+    // "pay_out",
   ];
   const handleFilterChange = (value, key) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -322,18 +340,46 @@ const AdvertiserData = () => {
     }
 
     // Apply advanced filters
+    // const passesAdvancedFilters = Object.keys(filters).every((key) => {
+    //   if (!filters[key]) return true;
+
+    //   // Date range filter
+    //   if (Array.isArray(filters[key]) && filters[key].length === 2) {
+    //     const [start, end] = filters[key];
+    //     return dayjs(item[key]).isBetween(start, end, null, "[]");
+    //   }
+
+    //   return (
+    //     item[key]?.toString().toLowerCase() ===
+    //     filters[key].toString().toLowerCase()
+    //   );
+    // });
     const passesAdvancedFilters = Object.keys(filters).every((key) => {
-      if (!filters[key]) return true;
+      const filterValue = filters[key];
+      if (!filterValue || filterValue.length === 0) return true;
 
       // Date range filter
-      if (Array.isArray(filters[key]) && filters[key].length === 2) {
-        const [start, end] = filters[key];
+      if (
+        Array.isArray(filterValue) &&
+        filterValue.length === 2 &&
+        dayjs(filterValue[0]).isValid()
+      ) {
+        const [start, end] = filterValue;
         return dayjs(item[key]).isBetween(start, end, null, "[]");
       }
 
+      // Multi-select support
+      if (Array.isArray(filterValue)) {
+        return filterValue.some(
+          (val) =>
+            item[key]?.toString().toLowerCase() === val.toString().toLowerCase()
+        );
+      }
+
+      // Single value match
       return (
         item[key]?.toString().toLowerCase() ===
-        filters[key].toString().toLowerCase()
+        filterValue.toString().toLowerCase()
       );
     });
 
@@ -417,56 +463,51 @@ const AdvertiserData = () => {
             return true;
           };
 
-          // const handleAutoSave = async (newValue) => {
-          //   if (!checkEditableAndAlert()) return;
-          //   if (newValue === record[key]) return;
+          function isEmpty(value) {
+            return value === null || value === undefined || value === "";
+          }
 
-          //   const updated = { ...record, [key]: newValue };
-          //   try {
-          //     await axios.post(
-          //       `${apiUrl}/advdata-update/${record.id}`,
-          //       updated,
-          //       {
-          //         headers: { "Content-Type": "application/json" },
-          //       }
-          //     );
-          //     message.success("Auto-saved");
-          //     fetchData();
-          //   } catch (err) {
-          //     message.error("Failed to auto-save");
-          //   }
-          // };
-          // const handleAutoSave = async (newValue) => {
-          //   if (!checkEditableAndAlert()) return;
+          function calculatePubApno(record) {
+            const { adv_deductions, adv_approved_no, adv_payout, pay_out } =
+              record;
 
-          //   const oldValue = record[key] ?? "";
-          //   const newVal = newValue ?? "";
+            if (
+              isEmpty(adv_deductions) ||
+              isEmpty(adv_approved_no) ||
+              isEmpty(adv_payout) ||
+              isEmpty(pay_out)
+            ) {
+              throw new Error(
+                "Missing or empty required fields in the record."
+              );
+            }
 
-          //   if (oldValue === newVal) return;
+            const approved = Number(adv_approved_no);
+            const payout = Number(adv_payout);
+            const pub = Number(pay_out);
 
-          //   const updated = { ...record, [key]: newValue }; // newValue may be null
+            const advAmount = approved * payout;
+            const pubAmount = approved * pub;
+            const seventyPercent = advAmount * 0.7;
 
-          //   try {
-          //     await axios.post(
-          //       `${apiUrl}/advdata-update/${record.id}`,
-          //       updated,
-          //       {
-          //         headers: { "Content-Type": "application/json" },
-          //       }
-          //     );
-          //     message.success("Auto-saved");
-          //     fetchData();
-          //   } catch (err) {
-          //     message.error("Failed to auto-save");
-          //   }
-          // };
-          const handleAutoSave = async (newValue) => {
+            let pub_Apno;
+
+            if (pubAmount > seventyPercent) {
+              pub_Apno = (0.7 * approved * payout) / pub; // Float value
+            } else {
+              pub_Apno = approved;
+            }
+
+            return pub_Apno;
+          }
+          // Handle auto-save logic
+          const handleAutoSave = async (newValue, record, key) => {
+
             if (!checkEditableAndAlert()) return;
             if (newValue === record[key]) return;
 
             const updated = { ...record, [key]: newValue };
 
-            // Auto-calculate adv_approved_no if relevant fields are updated
             if (key === "adv_total_no" || key === "adv_deductions") {
               const total =
                 key === "adv_total_no" ? newValue : record.adv_total_no;
@@ -478,7 +519,33 @@ const AdvertiserData = () => {
 
               if (!isNaN(parsedTotal) && !isNaN(parsedDeductions)) {
                 updated.adv_approved_no = parsedTotal - parsedDeductions;
+              } else {
+                console.warn(
+                  "⚠️ Invalid total or deductions; skipping adv_approved_no calc."
+                );
               }
+            }
+
+            try {
+              const testRecord = { ...record, ...updated };
+
+              if (
+                !isEmpty(testRecord.adv_deductions) &&
+                !isEmpty(testRecord.adv_approved_no) &&
+                !isEmpty(testRecord.adv_payout) &&
+                !isEmpty(testRecord.pay_out)
+              ) {
+                updated.pub_Apno = calculatePubApno(testRecord);
+              } else {
+                console.warn(
+                  "⚠️ Skipped pub_Apno calculation due to missing fields."
+                );
+              }
+            } catch (calcError) {
+              console.error(
+                "❌ Error in pub_Apno calculation:",
+                calcError.message
+              );
             }
 
             try {
@@ -492,6 +559,7 @@ const AdvertiserData = () => {
               message.success("Auto-saved");
               fetchData();
             } catch (err) {
+              console.error("❌ Auto-save failed:", err);
               message.error("Failed to auto-save");
             }
           };
@@ -506,7 +574,7 @@ const AdvertiserData = () => {
                 style={{ width: 120 }}
                 onBlur={() => setEditingCell({ key: null, field: null })}
                 onChange={(val) => {
-                  handleAutoSave(val);
+                  handleAutoSave(val, record, key);
                   setEditingCell({ key: null, field: null });
                 }}
                 autoFocus>
@@ -530,7 +598,7 @@ const AdvertiserData = () => {
                   format="YYYY-MM-DD"
                   onChange={(date) => {
                     const newValue = date ? date.format("YYYY-MM-DD") : null;
-                    handleAutoSave(newValue).finally(() => {
+                    handleAutoSave(newValue, record, key).finally(() => {
                       setEditingCell({ key: null, field: null });
                     });
                   }}
@@ -544,11 +612,11 @@ const AdvertiserData = () => {
                 defaultValue={value}
                 autoFocus
                 onBlur={(e) => {
-                  handleAutoSave(e.target.value.trim());
+                  handleAutoSave(e.target.value.trim(), record, key); // ✅
                   setEditingCell({ key: null, field: null });
                 }}
                 onPressEnter={(e) => {
-                  handleAutoSave(e.target.value.trim());
+                  handleAutoSave(e.target.value.trim(), record, key); // ✅
                   setEditingCell({ key: null, field: null });
                 }}
               />
@@ -572,12 +640,15 @@ const AdvertiserData = () => {
           uniqueValues[key]?.length > 0 ? (
             <div style={{ padding: 8 }}>
               <Select
+                mode="multiple"
                 allowClear
                 showSearch
                 placeholder={`Select ${columnHeadings[key]}`}
-                style={{ width: 200 }}
-                value={filters[key]}
+                style={{ width: 250 }}
+                value={filters[key] || []}
                 onChange={(value) => handleFilterChange(value, key)}
+                optionLabelProp="label"
+                maxTagCount="responsive"
                 filterOption={(input, option) =>
                   String(option?.children || "")
                     .toLowerCase()
@@ -589,13 +660,15 @@ const AdvertiserData = () => {
                     const aNum = parseFloat(a);
                     const bNum = parseFloat(b);
                     const isNumeric = !isNaN(aNum) && !isNaN(bNum);
-
-                    if (isNumeric) return aNum - bNum;
-                    return a.toString().localeCompare(b.toString());
+                    return isNumeric
+                      ? aNum - bNum
+                      : a.toString().localeCompare(b.toString());
                   })
                   .map((val) => (
-                    <Select.Option key={val} value={val}>
-                      {val}
+                    <Select.Option key={val} value={val} label={val}>
+                      <Checkbox checked={filters[key]?.includes(val)}>
+                        {val}
+                      </Checkbox>
                     </Select.Option>
                   ))}
               </Select>
@@ -636,7 +709,6 @@ const AdvertiserData = () => {
       },
     },
   ];
-
   return (
     <>
       <div className="p-4 bg-gray-100 min-h-screen flex flex-col items-center">
@@ -649,7 +721,9 @@ const AdvertiserData = () => {
                 <>
                   <Button
                     type="primary"
-                    onClick={() => exportToExcel(finalFilteredData, "advertiser-data.xlsx")}
+                    onClick={() =>
+                      exportToExcel(finalFilteredData, "advertiser-data.xlsx")
+                    }
                     className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200">
                     📥 Download Excel
                   </Button>

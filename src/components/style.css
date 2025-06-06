@@ -58,7 +58,7 @@
         font-style: normal;
         font-weight: bold;
         text-decoration: none;
-        font-size: 9.5pt;
+        font-size:7pt;
       }
 
       .s8 {
@@ -231,7 +231,7 @@
       }
 
       .custom-class-300 {
-        height: 13pt;
+        height: 20pt;
       }
 
       .custom-class-29 {
@@ -253,7 +253,7 @@
       }
 
       .custom-class-76 {
-        height: 46pt;
+        height:60pt;
       }
 
       .custom-class-383 {
@@ -391,7 +391,7 @@
       }
 
       .custom-class-366 {
-        height: 13pt;
+        height: 20pt;
       }
 
       .custom-class-4 {
@@ -634,7 +634,7 @@
       }
 
       .custom-class-392 {
-        height: 9pt;
+        height: 20pt;
       }
 
       .custom-class-418 {
@@ -769,7 +769,7 @@
       }
 
       .custom-class-312 {
-        height: 36pt;
+        height: 45pt;
       }
 
       .custom-class-315 {
@@ -838,7 +838,7 @@
       }
 
       .custom-class-836 {
-        height: 27pt;
+        height: 45pt;
       }
 
       .custom-class-774 {
@@ -849,7 +849,7 @@
         border-left-style: solid;
         border-left-width: 1pt;
         border-bottom-style: solid;
-        border-bottom-width: 1pt;
+        margin-bottom: 10px;
         border-right-style: solid;
         border-right-width: 1pt;
       }
@@ -888,6 +888,7 @@
       .custom-class-862 {
         padding-left: 6pt;
         text-indent: -5pt;
+        margin-bottom: 10pt;
         text-align: left;
       }
 
@@ -919,7 +920,7 @@
       }
 
       .custom-class-566 {
-        height: 8pt;
+        height: 15pt;
       }
 
       .custom-class-291 {
