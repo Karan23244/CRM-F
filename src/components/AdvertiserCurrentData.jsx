@@ -324,75 +324,140 @@ const AdvertiserData = () => {
   const handleFilterChange = (value, key) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
-  const finalFilteredData = data.filter((item) => {
-    const sharedDate = dayjs(item.shared_date);
+  // const finalFilteredData = data.filter((item) => {
+  //   const sharedDate = dayjs(item.shared_date);
 
+  //   if (
+  //     selectedDateRange &&
+  //     selectedDateRange.length === 2 &&
+  //     selectedDateRange[0] &&
+  //     selectedDateRange[1]
+  //   ) {
+  //     const [start, end] = selectedDateRange;
+  //     if (!sharedDate.isBetween(start, end, null, "[]")) {
+  //       return false;
+  //     }
+  //   }
+
+  //   // Apply advanced filters
+  //   // const passesAdvancedFilters = Object.keys(filters).every((key) => {
+  //   //   if (!filters[key]) return true;
+
+  //   //   // Date range filter
+  //   //   if (Array.isArray(filters[key]) && filters[key].length === 2) {
+  //   //     const [start, end] = filters[key];
+  //   //     return dayjs(item[key]).isBetween(start, end, null, "[]");
+  //   //   }
+
+  //   //   return (
+  //   //     item[key]?.toString().toLowerCase() ===
+  //   //     filters[key].toString().toLowerCase()
+  //   //   );
+  //   // });
+  //   const passesAdvancedFilters = Object.keys(filters).every((key) => {
+  //     const filterValue = filters[key];
+  //     if (!filterValue || filterValue.length === 0) return true;
+
+  //     // Date range filter
+  //     if (
+  //       Array.isArray(filterValue) &&
+  //       filterValue.length === 2 &&
+  //       dayjs(filterValue[0]).isValid()
+  //     ) {
+  //       const [start, end] = filterValue;
+  //       return dayjs(item[key]).isBetween(start, end, null, "[]");
+  //     }
+
+  //     // Multi-select support
+  //     if (Array.isArray(filterValue)) {
+  //       return filterValue.some(
+  //         (val) =>
+  //           item[key]?.toString().toLowerCase() === val.toString().toLowerCase()
+  //       );
+  //     }
+
+  //     // Single value match
+  //     return (
+  //       item[key]?.toString().toLowerCase() ===
+  //       filterValue.toString().toLowerCase()
+  //     );
+  //   });
+
+  //   if (!passesAdvancedFilters) return false;
+
+  //   // Search term filter
+  //   if (!searchTerm.trim()) return true;
+
+  //   const lowerSearchTerm = searchTerm.toLowerCase();
+  //   return Object.values(item).some((value) =>
+  //     String(value).toLowerCase().includes(lowerSearchTerm)
+  //   );
+  // });
+
+  let filteredData = [...data]; // Start from original
+
+  // Step 1: Apply date range filter (sharedDate)
+  if (
+    selectedDateRange &&
+    selectedDateRange.length === 2 &&
+    selectedDateRange[0] &&
+    selectedDateRange[1]
+  ) {
+    const [start, end] = selectedDateRange;
+    filteredData = filteredData.filter((item) =>
+      dayjs(item.shared_date).isBetween(start, end, null, "[]")
+    );
+  }
+
+  // Step 2: Apply advanced filters (dropdown filters)
+  Object.keys(filters).forEach((key) => {
+    const filterValue = filters[key];
+    if (!filterValue || filterValue.length === 0) return;
+
+    // If filter is date range
     if (
-      selectedDateRange &&
-      selectedDateRange.length === 2 &&
-      selectedDateRange[0] &&
-      selectedDateRange[1]
+      Array.isArray(filterValue) &&
+      filterValue.length === 2 &&
+      dayjs(filterValue[0]).isValid()
     ) {
-      const [start, end] = selectedDateRange;
-      if (!sharedDate.isBetween(start, end, null, "[]")) {
-        return false;
-      }
+      const [start, end] = filterValue;
+      filteredData = filteredData.filter((item) =>
+        dayjs(item[key]).isBetween(start, end, null, "[]")
+      );
+      return;
     }
 
-    // Apply advanced filters
-    // const passesAdvancedFilters = Object.keys(filters).every((key) => {
-    //   if (!filters[key]) return true;
-
-    //   // Date range filter
-    //   if (Array.isArray(filters[key]) && filters[key].length === 2) {
-    //     const [start, end] = filters[key];
-    //     return dayjs(item[key]).isBetween(start, end, null, "[]");
-    //   }
-
-    //   return (
-    //     item[key]?.toString().toLowerCase() ===
-    //     filters[key].toString().toLowerCase()
-    //   );
-    // });
-    const passesAdvancedFilters = Object.keys(filters).every((key) => {
-      const filterValue = filters[key];
-      if (!filterValue || filterValue.length === 0) return true;
-
-      // Date range filter
-      if (
-        Array.isArray(filterValue) &&
-        filterValue.length === 2 &&
-        dayjs(filterValue[0]).isValid()
-      ) {
-        const [start, end] = filterValue;
-        return dayjs(item[key]).isBetween(start, end, null, "[]");
-      }
-
-      // Multi-select support
-      if (Array.isArray(filterValue)) {
-        return filterValue.some(
+    // If filter is multi-select
+    if (Array.isArray(filterValue)) {
+      filteredData = filteredData.filter((item) =>
+        filterValue.some(
           (val) =>
             item[key]?.toString().toLowerCase() === val.toString().toLowerCase()
-        );
-      }
+        )
+      );
+      return;
+    }
 
-      // Single value match
-      return (
+    // Single value match
+    filteredData = filteredData.filter(
+      (item) =>
         item[key]?.toString().toLowerCase() ===
         filterValue.toString().toLowerCase()
-      );
-    });
-
-    if (!passesAdvancedFilters) return false;
-
-    // Search term filter
-    if (!searchTerm.trim()) return true;
-
-    const lowerSearchTerm = searchTerm.toLowerCase();
-    return Object.values(item).some((value) =>
-      String(value).toLowerCase().includes(lowerSearchTerm)
     );
   });
+
+  // Step 3: Apply search filter
+  if (searchTerm.trim()) {
+    const lowerSearchTerm = searchTerm.toLowerCase();
+    filteredData = filteredData.filter((item) =>
+      Object.values(item).some((value) =>
+        String(value).toLowerCase().includes(lowerSearchTerm)
+      )
+    );
+  }
+
+  const finalFilteredData = filteredData;
+
   const desiredOrder = [
     "adv_id",
     "campaign_name",
@@ -824,6 +889,49 @@ const AdvertiserData = () => {
                 bordered
                 loading={loading}
                 scroll={{ x: "max-content" }}
+                summary={(pageData) => {
+                  let totalAdvTotalNo = 0;
+                  let totalAdvDeductions = 0;
+                  let totalAdvApprovedNo = 0;
+
+                  pageData.forEach(
+                    ({ adv_total_no, adv_deductions, adv_approved_no }) => {
+                      totalAdvTotalNo += Number(adv_total_no) || 0;
+                      totalAdvDeductions += Number(adv_deductions) || 0;
+                      totalAdvApprovedNo += Number(adv_approved_no) || 0;
+                    }
+                  );
+
+                  return (
+                    <Table.Summary.Row>
+                      {columns.map((col) => {
+                        const key = col.dataIndex;
+
+                        if (key === "adv_total_no") {
+                          return (
+                            <Table.Summary.Cell key={key}>
+                              <b>{totalAdvTotalNo}</b>
+                            </Table.Summary.Cell>
+                          );
+                        } else if (key === "adv_deductions") {
+                          return (
+                            <Table.Summary.Cell key={key}>
+                              <b>{totalAdvDeductions}</b>
+                            </Table.Summary.Cell>
+                          );
+                        } else if (key === "adv_approved_no") {
+                          return (
+                            <Table.Summary.Cell key={key}>
+                              <b>{totalAdvApprovedNo}</b>
+                            </Table.Summary.Cell>
+                          );
+                        } else {
+                          return <Table.Summary.Cell key={key} />;
+                        }
+                      })}
+                    </Table.Summary.Row>
+                  );
+                }}
               />
             ) : (
               <MainComponent />
