@@ -502,7 +502,6 @@ const AdvertiserData = () => {
           }
           // Handle auto-save logic
           const handleAutoSave = async (newValue, record, key) => {
-
             if (!checkEditableAndAlert()) return;
             if (newValue === record[key]) return;
 
@@ -649,8 +648,10 @@ const AdvertiserData = () => {
                 onChange={(value) => handleFilterChange(value, key)}
                 optionLabelProp="label"
                 maxTagCount="responsive"
+                // Use `option.label` for search instead of `children`
                 filterOption={(input, option) =>
-                  String(option?.children || "")
+                  (option?.label ?? "")
+                    .toString()
                     .toLowerCase()
                     .includes(input.toLowerCase())
                 }>
