@@ -50,6 +50,7 @@ const PublisherPayoutData = () => {
   const [subAdmins, setSubAdmins] = useState([]);
 
   const user = useSelector((state) => state.auth.user);
+  console.log(advData, "advData");
   const handleDateRangeChange = (dates) => {
     if (!dates || dates.length === 0) {
       // Reset to current month
@@ -63,6 +64,7 @@ const PublisherPayoutData = () => {
   };
   const columnHeadingsAdv = {
     ...(selectedSubAdmins?.length > 0 && { pub_name: "PUBM Name" }),
+    pub_name: "PUBM Name",
     username: "Adv AM",
     campaign_name: "Campaign Name",
     geo: "GEO",
@@ -75,8 +77,8 @@ const PublisherPayoutData = () => {
     pay_out: "PUB Payout $",
     shared_date: "Shared Date",
     paused_date: "Paused Date",
-    adv_total_no: "ADV Total Numbers",
-    pub_Apno: "Pub Total Numbers",
+    adv_total_no: "PUB Total Numbers",
+    pub_Apno: "PUB Approved Numbers",
   };
   const toggleStickyColumn = (key) => {
     setStickyColumns((prev) =>
@@ -162,7 +164,6 @@ const PublisherPayoutData = () => {
   };
 
   useEffect(() => {
-    console.log("Current filters:", filters);
     const currentMonth = dayjs().month();
     const currentYear = dayjs().year();
 
@@ -173,6 +174,7 @@ const PublisherPayoutData = () => {
         sharedDate?.year() === currentYear;
 
       const matchesPub = item.pub_name === user?.username;
+      console.log(matchesPub);
       const matchesFilters = Object.keys(filters).every((key) => {
         if (!filters[key]) return true;
         if (Array.isArray(filters[key])) {
@@ -194,6 +196,9 @@ const PublisherPayoutData = () => {
         selectedDateRange[1]
       ) {
         const [start, end] = selectedDateRange;
+        if (!sharedDate.isBetween(start, end, null, "[]")) {
+          return false;
+        }
       }
       const matchesSearch = !searchTerm.trim()
         ? true
@@ -206,7 +211,7 @@ const PublisherPayoutData = () => {
 
     setFilteredData(filtered);
     generateUniqueValues(filtered);
-  }, [filters, advData, searchTerm, user]);
+  }, [filters, advData, searchTerm, user,selectedDateRange]);
 
   const handleEdit = (id) => {
     const row = filteredData.find((row) => row.id === id);
