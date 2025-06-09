@@ -684,6 +684,26 @@ const AdvertiserData = () => {
         filterDropdown: () =>
           uniqueValues[key]?.length > 0 ? (
             <div style={{ padding: 8 }}>
+              {/* Select All Checkbox */}
+              <div style={{ marginBottom: 8 }}>
+                <Checkbox
+                  indeterminate={
+                    filters[key]?.length > 0 &&
+                    filters[key]?.length < uniqueValues[key]?.length
+                  }
+                  checked={filters[key]?.length === uniqueValues[key]?.length}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    handleFilterChange(
+                      checked ? [...uniqueValues[key]] : [],
+                      key
+                    );
+                  }}>
+                  Select All
+                </Checkbox>
+              </div>
+
+              {/* Multi Select Dropdown */}
               <Select
                 mode="multiple"
                 allowClear
@@ -694,7 +714,6 @@ const AdvertiserData = () => {
                 onChange={(value) => handleFilterChange(value, key)}
                 optionLabelProp="label"
                 maxTagCount="responsive"
-                // Use `option.label` for search instead of `children`
                 filterOption={(input, option) =>
                   (option?.label ?? "")
                     .toString()
@@ -766,9 +785,20 @@ const AdvertiserData = () => {
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
             <Button
               type="primary"
-              onClick={() =>
-                exportToExcel(finalFilteredData, "advertiser-data.xlsx")
-              }
+              // onClick={() =>
+              //   exportToExcel(finalFilteredData, "advertiser-data.xlsx")
+              // }
+              onClick={() => {
+                const tableDataToExport = finalFilteredData.map((item) => {
+                  const filteredItem = {};
+                  Object.keys(columnHeadings).forEach((key) => {
+                    filteredItem[columnHeadings[key]] = item[key]; // Custom column names
+                  });
+                  return filteredItem;
+                });
+
+                exportToExcel(tableDataToExport, "advertiser-data.xlsx");
+              }}
               className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded-lg transition-all duration-200">
               📥 Download Excel
             </Button>

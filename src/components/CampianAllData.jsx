@@ -121,13 +121,6 @@ const CampianAllData = () => {
     fetchDropdowns();
   }, []);
 
-  // Set initial data based on selection
-  // useEffect(() => {
-  //   const data = selectedType === "publisher" ? pubData : advData;
-  //   setFilteredData(data.filter((row) => !isRowEmpty(row)));
-  //   generateUniqueValues(data);
-  // }, [selectedType, pubData, advData]);
-
   useEffect(() => {
     const data = selectedType === "publisher" ? pubData : advData;
     generateUniqueValues(data);
@@ -386,7 +379,26 @@ const CampianAllData = () => {
               <Dropdown
                 overlay={
                   <Menu>
-                    <div className="p-3 w-48">
+                    <div className="p-3 w-52">
+                      <div className="mb-2">
+                        <Checkbox
+                          indeterminate={
+                            filters[key]?.length > 0 &&
+                            filters[key]?.length < uniqueValues[key]?.length
+                          }
+                          checked={
+                            filters[key]?.length === uniqueValues[key]?.length
+                          }
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            handleFilterChange(
+                              checked ? [...uniqueValues[key]] : [],
+                              key
+                            );
+                          }}>
+                          Select All
+                        </Checkbox>
+                      </div>
                       <Select
                         mode="multiple"
                         allowClear
@@ -491,23 +503,6 @@ const CampianAllData = () => {
           );
         },
       })),
-      // {
-      //   title: "Actions",
-      //   fixed: "right",
-      //   key: "actions",
-      //   render: (record) => (
-      //     <Button
-      //       icon={<EditOutlined />}
-      //       onClick={() =>
-      //         setEditingCell({
-      //           key: record.id,
-      //           field: Object.keys(columnHeadings)[0],
-      //         })
-      //       }>
-      //       Edit
-      //     </Button>
-      //   ),
-      // },
     ];
   };
 
@@ -539,15 +534,25 @@ const CampianAllData = () => {
       {/* Controls Section */}
       <div className="bg-white rounded-lg shadow-md p-4 mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <button
-          // onClick={() =>
-          //   exportToExcel(
-          //     selectedType === "publisher" ? pubData : advData,
-          //     selectedType === "publisher"
-          //       ? "publisher-data.xlsx"
-          //       : "advertiser-data.xlsx"
-          //   )
-          // }
-          onClick={() => exportToExcel(filteredData, "advertiser-data.xlsx")}
+          // onClick={() => exportToExcel(filteredData, "advertiser-data.xlsx")}
+          onClick={() => {
+            const columnHeadings =
+              selectedType === "publisher"
+                ? columnHeadingsPub
+                : columnHeadingsAdv;
+
+            const visibleKeys = Object.keys(columnHeadings);
+
+            const cleanedData = filteredData.map((row) => {
+              const cleanedRow = {};
+              visibleKeys.forEach((key) => {
+                cleanedRow[columnHeadings[key]] = row[key];
+              });
+              return cleanedRow;
+            });
+
+            exportToExcel(cleanedData, `${selectedType}-data.xlsx`);
+          }}
           className="bg-blue-600 hover:bg-blue-700 transition text-white px-5 py-2 rounded-lg font-medium shadow">
           📥 Download Excel
         </button>

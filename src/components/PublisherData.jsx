@@ -171,69 +171,92 @@ const PublisherPayoutData = () => {
               onClick={() => toggleStickyColumn(key)}
             />
           </Tooltip>
-          {uniqueValues[key] && (
-            <Dropdown
-              overlay={
-                <Menu>
-                  <div className="p-3 w-60">
-                    <Select
-                      mode="multiple"
-                      showSearch
-                      allowClear
-                      className="w-full"
-                      placeholder={`Filter ${key}`}
-                      value={filters[key] || []}
-                      onChange={(value) => handleFilterChange(value, key)}
-                      optionLabelProp="label"
-                      maxTagCount="responsive"
-                      filterOption={(input, option) =>
-                        option?.children
-                          ?.toLowerCase()
-                          .includes(input.toLowerCase())
-                      }>
-                      {[...uniqueValues[key]]
-                        .filter((val) => val !== null && val !== undefined)
-                        .sort((a, b) => {
-                          const aNum = parseFloat(a);
-                          const bNum = parseFloat(b);
-                          const isNumeric = !isNaN(aNum) && !isNaN(bNum);
-                          return isNumeric
-                            ? aNum - bNum
-                            : a.toString().localeCompare(b.toString());
-                        })
-                        .map((val) => (
-                          <Select.Option key={val} value={val} label={val}>
-                            <Checkbox checked={filters[key]?.includes(val)}>
-                              {val}
-                            </Checkbox>
-                          </Select.Option>
-                        ))}
-                    </Select>
-                  </div>
-                </Menu>
-              }
-              trigger={["click"]}
-              placement="bottomRight">
-              <FilterOutlined className="cursor-pointer text-gray-500 hover:text-black ml-2" />
-            </Dropdown>
-          )}
         </div>
       ),
+
+      key,
       dataIndex: key,
       fixed: stickyColumns.includes(key) ? "left" : undefined,
-      key,
+
+      // Add filterDropdown to show the custom filter UI (Select All + Select multiple)
+      filterDropdown:
+        uniqueValues[key]?.length > 0
+          ? () => (
+              <div style={{ padding: 8 }}>
+                {/* Select All Checkbox */}
+                <div style={{ marginBottom: 8 }}>
+                  <Checkbox
+                    indeterminate={
+                      filters[key]?.length > 0 &&
+                      filters[key]?.length < uniqueValues[key]?.length
+                    }
+                    checked={filters[key]?.length === uniqueValues[key]?.length}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      handleFilterChange(
+                        checked ? [...uniqueValues[key]] : [],
+                        key
+                      );
+                    }}>
+                    Select All
+                  </Checkbox>
+                </div>
+
+                {/* Multi Select Dropdown */}
+                <Select
+                  mode="multiple"
+                  allowClear
+                  showSearch
+                  placeholder={`Select ${columnHeadings[key]}`}
+                  style={{ width: 250 }}
+                  value={filters[key] || []}
+                  onChange={(value) => handleFilterChange(value, key)}
+                  optionLabelProp="label"
+                  maxTagCount="responsive"
+                  filterOption={(input, option) =>
+                    (option?.label ?? "")
+                      .toString()
+                      .toLowerCase()
+                      .includes(input.toLowerCase())
+                  }>
+                  {[...uniqueValues[key]]
+                    .filter((val) => val !== null && val !== undefined)
+                    .sort((a, b) => {
+                      const aNum = parseFloat(a);
+                      const bNum = parseFloat(b);
+                      const isNumeric = !isNaN(aNum) && !isNaN(bNum);
+                      return isNumeric
+                        ? aNum - bNum
+                        : a.toString().localeCompare(b.toString());
+                    })
+                    .map((val) => (
+                      <Select.Option key={val} value={val} label={val}>
+                        <Checkbox checked={filters[key]?.includes(val)}>
+                          {val}
+                        </Checkbox>
+                      </Select.Option>
+                    ))}
+                </Select>
+              </div>
+            )
+          : null,
+
+      // This controls whether the filter icon is shown in the header
+      filtered: filters[key]?.length > 0,
     }));
   };
 
   const handleExport = () => {
-    exportToExcel(filteredData, "publisher-data.xlsx");
-    Swal.fire({
-      icon: "success",
-      title: "Export Successful",
-      text: "Publisher data exported to Excel.",
-      timer: 1500,
-      showConfirmButton: false,
+    // Only include columns present in columnHeadingsAdv
+    const tableDataToExport = filteredData.map((item) => {
+      const filteredItem = {};
+      Object.keys(columnHeadingsAdv).forEach((key) => {
+        filteredItem[columnHeadingsAdv[key]] = item[key]; // Use display heading as key
+      });
+      return filteredItem;
     });
+
+    exportToExcel(tableDataToExport, "publisher-data.xlsx");
   };
 
   return (

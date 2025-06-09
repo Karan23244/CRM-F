@@ -162,22 +162,27 @@ const PublisherPayoutData = () => {
   };
 
   useEffect(() => {
+    console.log("Current filters:", filters);
     const currentMonth = dayjs().month();
     const currentYear = dayjs().year();
 
     const filtered = advData.filter((item) => {
-      const sharedDate = dayjs(item.shared_date); // FIXED LINE
-
+      const sharedDate = dayjs(item.shared_date);
       const matchesMonth =
         sharedDate?.month() === currentMonth &&
         sharedDate?.year() === currentYear;
 
       const matchesPub = item.pub_name === user?.username;
-
       const matchesFilters = Object.keys(filters).every((key) => {
         if (!filters[key]) return true;
         if (Array.isArray(filters[key])) {
-          return filters[key].includes(item[key]);
+          const res = filters[key].some(
+            (filterVal) =>
+              item[key] != null &&
+              String(item[key]).toLowerCase() ===
+                String(filterVal).toLowerCase()
+          );
+          return res;
         }
         return item[key] === filters[key];
       });
@@ -189,9 +194,6 @@ const PublisherPayoutData = () => {
         selectedDateRange[1]
       ) {
         const [start, end] = selectedDateRange;
-        if (!sharedDate.isBetween(start, end, null, "[]")) {
-          return false;
-        }
       }
       const matchesSearch = !searchTerm.trim()
         ? true
@@ -265,40 +267,85 @@ const PublisherPayoutData = () => {
     setVisibleData(data);
   }, [selectedSubAdmins, advData, user]);
 
-  useEffect(() => {
-    const filtered = visibleData.filter((item) => {
-      const sharedDate = dayjs(item.shared_date);
-
-      const matchesFilters = Object.keys(filters).every((key) =>
-        filters[key] ? item[key] === filters[key] : true
-      );
-
-      const matchesSearch = !searchTerm.trim()
-        ? true
-        : Object.values(item).some((val) =>
-            String(val).toLowerCase().includes(searchTerm.toLowerCase())
-          );
-
-      const matchesDateRange =
-        Array.isArray(selectedDateRange) &&
-        selectedDateRange.length === 2 &&
-        selectedDateRange[0] &&
-        selectedDateRange[1]
-          ? sharedDate.isBetween(
-              selectedDateRange[0],
-              selectedDateRange[1],
-              null,
-              "[]"
-            )
-          : true;
-
-      return matchesFilters && matchesSearch && matchesDateRange;
-    });
-
-    setFilteredData(filtered);
-    generateUniqueValues(filtered);
-  }, [filters, searchTerm, visibleData, selectedDateRange]);
-
+  // const getColumns = (columnHeadings) => {
+  //   return Object.keys(columnHeadings).map((key) => ({
+  //     title: (
+  //       <div className="flex items-center justify-between">
+  //         <span
+  //           style={{
+  //             color: filters[key] ? "#1677ff" : "inherit",
+  //             fontWeight: filters[key] ? "bold" : "normal",
+  //           }}>
+  //           {columnHeadings[key] || key}
+  //         </span>
+  //         <Tooltip
+  //           title={stickyColumns.includes(key) ? "Unpin" : "Pin"}
+  //           className="p-3">
+  //           <Button
+  //             size="small"
+  //             icon={
+  //               stickyColumns.includes(key) ? (
+  //                 <PushpinFilled style={{ color: "#1677ff" }} />
+  //               ) : (
+  //                 <PushpinOutlined />
+  //               )
+  //             }
+  //             onClick={() => toggleStickyColumn(key)}
+  //           />
+  //         </Tooltip>
+  //         {uniqueValues[key] && (
+  //           <Dropdown
+  //             overlay={
+  //               <Menu>
+  //                 <div className="p-3 w-60">
+  //                   <Select
+  //                     mode="multiple"
+  //                     showSearch
+  //                     allowClear
+  //                     className="w-full"
+  //                     placeholder={`Filter ${key}`}
+  //                     value={filters[key] || []}
+  //                     onChange={(value) => handleFilterChange(value, key)}
+  //                     optionLabelProp="label"
+  //                     maxTagCount="responsive"
+  //                     filterOption={(input, option) =>
+  //                       option?.children
+  //                         ?.toLowerCase()
+  //                         .includes(input.toLowerCase())
+  //                     }>
+  //                     {[...uniqueValues[key]]
+  //                       .filter((val) => val !== null && val !== undefined)
+  //                       .sort((a, b) => {
+  //                         const aNum = parseFloat(a);
+  //                         const bNum = parseFloat(b);
+  //                         const isNumeric = !isNaN(aNum) && !isNaN(bNum);
+  //                         return isNumeric
+  //                           ? aNum - bNum
+  //                           : a.toString().localeCompare(b.toString());
+  //                       })
+  //                       .map((val) => (
+  //                         <Select.Option key={val} value={val} label={val}>
+  //                           <Checkbox checked={filters[key]?.includes(val)}>
+  //                             {val}
+  //                           </Checkbox>
+  //                         </Select.Option>
+  //                       ))}
+  //                   </Select>
+  //                 </div>
+  //               </Menu>
+  //             }
+  //             trigger={["click"]}
+  //             placement="bottomRight">
+  //             <FilterOutlined className="cursor-pointer text-gray-500 hover:text-black ml-2" />
+  //           </Dropdown>
+  //         )}
+  //       </div>
+  //     ),
+  //     dataIndex: key,
+  //     fixed: stickyColumns.includes(key) ? "left" : undefined,
+  //     key,
+  //   }));
+  // };
   const getColumns = (columnHeadings) => {
     return Object.keys(columnHeadings).map((key) => ({
       title: (
@@ -325,60 +372,80 @@ const PublisherPayoutData = () => {
               onClick={() => toggleStickyColumn(key)}
             />
           </Tooltip>
-          {uniqueValues[key] && (
-            <Dropdown
-              overlay={
-                <Menu>
-                  <div className="p-3 w-60">
-                    <Select
-                      mode="multiple"
-                      showSearch
-                      allowClear
-                      className="w-full"
-                      placeholder={`Filter ${key}`}
-                      value={filters[key] || []}
-                      onChange={(value) => handleFilterChange(value, key)}
-                      optionLabelProp="label"
-                      maxTagCount="responsive"
-                      filterOption={(input, option) =>
-                        option?.children
-                          ?.toLowerCase()
-                          .includes(input.toLowerCase())
-                      }>
-                      {[...uniqueValues[key]]
-                        .filter((val) => val !== null && val !== undefined)
-                        .sort((a, b) => {
-                          const aNum = parseFloat(a);
-                          const bNum = parseFloat(b);
-                          const isNumeric = !isNaN(aNum) && !isNaN(bNum);
-                          return isNumeric
-                            ? aNum - bNum
-                            : a.toString().localeCompare(b.toString());
-                        })
-                        .map((val) => (
-                          <Select.Option key={val} value={val} label={val}>
-                            <Checkbox checked={filters[key]?.includes(val)}>
-                              {val}
-                            </Checkbox>
-                          </Select.Option>
-                        ))}
-                    </Select>
-                  </div>
-                </Menu>
-              }
-              trigger={["click"]}
-              placement="bottomRight">
-              <FilterOutlined className="cursor-pointer text-gray-500 hover:text-black ml-2" />
-            </Dropdown>
-          )}
         </div>
       ),
+
+      key,
       dataIndex: key,
       fixed: stickyColumns.includes(key) ? "left" : undefined,
-      key,
+
+      // Add filterDropdown to show the custom filter UI (Select All + Select multiple)
+      filterDropdown:
+        uniqueValues[key]?.length > 0
+          ? () => (
+              <div style={{ padding: 8 }}>
+                {/* Select All Checkbox */}
+                <div style={{ marginBottom: 8 }}>
+                  <Checkbox
+                    indeterminate={
+                      filters[key]?.length > 0 &&
+                      filters[key]?.length < uniqueValues[key]?.length
+                    }
+                    checked={filters[key]?.length === uniqueValues[key]?.length}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      handleFilterChange(
+                        checked ? [...uniqueValues[key]] : [],
+                        key
+                      );
+                    }}>
+                    Select All
+                  </Checkbox>
+                </div>
+
+                {/* Multi Select Dropdown */}
+                <Select
+                  mode="multiple"
+                  allowClear
+                  showSearch
+                  placeholder={`Select ${columnHeadings[key]}`}
+                  style={{ width: 250 }}
+                  value={filters[key] || []}
+                  onChange={(value) => handleFilterChange(value, key)}
+                  optionLabelProp="label"
+                  maxTagCount="responsive"
+                  filterOption={(input, option) =>
+                    (option?.label ?? "")
+                      .toString()
+                      .toLowerCase()
+                      .includes(input.toLowerCase())
+                  }>
+                  {[...uniqueValues[key]]
+                    .filter((val) => val !== null && val !== undefined)
+                    .sort((a, b) => {
+                      const aNum = parseFloat(a);
+                      const bNum = parseFloat(b);
+                      const isNumeric = !isNaN(aNum) && !isNaN(bNum);
+                      return isNumeric
+                        ? aNum - bNum
+                        : a.toString().localeCompare(b.toString());
+                    })
+                    .map((val) => (
+                      <Select.Option key={val} value={val} label={val}>
+                        <Checkbox checked={filters[key]?.includes(val)}>
+                          {val}
+                        </Checkbox>
+                      </Select.Option>
+                    ))}
+                </Select>
+              </div>
+            )
+          : null,
+
+      // This controls whether the filter icon is shown in the header
+      filtered: filters[key]?.length > 0,
     }));
   };
-
   return (
     <div className="p-6 bg-gray-50 min-h-screen flex flex-col items-center">
       <div className="w-full bg-white p-6 rounded-xl shadow-lg border border-gray-200">
@@ -387,12 +454,21 @@ const PublisherPayoutData = () => {
             {/* Download Excel Button */}
             <Button
               type="primary"
-              onClick={() =>
-                exportToExcel(filteredData, "advertiser-data.xlsx")
-              }
+              onClick={() => {
+                const tableDataToExport = filteredData.map((item) => {
+                  const filteredItem = {};
+                  Object.keys(columnHeadingsAdv).forEach((key) => {
+                    filteredItem[columnHeadingsAdv[key]] = item[key]; // Custom column names
+                  });
+                  return filteredItem;
+                });
+
+                exportToExcel(tableDataToExport, "advertiser-data.xlsx");
+              }}
               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-lg shadow-md transition duration-300 transform hover:scale-105">
               📥 <span>Download Excel</span>
             </Button>
+
             <div className="flex justify-end">
               <Button onClick={clearAllFilters} type="default">
                 Remove All Filters

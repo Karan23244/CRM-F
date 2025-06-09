@@ -507,10 +507,29 @@ const CampianData = () => {
               />
             </Tooltip>
             {uniqueValues[key]?.length > 1 && (
-             <Dropdown
+              <Dropdown
                 overlay={
                   <Menu>
-                    <div className="p-3 w-48">
+                    <div className="p-3 w-52">
+                      <div className="mb-2">
+                        <Checkbox
+                          indeterminate={
+                            filters[key]?.length > 0 &&
+                            filters[key]?.length < uniqueValues[key]?.length
+                          }
+                          checked={
+                            filters[key]?.length === uniqueValues[key]?.length
+                          }
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            handleFilterChange(
+                              checked ? [...uniqueValues[key]] : [],
+                              key
+                            );
+                          }}>
+                          Select All
+                        </Checkbox>
+                      </div>
                       <Select
                         mode="multiple"
                         allowClear
@@ -670,7 +689,25 @@ const CampianData = () => {
           //       : "advertiser-data.xlsx"
           //   )
           // }
-          onClick={() => exportToExcel(filteredData, "advertiser-data.xlsx")}
+          // onClick={() => exportToExcel(filteredData, "advertiser-data.xlsx")}
+          onClick={() => {
+            const columnHeadings =
+              selectedType === "publisher"
+                ? columnHeadingsPub
+                : columnHeadingsAdv;
+
+            const visibleKeys = Object.keys(columnHeadings);
+
+            const cleanedData = filteredData.map((row) => {
+              const cleanedRow = {};
+              visibleKeys.forEach((key) => {
+                cleanedRow[columnHeadings[key]] = row[key];
+              });
+              return cleanedRow;
+            });
+
+            exportToExcel(cleanedData, `${selectedType}-data.xlsx`);
+          }}
           className="bg-blue-600 hover:bg-blue-700 transition text-white px-5 py-2 rounded-lg font-medium shadow">
           📥 Download Excel
         </button>
