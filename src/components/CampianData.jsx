@@ -20,6 +20,8 @@ import { exportToExcel } from "./exportExcel";
 import Swal from "sweetalert2";
 import { PushpinOutlined, PushpinFilled } from "@ant-design/icons";
 const { Option } = Select;
+const { RangePicker } = DatePicker;
+
 const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 
@@ -73,17 +75,15 @@ const CampianData = () => {
   const [filters, setFilters] = useState({});
   const [filteredData, setFilteredData] = useState([]);
   const [uniqueValues, setUniqueValues] = useState({});
-  const [editingKey, setEditingKey] = useState(null);
-  const [editedRow, setEditedRow] = useState({});
   const [stickyColumns, setStickyColumns] = useState([]);
   const [editingCell, setEditingCell] = useState({ key: null, field: null });
   const [dropdownOptions, setDropdownOptions] = useState({
     os: ["Android", "APK", "iOS"],
   });
-  const [selectedMonth, setSelectedMonth] = useState(() => {
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), 1); // First day of current month
-  });
+  const [selectedDateRange, setSelectedDateRange] = useState([
+    dayjs().startOf("month"),
+    dayjs().endOf("month"),
+  ]);
   const [searchTerm, setSearchTerm] = useState("");
   const clearAllFilters = () => {
     setFilters({});
@@ -123,33 +123,30 @@ const CampianData = () => {
     fetchDropdowns();
   }, []);
 
-  // Set initial data based on selection
-  // useEffect(() => {
-  //   const data = selectedType === "publisher" ? pubData : advData;
-  //   setFilteredData(data.filter((row) => !isRowEmpty(row)));
-  //   generateUniqueValues(data);
-  // }, [selectedType, pubData, advData]);
-
   useEffect(() => {
     const data = selectedType === "publisher" ? pubData : advData;
     generateUniqueValues(data);
     const filtered = data.filter((item) => {
-      const sharedDate = new Date(item.shared_date);
-      const itemMonth = sharedDate.getMonth();
-      const itemYear = sharedDate.getFullYear();
+      // Date Range filter
+      if (
+        selectedDateRange &&
+        selectedDateRange.length === 2 &&
+        dayjs(selectedDateRange[0]).isValid() &&
+        dayjs(selectedDateRange[1]).isValid()
+      ) {
+        const start = dayjs(selectedDateRange[0]).startOf("day");
+        const end = dayjs(selectedDateRange[1]).endOf("day");
+        const shared = dayjs(item.shared_date);
 
-      const selectedDate = selectedMonth ? new Date(selectedMonth) : new Date();
-      const selectedMonthValue = selectedDate.getMonth();
-      const selectedYear = selectedDate.getFullYear();
-
-      if (itemMonth !== selectedMonthValue || itemYear !== selectedYear) {
-        return false;
+        if (!shared.isBetween(start, end, null, "[]")) {
+          return false;
+        }
       }
 
+      // Advanced filters
       const passesAdvancedFilters = Object.keys(filters).every((key) => {
         if (!filters[key]) return true;
 
-        // Range filter (e.g. date)
         if (Array.isArray(filters[key]) && filters[key].length === 2) {
           const [start, end] = filters[key];
           return dayjs(item[key]).isBetween(start, end, null, "[]");
@@ -163,6 +160,7 @@ const CampianData = () => {
 
       if (!passesAdvancedFilters) return false;
 
+      // Search filter
       if (!searchTerm.trim()) return true;
 
       const lowerSearch = searchTerm.toLowerCase();
@@ -172,7 +170,7 @@ const CampianData = () => {
     });
 
     setFilteredData(filtered.filter((row) => !isRowEmpty(row)));
-  }, [pubData, advData, selectedType, selectedMonth, filters, searchTerm]);
+  }, [pubData, advData, selectedType, filters, searchTerm, selectedDateRange]);
 
   // Generate unique values for filtering
   const generateUniqueValues = (data) => {
@@ -245,199 +243,13 @@ const CampianData = () => {
     }
   };
   // Handle Filter Change
-  // Handle Filter Change
   const handleFilterChange = (value, key) => {
     setFilters((prev) => ({
       ...prev,
       [key]: value?.length ? value : undefined,
     }));
   };
-
-  // Apply filters
-  useEffect(() => {
-    const data = selectedType === "publisher" ? pubData : advData;
-    const filtered = data.filter((item) =>
-      Object.keys(filters).every((key) => {
-        if (!filters[key]) return true;
-        if (Array.isArray(filters[key])) {
-          return filters[key].includes(item[key]);
-        }
-        return item[key] === filters[key];
-      })
-    );
-    setFilteredData(filtered.filter((row) => !isRowEmpty(row)));
-  }, [filters, pubData, advData, selectedType]);
-
-  // Handle Edit
-  const handleEdit = (id) => {
-    setEditingKey(id);
-    setEditedRow(filteredData.find((row) => row.id === id) || {});
-  };
-
-  // Handle Change in Input / Dropdown
-  const handleChange = (value, key) => {
-    setEditedRow((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-  };
-
-  // Handle Save
-  const handleSave = async () => {
-    try {
-      const updateUrl =
-        selectedType === "publisher"
-          ? `${apiUrl}/pubdata-update/${editingKey}`
-          : `${apiUrl}/advdata-update/${editingKey}`;
-      await axios.post(updateUrl, editedRow, {
-        headers: { "Content-Type": "application/json" },
-      });
-      setEditingKey(null);
-      await Swal.fire({
-        icon: "success",
-        title: "Success",
-        text: "Data updated successfully",
-        timer: 2000,
-        timerProgressBar: true,
-        showConfirmButton: false,
-      });
-      fetchPubData();
-      fetchAdvData();
-    } catch (error) {
-      await Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Failed to update data",
-        confirmButtonText: "OK",
-      });
-    }
-  };
-
-  // Generate Columns Dynamically with Edit + Filters
-  // const getColumns = (columnHeadings) => {
-  //   return [
-  //     ...Object.keys(columnHeadings).map((key) => ({
-  //       title: (
-  //         <div className="flex items-center justify-between">
-  //           <span
-  //             style={{
-  //               color: filters[key] ? "#1677ff" : "inherit",
-  //               fontWeight: filters[key] ? "bold" : "normal",
-  //             }}>
-  //             {columnHeadings[key] || key}
-  //           </span>
-  //           <Tooltip
-  //             title={stickyColumns.includes(key) ? "Unpin" : "Pin"}
-  //             className="p-3">
-  //             <Button
-  //               size="small"
-  //               icon={
-  //                 stickyColumns.includes(key) ? (
-  //                   <PushpinFilled style={{ color: "#1677ff" }} />
-  //                 ) : (
-  //                   <PushpinOutlined />
-  //                 )
-  //               }
-  //               onClick={() => toggleStickyColumn(key)}
-  //             />
-  //           </Tooltip>
-  //           {uniqueValues[key]?.length > 1 && (
-  //             <Dropdown
-  //               overlay={
-  //                 <Menu>
-  //                   <div className="p-3 w-48">
-  //                     <Select
-  //                       allowClear
-  //                       showSearch
-  //                       className="w-full"
-  //                       placeholder={`Filter ${key}`}
-  //                       value={filters[key]}
-  //                       onChange={(value) => handleFilterChange(value, key)}>
-  //                       {uniqueValues[key]
-  //                         ?.filter((val) => val !== null && val !== undefined)
-  //                         .sort((a, b) => {
-  //                           const aNum = parseFloat(a);
-  //                           const bNum = parseFloat(b);
-  //                           const isNumeric = !isNaN(aNum) && !isNaN(bNum);
-
-  //                           if (isNumeric) return aNum - bNum;
-  //                           return a.toString().localeCompare(b.toString());
-  //                         })
-  //                         .map((val) => (
-  //                           <Option key={val} value={val}>
-  //                             {val}
-  //                           </Option>
-  //                         ))}
-  //                     </Select>
-  //                   </div>
-  //                 </Menu>
-  //               }
-  //               trigger={["click"]}
-  //               placement="bottomRight">
-  //               <FilterOutlined className="cursor-pointer text-gray-500 hover:text-black ml-2" />
-  //             </Dropdown>
-  //           )}
-  //         </div>
-  //       ),
-  //       dataIndex: key,
-  //       fixed: stickyColumns.includes(key) ? "left" : undefined,
-  //       key,
-  //       render: (text, record) => {
-  //         return editingKey === record.id ? (
-  //           dropdownOptions[key] ? (
-  //             <Select
-  //               showSearch
-  //               value={editedRow[key]}
-  //               onChange={(value) => handleChange(value, key)}
-  //               style={{ width: "100%" }}>
-  //               {dropdownOptions[key]?.map((option) => (
-  //                 <Option key={option} value={option}>
-  //                   {option}
-  //                 </Option>
-  //               ))}
-  //             </Select>
-  //           ) : key.toLowerCase().includes("date") ? (
-  //             <DatePicker
-  //               value={editedRow[key] ? dayjs(editedRow[key]) : null}
-  //               onChange={(date, dateString) => handleChange(dateString, key)}
-  //               style={{ width: "100%" }}
-  //             />
-  //           ) : (
-  //             <Input
-  //               value={editedRow[key]}
-  //               onChange={(e) => handleChange(e.target.value, key)}
-  //             />
-  //           )
-  //         ) : (
-  //           text
-  //         );
-  //       },
-  //     })),
-  //     {
-  //       title: "Actions",
-  //       fixed: "right",
-  //       key: "actions",
-  //       render: (record) =>
-  //         editingKey === record.id ? (
-  //           <Button
-  //             type="primary"
-  //             icon={<SaveOutlined />}
-  //             onClick={handleSave}
-  //             className="mr-2">
-  //             Save
-  //           </Button>
-  //         ) : (
-  //           <Button
-  //             icon={<EditOutlined />}
-  //             onClick={() => handleEdit(record.id)}>
-  //             Edit
-  //           </Button>
-  //         ),
-  //     },
-  //   ];
-  // };
   const handleAutoSave = async (newValue, record, key) => {
-    console.log("Auto-saving", newValue, record, key);
     const updateUrl =
       selectedType === "publisher"
         ? `${apiUrl}/pubdata-update/${record.id}`
@@ -478,7 +290,6 @@ const CampianData = () => {
       });
     }
   };
-
   const getColumns = (columnHeadings) => {
     return [
       ...Object.keys(columnHeadings).map((key) => ({
@@ -681,14 +492,6 @@ const CampianData = () => {
       {/* Controls Section */}
       <div className="bg-white rounded-lg shadow-md p-4 mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <button
-          // onClick={() =>
-          //   exportToExcel(
-          //     selectedType === "publisher" ? pubData : advData,
-          //     selectedType === "publisher"
-          //       ? "publisher-data.xlsx"
-          //       : "advertiser-data.xlsx"
-          //   )
-          // }
           // onClick={() => exportToExcel(filteredData, "advertiser-data.xlsx")}
           onClick={() => {
             const columnHeadings =
@@ -719,13 +522,27 @@ const CampianData = () => {
           className="w-full md:w-80 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
 
-        <DatePicker
-          picker="month"
-          onChange={(date) => setSelectedMonth(date)}
-          placeholder="🗓 Filter by Month"
-          allowClear
-          className="w-full md:w-56 border border-gray-300 rounded-lg shadow-sm"
-        />
+        <div className="mb-4">
+          <label className="mr-2 font-medium">Date Range:</label>
+          {/* Date Picker */}
+          <RangePicker
+            allowClear
+            value={selectedDateRange}
+            onChange={(dates) => {
+              if (!dates || dates.length === 0) {
+                const start = dayjs().startOf("month");
+                const end = dayjs().endOf("month");
+                setSelectedDateRange([start, end]);
+              } else {
+                // FIX: clone the date objects to avoid internal mutation issues
+                setSelectedDateRange([dates[0].clone(), dates[1].clone()]);
+              }
+            }}
+            placeholder={["Start Date", "End Date"]}
+            className="w-full md:w-[220px] rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition"
+          />
+        </div>
+
         <Button
           onClick={clearAllFilters}
           type="default"

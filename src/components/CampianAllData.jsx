@@ -22,7 +22,7 @@ import { PushpinOutlined, PushpinFilled } from "@ant-design/icons";
 const { Option } = Select;
 const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
-
+const { RangePicker } = DatePicker;
 // Publisher Column Headings
 const columnHeadingsPub = {
   username: "Input UserName",
@@ -80,8 +80,17 @@ const CampianAllData = () => {
   const [dropdownOptions, setDropdownOptions] = useState({
     os: ["Android", "APK", "iOS"],
   });
-  const [selectedMonth, setSelectedMonth] = useState(null);
+  const [selectedDateRange, setSelectedDateRange] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  console.log(selectedDateRange);
+  const handleDateRangeChange = (dates) => {
+    if (!dates || dates.length === 0) {
+      // Reset to current month
+      setSelectedDateRange([dayjs().startOf("month"), dayjs().endOf("month")]);
+    } else {
+      setSelectedDateRange(dates);
+    }
+  };
   const toggleStickyColumn = (key) => {
     setStickyColumns((prev) =>
       prev.includes(key) ? prev.filter((col) => col !== key) : [...prev, key]
@@ -125,21 +134,23 @@ const CampianAllData = () => {
     const data = selectedType === "publisher" ? pubData : advData;
     generateUniqueValues(data);
     const filtered = data.filter((item) => {
-      const sharedDate = new Date(item.shared_date);
+      // Date Range filter
+      if (
+        selectedDateRange &&
+        selectedDateRange.length === 2 &&
+        dayjs(selectedDateRange[0]).isValid() &&
+        dayjs(selectedDateRange[1]).isValid()
+      ) {
+        const start = dayjs(selectedDateRange[0]).startOf("day");
+        const end = dayjs(selectedDateRange[1]).endOf("day");
+        const shared = dayjs(item.shared_date);
 
-      // If a month is selected, apply filtering
-      if (selectedMonth) {
-        const itemMonth = sharedDate.getMonth();
-        const itemYear = sharedDate.getFullYear();
-        const selectedDate = new Date(selectedMonth);
-        const selectedMonthValue = selectedDate.getMonth();
-        const selectedYear = selectedDate.getFullYear();
-
-        if (itemMonth !== selectedMonthValue || itemYear !== selectedYear) {
+        if (!shared.isBetween(start, end, null, "[]")) {
           return false;
         }
       }
 
+      // Advanced filters
       const passesAdvancedFilters = Object.keys(filters).every((key) => {
         if (!filters[key]) return true;
 
@@ -156,6 +167,7 @@ const CampianAllData = () => {
 
       if (!passesAdvancedFilters) return false;
 
+      // Search filter
       if (!searchTerm.trim()) return true;
 
       const lowerSearch = searchTerm.toLowerCase();
@@ -165,7 +177,7 @@ const CampianAllData = () => {
     });
 
     setFilteredData(filtered.filter((row) => !isRowEmpty(row)));
-  }, [pubData, advData, selectedType, selectedMonth, filters, searchTerm]);
+  }, [pubData, advData, selectedType, filters, searchTerm, selectedDateRange]);
 
   // Generate unique values for filtering
   const generateUniqueValues = (data) => {
@@ -197,7 +209,6 @@ const CampianAllData = () => {
           axios.get(`${apiUrl}/get-reviews`),
           axios.get(`${apiUrl}/get-NameAdv`),
         ]);
-      console.log(adv_id);
       setDropdownOptions((prev) => ({
         ...prev,
         adv_name:
@@ -245,68 +256,7 @@ const CampianAllData = () => {
       [key]: value?.length ? value : undefined,
     }));
   };
-
-  // Apply filters
-  useEffect(() => {
-    const data = selectedType === "publisher" ? pubData : advData;
-    const filtered = data.filter((item) =>
-      Object.keys(filters).every((key) => {
-        if (!filters[key]) return true;
-        if (Array.isArray(filters[key])) {
-          return filters[key].includes(item[key]);
-        }
-        return item[key] === filters[key];
-      })
-    );
-    setFilteredData(filtered.filter((row) => !isRowEmpty(row)));
-  }, [filters, pubData, advData, selectedType]);
-
-  // Handle Edit
-  const handleEdit = (id) => {
-    setEditingKey(id);
-    setEditedRow(filteredData.find((row) => row.id === id) || {});
-  };
-
-  // Handle Change in Input / Dropdown
-  const handleChange = (value, key) => {
-    setEditedRow((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-  };
-
-  // Handle Save
-  const handleSave = async () => {
-    try {
-      const updateUrl =
-        selectedType === "publisher"
-          ? `${apiUrl}/pubdata-update/${editingKey}`
-          : `${apiUrl}/advdata-update/${editingKey}`;
-      await axios.post(updateUrl, editedRow, {
-        headers: { "Content-Type": "application/json" },
-      });
-      setEditingKey(null);
-      // Replace alert with SweetAlert2 success
-      Swal.fire({
-        icon: "success",
-        title: "Success",
-        text: "Data updated successfully",
-        timer: 2000,
-        showConfirmButton: false,
-      });
-      fetchPubData();
-      fetchAdvData();
-    } catch (error) {
-      // Replace alert with SweetAlert2 error
-      Swal.fire({
-        icon: "error",
-        title: "Oops...",
-        text: "Failed to update data",
-      });
-    }
-  };
   const handleAutoSave = async (newValue, record, key) => {
-    console.log("Auto-saving", newValue, record, key);
     const updateUrl =
       selectedType === "publisher"
         ? `${apiUrl}/pubdata-update/${record.id}`
@@ -564,13 +514,17 @@ const CampianAllData = () => {
           className="w-full md:w-80 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
 
-        <DatePicker
-          picker="month"
-          onChange={(date) => setSelectedMonth(date)}
-          placeholder="🗓 Filter by Month"
-          allowClear
-          className="w-full md:w-56 border border-gray-300 rounded-lg shadow-sm"
-        />
+        <div className="mb-4">
+          <label className="mr-2 font-medium">Date Range:</label>
+          {/* Date Picker */}
+          <RangePicker
+            onChange={handleDateRangeChange}
+            allowClear
+            placeholder={["Start Date", "End Date"]}
+            className="w-full md:w-[220px] rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition"
+          />
+        </div>
+
         <Button
           onClick={clearAllFilters}
           type="default"

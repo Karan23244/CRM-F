@@ -55,7 +55,6 @@ const PublisherPayoutData = () => {
   const [selectedDateRange, setSelectedDateRange] = useState([]);
   const [uniqueValues, setUniqueValues] = useState({});
   const user = useSelector((state) => state.auth.user);
-  console.log(advData, "advData");
   const toggleStickyColumn = (key) => {
     setStickyColumns((prev) =>
       prev.includes(key) ? prev.filter((col) => col !== key) : [...prev, key]

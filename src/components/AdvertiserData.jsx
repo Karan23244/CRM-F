@@ -46,6 +46,7 @@ const AdvertiserData = () => {
   });
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({});
+  console.log("data",data)
   useEffect(() => {
     if (user?.id) {
       fetchData();
