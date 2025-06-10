@@ -78,7 +78,7 @@ const AdvertiserData = () => {
   };
   const fetchData = async () => {
     try {
-      setLoading(true);
+      // setLoading(true);
       const response = await axios.get(`${apiUrl}/advdata-byuser/${user.id}`);
       const formatted = response.data.reverse().map((item) => ({
         ...item,
@@ -95,8 +95,6 @@ const AdvertiserData = () => {
       generateUniqueValues(formatted);
     } catch (error) {
       message.error("Failed to fetch data");
-    } finally {
-      setLoading(false);
     }
   };
   const generateUniqueValues = (data) => {
@@ -917,7 +915,6 @@ const AdvertiserData = () => {
                     `${range[0]}-${range[1]} of ${total} items`,
                 }}
                 bordered
-                loading={loading}
                 scroll={{ x: "max-content" }}
                 summary={(pageData) => {
                   let totalAdvTotalNo = 0;

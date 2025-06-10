@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useSelector } from "react-redux";
+import Swal from "sweetalert2";
 
 const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
