@@ -144,6 +144,7 @@ const AdvertiserCreateForm = () => {
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!name || !selectedId || !geo) {
       Swal.fire({
         icon: "warning",
@@ -161,9 +162,9 @@ const AdvertiserCreateForm = () => {
       target: target || "",
       user_id: editingAdv
         ? user?.role === "advertiser_manager"
-          ? editingAdv.user_id // Preserve original user_id on update
-          : userId // Don't send if not needed
-        : userId, // For new creation
+          ? editingAdv.user_id
+          : userId
+        : userId,
       acc_email: acc_email,
       poc_email: poc_email,
       assign_user:
@@ -175,60 +176,50 @@ const AdvertiserCreateForm = () => {
           ? editingAdv.assign_id
           : assign_id,
     };
+
     try {
-      try {
-        if (editingAdv) {
-          // **Update existing advertiser**
-          const response = await axios.put(`${apiUrl}/update-advid`, newAdv);
+      if (editingAdv) {
+        // 🔄 Update existing advertiser
+        const response = await axios.put(`${apiUrl}/update-advid`, newAdv);
 
-          if (response.data.success) {
-            Swal.fire({
-              icon: "success",
-              title: "Updated",
-              text: "Advertiser updated successfully!",
-            });
-          } else {
-            Swal.fire({
-              icon: "error",
-              title: "Update Failed",
-              text:
-                response.data.message || "Something went wrong while updating.",
-            });
-          }
-
-          setEditingAdv(null);
+        if (response.data.success) {
+          Swal.fire({
+            icon: "success",
+            title: "Updated",
+            text: "Advertiser updated successfully!",
+          });
         } else {
-          // **Create new advertiser**
-          const response = await axios.post(`${apiUrl}/create-advid`, newAdv);
-          console.log("Response from create-advid:", response.data);
-
-          if (response.data.success) {
-            Swal.fire({
-              icon: "success",
-              title: "Created",
-              text: "Advertiser created successfully!",
-            });
-          } else {
-            Swal.fire({
-              icon: "error",
-              title: "Creation Failed",
-              text:
-                response.data.message || "Something went wrong while creating.",
-            });
-          }
+          Swal.fire({
+            icon: "error",
+            title: "Update Failed",
+            text:
+              response.data.message || "Something went wrong while updating.",
+          });
         }
-      } catch (error) {
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text:
-            error.response?.data?.message ||
-            error.message ||
-            "Unexpected error occurred.",
-        });
+
+        setEditingAdv(null);
+      } else {
+        // ➕ Create new advertiser
+        const response = await axios.post(`${apiUrl}/create-advid`, newAdv);
+        console.log("Response from create-advid:", response.data);
+
+        if (response.data.success) {
+          Swal.fire({
+            icon: "success",
+            title: "Created",
+            text: response.data.message || "Advertiser created successfully!",
+          });
+        } else {
+          Swal.fire({
+            icon: "error",
+            title: "Creation Failed",
+            text:
+              response.data.message || "Something went wrong while creating.",
+          });
+        }
       }
 
-      // Refresh advertisers after submission
+      // 🔄 Refresh advertisers after submission
       const { data } = await axios.get(`${apiUrl}/advid-data/${userId}`);
       if (data.success && Array.isArray(data.advertisements)) {
         setAdvertisers(data.advertisements);
@@ -242,14 +233,53 @@ const AdvertiserCreateForm = () => {
         );
       }
 
-      // Reset form
+      // ♻️ Reset form
       resetForm();
     } catch (error) {
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Error creating/updating advertiser.",
-      });
+      console.error("❌ Error in handleSubmit:", error);
+
+      if (error.response) {
+        const status = error.response.status;
+        const message = error.response.data.message || "An error occurred.";
+
+        if (status === 409) {
+          Swal.fire({
+            icon: "warning",
+            title: "Duplicate Entry",
+            text: message || "Advertisement ID already exists.",
+          });
+        } else if (status === 400 && message.includes("foreign key")) {
+          Swal.fire({
+            icon: "error",
+            title: "Invalid Reference",
+            text: message || "Check related user or assigned user details.",
+          });
+        } else if (status === 500) {
+          Swal.fire({
+            icon: "error",
+            title: "Server Error",
+            text: message || "Internal server error occurred.",
+          });
+        } else {
+          Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: message || "Something went wrong.",
+          });
+        }
+      } else if (error.request) {
+        Swal.fire({
+          icon: "error",
+          title: "No Response",
+          text: "Server did not respond. Please try again later.",
+        });
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Unexpected Error",
+          text: error.message || "An unknown error occurred.",
+        });
+      }
     }
   };
 
