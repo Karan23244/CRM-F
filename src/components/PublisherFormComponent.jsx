@@ -64,6 +64,8 @@ const PublisherCreateForm = () => {
   const [error, setError] = useState("");
   const [usedIds, setUsedIds] = useState(new Set());
   const [editingPub, setEditingPub] = useState(null);
+  const [level, setLevel] = useState("");
+  const [vector, setVector] = useState("");
   const [target, setTarget] = useState("");
 
   // **Initialize available IDs from user.ranges**
@@ -132,20 +134,22 @@ const PublisherCreateForm = () => {
       return;
     }
 
-    const newPub = {
+    const updatedPub = {
       pub_name: name,
       pub_id: selectedId,
       geo: geo,
+      user_id: userId, // Use the current user's ID
       note: note || "",
       target: target || "",
-      user_id: userId,
+      level: level || "",
+      vector: vector || "",
     };
-
+    console.log("Updated Publisher Data:", updatedPub);
     setLoading(true);
     try {
       if (editingPub) {
         // Update existing publisher using PUT request
-        const response = await axios.put(`${apiUrl}/update-pubid`, newPub);
+        const response = await axios.put(`${apiUrl}/update-pubid`, updatedPub);
         if (response.data.success) {
           Swal.fire({
             icon: "success",
@@ -158,7 +162,7 @@ const PublisherCreateForm = () => {
         setEditingPub(null);
       } else {
         // Create new publisher
-        await axios.post(`${apiUrl}/create-pubid`, newPub);
+        await axios.post(`${apiUrl}/create-pubid`, updatedPub);
         Swal.fire({
           icon: "success",
           title: "Created!",
@@ -202,6 +206,8 @@ const PublisherCreateForm = () => {
     setGeo(record.geo);
     setNote(record.note);
     setTarget(record.target || "");
+    setLevel(record.level || "");
+    setVector(record.vector || "");
   };
 
   // Reset Form
@@ -213,6 +219,8 @@ const PublisherCreateForm = () => {
     setEditingPub(null);
     setTarget("");
     setError("");
+    setLevel("");
+    setVector("");
   };
 
   const columns = [
@@ -221,6 +229,8 @@ const PublisherCreateForm = () => {
     { title: "Geo", dataIndex: "geo", key: "geo" },
     { title: "Note", dataIndex: "note", key: "note" },
     { title: "Target", dataIndex: "target", key: "target" },
+    { title: "Level", dataIndex: "level", key: "level" },
+    { title: "Vector", dataIndex: "vector", key: "vector" },
     {
       title: "Actions",
       key: "actions",
@@ -331,6 +341,27 @@ const PublisherCreateForm = () => {
                 onChange={(e) => setNote(e.target.value)}
                 className="w-full p-2 border border-gray-300 rounded-lg"
                 rows="3"
+              />
+            </div>
+            {/* Level Field */}
+            <div>
+              <label className="block text-lg font-medium">Level</label>
+              <input
+                type="text"
+                value={level}
+                onChange={(e) => setLevel(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-lg"
+              />
+            </div>
+
+            {/* Vector Field */}
+            <div>
+              <label className="block text-lg font-medium">Vector</label>
+              <input
+                type="text"
+                value={vector}
+                onChange={(e) => setVector(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-lg"
               />
             </div>
           </>

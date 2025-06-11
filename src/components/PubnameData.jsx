@@ -19,7 +19,11 @@ const PubnameData = () => {
   const [geo, setGeo] = useState("");
   const [note, setNote] = useState("");
   const [pubUserId, setPubUserId] = useState(null);
+  const [editingAssignRowId, setEditingAssignRowId] = useState(null);
   const [target, setTarget] = useState("");
+  const [level, setLevel] = useState("");
+  const [vector, setVector] = useState("");
+  const [subAdmins, setSubAdmins] = useState([]);
 
   // **Fetch publisher data**
   useEffect(() => {
@@ -40,7 +44,27 @@ const PubnameData = () => {
 
     fetchData();
   }, []);
+  useEffect(() => {
+    const fetchSubAdmins = async () => {
+      try {
+        const response = await fetch(`${apiUrl}/get-subadmin`);
+        const data = await response.json();
+        console.log(data);
+        if (response.ok) {
+          const filtered = data.data.filter((subAdmin) =>
+            ["publisher_manager", "publisher"].includes(subAdmin.role)
+          );
+          setSubAdmins(filtered);
+        } else {
+          console.log(data.message || "Failed to fetch sub-admins.");
+        }
+      } catch (err) {
+        console.log("An error occurred while fetching sub-admins.");
+      }
+    };
 
+    fetchSubAdmins();
+  }, []);
   // **Filtered data for search**
   const filteredData = tableData.filter((item) =>
     [
@@ -63,13 +87,23 @@ const PubnameData = () => {
       return;
     }
 
+    // const updatedPub = {
+    //   pub_name: name,
+    //   pub_id: selectedId,
+    //   geo: geo,
+    //   note: note || "",
+    //   target: target || "",
+    //   user_id: pubUserId, // Use the original creator's user_id
+    // };
     const updatedPub = {
       pub_name: name,
       pub_id: selectedId,
       geo: geo,
       note: note || "",
       target: target || "",
-      user_id: pubUserId, // Use the original creator's user_id
+      user_id: pubUserId,
+      level: level || "",
+      vector: vector || "",
     };
 
     try {
@@ -100,7 +134,9 @@ const PubnameData = () => {
     setGeo(record.geo);
     setNote(record.note);
     setTarget(record.target);
-    setPubUserId(record.user_id); // Set original creator's user_id for updating
+    setPubUserId(record.user_id);
+    setLevel(record.level || "");
+    setVector(record.vector || "");
   };
 
   // **Reset Form**
@@ -112,6 +148,8 @@ const PubnameData = () => {
     setTarget("");
     setPubUserId(null);
     setEditingPub(null);
+    setLevel("");
+    setVector("");
   };
 
   const handlePause = async (record) => {
@@ -154,6 +192,65 @@ const PubnameData = () => {
     { title: "Geo", dataIndex: "geo", key: "geo" },
     { title: "Note", dataIndex: "note", key: "note" },
     { title: "Target", dataIndex: "target", key: "target" },
+    { title: "Level", dataIndex: "level", key: "level" },
+    { title: "Vector", dataIndex: "vector", key: "vector" },
+    {
+      title: "Transfer PUB AM",
+      key: "user_id",
+      render: (_, record) => {
+        const isEditing = editingAssignRowId === record.pub_id;
+
+        if (isEditing) {
+          return (
+            <Select
+              autoFocus
+              value={record.username}
+              onChange={async (newUserId) => {
+                try {
+                  const response = await axios.put(`${apiUrl}/update-pubid`, {
+                    ...record,
+                    user_id: newUserId,
+                  });
+
+                  if (response.data.success) {
+                    Swal.fire(
+                      "Success",
+                      "User transferred successfully!",
+                      "success"
+                    );
+                  } else {
+                    Swal.fire("Error", "Failed to transfer user", "error");
+                  }
+                } catch (error) {
+                  console.error("User transfer error:", error);
+                  Swal.fire("Error", "Something went wrong", "error");
+                } finally {
+                  setEditingAssignRowId(null);
+                }
+              }}
+              onBlur={() => setEditingAssignRowId(null)} // Close if user clicks away
+              className="min-w-[150px]">
+              <Option value="">Select Sub Admin</Option>
+              {subAdmins.map((admin) => (
+                <Option key={admin.id} value={admin.id.toString()}>
+                  {admin.username}
+                </Option>
+              ))}
+            </Select>
+          );
+        }
+
+        // Show normal text, and enter edit mode on click
+        return (
+          <span
+            onClick={() => setEditingAssignRowId(record.pub_id)}
+            className="cursor-pointer hover:underline"
+            title="Click to change user">
+            {"-"}
+          </span>
+        );
+      },
+    },
     {
       title: "Actions",
       key: "actions",
@@ -164,19 +261,6 @@ const PubnameData = () => {
             size="small"
             onClick={() => handleEdit(record)}>
             Edit
-          </Button>
-          <Button
-            type="default"
-            danger={record.pause !== "1"}
-            size="small"
-            onClick={() => handlePause(record)}
-            disabled={record.pause === "1"}
-            className={`rounded px-3 py-1 ${
-              record.pause === "1"
-                ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                : "bg-red-600 hover:bg-red-700 text-white"
-            }`}>
-            {record.pause === "1" ? "Paused" : "Pause"}
           </Button>
         </Space>
       ),
@@ -254,6 +338,27 @@ const PubnameData = () => {
               type="text"
               value={target}
               onChange={(e) => setTarget(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-lg"
+            />
+          </div>
+          {/* Level Field */}
+          <div>
+            <label className="block text-lg font-medium">Level</label>
+            <input
+              type="text"
+              value={level}
+              onChange={(e) => setLevel(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-lg"
+            />
+          </div>
+
+          {/* Vector Field */}
+          <div>
+            <label className="block text-lg font-medium">Vector</label>
+            <input
+              type="text"
+              value={vector}
+              onChange={(e) => setVector(e.target.value)}
               className="w-full p-2 border border-gray-300 rounded-lg"
             />
           </div>

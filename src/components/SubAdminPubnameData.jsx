@@ -11,6 +11,7 @@ const apiUrl =
 
 const SubAdminPubnameData = () => {
   const user = useSelector((state) => state.auth.user);
+  const userId = user?.id || null;
   const [tableData, setTableData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingPub, setEditingPub] = useState(null);
@@ -22,7 +23,8 @@ const SubAdminPubnameData = () => {
   const [note, setNote] = useState("");
   const [pubUserId, setPubUserId] = useState(null);
   const [target, setTarget] = useState("");
-
+  const [level, setLevel] = useState("");
+  const [vector, setVector] = useState("");
   // Fetch publisher data
   useEffect(() => {
     const fetchData = async () => {
@@ -74,9 +76,12 @@ const SubAdminPubnameData = () => {
       pub_name: name,
       pub_id: selectedId,
       geo: geo,
+      user_id: userId, // Use the current user's ID
       note: note || "",
       target: target || "",
       user_id: pubUserId, // Use the original creator's user_id
+      level: level || "",
+      vector: vector || "",
     };
 
     try {
@@ -117,6 +122,8 @@ const SubAdminPubnameData = () => {
     setNote(record.note);
     setTarget(record.target);
     setPubUserId(record.user_id); // Set original creator's user_id for updating
+    setLevel(record.level || "");
+    setVector(record.vector || "");
   };
 
   // Reset Form
@@ -128,6 +135,8 @@ const SubAdminPubnameData = () => {
     setTarget("");
     setPubUserId(null);
     setEditingPub(null);
+    setLevel("");
+    setVector("");
   };
 
   // Table Columns
@@ -138,6 +147,8 @@ const SubAdminPubnameData = () => {
     { title: "Geo", dataIndex: "geo", key: "geo" },
     { title: "Note", dataIndex: "note", key: "note" },
     { title: "Target", dataIndex: "target", key: "target" },
+    { title: "Level", dataIndex: "level", key: "level" },
+    { title: "Vector", dataIndex: "vector", key: "vector" },
     {
       title: "Actions",
       key: "actions",
@@ -222,6 +233,27 @@ const SubAdminPubnameData = () => {
               type="text"
               value={target}
               onChange={(e) => setTarget(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-lg"
+            />
+          </div>
+          {/* Level Field */}
+          <div>
+            <label className="block text-lg font-medium">Level</label>
+            <input
+              type="text"
+              value={level}
+              onChange={(e) => setLevel(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-lg"
+            />
+          </div>
+
+          {/* Vector Field */}
+          <div>
+            <label className="block text-lg font-medium">Vector</label>
+            <input
+              type="text"
+              value={vector}
+              onChange={(e) => setVector(e.target.value)}
               className="w-full p-2 border border-gray-300 rounded-lg"
             />
           </div>

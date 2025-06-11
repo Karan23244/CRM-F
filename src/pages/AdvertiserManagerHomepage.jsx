@@ -69,7 +69,7 @@ const ManagerHomepage = ({}) => {
         <div className="flex justify-between items-center px-4">
           {sidebarOpen && (
             <h2 className="text-xl font-semibold transition-opacity md:block">
-              Manager Panel update
+              Manager Panel
             </h2>
           )}
           <button
