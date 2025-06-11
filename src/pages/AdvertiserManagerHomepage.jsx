@@ -104,7 +104,7 @@ const ManagerHomepage = ({}) => {
                 setActiveComponent("currentadvdata");
                 setSidebarOpen(false);
               }}>
-              Current Advertiser Data
+              Adv Campaign data
             </button>
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
@@ -251,11 +251,11 @@ const ManagerHomepage = ({}) => {
               <AdvertiserCurrentData />
             </div>
           )}
-          {activeComponent === "advdata" && (
+          {/* {activeComponent === "advdata" && (
             <div className="overflow-x-auto">
               <AdvertiserData />
             </div>
-          )}
+          )} */}
           {/* {activeComponent === "currentpubdata" && (
             <div className="overflow-x-auto">
               <PublisherCurrentData />

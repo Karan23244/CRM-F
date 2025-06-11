@@ -96,9 +96,9 @@ const AdvHomepage = ({}) => {
                 setActiveComponent("currentadvdata");
                 setSidebarOpen(false);
               }}>
-              Current Adv Campaign data
+              Adv Campaign data
             </button>
-
+{/* 
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "data" ? "bg-blue-700" : "hover:bg-blue-600"
@@ -108,7 +108,7 @@ const AdvHomepage = ({}) => {
                 setSidebarOpen(false);
               }}>
               Previous Adv Campaign data
-            </button>
+            </button> */}
 
             {/* Dropdown Toggle */}
             <div>
@@ -270,11 +270,11 @@ const AdvHomepage = ({}) => {
               <AdvertiserCurrentData />
             </div>
           )}
-          {activeComponent === "data" && (
+          {/* {activeComponent === "data" && (
             <div className="overflow-x-auto">
               <AdvertiserData />
             </div>
-          )}
+          )} */}
           {activeComponent === "pid" && <PIDForm />}
           {activeComponent === "payableevent" && <PayableEventForm />}
           {activeComponent === "mmptracker" && <MMPTrackerForm />}

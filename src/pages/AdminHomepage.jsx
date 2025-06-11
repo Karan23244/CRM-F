@@ -88,9 +88,9 @@ const AdminHomepage = () => {
                 setActiveComponent("allcurrentdata");
                 setSidebarOpen(false);
               }}>
-              Campaign Current Data
+              Campaign Data
             </button>
-            <button
+            {/* <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "alldata"
                   ? "bg-blue-700"
@@ -101,7 +101,7 @@ const AdminHomepage = () => {
                 setSidebarOpen(false);
               }}>
               Campaign All Data
-            </button>
+            </button> */}
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "advertiserdata"
@@ -172,11 +172,11 @@ const AdminHomepage = () => {
               <CampianData />
             </div>
           )}
-          {activeComponent === "alldata" && (
+          {/* {activeComponent === "alldata" && (
             <div>
               <CampianAllData />
             </div>
-          )}
+          )} */}
           {activeComponent === "advertiserdata" && (
             <div>
               <AdvnameData />

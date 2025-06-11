@@ -90,9 +90,9 @@ const PublisherHomepage = ({}) => {
                 setActiveComponent("currentpubdata");
                 setSidebarOpen(false);
               }}>
-              Current Pub Campaign data
+               Pub Campaign data
             </button>
-            <button
+            {/* <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "data" ? "bg-blue-700" : "hover:bg-blue-600"
               }`}
@@ -101,7 +101,7 @@ const PublisherHomepage = ({}) => {
                 setSidebarOpen(false);
               }}>
               Previous Pub Campaign data
-            </button>
+            </button> */}
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "makerequest"
@@ -172,11 +172,11 @@ const PublisherHomepage = ({}) => {
               <PublisherCurrentData />
             </div>
           )}
-          {activeComponent === "data" && (
+          {/* {activeComponent === "data" && (
             <div className="overflow-x-auto">
               <PublisherData />
             </div>
-          )}
+          )} */}
           {activeComponent === "makerequest" && <MakeRequest />}
           {activeComponent === "changepassword" && <ChangePassword />}
         </main>

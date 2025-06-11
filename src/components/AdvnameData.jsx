@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, use } from "react";
 import Swal from "sweetalert2";
 import axios from "axios";
 import { Table, Input, Select, Button, Space } from "antd";
@@ -16,7 +16,7 @@ const AdvnameData = () => {
   const [tableData, setTableData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingAdv, setEditingAdv] = useState(null);
-
+  console.log(tableData);
   // Form State for Editing
   const [name, setName] = useState("");
   const [selectedId, setSelectedId] = useState("");
@@ -24,6 +24,12 @@ const AdvnameData = () => {
   const [note, setNote] = useState("");
   const [advUserId, setAdvUserId] = useState(null);
   const [target, setTarget] = useState("");
+  const [acc_email, setAcc_email] = useState("");
+  const [poc_email, setPoc_email] = useState("");
+  const [assign_user, setAssign_user] = useState("");
+  const [assign_id, setAssign_id] = useState("");
+  const [subAdmins, setSubAdmins] = useState([]);
+  const [editingAssignRowId, setEditingAssignRowId] = useState(null);
   // **Fetch advertiser data**
   useEffect(() => {
     const fetchData = async () => {
@@ -31,7 +37,10 @@ const AdvnameData = () => {
         const response = await axios.get(`${apiUrl}/get-NameAdv/`);
 
         if (response.data && Array.isArray(response.data.data)) {
-          setTableData(response.data.data);
+          const filteredData = response.data.data.filter(
+            (item) => item.pause !== 1
+          );
+          setTableData(filteredData);
         } else {
           console.error("Unexpected response format:", response.data);
           setTableData([]);
@@ -43,6 +52,28 @@ const AdvnameData = () => {
     };
 
     fetchData();
+  }, []);
+
+  useEffect(() => {
+    const fetchSubAdmins = async () => {
+      try {
+        const response = await fetch(`${apiUrl}/get-subadmin`);
+        const data = await response.json();
+
+        if (response.ok) {
+          const filtered = data.data.filter((subAdmin) =>
+            ["advertiser_manager"].includes(subAdmin.role)
+          );
+          setSubAdmins(filtered);
+        } else {
+          console.log(data.message || "Failed to fetch sub-admins.");
+        }
+      } catch (err) {
+        console.log("An error occurred while fetching sub-admins.");
+      }
+    };
+
+    fetchSubAdmins();
   }, []);
 
   // **Filtered data for search**
@@ -78,6 +109,16 @@ const AdvnameData = () => {
       note: note || "",
       target: target || "",
       user_id: advUserId,
+      acc_email: acc_email,
+      poc_email: poc_email,
+      assign_user:
+        editingAdv && user?.role === "advertiser_manager"
+          ? editingAdv.assign_user
+          : assign_user,
+      assign_id:
+        editingAdv && user?.role === "advertiser_manager"
+          ? editingAdv.assign_id
+          : assign_id,
     };
     try {
       // **Update existing advertiser**
@@ -112,6 +153,10 @@ const AdvnameData = () => {
     setNote(record.note);
     setTarget(record.target);
     setAdvUserId(record.user_id);
+    setAcc_email(record.acc_email);
+    setPoc_email(record.poc_email);
+    setAssign_user(record.assign_user);
+    setAssign_id(record.assign_id);
   };
 
   // **Reset Form**
@@ -121,6 +166,10 @@ const AdvnameData = () => {
     setGeo("");
     setNote("");
     setTarget("");
+    setAcc_email("");
+    setPoc_email("");
+    setAssign_user("");
+    setAssign_id("");
     setEditingAdv(null);
   };
   const handlePause = async (record) => {
@@ -157,11 +206,98 @@ const AdvnameData = () => {
   // **Table Columns**
   const columns = [
     { title: "UserName", dataIndex: "username", key: "username" },
-    { title: "Advertiser Name", dataIndex: "adv_name", key: "adv_name" },
     { title: "Advertiser ID", dataIndex: "adv_id", key: "adv_id" },
+    { title: "Advertiser Name", dataIndex: "adv_name", key: "adv_name" },
     { title: "Geo", dataIndex: "geo", key: "geo" },
     { title: "Note", dataIndex: "note", key: "note" },
     { title: "Target", dataIndex: "target", key: "target" },
+    {
+      title: "Acc Email",
+      dataIndex: "acc_email",
+      key: "acc_email",
+      render: (text) => (user?.role === "advertiser" ? "*****" : text),
+    },
+    {
+      title: "POC Email",
+      dataIndex: "poc_email",
+      key: "poc_email",
+      render: (text) => (user?.role === "advertiser" ? "*****" : text),
+    },
+
+    {
+      title: "Assign User",
+      key: "assign_user",
+      dataIndex: "assign_user",
+    },
+    {
+      title: "Transfer Adv AM",
+      key: "user_id",
+      render: (_, record) => {
+        const isEditing = editingAssignRowId === record.adv_id;
+
+        if (isEditing) {
+          return (
+            <Select
+              autoFocus
+              value={record.user_id}
+              onChange={async (newUserId) => {
+                try {
+                  const response = await axios.put(`${apiUrl}/update-advid`, {
+                    ...record,
+                    user_id: newUserId,
+                  });
+
+                  if (response.data.success) {
+                    Swal.fire(
+                      "Success",
+                      "User transferred successfully!",
+                      "success"
+                    );
+
+                    // ✅ Update local tableData to reflect changes
+                    setTableData((prev) =>
+                      prev.map((item) =>
+                        item.adv_id === record.adv_id
+                          ? {
+                              ...item,
+                              user_id: newUserId,
+                            }
+                          : item
+                      )
+                    );
+                  } else {
+                    Swal.fire("Error", "Failed to transfer user", "error");
+                  }
+                } catch (error) {
+                  console.error("User transfer error:", error);
+                  Swal.fire("Error", "Something went wrong", "error");
+                } finally {
+                  setEditingAssignRowId(null);
+                }
+              }}
+              onBlur={() => setEditingAssignRowId(null)} // Close if user clicks away
+              className="min-w-[150px]">
+              <Option value="">Select Sub Admin</Option>
+              {subAdmins.map((admin) => (
+                <Option key={admin.id} value={admin.id.toString()}>
+                  {admin.username}
+                </Option>
+              ))}
+            </Select>
+          );
+        }
+
+        // Show normal text, and enter edit mode on click
+        return (
+          <span
+            onClick={() => setEditingAssignRowId(record.adv_id)}
+            className="cursor-pointer hover:underline"
+            title="Click to change user">
+            { "-"}
+          </span>
+        );
+      },
+    },
     {
       title: "Actions",
       key: "actions",
@@ -172,19 +308,6 @@ const AdvnameData = () => {
             size="small"
             onClick={() => handleEdit(record)}>
             Edit
-          </Button>
-          <Button
-            type="default"
-            danger={record.pause !== "1"}
-            size="small"
-            onClick={() => handlePause(record)}
-            disabled={record.pause === "1"}
-            className={`rounded px-3 py-1 ${
-              record.pause === "1"
-                ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                : "bg-red-600 hover:bg-red-700 text-white"
-            }`}>
-            {record.pause === "1" ? "Paused" : "Pause"}
           </Button>
         </Space>
       ),
@@ -265,7 +388,46 @@ const AdvnameData = () => {
               className="w-full p-2 border border-gray-300 rounded-lg"
             />
           </div>
+          <div>
+            <label className="block text-lg font-medium">Account Email</label>
+            <input
+              type="text"
+              value={acc_email}
+              onChange={(e) => setAcc_email(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-lg"
+            />
+          </div>
 
+          <div>
+            <label className="block text-lg font-medium">Poc Email</label>
+            <input
+              type="text"
+              value={poc_email}
+              onChange={(e) => setPoc_email(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-lg"
+            />
+          </div>
+          <div>
+            <label className="block text-lg font-medium">Assign User</label>
+            <select
+              className="w-full p-2 border border-gray-300 rounded-lg"
+              value={assign_id}
+              onChange={(e) => {
+                const selectedId = e.target.value;
+                const selectedUser = subAdmins.find(
+                  (admin) => admin.id.toString() === selectedId
+                );
+                setAssign_id(selectedId);
+                setAssign_user(selectedUser ? selectedUser.username : "");
+              }}>
+              <option value="">Select Sub Admin</option>
+              {subAdmins.map((admin) => (
+                <option key={admin.id} value={admin.id}>
+                  {admin.username}
+                </option>
+              ))}
+            </select>
+          </div>
           {/* Submit Button */}
           <button
             type="submit"
@@ -294,7 +456,7 @@ const AdvnameData = () => {
       <Table
         dataSource={filteredData}
         columns={columns}
-        rowKey="adv_id"
+        rowKey="id"
         pagination={{
           pageSizeOptions: ["10", "20", "50", "100"],
           showSizeChanger: true,

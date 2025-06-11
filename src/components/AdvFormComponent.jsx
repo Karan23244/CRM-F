@@ -175,7 +175,6 @@ const AdvertiserCreateForm = () => {
           ? editingAdv.assign_id
           : assign_id,
     };
-    console.log("Submitting advertiser:", newAdv);
     try {
       try {
         if (editingAdv) {

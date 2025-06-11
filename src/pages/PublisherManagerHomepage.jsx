@@ -113,9 +113,9 @@ const ManagerHomepage = ({}) => {
                 setActiveComponent("currentpubdata");
                 setSidebarOpen(false);
               }}>
-              Current Publisher Data
+              Pub Campaign data
             </button>
-            <button
+            {/* <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "pubdata"
                   ? "bg-blue-700"
@@ -126,7 +126,7 @@ const ManagerHomepage = ({}) => {
                 setSidebarOpen(false);
               }}>
               Previous Publisher Data
-            </button>
+            </button> */}
 
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
@@ -241,11 +241,11 @@ const ManagerHomepage = ({}) => {
               <PublisherCurrentData />
             </div>
           )}
-          {activeComponent === "pubdata" && (
+          {/* {activeComponent === "pubdata" && (
             <div className="overflow-x-auto">
               <PublisherData />
             </div>
-          )}
+          )} */}
           {activeComponent === "pid" && <PIDForm />}
           {activeComponent === "mmptracker" && <MMPTrackerForm />}
           {activeComponent === "payableevent" && <PayableEventForm />}
