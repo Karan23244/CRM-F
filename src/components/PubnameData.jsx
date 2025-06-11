@@ -30,7 +30,7 @@ const PubnameData = () => {
     const fetchData = async () => {
       try {
         const response = await axios.get(`${apiUrl}/get-Namepub/`);
-
+        console.log(response.data);
         if (response.data && Array.isArray(response.data.data)) {
           setTableData(response.data.data);
         } else {
@@ -152,38 +152,6 @@ const PubnameData = () => {
     setVector("");
   };
 
-  const handlePause = async (record) => {
-    try {
-      const response = await axios.post(`${apiUrl}/publisher-pause`, {
-        pub_id: record.pub_id,
-        pause: 1,
-      });
-
-      if (response.data.success) {
-        Swal.fire(
-          "Paused",
-          `Publisher ${record.pub_id} has been paused.`,
-          "success"
-        );
-
-        // ✅ Refresh data after pause
-        const { data } = await axios.get(`${apiUrl}/get-Namepub/`);
-        if (data.success && Array.isArray(data.data)) {
-          setTableData(data.data);
-        }
-      } else {
-        Swal.fire(
-          "Failed",
-          `Failed to pause publisher ${record.pub_id}.`,
-          "error"
-        );
-      }
-    } catch (error) {
-      console.error("Error pausing publisher:", error);
-      Swal.fire("Error", "Error occurred while pausing publisher.", "error");
-    }
-  };
-
   // **Table Columns**
   const columns = [
     { title: "UserName", dataIndex: "username", key: "username" },
@@ -204,12 +172,23 @@ const PubnameData = () => {
           return (
             <Select
               autoFocus
-              value={record.username}
+              value={record.user_id?.toString()}
               onChange={async (newUserId) => {
                 try {
+                  // Get selected username from subAdmins
+                  const selectedAdmin = subAdmins.find(
+                    (admin) => admin.id.toString() === newUserId
+                  );
+
+                  if (!selectedAdmin) {
+                    Swal.fire("Error", "Invalid user selected", "error");
+                    return;
+                  }
+
                   const response = await axios.put(`${apiUrl}/update-pubid`, {
                     ...record,
-                    user_id: newUserId,
+                    user_id: selectedAdmin.id,
+                    username: selectedAdmin.username,
                   });
 
                   if (response.data.success) {
@@ -218,6 +197,8 @@ const PubnameData = () => {
                       "User transferred successfully!",
                       "success"
                     );
+                    fetchData();
+                    // Optionally refresh data
                   } else {
                     Swal.fire("Error", "Failed to transfer user", "error");
                   }
@@ -228,7 +209,7 @@ const PubnameData = () => {
                   setEditingAssignRowId(null);
                 }
               }}
-              onBlur={() => setEditingAssignRowId(null)} // Close if user clicks away
+              onBlur={() => setEditingAssignRowId(null)}
               className="min-w-[150px]">
               <Option value="">Select Sub Admin</Option>
               {subAdmins.map((admin) => (
