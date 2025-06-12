@@ -73,8 +73,7 @@ const SubAdminForm = () => {
   const handleSaveSubAdmin = async () => {
     if (
       !username ||
-      (!selectedSubAdmin && !password) ||
-      ranges.some((range) => !range.start || !range.end)
+      (!selectedSubAdmin && !password) 
     ) {
       Swal.fire({
         icon: "warning",

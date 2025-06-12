@@ -9,9 +9,10 @@ const apiUrl =
 
 const BlacklistManager = () => {
   const [pids, setPids] = useState([]);
-  const [selectedPIDs, setSelectedPIDs] = useState();
+  const [selectedPID, setSelectedPID] = useState("");
   const [blacklistedData, setBlacklistedData] = useState([]);
   const [loading, setLoading] = useState(false);
+  console.log(blacklistedData);
   const fetchPIDs = async () => {
     try {
       const res = await axios.get(`${apiUrl}/get-pid`);
@@ -33,34 +34,28 @@ const BlacklistManager = () => {
   };
 
   const handleBlacklist = async () => {
-    if (selectedPIDs.length === 0) {
-      Swal.fire("Warning", "Please select at least one PID", "warning");
+    if (!selectedPID) {
+      Swal.fire("Warning", "Please select a PID", "warning");
       return;
     }
 
-    console.log("Selected PIDs for blacklisting:", selectedPIDs);
-
     try {
       setLoading(true);
-
-      for (const pid of selectedPIDs) {
-        await axios.post(`${apiUrl}/add-blacklist`, { pid }); // 👈 Send one at a time
-      }
-
-      Swal.fire("Success", "PIDs blacklisted successfully", "success");
-      setSelectedPIDs([]);
+      await axios.post(`${apiUrl}/add-blacklist`, { blacklistID: selectedPID });
+      Swal.fire("Success", `PID ${selectedPID} blacklisted`, "success");
+      setSelectedPID(""); // clear after success
       fetchBlacklisted();
     } catch (err) {
       console.error(err);
-      Swal.fire("Error", "Failed to blacklist PIDs", "error");
+      Swal.fire("Error", "Failed to blacklist PID", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleUnblacklist = async (pid) => {
+  const handleUnblacklist = async (id) => {
     const confirm = await Swal.fire({
-      title: `Unblacklist PID: ${pid}?`,
+      title: `Unblacklist this PID?`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Yes, unblacklist",
@@ -70,8 +65,8 @@ const BlacklistManager = () => {
     if (confirm.isConfirmed) {
       try {
         setLoading(true);
-        await axios.post(`${apiUrl}/unblacklist`, { pid });
-        Swal.fire("Success", `PID ${pid} unblacklisted`, "success");
+        await axios.delete(`${apiUrl}/blacklist-delete/${id}`);
+        Swal.fire("Success", `PID unblacklisted successfully`, "success");
         fetchBlacklisted();
       } catch (err) {
         console.error(err);
@@ -89,28 +84,50 @@ const BlacklistManager = () => {
 
   const columns = [
     {
-      title: "PID",
-      dataIndex: "pid",
-      key: "pid",
-      render: (text) => <Tag color="blue">{text}</Tag>,
+      title: "Blacklisted PID",
+      dataIndex: "blacklistID",
+      key: "blacklistID",
     },
     {
       title: "Blacklisted On",
       dataIndex: "date",
       key: "date",
-      render: (date) => new Date(date).toLocaleString(),
+      render: (date) =>
+        date
+          ? new Date(date).toLocaleDateString("en-IN", {
+              day: "2-digit",
+              month: "long",
+              year: "numeric",
+            })
+          : "-",
+    },
+    {
+      title: "Unblacklist Date",
+      dataIndex: "unblacklist_date",
+      key: "unblacklist_date",
+      render: (date) =>
+        date
+          ? new Date(date).toLocaleDateString("en-IN", {
+              day: "2-digit",
+              month: "long",
+              year: "numeric",
+            })
+          : "-",
     },
     {
       title: "Action",
       key: "action",
-      render: (_, record) => (
-        <Button
-          type="primary"
-          danger
-          onClick={() => handleUnblacklist(record.pid)}>
-          Unblacklist
-        </Button>
-      ),
+      render: (_, record) => {
+        console.log("Record:", record); // Debug log
+        return (
+          <Button
+            type="primary"
+            danger
+            onClick={() => handleUnblacklist(record.id)}>
+            Unblacklist
+          </Button>
+        );
+      },
     },
   ];
 
@@ -120,16 +137,16 @@ const BlacklistManager = () => {
 
       <div className="mb-6">
         <label className="block font-medium mb-2 text-gray-700">
-          Select PIDs to Blacklist
+          Select PID to Blacklist
         </label>
         <Space direction="horizontal" wrap>
           <Select
             allowClear
             showSearch
             style={{ width: 400 }}
-            placeholder="Search and select PIDs"
-            value={selectedPIDs}
-            onChange={setSelectedPIDs}
+            placeholder="Search and select a PID"
+            value={selectedPID}
+            onChange={setSelectedPID}
             optionFilterProp="children">
             {pids.map((pid) => (
               <Option key={pid.id} value={pid.pid}>
@@ -149,8 +166,10 @@ const BlacklistManager = () => {
           columns={columns}
           dataSource={blacklistedData.map((item, index) => ({
             key: index,
-            pid: item.pid,
-            date: item.date,
+            id: item.id, // ✅ include id here
+            blacklistID: item.blacklistID,
+            date: item.blacklist_date,
+            unblacklist_date: item.unblacklist_date,
           }))}
           loading={loading}
           pagination={{
@@ -158,7 +177,7 @@ const BlacklistManager = () => {
             showSizeChanger: true,
             pageSizeOptions: ["10", "20", "50"],
           }}
-          rowKey="pid"
+          rowKey="id"
         />
       </div>
     </div>
