@@ -106,18 +106,6 @@ const ManagerHomepage = ({}) => {
               }}>
               Adv Campaign data
             </button>
-            <button
-              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
-                activeComponent === "advdata"
-                  ? "bg-blue-700"
-                  : "hover:bg-blue-600"
-              }`}
-              onClick={() => {
-                setActiveComponent("advdata");
-                setSidebarOpen(false);
-              }}>
-              Previous Advertiser Data
-            </button>
             {/* Dropdown Toggle */}
             <div>
               <button

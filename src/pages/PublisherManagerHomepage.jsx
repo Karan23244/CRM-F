@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { FaBars, FaTimes } from "react-icons/fa";
-import AdvFormComponent from "../components/AdvFormComponent";
-import AdvertiserData from "../components/AdvertiserData";
 import PIDForm from "../components/PIDForm";
 import MMPTrackerForm from "../components/MMPTrackerForm";
 import PayableEventForm from "../components/PayableEventForm";
@@ -9,23 +7,17 @@ import { logout } from "../redux/authSlice";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import ChangePassword from "../components/ChangePassword";
-import PublisherData from "../components/PublisherData";
 import PublisherFormComponent from "../components/PublisherFormComponent";
-import MainComponent from "../components/ManagerAllData";
-import AdvertiserCurrentData from "../components/AdvertiserCurrentData";
 import PublisherCurrentData from "../components/PublisherCurrentData";
-import SubAdminPubnameData from "../components/SubAdminPubnameData";
-import NewRequest from "../components/NewRequest";
 import MakeRequest from "../components/MakeRequest";
 import { subscribeToNotifications } from "../components/Socket";
-import SubAdminAdvnameData from "../components/SubAdminAdvnameData";
 import { FaBell } from "react-icons/fa";
+import BlacklistManager from "../components/BlacklistManager";
 
 const ManagerHomepage = ({}) => {
   const [activeComponent, setActiveComponent] = useState("pubform");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showNotificationDot, setShowNotificationDot] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -82,15 +74,6 @@ const ManagerHomepage = ({}) => {
         {/* Navigation */}
         {sidebarOpen && (
           <nav className="space-y-2 flex-1 overflow-y-auto px-2">
-            {/* <button
-              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
-                activeComponent === "advform"
-                  ? "bg-blue-700"
-                  : "hover:bg-blue-600"
-              }`}
-              onClick={() => setActiveComponent("advform")}>
-              Advertiser Form
-            </button> */}
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "pubform"
@@ -115,19 +98,18 @@ const ManagerHomepage = ({}) => {
               }}>
               Pub Campaign data
             </button>
-            {/* <button
+            <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
-                activeComponent === "pubdata"
+                activeComponent === "blacklistpid"
                   ? "bg-blue-700"
                   : "hover:bg-blue-600"
               }`}
               onClick={() => {
-                setActiveComponent("pubdata");
+                setActiveComponent("blacklistpid");
                 setSidebarOpen(false);
               }}>
-              Previous Publisher Data
-            </button> */}
-
+              Blacklist PID
+            </button>
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "makerequest"
@@ -143,38 +125,6 @@ const ManagerHomepage = ({}) => {
                 <span className="w-2 h-2 bg-red-500 rounded-full ml-1"></span>
               )}
             </button>
-
-            {/* <button
-              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
-                activeComponent === "viewRequest"
-                  ? "bg-blue-700"
-                  : "hover:bg-blue-600"
-              }`}
-              onClick={() => setActiveComponent("viewRequest")}>
-              New Request
-              {showNewRequestDot && (
-                <span className="w-2 h-2 bg-red-500 rounded-full ml-1"></span>
-              )}
-            </button> */}
-
-            {/* <button
-              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
-                activeComponent === "pubnameData"
-                  ? "bg-blue-700"
-                  : "hover:bg-blue-600"
-              }`}
-              onClick={() => setActiveComponent("pubnameData")}>
-              Assigned Sub-Admin Publisher Data
-            </button> */}
-            {/* <button
-              className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
-                activeComponent === "advnameData"
-                  ? "bg-blue-700"
-                  : "hover:bg-blue-600"
-              }`}
-              onClick={() => setActiveComponent("advnameData")}>
-              Assigned Sub-Admin Advertiser Data
-            </button> */}
             <button
               className={`w-full text-left px-4 py-3 text-base font-medium rounded-lg transition-all flex items-center gap-2 ${
                 activeComponent === "changepassword"
@@ -223,36 +173,17 @@ const ManagerHomepage = ({}) => {
 
         {/* Main Content Area */}
         <main className="overflow-auto min-w-0">
-          {/* {activeComponent === "advform" && <AdvFormComponent />} */}
           {activeComponent === "pubform" && <PublisherFormComponent />}
-
-          {/* {activeComponent === "currentadvdata" && (
-            <div className="overflow-x-auto">
-              <AdvertiserCurrentData />
-            </div>
-          )}
-          {activeComponent === "advdata" && (
-            <div className="overflow-x-auto">
-              <AdvertiserData />
-            </div>
-          )} */}
           {activeComponent === "currentpubdata" && (
             <div className="overflow-x-auto">
               <PublisherCurrentData />
             </div>
           )}
-          {/* {activeComponent === "pubdata" && (
-            <div className="overflow-x-auto">
-              <PublisherData />
-            </div>
-          )} */}
           {activeComponent === "pid" && <PIDForm />}
           {activeComponent === "mmptracker" && <MMPTrackerForm />}
           {activeComponent === "payableevent" && <PayableEventForm />}
           {activeComponent === "makerequest" && <MakeRequest />}
-          {/* {activeComponent === "viewRequest" && <NewRequest />} */}
-          {/* {activeComponent === "pubnameData" && <SubAdminPubnameData />} */}
-          {/* {activeComponent === "advnameData" && <SubAdminAdvnameData />} */}
+          {activeComponent === "blacklistpid" && <BlacklistManager />}
           {activeComponent === "changepassword" && <ChangePassword />}
         </main>
       </div>

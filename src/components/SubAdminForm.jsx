@@ -295,7 +295,7 @@ const SubAdminForm = () => {
               </Select>
             </Form.Item>
           )}
-          <Form.Item label="Ranges" required>
+          <Form.Item label="Ranges">
             {ranges.map((range, index) => (
               <div key={index} className="flex space-x-2 items-center mb-2">
                 <Input

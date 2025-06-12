@@ -335,7 +335,7 @@ const PubnameData = () => {
 
           {/* Vector Field */}
           <div>
-            <label className="block text-lg font-medium">Vector</label>
+            <label className="block text-lg font-medium">Vertical</label>
             <input
               type="text"
               value={vector}

@@ -67,7 +67,6 @@ const PublisherCreateForm = () => {
   const [level, setLevel] = useState("");
   const [vector, setVector] = useState("");
   const [target, setTarget] = useState("");
-
   // **Initialize available IDs from user.ranges**
   useEffect(() => {
     if (user && user.ranges && user.ranges.length > 0) {
