@@ -29,12 +29,21 @@ const PublisherRequest = () => {
   const [dropdownOptions, setDropdownOptions] = useState({});
   const [searchText, setSearchText] = useState("");
   const [filteredRequests, setFilteredRequests] = useState([]);
-
-  console.log(dropdownOptions);
+  const [blacklistPIDs, setBlacklistPIDs] = useState([]);
+  const fetchBlacklistPIDs = async () => {
+    try {
+      const res = await axios.get(`${apiUrl1}/get-blacklist`);
+      const blacklist = res.data?.map((item) => item.blacklistID) || [];
+      setBlacklistPIDs(blacklist);
+    } catch (error) {
+      console.error("Failed to fetch blacklist PIDs:", error);
+    }
+  };
   useEffect(() => {
     fetchAdvertisers();
     fetchRequests();
     fetchDropdowns();
+    fetchBlacklistPIDs();
 
     // Socket notification setup
     subscribeToNotifications((data) => {
@@ -109,6 +118,16 @@ const PublisherRequest = () => {
     try {
       const values = await form.validateFields();
 
+      // ⛔ Check if the PID is blacklisted
+      if (blacklistPIDs.includes(values.pid)) {
+        Swal.fire({
+          icon: "error",
+          title: "Submission Blocked",
+          text: `The selected PID "${values.pid}" is blacklisted and cannot be submitted.`,
+        });
+        return; // prevent submission
+      }
+
       const requestData = {
         adv_name: values.advertiserName,
         pub_name: username,
@@ -117,12 +136,12 @@ const PublisherRequest = () => {
         os: values.os,
         pid: values.pid,
         pub_id: values.pub_id,
-        geo: values.geo, // ✅ Add this line
+        geo: values.geo,
       };
-      // Sending the form data to the API endpoint
+
       const response = await axios.post(`${apiUrl}/addPubRequest`, requestData);
+
       if (response.status === 201) {
-        // Update the local state with the new request (optional, depending on your needs)
         const newRequest = {
           key: Date.now(),
           advertiserName: values.advertiserName,
@@ -313,6 +332,15 @@ const PublisherRequest = () => {
               filterOption={(inputValue, option) =>
                 option.value.toLowerCase().includes(inputValue.toLowerCase())
               }
+              onChange={(value) => {
+                if (blacklistPIDs.includes(value)) {
+                  Swal.fire({
+                    icon: "warning",
+                    title: "Blacklisted PID",
+                    text: `The PID "${value}" is blacklisted.`,
+                  });
+                }
+              }}
             />
           </Form.Item>
 
