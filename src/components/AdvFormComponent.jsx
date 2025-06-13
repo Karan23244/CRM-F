@@ -126,7 +126,7 @@ const AdvertiserCreateForm = () => {
 
         if (response.ok) {
           const filtered = data.data.filter((subAdmin) =>
-            ["advertiser_manager"].includes(subAdmin.role)
+            ["advertiser_manager","advertiser"].includes(subAdmin.role)
           );
           setSubAdmins(filtered);
         } else {
