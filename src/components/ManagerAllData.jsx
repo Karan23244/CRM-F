@@ -1,11 +1,23 @@
 import React, { useEffect, useState } from "react";
 import Select from "react-select";
 import axios from "axios";
-import { Table, Input, Button, message, DatePicker } from "antd";
+import {
+  Table,
+  Button,
+  Dropdown,
+  Checkbox,
+  Menu,
+  DatePicker,
+  Tooltip,
+  Divider,
+  Popover,
+  Input,
+} from "antd";
 import { EditOutlined, SaveOutlined } from "@ant-design/icons";
 import { useSelector } from "react-redux";
 import dayjs from "dayjs";
 import { exportToExcel } from "./exportExcel";
+import AdvertiserAssignData from "./AdvertiserAssignData";
 
 const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
@@ -62,7 +74,7 @@ const DataTable = ({ role, data, name, fetchData }) => {
   return role === "publisher" ? (
     <PublisherComponent data={data} name={name} fetchData={fetchData} />
   ) : role === "advertiser" ? (
-    <AdvertiserData data={data} name={name} />
+    <AdvertiserAssignData data={data} name={name} />
   ) : (
     <div>No matching role found</div>
   );
@@ -309,104 +321,128 @@ const MainComponent = () => {
 
 export default MainComponent;
 
-const AdvertiserData = ({ data, name }) => {
-  if (!data || data.length === 0) {
-    return <p className="text-center text-gray-500">No data available</p>;
-  }
+// const AdvertiserData = ({ data, name }) => {
+//   if (!data || data.length === 0) {
+//     return <p className="text-center text-gray-500">No data available</p>;
+//   }
 
-  const filteredData = data.map(({ adv_id, user_id, id, ...rest }) => rest);
-  const [filters, setFilters] = useState({});
+//   const filteredData = data.map(({ adv_id, user_id, id, ...rest }) => rest);
+//   const [filters, setFilters] = useState({});
 
-  const handleFilterChange = (value, key) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
-  };
+//   const handleFilterChange = (value, key) => {
+//     setFilters((prev) => ({ ...prev, [key]: value }));
+//   };
 
-  const filteredRecords = filteredData.filter((item) => {
-    return Object.keys(filters).every((key) => {
-      if (!filters[key]) return true;
+//   const filteredRecords = filteredData.filter((item) => {
+//     return Object.keys(filters).every((key) => {
+//       if (!filters[key]) return true;
 
-      if (Array.isArray(filters[key]) && filters[key].length === 2) {
-        const [start, end] = filters[key];
-        return dayjs(item[key]).isBetween(start, end, null, "[]");
-      }
+//       if (Array.isArray(filters[key]) && filters[key].length === 2) {
+//         const [start, end] = filters[key];
+//         return dayjs(item[key]).isBetween(start, end, null, "[]");
+//       }
 
-      return item[key] === filters[key];
-    });
-  });
-  const columnHeadings = {
-    pub_name: "PUBM Name",
-    campaign_name: "Campaign Name",
-    geo: "GEO",
-    city: "State Or City",
-    os: "OS",
-    payable_event: "Payable Event",
-    mmp_tracker: "MMP Tracker",
-    adv_id: "ADV ID",
-    adv_payout: "ADV Payout $",
-    pub_am: "Pub AM",
-    pub_id: "PubID",
-    p_id: "PID",
-    shared_date: "Shared Date",
-    paused_date: "Paused Date",
-    adv_total_numbers: "ADV Total Numbers",
-    adv_deductions: "ADV Deductions",
-    adv_approved_numbers: "ADV Approved Numbers",
-  };
-  const columns = Object.keys(filteredData[0] || {}).map((key) => {
-    const title = columnHeadings[key] || key.replace(/([A-Z])/g, " $1").trim();
-    if (key.toLowerCase().includes("date")) {
-      return {
-        title, // Use custom title or fallback
-        dataIndex: key,
-        key,
-        filterDropdown: () => (
-          <RangePicker
-            onChange={(dates) => handleFilterChange(dates, key)}
-            style={{ width: "100%" }}
-          />
-        ),
-      };
-    }
+//       return item[key] === filters[key];
+//     });
+//   });
+//   const columnHeadings = {
+//     pub_name: "PUBM Name",
+//     campaign_name: "Campaign Name",
+//     geo: "GEO",
+//     city: "State Or City",
+//     os: "OS",
+//     payable_event: "Payable Event",
+//     mmp_tracker: "MMP Tracker",
+//     adv_id: "ADV ID",
+//     adv_payout: "ADV Payout $",
+//     pub_am: "Pub AM",
+//     pub_id: "PubID",
+//     pid: "PID",
+//     pay_out: "PUB Payout $",
+//     shared_date: "Shared Date",
+//     paused_date: "Paused Date",
+//     adv_total_no: "ADV Total Numbers",
+//     adv_deductions: "ADV Deductions",
+//     adv_approved_no: "ADV Approved Numbers",
+//   };
 
-    const uniqueValues = [
-      ...new Set(filteredData.map((item) => item[key]).filter(Boolean)),
-    ];
+//   const desiredOrder = [
+//     "adv_id",
+//     "campaign_name",
+//     "geo",
+//     "city",
+//     "os",
+//     "payable_event",
+//     "mmp_tracker",
+//     "adv_payout",
+//     "pub_name",
+//     "pub_id",
+//     "pub_am",
+//     "pid",
+//     "pay_out",
+//     "shared_date",
+//     "paused_date",
+//     "adv_total_no",
+//     "adv_deductions",
+//     "adv_approved_no",
+//   ];
+//   const columns = Object.keys(filteredData[0] || {}).map((key) => {
+//     const title = columnHeadings[key] || key.replace(/([A-Z])/g, " $1").trim();
+//     if (key.toLowerCase().includes("date")) {
+//       return {
+//         title, // Use custom title or fallback
+//         dataIndex: key,
+//         key,
+//         filterDropdown: () => (
+//           <RangePicker
+//             onChange={(dates) => handleFilterChange(dates, key)}
+//             style={{ width: "100%" }}
+//           />
+//         ),
+//       };
+//     }
 
-    return {
-      title: columnHeadings[key] || key.replace(/([A-Z])/g, " $1").trim(),
-      dataIndex: key,
-      key,
-      filters: uniqueValues.map((val) => ({ text: val, value: val })),
-      onFilter: (value, record) => record[key] === value,
-    };
-  });
+//     const uniqueValues = [
+//       ...new Set(filteredData.map((item) => item[key]).filter(Boolean)),
+//     ];
 
-  return (
-    <div className="p-4 flex flex-col">
-      <Button
-        type="primary"
-        onClick={() => exportToExcel(data, "Sub-publisher-data.xlsx")}
-        className="w-3xs mb-5">
-        Download Excel
-      </Button>
-      <div>
-        <h1 className="text-lg font-semibold">Advertiser Data of {name}</h1>
-      </div>
-      <div className="w-full overflow-auto bg-white p-4 rounded shadow-md">
-        <Table
-          columns={columns}
-          dataSource={filteredRecords}
-          pagination={{
-            pageSizeOptions: ["10", "20", "50", "100"], // Define available page sizes
-            showSizeChanger: true, // Allow changing page size
-            defaultPageSize: 10, // Set the default page size
-            showTotal: (total, range) =>
-              `${range[0]}-${range[1]} of ${total} items`, // Optional: Show total records
-          }}
-          bordered
-          scroll={{ x: "max-content" }}
-        />
-      </div>
-    </div>
-  );
-};
+//     return {
+//       title: columnHeadings[key] || key.replace(/([A-Z])/g, " $1").trim(),
+//       dataIndex: key,
+//       key,
+//       filters: uniqueValues.map((val) => ({ text: val, value: val })),
+//       onFilter: (value, record) => record[key] === value,
+//     };
+//   });
+
+//   return (
+//     <div className="p-4 flex flex-col">
+//       <Button
+//         type="primary"
+//         onClick={() => exportToExcel(data, "Sub-publisher-data.xlsx")}
+//         className="w-3xs mb-5">
+//         Download Excel
+//       </Button>
+//       <div>
+//         <h1 className="text-lg font-semibold">Advertiser Data of {name}</h1>
+//       </div>
+//       <div className="w-full overflow-auto bg-white p-4 rounded shadow-md">
+//         <Table
+//           columns={columns}
+//           dataSource={filteredRecords}
+//           pagination={{
+//             pageSizeOptions: ["10", "20", "50", "100"], // Define available page sizes
+//             showSizeChanger: true, // Allow changing page size
+//             defaultPageSize: 10, // Set the default page size
+//             showTotal: (total, range) =>
+//               `${range[0]}-${range[1]} of ${total} items`, // Optional: Show total records
+//           }}
+//           bordered
+//           scroll={{ x: "max-content" }}
+//         />
+//       </div>
+//     </div>
+//   );
+// };
+
+
