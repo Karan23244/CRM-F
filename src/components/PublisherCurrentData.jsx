@@ -40,17 +40,11 @@ const PublisherPayoutData = () => {
   ]);
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [showSubadminData, setShowSubadminData] = useState(false);
-  const [visibleData, setVisibleData] = useState([]);
-  const [selectedMonth, setSelectedMonth] = useState(() => {
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), 1); // First day of current month
-  });
   const [selectedSubAdmins, setSelectedSubAdmins] = useState([]);
   const [subAdmins, setSubAdmins] = useState([]);
 
   const user = useSelector((state) => state.auth.user);
-  console.log(advData, "advData");
+  console.log(selectedSubAdmins);
   const handleDateRangeChange = (dates) => {
     if (!dates || dates.length === 0) {
       // Reset to current month
@@ -169,188 +163,62 @@ const PublisherPayoutData = () => {
 
     const filtered = advData.filter((item) => {
       const sharedDate = dayjs(item.shared_date);
-      const matchesMonth =
-        sharedDate?.month() === currentMonth &&
-        sharedDate?.year() === currentYear;
 
-      const matchesPub = item.pub_name === user?.username;
-      console.log(matchesPub);
+      // Match pub_name for selected subadmins or fallback to current user
+      const matchesPub =
+        selectedSubAdmins?.length > 0
+          ? selectedSubAdmins.includes(item.pub_name)
+          : item.pub_name === user?.username;
+
+      // Use selected date range if provided, otherwise filter by current month/year
+      const matchesDate =
+        selectedDateRange?.length === 2 &&
+        selectedDateRange[0] &&
+        selectedDateRange[1]
+          ? sharedDate.isBetween(
+              selectedDateRange[0],
+              selectedDateRange[1],
+              null,
+              "[]"
+            )
+          : sharedDate.month() === currentMonth &&
+            sharedDate.year() === currentYear;
+
+      // Dynamic filters (category, status, etc.)
       const matchesFilters = Object.keys(filters).every((key) => {
         if (!filters[key]) return true;
         if (Array.isArray(filters[key])) {
-          const res = filters[key].some(
+          return filters[key].some(
             (filterVal) =>
               item[key] != null &&
               String(item[key]).toLowerCase() ===
                 String(filterVal).toLowerCase()
           );
-          return res;
         }
         return item[key] === filters[key];
       });
 
-      if (
-        selectedDateRange &&
-        selectedDateRange.length === 2 &&
-        selectedDateRange[0] &&
-        selectedDateRange[1]
-      ) {
-        const [start, end] = selectedDateRange;
-        if (!sharedDate.isBetween(start, end, null, "[]")) {
-          return false;
-        }
-      }
+      // Search filter
       const matchesSearch = !searchTerm.trim()
         ? true
         : Object.values(item).some((val) =>
             String(val).toLowerCase().includes(searchTerm.toLowerCase())
           );
 
-      return matchesPub && matchesFilters && matchesSearch;
+      return matchesPub && matchesDate && matchesFilters && matchesSearch;
     });
 
     setFilteredData(filtered);
     generateUniqueValues(filtered);
-  }, [filters, advData, searchTerm, user,selectedDateRange]);
+  }, [
+    advData,
+    filters,
+    searchTerm,
+    selectedDateRange,
+    selectedSubAdmins,
+    user,
+  ]);
 
-  const handleEdit = (id) => {
-    const row = filteredData.find((row) => row.id === id);
-    setEditingKey(id);
-    setEditedRow({ ...row });
-  };
-
-  const handleChange = (value, key) => {
-    setEditedRow((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-  };
-
-  const handleSave = async () => {
-    try {
-      const updateUrl = `${apiUrl}/advdata-update/${editingKey}`;
-      await axios.post(updateUrl, editedRow, {
-        headers: { "Content-Type": "application/json" },
-      });
-      setEditingKey(null);
-      Swal.fire({
-        icon: "success",
-        title: "Success",
-        text: "Data updated successfully",
-        timer: 2000,
-        showConfirmButton: false,
-      });
-      fetchAdvData();
-    } catch (error) {
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Failed to update data",
-      });
-    }
-  };
-
-  useEffect(() => {
-    let data;
-    if (selectedSubAdmins?.length > 0) {
-      data = advData.filter((item) =>
-        selectedSubAdmins.includes(item.pub_name)
-      );
-    } else {
-      const currentMonth = dayjs().month();
-      const currentYear = dayjs().year();
-
-      data = advData.filter((row) => {
-        const sharedDate = dayjs(row.shared_date);
-        return (
-          row.pub_name === user?.username &&
-          sharedDate.month() === currentMonth &&
-          sharedDate.year() === currentYear
-        );
-      });
-    }
-    setVisibleData(data);
-  }, [selectedSubAdmins, advData, user]);
-
-  // const getColumns = (columnHeadings) => {
-  //   return Object.keys(columnHeadings).map((key) => ({
-  //     title: (
-  //       <div className="flex items-center justify-between">
-  //         <span
-  //           style={{
-  //             color: filters[key] ? "#1677ff" : "inherit",
-  //             fontWeight: filters[key] ? "bold" : "normal",
-  //           }}>
-  //           {columnHeadings[key] || key}
-  //         </span>
-  //         <Tooltip
-  //           title={stickyColumns.includes(key) ? "Unpin" : "Pin"}
-  //           className="p-3">
-  //           <Button
-  //             size="small"
-  //             icon={
-  //               stickyColumns.includes(key) ? (
-  //                 <PushpinFilled style={{ color: "#1677ff" }} />
-  //               ) : (
-  //                 <PushpinOutlined />
-  //               )
-  //             }
-  //             onClick={() => toggleStickyColumn(key)}
-  //           />
-  //         </Tooltip>
-  //         {uniqueValues[key] && (
-  //           <Dropdown
-  //             overlay={
-  //               <Menu>
-  //                 <div className="p-3 w-60">
-  //                   <Select
-  //                     mode="multiple"
-  //                     showSearch
-  //                     allowClear
-  //                     className="w-full"
-  //                     placeholder={`Filter ${key}`}
-  //                     value={filters[key] || []}
-  //                     onChange={(value) => handleFilterChange(value, key)}
-  //                     optionLabelProp="label"
-  //                     maxTagCount="responsive"
-  //                     filterOption={(input, option) =>
-  //                       option?.children
-  //                         ?.toLowerCase()
-  //                         .includes(input.toLowerCase())
-  //                     }>
-  //                     {[...uniqueValues[key]]
-  //                       .filter((val) => val !== null && val !== undefined)
-  //                       .sort((a, b) => {
-  //                         const aNum = parseFloat(a);
-  //                         const bNum = parseFloat(b);
-  //                         const isNumeric = !isNaN(aNum) && !isNaN(bNum);
-  //                         return isNumeric
-  //                           ? aNum - bNum
-  //                           : a.toString().localeCompare(b.toString());
-  //                       })
-  //                       .map((val) => (
-  //                         <Select.Option key={val} value={val} label={val}>
-  //                           <Checkbox checked={filters[key]?.includes(val)}>
-  //                             {val}
-  //                           </Checkbox>
-  //                         </Select.Option>
-  //                       ))}
-  //                   </Select>
-  //                 </div>
-  //               </Menu>
-  //             }
-  //             trigger={["click"]}
-  //             placement="bottomRight">
-  //             <FilterOutlined className="cursor-pointer text-gray-500 hover:text-black ml-2" />
-  //           </Dropdown>
-  //         )}
-  //       </div>
-  //     ),
-  //     dataIndex: key,
-  //     fixed: stickyColumns.includes(key) ? "left" : undefined,
-  //     key,
-  //   }));
-  // };
   const getColumns = (columnHeadings) => {
     return Object.keys(columnHeadings).map((key) => ({
       title: (
