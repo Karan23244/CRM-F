@@ -17,6 +17,7 @@ import dayjs from "dayjs";
 import "../index.css";
 import geoData from "../Data/geoData.json";
 import { exportToExcel } from "./exportExcel";
+import Validation from "./Validation";
 import Swal from "sweetalert2";
 import { PushpinOutlined, PushpinFilled } from "@ant-design/icons";
 const { Option } = Select;
@@ -66,6 +67,7 @@ const columnHeadingsAdv = {
   adv_total_no: "ADV Total Numbers",
   adv_deductions: "ADV Deductions",
   adv_approved_no: "ADV Approved Numbers",
+  pub_Apno: "PUB Approved Numbers",
 };
 
 const CampianData = () => {
@@ -75,6 +77,7 @@ const CampianData = () => {
   const [filters, setFilters] = useState({});
   const [filteredData, setFilteredData] = useState([]);
   const [uniqueValues, setUniqueValues] = useState({});
+  const [showValidation, setShowValidation] = useState(false);
   const [stickyColumns, setStickyColumns] = useState([]);
   const [editingCell, setEditingCell] = useState({ key: null, field: null });
   const [dropdownOptions, setDropdownOptions] = useState({
@@ -125,9 +128,8 @@ const CampianData = () => {
 
   useEffect(() => {
     const data = selectedType === "publisher" ? pubData : advData;
-    generateUniqueValues(data);
     const filtered = data.filter((item) => {
-      // Date Range filter
+      // Date Range filter for shared_date
       if (
         selectedDateRange &&
         selectedDateRange.length === 2 &&
@@ -137,7 +139,6 @@ const CampianData = () => {
         const start = dayjs(selectedDateRange[0]).startOf("day");
         const end = dayjs(selectedDateRange[1]).endOf("day");
         const shared = dayjs(item.shared_date);
-
         if (!shared.isBetween(start, end, null, "[]")) {
           return false;
         }
@@ -145,24 +146,28 @@ const CampianData = () => {
 
       // Advanced filters
       const passesAdvancedFilters = Object.keys(filters).every((key) => {
-        if (!filters[key]) return true;
+        const filterVal = filters[key];
+        if (!filterVal || filterVal.length === 0) return true;
 
-        if (Array.isArray(filters[key]) && filters[key].length === 2) {
-          const [start, end] = filters[key];
-          return dayjs(item[key]).isBetween(start, end, null, "[]");
+        const itemVal = item[key];
+
+        // Special case: handle array/multi-select filters (most cases)
+        if (Array.isArray(filterVal)) {
+          return filterVal.some(
+            (val) => String(itemVal).toLowerCase() === String(val).toLowerCase()
+          );
         }
 
+        // Fallback: string comparison
         return (
-          item[key]?.toString().toLowerCase() ===
-          filters[key].toString().toLowerCase()
+          String(itemVal).toLowerCase() === String(filterVal).toLowerCase()
         );
       });
 
       if (!passesAdvancedFilters) return false;
 
-      // Search filter
+      // Search term
       if (!searchTerm.trim()) return true;
-
       const lowerSearch = searchTerm.toLowerCase();
       return Object.values(item).some((val) =>
         String(val).toLowerCase().includes(lowerSearch)
@@ -171,7 +176,9 @@ const CampianData = () => {
 
     setFilteredData(filtered.filter((row) => !isRowEmpty(row)));
   }, [pubData, advData, selectedType, filters, searchTerm, selectedDateRange]);
-
+  useEffect(() => {
+    generateUniqueValues(filteredData);
+  }, [filteredData]);
   // Generate unique values for filtering
   const generateUniqueValues = (data) => {
     const uniqueVals = {};
@@ -228,11 +235,6 @@ const CampianData = () => {
       message.error("Failed to fetch dropdown options");
     }
   };
-  // Handle Checkbox Change
-  const handleCheckboxChange = (type) => {
-    setSelectedType(type);
-    setFilters({});
-  };
   // Check if all values in a row are empty
   // Check if the row has empty pub_name or adv_name
   const isRowEmpty = (row) => {
@@ -244,10 +246,7 @@ const CampianData = () => {
   };
   // Handle Filter Change
   const handleFilterChange = (value, key) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: value?.length ? value : undefined,
-    }));
+    setFilters((prev) => ({ ...prev, [key]: value }));
   };
   const handleAutoSave = async (newValue, record, key) => {
     const updateUrl =
@@ -317,7 +316,7 @@ const CampianData = () => {
                 onClick={() => toggleStickyColumn(key)}
               />
             </Tooltip>
-            {uniqueValues[key]?.length > 1 && (
+            {uniqueValues[key]?.length > 0 && (
               <Dropdown
                 overlay={
                   <Menu>
@@ -360,11 +359,11 @@ const CampianData = () => {
                             return a.toString().localeCompare(b.toString());
                           })
                           .map((val) => (
-                            <Option key={val} value={val} label={val}>
+                            <Select.Option key={val} value={val} label={val}>
                               <Checkbox checked={filters[key]?.includes(val)}>
                                 {val}
                               </Checkbox>
-                            </Option>
+                            </Select.Option>
                           ))}
                       </Select>
                     </div>
@@ -445,136 +444,179 @@ const CampianData = () => {
           );
         },
       })),
-      // {
-      //   title: "Actions",
-      //   fixed: "right",
-      //   key: "actions",
-      //   render: (record) => (
-      //     <Button
-      //       icon={<EditOutlined />}
-      //       onClick={() =>
-      //         setEditingCell({
-      //           key: record.id,
-      //           field: Object.keys(columnHeadings)[0],
-      //         })
-      //       }>
-      //       Edit
-      //     </Button>
-      //   ),
-      // },
     ];
   };
   return (
     <div className="p-6 bg-gradient-to-br from-gray-100 to-gray-200 min-h-screen">
       {/* Toggle Section */}
-      <div className="bg-white rounded-lg shadow-md p-4 mb-4">
-        <h2 className="text-xl font-bold mb-3 text-gray-700">Data Type</h2>
-        <div className="flex flex-wrap gap-4">
-          <Checkbox
-            checked={selectedType === "advertiser"}
-            onChange={() => handleCheckboxChange("advertiser")}
-            className="flex items-center space-x-2">
-            <span className="text-base font-medium text-gray-800">
-              Advertiser Data
-            </span>
-          </Checkbox>
-          <Checkbox
-            checked={selectedType === "publisher"}
-            onChange={() => handleCheckboxChange("publisher")}
-            className="flex items-center space-x-2">
-            <span className="text-base font-medium text-gray-800">
-              Publisher Data
-            </span>
-          </Checkbox>
-        </div>
+      <div className="">
+        <h2 className="text-xl font-bold mb-3 text-gray-700">Campian Data</h2>
       </div>
-
       {/* Controls Section */}
-      <div className="bg-white rounded-lg shadow-md p-4 mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <button
-          // onClick={() => exportToExcel(filteredData, "advertiser-data.xlsx")}
-          onClick={() => {
-            const columnHeadings =
-              selectedType === "publisher"
-                ? columnHeadingsPub
-                : columnHeadingsAdv;
+      {!showValidation ? (
+        <div className="bg-white rounded-lg shadow-md p-4 mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <button
+            // onClick={() => exportToExcel(filteredData, "advertiser-data.xlsx")}
+            onClick={() => {
+              const columnHeadings =
+                selectedType === "publisher"
+                  ? columnHeadingsPub
+                  : columnHeadingsAdv;
 
-            const visibleKeys = Object.keys(columnHeadings);
+              const visibleKeys = Object.keys(columnHeadings);
 
-            const cleanedData = filteredData.map((row) => {
-              const cleanedRow = {};
-              visibleKeys.forEach((key) => {
-                cleanedRow[columnHeadings[key]] = row[key];
+              const cleanedData = filteredData.map((row) => {
+                const cleanedRow = {};
+                visibleKeys.forEach((key) => {
+                  cleanedRow[columnHeadings[key]] = row[key];
+                });
+                return cleanedRow;
               });
-              return cleanedRow;
-            });
 
-            exportToExcel(cleanedData, `${selectedType}-data.xlsx`);
-          }}
-          className="bg-blue-600 hover:bg-blue-700 transition text-white px-5 py-2 rounded-lg font-medium shadow">
-          📥 Download Excel
-        </button>
-
-        <Input
-          placeholder="🔍 Search by Username, Pub Name, or Campaign Name"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full md:w-80 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-
-        <div className="mb-4">
-          <label className="mr-2 font-medium">Date Range:</label>
-          {/* Date Picker */}
-          <RangePicker
-            allowClear
-            value={selectedDateRange}
-            onChange={(dates) => {
-              if (!dates || dates.length === 0) {
-                const start = dayjs().startOf("month");
-                const end = dayjs().endOf("month");
-                setSelectedDateRange([start, end]);
-              } else {
-                // FIX: clone the date objects to avoid internal mutation issues
-                setSelectedDateRange([dates[0].clone(), dates[1].clone()]);
-              }
+              exportToExcel(cleanedData, `${selectedType}-data.xlsx`);
             }}
-            placeholder={["Start Date", "End Date"]}
-            className="w-full md:w-[220px] rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition"
+            className="bg-blue-600 hover:bg-blue-700 transition text-white px-5 py-2 rounded-lg font-medium shadow">
+            📥 Download Excel
+          </button>
+
+          <Input
+            placeholder="🔍 Search by Username, Pub Name, or Campaign Name"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full md:w-80 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
+
+          <div className="mb-4">
+            <label className="mr-2 font-medium">Date Range:</label>
+            {/* Date Picker */}
+            <RangePicker
+              allowClear
+              value={selectedDateRange}
+              onChange={(dates) => {
+                if (!dates || dates.length === 0) {
+                  const start = dayjs().startOf("month");
+                  const end = dayjs().endOf("month");
+                  setSelectedDateRange([start, end]);
+                } else {
+                  // FIX: clone the date objects to avoid internal mutation issues
+                  setSelectedDateRange([dates[0].clone(), dates[1].clone()]);
+                }
+              }}
+              placeholder={["Start Date", "End Date"]}
+              className="w-full md:w-[220px] rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition"
+            />
+          </div>
+          <Button
+            onClick={() => setShowValidation(true)}
+            type="primary"
+            className="bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200">
+            ✅ Start Validation
+          </Button>
+
+          <Button
+            onClick={clearAllFilters}
+            type="default"
+            className="w-full md:w-56 border border-gray-300 rounded-lg shadow-sm">
+            Remove All Filters
+          </Button>
         </div>
-
+      ) : (
+        // Validation View with Back Button
         <Button
-          onClick={clearAllFilters}
-          type="default"
-          className="w-full md:w-56 border border-gray-300 rounded-lg shadow-sm">
-          Remove All Filters
+          type="primary"
+          onClick={() => setShowValidation(false)}
+          className="bg-gray-600 hover:bg-gray-700 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200">
+          ← Back to Table
         </Button>
-      </div>
-
+      )}
       {/* Table Section */}
+
       <div className="bg-white shadow-xl rounded-xl p-6">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">
-          {selectedType === "publisher" ? "Publisher" : "Advertiser"} Report
-          Table
-        </h2>
-        <Table
-          dataSource={filteredData}
-          columns={
-            selectedType === "publisher"
-              ? getColumns(columnHeadingsPub)
-              : getColumns(columnHeadingsAdv)
-          }
-          rowKey="id"
-          bordered
-          pagination={{
-            pageSizeOptions: ["10", "20", "50", "100"],
-            showSizeChanger: true,
-            defaultPageSize: 10,
-            showTotal: (total, range) =>
-              `${range[0]}-${range[1]} of ${total} items`,
-          }}
-          scroll={{ x: "max-content" }}
-        />
+        {showValidation ? (
+          // Validation Component
+          <div className="w-full">
+            <Validation />
+          </div>
+        ) : (
+          <>
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">
+              {selectedType === "publisher" ? "Publisher" : "Advertiser"} Report
+              Table
+            </h2>
+            <Table
+              dataSource={filteredData}
+              columns={
+                selectedType === "publisher"
+                  ? getColumns(columnHeadingsPub)
+                  : getColumns(columnHeadingsAdv)
+              }
+              rowKey="id"
+              bordered
+              pagination={{
+                pageSizeOptions: ["10", "20", "50", "100", "200", "500"],
+                showSizeChanger: true,
+                defaultPageSize: 10,
+                showTotal: (total, range) =>
+                  `${range[0]}-${range[1]} of ${total} items`,
+              }}
+              scroll={{ x: "max-content" }}
+              summary={(pageData) => {
+                let totalAdvTotalNo = 0;
+                let totalAdvDeductions = 0;
+                let totalAdvApprovedNo = 0;
+                let totalpubApprovedNo = 0;
+
+                pageData.forEach(
+                  ({
+                    adv_total_no,
+                    adv_deductions,
+                    adv_approved_no,
+                    pub_Apno,
+                  }) => {
+                    totalAdvTotalNo += Number(adv_total_no) || 0;
+                    totalAdvDeductions += Number(adv_deductions) || 0;
+                    totalAdvApprovedNo += Number(adv_approved_no) || 0;
+                    totalpubApprovedNo += Number(pub_Apno) || 0;
+                  }
+                );
+
+                return (
+                  <Table.Summary.Row>
+                    {Object.keys(columnHeadingsAdv).map((key) => {
+                      if (key === "adv_total_no") {
+                        return (
+                          <Table.Summary.Cell key={key}>
+                            <b>{totalAdvTotalNo}</b>
+                          </Table.Summary.Cell>
+                        );
+                      } else if (key === "adv_deductions") {
+                        return (
+                          <Table.Summary.Cell key={key}>
+                            <b>{totalAdvDeductions}</b>
+                          </Table.Summary.Cell>
+                        );
+                      } else if (key === "adv_approved_no") {
+                        return (
+                          <Table.Summary.Cell key={key}>
+                            <b>{totalAdvApprovedNo}</b>
+                          </Table.Summary.Cell>
+                        );
+                      } else if (key === "pub_Apno") {
+                        return (
+                          <Table.Summary.Cell key={key}>
+                            <b>{totalpubApprovedNo}</b>
+                          </Table.Summary.Cell>
+                        );
+                      } else {
+                        return <Table.Summary.Cell key={key} />;
+                      }
+                    })}
+                  </Table.Summary.Row>
+                );
+              }}
+            />
+          </>
+        )}
       </div>
     </div>
   );

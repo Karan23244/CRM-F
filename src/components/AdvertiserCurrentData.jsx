@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, use } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import {
@@ -11,19 +11,12 @@ import {
   Checkbox,
   Tooltip,
 } from "antd";
-import {
-  EditOutlined,
-  SaveOutlined,
-  PlusOutlined,
-  DeleteOutlined,
-  CopyOutlined,
-} from "@ant-design/icons";
+import { PlusOutlined, DeleteOutlined, CopyOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import { useSelector } from "react-redux";
 import geoData from "../Data/geoData.json";
 import { exportToExcel } from "./exportExcel";
-import { Modal, message as antdMessage } from "antd";
 import MainComponent from "../components/ManagerAllData";
 import { PushpinOutlined, PushpinFilled } from "@ant-design/icons";
 import Validation from "./Validation";
@@ -92,7 +85,6 @@ const AdvertiserData = () => {
       //   }))
       // );
       setData(formatted);
-      generateUniqueValues(formatted);
     } catch (error) {
       message.error("Failed to fetch data");
     }
@@ -152,39 +144,6 @@ const AdvertiserData = () => {
     }
   };
 
-  const handleEdit = (id) => {
-    setEditingKey(id);
-    setEditedRow(data.find((row) => row.id === id) || {});
-  };
-
-  const handleSave = async () => {
-    const excludedFields = [
-      "paused_date",
-      "adv_total_no",
-      "adv_deductions",
-      "adv_approved_no",
-      "pay_out",
-    ];
-
-    const isEmptyField = Object.entries(editedRow)
-      .filter(([key]) => !excludedFields.includes(key)) // Exclude specific fields
-      .some(([_, value]) => !value); // Check for empty values
-
-    if (isEmptyField) {
-      alert("All required fields must be filled!");
-      return;
-    }
-    try {
-      await axios.post(`${apiUrl}/advdata-update/${editingKey}`, editedRow, {
-        headers: { "Content-Type": "application/json" },
-      });
-      setEditingKey(null);
-      fetchData();
-      alert("Data updated successfully");
-    } catch (error) {
-      alert("Failed to update data");
-    }
-  };
   // Add new row
   const handleAddRow = async () => {
     try {
@@ -247,10 +206,6 @@ const AdvertiserData = () => {
         text: "Failed to copy row.",
       });
     }
-  };
-
-  const handleChange = (value, field) => {
-    setEditedRow((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleDelete = async (id) => {
@@ -322,140 +277,74 @@ const AdvertiserData = () => {
   const handleFilterChange = (value, key) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
-  // const finalFilteredData = data.filter((item) => {
-  //   const sharedDate = dayjs(item.shared_date);
 
-  //   if (
-  //     selectedDateRange &&
-  //     selectedDateRange.length === 2 &&
-  //     selectedDateRange[0] &&
-  //     selectedDateRange[1]
-  //   ) {
-  //     const [start, end] = selectedDateRange;
-  //     if (!sharedDate.isBetween(start, end, null, "[]")) {
-  //       return false;
-  //     }
-  //   }
+  const finalFilteredData = useMemo(() => {
+    let filtered = [...data];
 
-  //   // Apply advanced filters
-  //   // const passesAdvancedFilters = Object.keys(filters).every((key) => {
-  //   //   if (!filters[key]) return true;
-
-  //   //   // Date range filter
-  //   //   if (Array.isArray(filters[key]) && filters[key].length === 2) {
-  //   //     const [start, end] = filters[key];
-  //   //     return dayjs(item[key]).isBetween(start, end, null, "[]");
-  //   //   }
-
-  //   //   return (
-  //   //     item[key]?.toString().toLowerCase() ===
-  //   //     filters[key].toString().toLowerCase()
-  //   //   );
-  //   // });
-  //   const passesAdvancedFilters = Object.keys(filters).every((key) => {
-  //     const filterValue = filters[key];
-  //     if (!filterValue || filterValue.length === 0) return true;
-
-  //     // Date range filter
-  //     if (
-  //       Array.isArray(filterValue) &&
-  //       filterValue.length === 2 &&
-  //       dayjs(filterValue[0]).isValid()
-  //     ) {
-  //       const [start, end] = filterValue;
-  //       return dayjs(item[key]).isBetween(start, end, null, "[]");
-  //     }
-
-  //     // Multi-select support
-  //     if (Array.isArray(filterValue)) {
-  //       return filterValue.some(
-  //         (val) =>
-  //           item[key]?.toString().toLowerCase() === val.toString().toLowerCase()
-  //       );
-  //     }
-
-  //     // Single value match
-  //     return (
-  //       item[key]?.toString().toLowerCase() ===
-  //       filterValue.toString().toLowerCase()
-  //     );
-  //   });
-
-  //   if (!passesAdvancedFilters) return false;
-
-  //   // Search term filter
-  //   if (!searchTerm.trim()) return true;
-
-  //   const lowerSearchTerm = searchTerm.toLowerCase();
-  //   return Object.values(item).some((value) =>
-  //     String(value).toLowerCase().includes(lowerSearchTerm)
-  //   );
-  // });
-
-  let filteredData = [...data]; // Start from original
-
-  // Step 1: Apply date range filter (sharedDate)
-  if (
-    selectedDateRange &&
-    selectedDateRange.length === 2 &&
-    selectedDateRange[0] &&
-    selectedDateRange[1]
-  ) {
-    const [start, end] = selectedDateRange;
-    filteredData = filteredData.filter((item) =>
-      dayjs(item.shared_date).isBetween(start, end, null, "[]")
-    );
-  }
-
-  // Step 2: Apply advanced filters (dropdown filters)
-  Object.keys(filters).forEach((key) => {
-    const filterValue = filters[key];
-    if (!filterValue || filterValue.length === 0) return;
-
-    // If filter is date range
     if (
-      Array.isArray(filterValue) &&
-      filterValue.length === 2 &&
-      dayjs(filterValue[0]).isValid()
+      selectedDateRange &&
+      selectedDateRange.length === 2 &&
+      selectedDateRange[0] &&
+      selectedDateRange[1]
     ) {
-      const [start, end] = filterValue;
-      filteredData = filteredData.filter((item) =>
-        dayjs(item[key]).isBetween(start, end, null, "[]")
+      const [start, end] = selectedDateRange;
+      filtered = filtered.filter((item) =>
+        dayjs(item.shared_date).isBetween(start, end, null, "[]")
       );
-      return;
     }
 
-    // If filter is multi-select
-    if (Array.isArray(filterValue)) {
-      filteredData = filteredData.filter((item) =>
-        filterValue.some(
-          (val) =>
-            item[key]?.toString().toLowerCase() === val.toString().toLowerCase()
+    Object.keys(filters).forEach((key) => {
+      const filterValue = filters[key];
+      if (!filterValue || filterValue.length === 0) return;
+
+      if (
+        Array.isArray(filterValue) &&
+        filterValue.length === 2 &&
+        dayjs(filterValue[0]).isValid()
+      ) {
+        const [start, end] = filterValue;
+        filtered = filtered.filter((item) =>
+          dayjs(item[key]).isBetween(start, end, null, "[]")
+        );
+        return;
+      }
+
+      if (Array.isArray(filterValue)) {
+        filtered = filtered.filter((item) =>
+          filterValue.some(
+            (val) =>
+              item[key]?.toString().toLowerCase() ===
+              val.toString().toLowerCase()
+          )
+        );
+        return;
+      }
+
+      filtered = filtered.filter(
+        (item) =>
+          item[key]?.toString().toLowerCase() ===
+          filterValue.toString().toLowerCase()
+      );
+    });
+
+    if (searchTerm.trim()) {
+      const lowerSearchTerm = searchTerm.toLowerCase();
+      filtered = filtered.filter((item) =>
+        Object.values(item).some((value) =>
+          String(value).toLowerCase().includes(lowerSearchTerm)
         )
       );
-      return;
     }
 
-    // Single value match
-    filteredData = filteredData.filter(
-      (item) =>
-        item[key]?.toString().toLowerCase() ===
-        filterValue.toString().toLowerCase()
-    );
-  });
+    return filtered;
+  }, [data, selectedDateRange, filters, searchTerm]);
 
-  // Step 3: Apply search filter
-  if (searchTerm.trim()) {
-    const lowerSearchTerm = searchTerm.toLowerCase();
-    filteredData = filteredData.filter((item) =>
-      Object.values(item).some((value) =>
-        String(value).toLowerCase().includes(lowerSearchTerm)
-      )
-    );
-  }
+  // Step 4: Generate unique values for filters
+  useEffect(() => {
+    generateUniqueValues(finalFilteredData);
+  }, [finalFilteredData]);
 
-  const finalFilteredData = filteredData;
-
+  // Define the desired order of columns
   const desiredOrder = [
     "adv_id",
     "campaign_name",
@@ -570,22 +459,53 @@ const AdvertiserData = () => {
 
             const updated = { ...record, [key]: newValue };
 
-            if (key === "adv_total_no" || key === "adv_deductions") {
+            if (
+              key === "adv_total_no" ||
+              key === "adv_deductions" ||
+              key === "adv_approved_no"
+            ) {
               const total =
                 key === "adv_total_no" ? newValue : record.adv_total_no;
               const deductions =
                 key === "adv_deductions" ? newValue : record.adv_deductions;
+              const approved =
+                key === "adv_approved_no" ? newValue : record.adv_approved_no;
 
               const parsedTotal = parseFloat(total);
               const parsedDeductions = parseFloat(deductions);
+              const parsedApproved = parseFloat(approved);
 
-              if (!isNaN(parsedTotal) && !isNaN(parsedDeductions)) {
+              const hasTotal = !isNaN(parsedTotal);
+              const hasDeductions = !isNaN(parsedDeductions);
+              const hasApproved = !isNaN(parsedApproved);
+
+              // Case 1: Only 2 values present
+              if (hasTotal && hasDeductions && !hasApproved) {
                 updated.adv_approved_no = parsedTotal - parsedDeductions;
+              } else if (hasTotal && hasApproved && !hasDeductions) {
+                updated.adv_deductions = parsedTotal - parsedApproved;
+              } else if (hasApproved && hasDeductions && !hasTotal) {
+                updated.adv_total_no = parsedApproved + parsedDeductions;
+              }
+              // Case 2: All 3 values present – recalculate based on the last edited key
+              else if (hasTotal && hasDeductions && hasApproved) {
+                if (key === "adv_total_no") {
+                  updated.adv_approved_no = parsedTotal - parsedDeductions;
+                } else if (key === "adv_deductions") {
+                  updated.adv_approved_no = parsedTotal - parsedDeductions;
+                } else if (key === "adv_approved_no") {
+                  updated.adv_deductions = parsedTotal - parsedApproved;
+                }else if (key === "adv_approved_no") {
+                  updated.adv_deductions = parsedTotal - parsedApproved;
+                  console.log(updated.adv_deductions)
+                }
               } else {
                 console.warn(
-                  "⚠️ Invalid total or deductions; skipping adv_approved_no calc."
+                  "⚠️ Need at least two valid values to calculate the third."
                 );
               }
+
+              // Apply `updated` object where necessary (e.g., setState or return it)
             }
 
             try {
@@ -908,7 +828,7 @@ const AdvertiserData = () => {
                 dataSource={finalFilteredData}
                 rowKey="id"
                 pagination={{
-                  pageSizeOptions: ["10", "20", "50", "100"],
+                  pageSizeOptions: ["10", "20", "50", "100", "200", "500"],
                   showSizeChanger: true,
                   defaultPageSize: 10,
                   showTotal: (total, range) =>
@@ -931,29 +851,29 @@ const AdvertiserData = () => {
 
                   return (
                     <Table.Summary.Row>
-                      {columns.map((col) => {
-                        const key = col.dataIndex;
+                      {columns.map((col, index) => {
+                        const key = col.dataIndex || `col-${index}`;
 
-                        if (key === "adv_total_no") {
+                        if (col.dataIndex === "adv_total_no") {
                           return (
-                            <Table.Summary.Cell key={key}>
+                            <Table.Summary.Cell key={`total-${index}`}>
                               <b>{totalAdvTotalNo}</b>
                             </Table.Summary.Cell>
                           );
-                        } else if (key === "adv_deductions") {
+                        } else if (col.dataIndex === "adv_deductions") {
                           return (
-                            <Table.Summary.Cell key={key}>
+                            <Table.Summary.Cell key={`deductions-${index}`}>
                               <b>{totalAdvDeductions}</b>
                             </Table.Summary.Cell>
                           );
-                        } else if (key === "adv_approved_no") {
+                        } else if (col.dataIndex === "adv_approved_no") {
                           return (
-                            <Table.Summary.Cell key={key}>
+                            <Table.Summary.Cell key={`approved-${index}`}>
                               <b>{totalAdvApprovedNo}</b>
                             </Table.Summary.Cell>
                           );
                         } else {
-                          return <Table.Summary.Cell key={key} />;
+                          return <Table.Summary.Cell key={`empty-${index}`} />;
                         }
                       })}
                     </Table.Summary.Row>
