@@ -21,55 +21,6 @@ const ExcelUploader = () => {
     });
   };
 
-  // const handleSubmit = async (e) => {
-  //   e.preventDefault();
-
-  //   if (files.length === 0 || !inputText) {
-  //     alert("Please provide both at least one file and a column name.");
-  //     return;
-  //   }
-
-  //   const formData = new FormData();
-  //   files.forEach((file, index) => {
-  //     formData.append("files", file);
-  //   });
-  //   formData.append("column", inputText);
-
-  //   // ✅ Log the FormData contents
-  //   // for (let [key, value] of formData.entries()) {
-  //   //   console.log(`${key}:`, value);
-  //   // }
-
-  //   setLoading(true);
-
-  //   try {
-  //     const response = await axios.post(`${apiUrl}/upload`, formData, {
-  //       headers: {
-  //         "Content-Type": "multipart/form-data",
-  //       },
-  //       responseType: "blob",
-  //     });
-
-  //     const url = window.URL.createObjectURL(new Blob([response.data]));
-  //     const link = document.createElement("a");
-  //     link.href = url;
-  //     link.setAttribute("download", "grouped_data.zip");
-  //     document.body.appendChild(link);
-  //     link.click();
-  //     link.remove();
-  //   } catch (error) {
-  //     console.error("Upload failed:", error);
-  //     alert("Something went wrong while uploading.");
-  //   } finally {
-  //     setLoading(false);
-  //     alert("File(s) processed and downloaded successfully.");
-  //     setFiles([]);
-  //     setInputText("");
-  //     if (fileInputRef.current) {
-  //       fileInputRef.current.value = null; // Clear input
-  //     }
-  //   }
-  // };
   const handleSubmit = async (e) => {
     e.preventDefault();
 

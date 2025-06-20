@@ -56,8 +56,8 @@ const AppRoutes = () => {
 
           <Route element={<ProtectedRoute allowedRoles={["advertiser"]} />}>
             <Route path="/advertiser-home" element={<AdvertiserHome />}>
-              <Route index element={<Navigate to="form" replace />} />
-              <Route path="form" element={<SubAdminForm />} />
+              <Route index element={<Navigate to="advform" replace />} />
+              <Route path="advform" element={<AdvFormComponent />} />
               <Route
                 path="currentadvdata"
                 element={<AdvertiserCurrentData />}
