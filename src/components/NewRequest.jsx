@@ -92,13 +92,6 @@ const NewRequest = () => {
     }));
   };
 
-  // // Toggle sticky columns for pin/unpin functionality
-  // const toggleStickyColumn = (key) => {
-  //   setStickyColumns((prev) =>
-  //     prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
-  //   );
-  // };
-
   // Filter requests based on filters and search text
   const filteredRequests = useMemo(() => {
     return requests.filter((item) => {
@@ -303,9 +296,11 @@ const NewRequest = () => {
           rowKey="id"
           scroll={{ x: "max-content" }}
           pagination={{
-            pageSize: 10,
+            pageSizeOptions: ["10", "20", "50", "100"],
             showSizeChanger: true,
-            pageSizeOptions: ["10", "20", "50"],
+            defaultPageSize: 10,
+            showTotal: (total, range) =>
+              `${range[0]}-${range[1]} of ${total} items`,
           }}
           className="min-w-full"
         />

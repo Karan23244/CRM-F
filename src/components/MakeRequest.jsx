@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Table,
   Button,
@@ -8,9 +8,11 @@ import {
   InputNumber,
   Select,
   message,
+  Checkbox,
   notification,
 } from "antd";
 import Swal from "sweetalert2";
+import { exportToExcel } from "./exportExcel";
 import axios from "axios";
 import { subscribeToNotifications } from "./Socket";
 import { useSelector } from "react-redux";
@@ -19,92 +21,169 @@ const { Option } = Select;
 const apiUrl = import.meta.env.VITE_API_URL || "https://apii.clickorbits.in";
 const apiUrl1 =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
+const columnHeadings = {
+  pub_name: "Publisher",
+  campaign_name: "Campaign",
+  payout: "PUB Payout $",
+  os: "OS",
+  pid: "PID",
+  pub_id: "PUB ID",
+  geo: "Geo",
+};
 const PublisherRequest = () => {
   const user = useSelector((state) => state.auth.user);
   const username = user?.username || null;
+  const userRole = user?.role;
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm();
   const [requests, setRequests] = useState([]);
   const [advertisers, setAdvertisers] = useState([]);
   const [dropdownOptions, setDropdownOptions] = useState({});
   const [searchText, setSearchText] = useState("");
-  const [filteredRequests, setFilteredRequests] = useState([]);
   const [blacklistPIDs, setBlacklistPIDs] = useState([]);
-  const fetchBlacklistPIDs = async () => {
-    try {
-      const res = await axios.get(`${apiUrl1}/get-blacklist`);
-      const blacklist = res.data?.map((item) => item.blacklistID) || [];
-      setBlacklistPIDs(blacklist);
-    } catch (error) {
-      console.error("Failed to fetch blacklist PIDs:", error);
-    }
+  const [selectedSubAdmins, setSelectedSubAdmins] = useState([]);
+  const [subAdmins, setSubAdmins] = useState([]);
+  console.log(requests);
+  const [filters, setFilters] = useState({});
+  const clearAllFilters = () => {
+    setFilters({});
   };
-  useEffect(() => {
-    fetchAdvertisers();
-    fetchRequests();
-    fetchDropdowns();
-    fetchBlacklistPIDs();
+  const assignedSubAdmins = useMemo(
+    () => user?.assigned_subadmins || [],
+    [user]
+  );
 
-    // Socket notification setup
-    subscribeToNotifications((data) => {
-      console.log(data);
-      if (data?.payout !== null) {
-        fetchRequests(); // Optional: refresh data
+  // 🚀 Fetch SubAdmins (for dropdown)
+  useEffect(() => {
+    const fetchSubAdmins = async () => {
+      try {
+        const { data } = await axios.get(`${apiUrl1}/get-subadmin`);
+        if (data.success) {
+          const filtered = data.data
+            .filter((s) => assignedSubAdmins.includes(s.id))
+            .map((s) => ({ value: s.id, label: s.username, role: s.role }));
+          setSubAdmins(filtered);
+        }
+      } catch (error) {
+        console.error("Error fetching sub-admins:", error);
       }
-    });
-  }, []);
-  useEffect(() => {
-    const filtered = requests.filter((item) =>
-      Object.values(item)
-        .join(" ")
-        .toLowerCase()
-        .includes(searchText.toLowerCase())
-    );
-    setFilteredRequests(filtered);
-  }, [requests, searchText]);
+    };
 
-  const fetchRequests = async () => {
+    if (assignedSubAdmins.length > 0) fetchSubAdmins();
+  }, [assignedSubAdmins]);
+
+  // 🚀 Fetch Advertisers
+  const fetchAdvertisers = async () => {
     try {
-      const res = await axios.get(`${apiUrl}/getPubRequest/${username}`);
-      setRequests(res.data?.data || []);
+      const { data } = await axios.get(`${apiUrl1}/get-subadmin`);
+      const names =
+        data?.data
+          ?.filter((a) => ["advertiser_manager", "advertiser"].includes(a.role))
+          .map((a) => a.username) || [];
+      setAdvertisers(names);
     } catch (error) {
-      message.error("Failed to fetch requests");
+      message.error("Failed to load advertiser names");
     }
   };
 
+  // 🚀 Fetch Dropdown Data
   const fetchDropdowns = async () => {
     try {
-      const [pid, pub_id] = await Promise.all([
+      const [pidRes, pubRes] = await Promise.all([
         axios.get(`${apiUrl1}/get-pid`),
         axios.get(`${apiUrl1}/get-allpub`),
       ]);
-      setDropdownOptions((prev) => ({
-        ...prev,
-        pid: pid.data?.data?.map((item) => item.pid) || [],
-        pub_id: pub_id.data?.data?.map((item) => item.pub_id) || [],
-      }));
+      setDropdownOptions({
+        pid: pidRes.data?.data?.map((item) => item.pid) || [],
+        pub_id: pubRes.data?.data?.map((item) => item.pub_id) || [],
+      });
     } catch (error) {
       message.error("Failed to fetch dropdown options");
     }
   };
 
-  const fetchAdvertisers = async () => {
+  // 🚀 Fetch Blacklist PIDs
+  const fetchBlacklistPIDs = async () => {
     try {
-      const advmName = await axios.get(`${apiUrl1}/get-subadmin`);
-      const filteredNames =
-        advmName.data?.data
-          ?.filter(
-            (item) =>
-              item.role === "advertiser_manager" || item.role === "advertiser"
-          )
-          .map((item) => item.username) || [];
-      setAdvertisers(filteredNames);
+      const { data } = await axios.get(`${apiUrl1}/get-blacklist`);
+      const list = data?.map((item) => item.blacklistID) || [];
+      setBlacklistPIDs(list);
     } catch (error) {
-      message.error("Failed to load advertiser names");
-      console.error(error);
+      console.error("Failed to fetch blacklist PIDs:", error);
     }
   };
 
+  // 🚀 Fetch Requests - Based on Role & Selection
+  useEffect(() => {
+    const fetchRequests = async () => {
+      try {
+        let usernamesToFetch = [];
+
+        if (userRole === "publisher_manager" && selectedSubAdmins.length > 0) {
+          usernamesToFetch = selectedSubAdmins;
+        } else if (username) {
+          usernamesToFetch = [username];
+        }
+
+        if (usernamesToFetch.length === 0) {
+          setRequests([]);
+          return;
+        }
+
+        const results = await Promise.all(
+          usernamesToFetch.map(async (u) => {
+            const res = await axios.get(`${apiUrl}/getPubRequest/${u}`);
+            return res.data?.data || [];
+          })
+        );
+
+        setRequests(results.flat());
+      } catch (err) {
+        console.error("Error fetching requests:", err);
+        message.error("Failed to load requests");
+        setRequests([]);
+      }
+    };
+
+    fetchRequests();
+  }, [username, selectedSubAdmins, userRole]);
+
+  // 🚀 Initial Fetch on Load
+  useEffect(() => {
+    fetchBlacklistPIDs();
+    fetchAdvertisers();
+    fetchDropdowns();
+
+    subscribeToNotifications((data) => {
+      if (data?.payout !== null) {
+        if (userRole === "publisher_manager" && selectedSubAdmins.length > 0) {
+          // Re-fetch current subadmin data
+          fetchRequests();
+        } else {
+          // Default re-fetch for logged-in user
+          fetchRequests();
+        }
+      }
+    });
+  }, []);
+
+  // 🔍 Filtered Requests
+  const filteredRequests = useMemo(() => {
+    return requests.filter((item) => {
+      const matchesSearch = Object.values(item).some((val) =>
+        String(val).toLowerCase().includes(searchText.toLowerCase())
+      );
+      if (!matchesSearch) return false;
+
+      for (const [key, selected] of Object.entries(filters)) {
+        if (selected?.length && !selected.includes(item[key])) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [requests, filters, searchText]);
   const showModal = () => {
     setIsModalVisible(true);
   };
@@ -116,6 +195,7 @@ const PublisherRequest = () => {
 
   const handleOk = async () => {
     try {
+      setIsSubmitting(true);
       const values = await form.validateFields();
 
       // ⛔ Check if the PID is blacklisted
@@ -173,52 +253,125 @@ const PublisherRequest = () => {
         text: "Failed to submit request",
       });
       console.error(error);
+    } finally {
+      setIsSubmitting(false); // re-enable button
     }
   };
 
-  const columns = [
-    {
-      title: "Advertiser Name",
-      dataIndex: "adv_name",
-      key: "adv_name",
-    },
-    {
-      title: "Campaign Name",
-      dataIndex: "campaign_name",
-      key: "campaign_name",
-    },
-    {
-      title: "PUB Payout ($)",
-      dataIndex: "payout",
-      key: "payout",
-    },
-    {
-      title: "OS",
-      dataIndex: "os",
-      key: "os",
-    },
-    {
-      title: "Geo",
-      dataIndex: "geo",
-      key: "geo",
-    },
+  // Get unique values for each column for filter options
+  const uniqueValues = useMemo(() => {
+    const values = {};
+    requests.forEach((item) => {
+      Object.keys(columnHeadings).forEach((key) => {
+        if (!values[key]) values[key] = new Set();
+        if (item[key] !== null && item[key] !== undefined)
+          values[key].add(item[key]);
+      });
+    });
+    // Convert sets to arrays
+    Object.keys(values).forEach((key) => {
+      values[key] = Array.from(values[key]);
+    });
+    return values;
+  }, [requests]);
 
-    {
-      title: "PID",
-      dataIndex: "pid",
-      key: "pid",
-    },
-    {
-      title: "PUB ID",
-      dataIndex: "pub_id",
-      key: "pub_id",
-    },
-    {
+  // Handle filter change for a column
+  const handleFilterChange = (value, key) => {
+    setFilters((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  };
+
+  // Compose columns with filterDropdown, filter icon state, and sticky column pin button
+  const getColumns = (columnHeadings) => {
+    const columns = Object.keys(columnHeadings).map((key) => ({
+      title: (
+        <div className="flex items-center justify-between">
+          <span
+            style={{
+              color: filters[key]?.length > 0 ? "#1677ff" : "inherit",
+              fontWeight: filters[key]?.length > 0 ? "bold" : "normal",
+              cursor: "pointer",
+              userSelect: "none",
+            }}>
+            {columnHeadings[key] || key}
+          </span>
+        </div>
+      ),
+      key,
+      dataIndex: key,
+
+      filterDropdown:
+        uniqueValues[key]?.length > 0
+          ? () => (
+              <div style={{ padding: 8 }}>
+                <div style={{ marginBottom: 8 }}>
+                  <Checkbox
+                    indeterminate={
+                      filters[key]?.length > 0 &&
+                      filters[key]?.length < uniqueValues[key]?.length
+                    }
+                    checked={filters[key]?.length === uniqueValues[key]?.length}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      handleFilterChange(
+                        checked ? [...uniqueValues[key]] : [],
+                        key
+                      );
+                    }}>
+                    Select All
+                  </Checkbox>
+                </div>
+                <Select
+                  mode="multiple"
+                  allowClear
+                  showSearch
+                  placeholder={`Select ${columnHeadings[key]}`}
+                  style={{ width: 250 }}
+                  value={filters[key] || []}
+                  onChange={(value) => handleFilterChange(value, key)}
+                  optionLabelProp="label"
+                  maxTagCount="responsive"
+                  filterOption={(input, option) =>
+                    (option?.label ?? "")
+                      .toString()
+                      .toLowerCase()
+                      .includes(input.toLowerCase())
+                  }>
+                  {[...uniqueValues[key]]
+                    .filter((val) => val !== null && val !== undefined)
+                    .sort((a, b) => {
+                      const aNum = parseFloat(a);
+                      const bNum = parseFloat(b);
+                      const isNumeric = !isNaN(aNum) && !isNaN(bNum);
+                      return isNumeric
+                        ? aNum - bNum
+                        : a.toString().localeCompare(b.toString());
+                    })
+                    .map((val) => (
+                      <Option key={val} value={val} label={val}>
+                        <Checkbox checked={filters[key]?.includes(val)}>
+                          {val}
+                        </Checkbox>
+                      </Option>
+                    ))}
+                </Select>
+              </div>
+            )
+          : null,
+
+      filtered: filters[key]?.length > 0,
+    }));
+
+    // Add Action column at the end
+    columns.push({
       title: "Action",
       key: "action",
       render: (_, record) => {
         const status = record.adv_res?.toLowerCase();
         let color = "default";
+
         if (status === "waiting") color = "warning";
         else if (status === "shared") color = "primary";
         else if (status === "rejected") color = "danger";
@@ -229,9 +382,10 @@ const PublisherRequest = () => {
           </Button>
         );
       },
-    },
-  ];
+    });
 
+    return columns;
+  };
   return (
     <div className="p-4">
       <div
@@ -243,9 +397,49 @@ const PublisherRequest = () => {
           gap: "1rem",
           marginBottom: 20,
         }}>
-        <Button type="primary" onClick={showModal}>
-          ➕ Request New Campaign Link
-        </Button>
+        <div>
+          <Button type="primary" onClick={showModal}>
+            ➕ Request New Campaign Link
+          </Button>
+          <Button
+            onClick={clearAllFilters}
+            type="default"
+            className="bg-gray-200 ml-5 hover:bg-gray-300 text-gray-700 font-semibold px-5 py-2.5 rounded-lg shadow-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400">
+            Remove All Filters
+          </Button>
+          <Button
+            type="primary"
+            onClick={() => {
+              const tableDataToExport = filteredRequests.map((item) => {
+                const filteredItem = {};
+                Object.keys(columnHeadings).forEach((key) => {
+                  filteredItem[columnHeadings[key]] = item[key]; // Custom column names
+                });
+                return filteredItem;
+              });
+              exportToExcel(tableDataToExport, "advertiser-data.xlsx");
+            }}
+            className="flex items-center gap-2 ml-5 mr-5 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg shadow-md transition-transform duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            📥 <span>Download Excel</span>
+          </Button>
+          {/* Subadmins Dropdown */}
+          {user?.role === "publisher_manager" && (
+            <Select
+              mode="multiple"
+              allowClear
+              placeholder="Select Subadmins"
+              value={selectedSubAdmins}
+              onChange={setSelectedSubAdmins}
+              onClear={() => setFilters({})}
+              className="min-w-[200px] md:min-w-[250px] border border-gray-300 rounded-lg py-2 px-3 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400 transition">
+              {subAdmins?.map((subAdmin) => (
+                <Option key={subAdmin.label} value={subAdmin.label}>
+                  {subAdmin.label}
+                </Option>
+              ))}
+            </Select>
+          )}
+        </div>
 
         <Input.Search
           placeholder="Search by Advertiser, Campaign, PID, etc."
@@ -266,7 +460,8 @@ const PublisherRequest = () => {
         visible={isModalVisible}
         onOk={handleOk}
         onCancel={handleCancel}
-        okText="Submit">
+        okText={isSubmitting ? "Processing..." : "Submit"}
+        confirmLoading={isSubmitting}>
         <Form layout="vertical" form={form}>
           <Form.Item
             label="Advertiser Name"
@@ -365,8 +560,14 @@ const PublisherRequest = () => {
       <Table
         className="mt-4"
         dataSource={filteredRequests}
-        columns={columns}
-        pagination={{ pageSize: 15 }}
+        columns={[...getColumns(columnHeadings)]}
+        pagination={{
+          pageSizeOptions: ["10", "20", "50", "100"],
+          showSizeChanger: true,
+          defaultPageSize: 10,
+          showTotal: (total, range) =>
+            `${range[0]}-${range[1]} of ${total} items`,
+        }}
       />
     </div>
   );

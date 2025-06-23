@@ -31,8 +31,6 @@ const PublisherPayoutData = () => {
   const [filters, setFilters] = useState({});
   const [filteredData, setFilteredData] = useState([]);
   const [uniqueValues, setUniqueValues] = useState({});
-  const [editingKey, setEditingKey] = useState(null);
-  const [editedRow, setEditedRow] = useState({});
   const [stickyColumns, setStickyColumns] = useState([]);
   const [selectedDateRange, setSelectedDateRange] = useState([
     dayjs().startOf("month"),
@@ -44,7 +42,6 @@ const PublisherPayoutData = () => {
   const [subAdmins, setSubAdmins] = useState([]);
 
   const user = useSelector((state) => state.auth.user);
-  console.log(selectedSubAdmins);
   const handleDateRangeChange = (dates) => {
     if (!dates || dates.length === 0) {
       // Reset to current month
@@ -118,22 +115,22 @@ const PublisherPayoutData = () => {
     fetchAdvData();
   }, []);
 
-  useEffect(() => {
-    const currentMonth = dayjs().month(); // 0-based (0 = January)
-    const currentYear = dayjs().year();
+  // useEffect(() => {
+  //   const currentMonth = dayjs().month(); // 0-based (0 = January)
+  //   const currentYear = dayjs().year();
 
-    const data = advData.filter((row) => {
-      const sharedDate = dayjs(row.shared_date);
-      return (
-        row.pub_name === user?.username &&
-        sharedDate.month() === currentMonth &&
-        sharedDate.year() === currentYear
-      );
-    });
+  //   const data = advData.filter((row) => {
+  //     const sharedDate = dayjs(row.shared_date);
+  //     return (
+  //       row.pub_name === user?.username &&
+  //       sharedDate.month() === currentMonth &&
+  //       sharedDate.year() === currentYear
+  //     );
+  //   });
 
-    setFilteredData(data);
-    generateUniqueValues(data);
-  }, [advData, user]);
+  //   setFilteredData(data);
+  //   generateUniqueValues(data);
+  // }, [advData, user]);
 
   const generateUniqueValues = (data) => {
     const uniqueVals = {};
@@ -164,11 +161,11 @@ const PublisherPayoutData = () => {
     const filtered = advData.filter((item) => {
       const sharedDate = dayjs(item.shared_date);
 
-      // Match pub_name for selected subadmins or fallback to current user
-      const matchesPub =
-        selectedSubAdmins?.length > 0
-          ? selectedSubAdmins.includes(item.pub_name)
-          : item.pub_name === user?.username;
+      // Match pub_name for current user and selected subadmins
+      const matchesPub = [
+        user?.username,
+        ...(selectedSubAdmins || []),
+      ].includes(item.pub_name);
 
       // Use selected date range if provided, otherwise filter by current month/year
       const matchesDate =
@@ -388,7 +385,7 @@ const PublisherPayoutData = () => {
           dataSource={filteredData}
           rowKey="id"
           pagination={{
-            pageSizeOptions: ["10", "20", "50", "100","200","500"],
+            pageSizeOptions: ["10", "20", "50", "100", "200", "500"],
             showSizeChanger: true,
             defaultPageSize: 10,
             showTotal: (total, range) =>
