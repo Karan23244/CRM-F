@@ -3,6 +3,7 @@ import { Bar } from "react-chartjs-2";
 import { saveAs } from "file-saver";
 import html2canvas from "html2canvas";
 import JSZip from "jszip";
+import jsPDF from "jspdf";
 import Chart from "chart.js/auto";
 import Swal from "sweetalert2";
 import {
@@ -155,21 +156,57 @@ const ExcelGraphCompare = () => {
   const handleDownloadZip = async () => {
     setZipLoading(true);
     const zip = new JSZip();
-    const folder = zip.folder("charts");
-    // Uncomment the logic below once you're sure chartRefs is correct
+
+    // Map of pubid → jsPDF instance
+    const pubidToPDF = new Map();
+
     for (let i = 0; i < chartRefs.current.length; i++) {
       const chartNode = chartRefs.current[i];
       const chartInfo = charts[i];
-      if (!chartNode || !chartInfo) continue;
-      const chartType =
-        chartInfo.labels?.[0] === "Install" ? "Install" : "Event";
-      const fileName = `chart_${chartInfo.pid}_${chartInfo.pubid}_${chartType}.png`;
 
+      if (!chartNode || !chartInfo) continue;
+
+      const { pubid, pid, labels } = chartInfo;
+      const chartType = labels?.[0] === "Install" ? "Install" : "Event";
+
+      // Render canvas and convert to image
       const canvas = await html2canvas(chartNode);
       const imgData = canvas.toDataURL("image/png");
-      const imgBase64 = imgData.split(",")[1];
 
-      folder.file(fileName, imgBase64, { base64: true });
+      // Create or get jsPDF for this pubid
+      let pdf = pubidToPDF.get(pubid);
+      if (!pdf) {
+        pdf = new jsPDF("p", "mm", "a4");
+        pubidToPDF.set(pubid, pdf);
+      } else {
+        pdf.addPage();
+      }
+
+      // Calculate dimensions to fit A4
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+
+      const ratio = Math.min(pageWidth / imgWidth, pageHeight / imgHeight);
+      const finalWidth = imgWidth * ratio;
+      const finalHeight = imgHeight * ratio;
+
+      pdf.addImage(
+        imgData,
+        "PNG",
+        (pageWidth - finalWidth) / 2,
+        10, // top margin
+        finalWidth,
+        finalHeight
+      );
+    }
+
+    // Save all PDFs in ZIP under respective pubid folder
+    for (const [pubid, pdf] of pubidToPDF.entries()) {
+      const pdfBlob = pdf.output("blob");
+      const folder = zip.folder(pubid);
+      folder.file(`${pubid}.pdf`, pdfBlob);
     }
 
     const zipBlob = await zip.generateAsync({ type: "blob" });
