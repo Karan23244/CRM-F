@@ -445,7 +445,7 @@ const AdvertiserData = () => {
             let pub_Apno;
 
             if (pubAmount > seventyPercent) {
-              pub_Apno = (0.7 * approved * payout) / pub; // Float value
+              pub_Apno = Number(((0.7 * approved * payout) / pub).toFixed(1));
             } else {
               pub_Apno = approved;
             }
@@ -459,53 +459,26 @@ const AdvertiserData = () => {
 
             const updated = { ...record, [key]: newValue };
 
-            if (
-              key === "adv_total_no" ||
-              key === "adv_deductions" ||
-              key === "adv_approved_no"
-            ) {
+            if (key === "adv_total_no" || key === "adv_deductions") {
               const total =
-                key === "adv_total_no" ? newValue : record.adv_total_no;
+                key === "adv_total_no"
+                  ? parseFloat(newValue)
+                  : parseFloat(record.adv_total_no);
               const deductions =
-                key === "adv_deductions" ? newValue : record.adv_deductions;
-              const approved =
-                key === "adv_approved_no" ? newValue : record.adv_approved_no;
+                key === "adv_deductions"
+                  ? parseFloat(newValue)
+                  : parseFloat(record.adv_deductions);
 
-              const parsedTotal = parseFloat(total);
-              const parsedDeductions = parseFloat(deductions);
-              const parsedApproved = parseFloat(approved);
+              const hasTotal = !isNaN(total);
+              const hasDeductions = !isNaN(deductions);
 
-              const hasTotal = !isNaN(parsedTotal);
-              const hasDeductions = !isNaN(parsedDeductions);
-              const hasApproved = !isNaN(parsedApproved);
-
-              // Case 1: Only 2 values present
-              if (hasTotal && hasDeductions && !hasApproved) {
-                updated.adv_approved_no = parsedTotal - parsedDeductions;
-              } else if (hasTotal && hasApproved && !hasDeductions) {
-                updated.adv_deductions = parsedTotal - parsedApproved;
-              } else if (hasApproved && hasDeductions && !hasTotal) {
-                updated.adv_total_no = parsedApproved + parsedDeductions;
-              }
-              // Case 2: All 3 values present – recalculate based on the last edited key
-              else if (hasTotal && hasDeductions && hasApproved) {
-                if (key === "adv_total_no") {
-                  updated.adv_approved_no = parsedTotal - parsedDeductions;
-                } else if (key === "adv_deductions") {
-                  updated.adv_approved_no = parsedTotal - parsedDeductions;
-                } else if (key === "adv_approved_no") {
-                  updated.adv_deductions = parsedTotal - parsedApproved;
-                }else if (key === "adv_approved_no") {
-                  updated.adv_deductions = parsedTotal - parsedApproved;
-                  console.log(updated.adv_deductions)
-                }
+              if (hasTotal && hasDeductions) {
+                updated.adv_approved_no = total - deductions;
               } else {
                 console.warn(
-                  "⚠️ Need at least two valid values to calculate the third."
+                  "⚠️ Need both total and deductions to calculate approved number."
                 );
               }
-
-              // Apply `updated` object where necessary (e.g., setState or return it)
             }
 
             try {

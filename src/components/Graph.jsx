@@ -47,7 +47,7 @@ const ExcelGraphCompare = () => {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("sheetName", sheetName);
-
+    console.log(sheetName)
     try {
       const res = await fetch(`${apiUrl}/process-excel`, {
         method: "POST",

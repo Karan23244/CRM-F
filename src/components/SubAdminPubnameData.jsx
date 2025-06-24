@@ -76,7 +76,6 @@ const SubAdminPubnameData = () => {
       pub_name: name,
       pub_id: selectedId,
       geo: geo,
-      user_id: userId, // Use the current user's ID
       note: note || "",
       target: target || "",
       user_id: pubUserId, // Use the original creator's user_id
