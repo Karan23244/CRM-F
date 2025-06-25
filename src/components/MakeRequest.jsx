@@ -29,6 +29,7 @@ const columnHeadings = {
   pid: "PID",
   pub_id: "PUB ID",
   geo: "Geo",
+  adv_res: "Action",
 };
 const PublisherRequest = () => {
   const user = useSelector((state) => state.auth.user);
@@ -366,12 +367,82 @@ const PublisherRequest = () => {
 
     // Add Action column at the end
     columns.push({
-      title: "Action",
+      title: (
+        <div className="flex items-center justify-between">
+          <span
+            style={{
+              color: filters["adv_res"]?.length > 0 ? "#1677ff" : "inherit",
+              fontWeight: filters["adv_res"]?.length > 0 ? "bold" : "normal",
+              cursor: "pointer",
+              userSelect: "none",
+            }}>
+            Action
+          </span>
+        </div>
+      ),
       key: "action",
+      dataIndex: "adv_res",
+
+      filterDropdown:
+        uniqueValues["adv_res"]?.length > 0
+          ? () => (
+              <div style={{ padding: 8 }}>
+                <div style={{ marginBottom: 8 }}>
+                  <Checkbox
+                    indeterminate={
+                      filters["adv_res"]?.length > 0 &&
+                      filters["adv_res"]?.length <
+                        uniqueValues["adv_res"]?.length
+                    }
+                    checked={
+                      filters["adv_res"]?.length ===
+                      uniqueValues["adv_res"]?.length
+                    }
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      handleFilterChange(
+                        checked ? [...uniqueValues["adv_res"]] : [],
+                        "adv_res"
+                      );
+                    }}>
+                    Select All
+                  </Checkbox>
+                </div>
+                <Select
+                  mode="multiple"
+                  allowClear
+                  showSearch
+                  placeholder={`Select Action`}
+                  style={{ width: 250 }}
+                  value={filters["adv_res"] || []}
+                  onChange={(value) => handleFilterChange(value, "adv_res")}
+                  optionLabelProp="label"
+                  maxTagCount="responsive"
+                  filterOption={(input, option) =>
+                    (option?.label ?? "")
+                      .toString()
+                      .toLowerCase()
+                      .includes(input.toLowerCase())
+                  }>
+                  {[...uniqueValues["adv_res"]]
+                    .filter((val) => val !== null && val !== undefined)
+                    .map((val) => (
+                      <Option key={val} value={val} label={val}>
+                        <Checkbox checked={filters["adv_res"]?.includes(val)}>
+                          {val.charAt(0).toUpperCase() + val.slice(1)}
+                        </Checkbox>
+                      </Option>
+                    ))}
+                </Select>
+              </div>
+            )
+          : null,
+
+      filtered: filters["adv_res"]?.length > 0,
+
       render: (_, record) => {
         const status = record.adv_res?.toLowerCase();
         let color = "default";
-
         if (status === "waiting") color = "warning";
         else if (status === "shared") color = "primary";
         else if (status === "rejected") color = "danger";
