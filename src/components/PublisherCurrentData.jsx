@@ -137,7 +137,8 @@ const PublisherPayoutData = () => {
     data.forEach((item) => {
       Object.keys(item).forEach((key) => {
         if (!uniqueVals[key]) uniqueVals[key] = new Set();
-        uniqueVals[key].add(item[key]);
+        const normalizedValue = item[key]?.toString().trim(); // normalize
+        if (normalizedValue) uniqueVals[key].add(normalizedValue);
       });
     });
     const formattedValues = Object.keys(uniqueVals).reduce((acc, key) => {
@@ -161,13 +162,16 @@ const PublisherPayoutData = () => {
     const filtered = advData.filter((item) => {
       const sharedDate = dayjs(item.shared_date);
 
-      // Match pub_name for current user and selected subadmins
+      // Normalize pub_name for comparison
+      const normalizedPubName = item.pub_name?.toString().trim().toLowerCase();
       const matchesPub = [
-        user?.username,
-        ...(selectedSubAdmins || []),
-      ].includes(item.pub_name);
+        user?.username?.toString().trim().toLowerCase(),
+        ...(selectedSubAdmins || []).map((sub) =>
+          sub?.toString().trim().toLowerCase()
+        ),
+      ].includes(normalizedPubName);
 
-      // Use selected date range if provided, otherwise filter by current month/year
+      // Date filtering
       const matchesDate =
         selectedDateRange?.length === 2 &&
         selectedDateRange[0] &&
@@ -184,29 +188,31 @@ const PublisherPayoutData = () => {
       // Dynamic filters (category, status, etc.)
       const matchesFilters = Object.keys(filters).every((key) => {
         if (!filters[key]) return true;
+
+        const itemVal = item[key]?.toString().trim().toLowerCase();
+
         if (Array.isArray(filters[key])) {
           return filters[key].some(
             (filterVal) =>
-              item[key] != null &&
-              String(item[key]).toLowerCase() ===
-                String(filterVal).toLowerCase()
+              itemVal === filterVal?.toString().trim().toLowerCase()
           );
         }
-        return item[key] === filters[key];
+
+        return itemVal === filters[key]?.toString().trim().toLowerCase();
       });
 
       // Search filter
       const matchesSearch = !searchTerm.trim()
         ? true
         : Object.values(item).some((val) =>
-            String(val).toLowerCase().includes(searchTerm.toLowerCase())
+            val?.toString().toLowerCase().includes(searchTerm.toLowerCase())
           );
 
       return matchesPub && matchesDate && matchesFilters && matchesSearch;
     });
 
     setFilteredData(filtered);
-    generateUniqueValues(filtered);
+    generateUniqueValues(filtered); // Already normalized in your version
   }, [
     advData,
     filters,

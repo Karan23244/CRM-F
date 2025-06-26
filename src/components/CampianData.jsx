@@ -128,8 +128,9 @@ const CampianData = () => {
 
   useEffect(() => {
     const data = selectedType === "publisher" ? pubData : advData;
+
     const filtered = data.filter((item) => {
-      // Date Range filter for shared_date
+      // 🔹 Normalize Date Range filter for shared_date
       if (
         selectedDateRange &&
         selectedDateRange.length === 2 &&
@@ -144,38 +145,38 @@ const CampianData = () => {
         }
       }
 
-      // Advanced filters
+      // 🔹 Normalize Advanced filters
       const passesAdvancedFilters = Object.keys(filters).every((key) => {
         const filterVal = filters[key];
         if (!filterVal || filterVal.length === 0) return true;
 
-        const itemVal = item[key];
+        const itemVal = item[key]?.toString().trim().toLowerCase();
 
-        // Special case: handle array/multi-select filters (most cases)
+        // Array or multi-select filters
         if (Array.isArray(filterVal)) {
           return filterVal.some(
-            (val) => String(itemVal).toLowerCase() === String(val).toLowerCase()
+            (val) => itemVal === val?.toString().trim().toLowerCase()
           );
         }
 
-        // Fallback: string comparison
-        return (
-          String(itemVal).toLowerCase() === String(filterVal).toLowerCase()
-        );
+        // Single value comparison
+        return itemVal === filterVal?.toString().trim().toLowerCase();
       });
 
       if (!passesAdvancedFilters) return false;
 
-      // Search term
+      // 🔹 Normalize Search term
       if (!searchTerm.trim()) return true;
-      const lowerSearch = searchTerm.toLowerCase();
+      const lowerSearch = searchTerm.trim().toLowerCase();
+
       return Object.values(item).some((val) =>
-        String(val).toLowerCase().includes(lowerSearch)
+        val?.toString().trim().toLowerCase().includes(lowerSearch)
       );
     });
 
     setFilteredData(filtered.filter((row) => !isRowEmpty(row)));
   }, [pubData, advData, selectedType, filters, searchTerm, selectedDateRange]);
+
   useEffect(() => {
     generateUniqueValues(filteredData);
   }, [filteredData]);
@@ -187,7 +188,8 @@ const CampianData = () => {
         if (!uniqueVals[key]) {
           uniqueVals[key] = new Set();
         }
-        uniqueVals[key].add(item[key]);
+        const normalizedValue = item[key]?.toString().trim(); // normalize
+        if (normalizedValue) uniqueVals[key].add(normalizedValue);
       });
     });
     const formattedValues = Object.keys(uniqueVals).reduce((acc, key) => {

@@ -42,17 +42,10 @@ const AdvertiserData = () => {
     dayjs().startOf("month"),
     dayjs().endOf("month"),
   ]);
-
   const [showSubadminData, setShowSubadminData] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState(() => {
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), 1); // First day of current month
-  });
-
   const [dropdownOptions, setDropdownOptions] = useState({
     os: ["Android", "APK", "iOS"],
   });
-  const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({});
   useEffect(() => {
     if (user?.id) {
@@ -89,12 +82,29 @@ const AdvertiserData = () => {
       message.error("Failed to fetch data");
     }
   };
+  // const generateUniqueValues = (data) => {
+  //   const uniqueVals = {};
+  //   data.forEach((item) => {
+  //     Object.keys(item).forEach((key) => {
+  //       if (!uniqueVals[key]) uniqueVals[key] = new Set();
+  //       uniqueVals[key].add(item[key]);
+  //     });
+  //   });
+
+  //   const formattedValues = {};
+  //   Object.keys(uniqueVals).forEach((key) => {
+  //     formattedValues[key] = Array.from(uniqueVals[key]);
+  //   });
+
+  //   setUniqueValues(formattedValues);
+  // };
   const generateUniqueValues = (data) => {
     const uniqueVals = {};
     data.forEach((item) => {
       Object.keys(item).forEach((key) => {
         if (!uniqueVals[key]) uniqueVals[key] = new Set();
-        uniqueVals[key].add(item[key]);
+        const normalizedValue = item[key]?.toString().trim(); // normalize
+        if (normalizedValue) uniqueVals[key].add(normalizedValue);
       });
     });
 
@@ -313,8 +323,8 @@ const AdvertiserData = () => {
         filtered = filtered.filter((item) =>
           filterValue.some(
             (val) =>
-              item[key]?.toString().toLowerCase() ===
-              val.toString().toLowerCase()
+              item[key]?.toString().trim().toLowerCase() ===
+              val.toString().trim().toLowerCase()
           )
         );
         return;
@@ -322,8 +332,8 @@ const AdvertiserData = () => {
 
       filtered = filtered.filter(
         (item) =>
-          item[key]?.toString().toLowerCase() ===
-          filterValue.toString().toLowerCase()
+          item[key]?.toString().trim().toLowerCase() ===
+          filterValue.toString().trim().toLowerCase()
       );
     });
 
@@ -455,7 +465,9 @@ const AdvertiserData = () => {
           // Handle auto-save logic
           const handleAutoSave = async (newValue, record, key) => {
             if (!checkEditableAndAlert()) return;
-            if (newValue === record[key]) return;
+            const trimmedValue =
+              typeof newValue === "string" ? newValue.trim() : newValue;
+            if (trimmedValue === record[key]) return;
 
             const updated = { ...record, [key]: newValue };
 
