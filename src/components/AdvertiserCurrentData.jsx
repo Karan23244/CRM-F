@@ -27,7 +27,25 @@ const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 
 const AdvertiserData = () => {
+  const monthClasses = [
+    "january-row",
+    "february-row",
+    "march-row",
+    "april-row",
+    "may-row",
+    "june-row",
+    "july-row",
+    "august-row",
+    "september-row",
+    "october-row",
+    "november-row",
+    "december-row",
+  ];
   const user = useSelector((state) => state.auth.user);
+  const [sortInfo, setSortInfo] = useState({
+    columnKey: null,
+    order: null,
+  });
   const userId = user?.id || null;
   const [data, setData] = useState([]);
   const [editingKey, setEditingKey] = useState(null);
@@ -55,6 +73,7 @@ const AdvertiserData = () => {
   }, [user]);
   const clearAllFilters = () => {
     setFilters({});
+    setSortInfo({ columnKey: null, order: null }); // 🔁 reset sorting
   };
 
   const toggleStickyColumn = (key) => {
@@ -407,6 +426,25 @@ const AdvertiserData = () => {
         dataIndex: key,
         fixed: stickyColumns.includes(key) ? "left" : undefined,
         key,
+        sorter: (a, b) => {
+          const valA = a[key];
+          const valB = b[key];
+          const isNumeric =
+            !isNaN(parseFloat(valA)) && !isNaN(parseFloat(valB));
+          return isNumeric
+            ? parseFloat(valA) - parseFloat(valB)
+            : (valA || "").toString().localeCompare((valB || "").toString());
+        },
+        sortOrder: sortInfo.columnKey === key ? sortInfo.order : null,
+        onHeaderCell: () => ({
+          onClick: () => {
+            const newOrder =
+              sortInfo.columnKey === key && sortInfo.order === "ascend"
+                ? "descend"
+                : "ascend";
+            setSortInfo({ columnKey: key, order: newOrder });
+          },
+        }),
         render: (text, record) => {
           const value = record[key];
           const createdAt = dayjs(record.created_at);
@@ -696,6 +734,7 @@ const AdvertiserData = () => {
       },
     },
   ];
+  console.log(finalFilteredData);
   return (
     <>
       <div className="p-4 bg-gray-100 min-h-screen flex flex-col items-center">
@@ -703,7 +742,7 @@ const AdvertiserData = () => {
           {/* Sticky Top Bar */}
           <div className="sticky top-0 left-0 right-0 z-20 bg-white p-4 rounded shadow-md flex flex-col md:flex-row md:items-center md:justify-between gap-4 border border-gray-200">
             {/* Buttons Section */}
-            <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-4">
               {!showSubadminData && !showValidation ? (
                 <>
                   <Button
@@ -812,6 +851,14 @@ const AdvertiserData = () => {
                 columns={columns}
                 dataSource={finalFilteredData}
                 rowKey="id"
+                onChange={(pagination, filters, sorter) => {
+                  if (!Array.isArray(sorter)) {
+                    setSortInfo({
+                      columnKey: sorter.columnKey,
+                      order: sorter.order,
+                    });
+                  }
+                }}
                 pagination={{
                   pageSizeOptions: ["10", "20", "50", "100", "200", "500"],
                   showSizeChanger: true,
@@ -821,6 +868,13 @@ const AdvertiserData = () => {
                 }}
                 bordered
                 scroll={{ x: "max-content" }}
+                rowClassName={(record) => {
+                  if (record.flag === "1") {
+                    const monthIndex = new Date(record.shared_date).getMonth(); // 0 = January, 1 = Feb...
+                    return monthClasses[monthIndex] || ""; // Return month class
+                  }
+                  return ""; // Default row (no extra class)
+                }}
                 summary={(pageData) => {
                   let totalAdvTotalNo = 0;
                   let totalAdvDeductions = 0;

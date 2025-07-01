@@ -73,7 +73,7 @@ const AdminLayout = () => {
           </button>
         </header>
 
-        <main className="overflow-auto min-w-0 p-6">
+        <main className="overflow-auto min-w-0">
           <Outlet />
         </main>
       </div>

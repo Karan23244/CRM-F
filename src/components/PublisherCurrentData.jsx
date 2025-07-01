@@ -27,6 +27,20 @@ const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 
 const PublisherPayoutData = () => {
+  const monthClasses = [
+    "january-row",
+    "february-row",
+    "march-row",
+    "april-row",
+    "may-row",
+    "june-row",
+    "july-row",
+    "august-row",
+    "september-row",
+    "october-row",
+    "november-row",
+    "december-row",
+  ];
   const [advData, setAdvData] = useState([]);
   const [filters, setFilters] = useState({});
   const [filteredData, setFilteredData] = useState([]);
@@ -398,6 +412,14 @@ const PublisherPayoutData = () => {
               `${range[0]}-${range[1]} of ${total} items`,
           }}
           scroll={{ x: "max-content" }}
+          // Dynamically apply row class based on `flag` and `shared_date` month
+          rowClassName={(record) => {
+            if (record.flag === "1") {
+              const monthIndex = new Date(record.shared_date).getMonth(); // 0 = January, 1 = Feb...
+              return monthClasses[monthIndex] || ""; // Return month class
+            }
+            return ""; // Default row (no extra class)
+          }}
         />
       </div>
     </div>

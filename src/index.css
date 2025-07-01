@@ -1,1 +1,13 @@
 @import "tailwindcss";
+.january-row { background-color: #FFEBEE; }
+.february-row { background-color: #E3F2FD; } 
+.march-row { background-color: #E8F5E9; } 
+.april-row { background-color: #FFF3E0; } 
+.may-row { background-color: #F3E5F5; } 
+.june-row { background-color: #FFFDE7; } 
+.july-row { background-color: #E0F7FA; } 
+.august-row { background-color: #FCE4EC; } 
+.september-row { background-color: #EDE7F6; }
+.october-row { background-color: #FFF8E1; }
+.november-row { background-color: #F1F8E9; }
+.december-row { background-color: #ECEFF1; }

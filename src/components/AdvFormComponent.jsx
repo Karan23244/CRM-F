@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
-import { Table, Select, Button, Space } from "antd";
+import { Table, Select, Button, Space, Input } from "antd";
+import { SearchOutlined } from "@ant-design/icons";
 import { useSelector } from "react-redux";
 import geoData from "../Data/geoData.json";
 import SubAdminAdvnameData from "./SubAdminAdvnameData";
@@ -67,6 +68,7 @@ const AdvertiserCreateForm = () => {
   const [assign_user, setAssign_user] = useState("");
   const [assign_id, setAssign_id] = useState("");
   const [subAdmins, setSubAdmins] = useState([]);
+  const [searchText, setSearchText] = useState("");
   const [loadingSubAdmins, setLoadingSubAdmins] = useState(false);
   const [errorSubAdmins, setErrorSubAdmins] = useState(null);
   // **Initialize available IDs from user.ranges**
@@ -126,7 +128,7 @@ const AdvertiserCreateForm = () => {
 
         if (response.ok) {
           const filtered = data.data.filter((subAdmin) =>
-            ["advertiser_manager","advertiser"].includes(subAdmin.role)
+            ["advertiser_manager", "advertiser"].includes(subAdmin.role)
           );
           setSubAdmins(filtered);
         } else {
@@ -310,7 +312,12 @@ const AdvertiserCreateForm = () => {
     setAssign_id("");
     setEditingAdv(null);
   };
-
+  // Filtered data based on search input
+  const filteredData = advertisers.filter((item) =>
+    Object.values(item).some((value) =>
+      String(value).toLowerCase().includes(searchText.toLowerCase())
+    )
+  );
   const columns = [
     { title: "Advertiser ID", dataIndex: "adv_id", key: "adv_id" },
     { title: "Advertiser Name", dataIndex: "adv_name", key: "adv_name" },
@@ -504,21 +511,42 @@ const AdvertiserCreateForm = () => {
       </form>
 
       {/* Existing Advertisers Table */}
-      <h3 className="text-xl font-semibold pt-10">Existing Advertisers</h3>
-      <Table
-        dataSource={advertisers}
-        columns={columns}
-        rowKey="adv_id"
-        className="mt-4"
-        pagination={{
-          pageSizeOptions: ["10", "20", "50", "100"],
-          showSizeChanger: true,
-          defaultPageSize: 10,
-          showTotal: (total, range) =>
-            `${range[0]}-${range[1]} of ${total} items`,
-        }}
-        scroll={{ x: "max-content" }}
-      />
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-6 mt-10 border border-gray-200 dark:border-gray-700">
+        {/* Header and Search */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+          <h3 className="text-2xl font-bold text-gray-800 dark:text-white">
+            🎯 Existing Advertisers
+          </h3>
+          <div className="relative w-full md:w-[300px]">
+            <Input
+              placeholder="Search Advertisers..."
+              prefix={<SearchOutlined style={{ color: "#999" }} />}
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              allowClear
+              className="rounded-full shadow-md border-none ring-1 ring-gray-300 focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+            />
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="overflow-x-auto">
+          <Table
+            dataSource={filteredData}
+            columns={columns}
+            rowKey="adv_id"
+            className="mt-4"
+            pagination={{
+              pageSizeOptions: ["10", "20", "50", "100"],
+              showSizeChanger: true,
+              defaultPageSize: 10,
+              showTotal: (total, range) =>
+                `${range[0]}-${range[1]} of ${total} items`,
+            }}
+            scroll={{ x: "max-content" }}
+          />
+        </div>
+      </div>
     </div>
   );
 };

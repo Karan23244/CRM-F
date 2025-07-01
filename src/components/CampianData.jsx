@@ -69,7 +69,20 @@ const columnHeadingsAdv = {
   adv_approved_no: "ADV Approved Numbers",
   pub_Apno: "PUB Approved Numbers",
 };
-
+const monthClasses = [
+  "january-row",
+  "february-row",
+  "march-row",
+  "april-row",
+  "may-row",
+  "june-row",
+  "july-row",
+  "august-row",
+  "september-row",
+  "october-row",
+  "november-row",
+  "december-row",
+];
 const CampianData = () => {
   const [advData, setAdvData] = useState([]);
   const [pubData, setPubData] = useState([]);
@@ -449,24 +462,22 @@ const CampianData = () => {
     ];
   };
   return (
-    <div className="p-6 bg-gradient-to-br from-gray-100 to-gray-200 min-h-screen">
+    <div className="p-5 min-h-screen">
       {/* Toggle Section */}
       <div className="">
         <h2 className="text-xl font-bold mb-3 text-gray-700">Campian Data</h2>
       </div>
       {/* Controls Section */}
       {!showValidation ? (
-        <div className="bg-white rounded-lg shadow-md p-4 mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="bg-white rounded-xl shadow-lg p-5 mb-6 flex items-end gap-4 md:gap-6 lg:gap-3">
+          {/* Download Button */}
           <button
-            // onClick={() => exportToExcel(filteredData, "advertiser-data.xlsx")}
             onClick={() => {
               const columnHeadings =
                 selectedType === "publisher"
                   ? columnHeadingsPub
                   : columnHeadingsAdv;
-
               const visibleKeys = Object.keys(columnHeadings);
-
               const cleanedData = filteredData.map((row) => {
                 const cleanedRow = {};
                 visibleKeys.forEach((key) => {
@@ -474,23 +485,15 @@ const CampianData = () => {
                 });
                 return cleanedRow;
               });
-
               exportToExcel(cleanedData, `${selectedType}-data.xlsx`);
             }}
-            className="bg-blue-600 hover:bg-blue-700 transition text-white px-5 py-2 rounded-lg font-medium shadow">
+            className="bg-blue-600 hover:bg-blue-700 transition text-white px-4 py-2 rounded-lg font-medium shadow-sm whitespace-nowrap">
             📥 Download Excel
           </button>
 
-          <Input
-            placeholder="🔍 Search by Username, Pub Name, or Campaign Name"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full md:w-80 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
-
-          <div className="mb-4">
-            <label className="mr-2 font-medium">Date Range:</label>
-            {/* Date Picker */}
+          {/* Date Picker */}
+          <div className="flex flex-col items-start gap-1">
+            <label className="font-medium text-gray-600">Date Range:</label>
             <RangePicker
               allowClear
               value={selectedDateRange}
@@ -500,7 +503,6 @@ const CampianData = () => {
                   const end = dayjs().endOf("month");
                   setSelectedDateRange([start, end]);
                 } else {
-                  // FIX: clone the date objects to avoid internal mutation issues
                   setSelectedDateRange([dates[0].clone(), dates[1].clone()]);
                 }
               }}
@@ -508,22 +510,31 @@ const CampianData = () => {
               className="w-full md:w-[220px] rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition"
             />
           </div>
+
+          {/* Start Validation */}
           <Button
             onClick={() => setShowValidation(true)}
             type="primary"
-            className="bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200">
+            className="bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200 whitespace-nowrap">
             ✅ Start Validation
           </Button>
 
+          {/* Clear Filters */}
           <Button
             onClick={clearAllFilters}
             type="default"
-            className="w-full md:w-56 border border-gray-300 rounded-lg shadow-sm">
-            Remove All Filters
+            className="border border-gray-300 rounded-lg px-5 py-2 shadow-sm hover:shadow-md transition whitespace-nowrap w-full sm:w-auto md:w-56">
+            🧹 Remove All Filters
           </Button>
+          {/* Search Input */}
+          <Input
+            placeholder="🔍 Search Username, Pub Name, or Campaign"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-[250px] px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
         </div>
       ) : (
-        // Validation View with Back Button
         <Button
           type="primary"
           onClick={() => setShowValidation(false)}
@@ -562,6 +573,14 @@ const CampianData = () => {
                   `${range[0]}-${range[1]} of ${total} items`,
               }}
               scroll={{ x: "max-content" }}
+              // Dynamically apply row class based on `flag` and `shared_date` month
+              rowClassName={(record) => {
+                if (record.flag === "1") {
+                  const monthIndex = new Date(record.shared_date).getMonth(); // 0 = January, 1 = Feb...
+                  return monthClasses[monthIndex] || ""; // Return month class
+                }
+                return ""; // Default row (no extra class)
+              }}
               summary={(pageData) => {
                 let totalAdvTotalNo = 0;
                 let totalAdvDeductions = 0;
