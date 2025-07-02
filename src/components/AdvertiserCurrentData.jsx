@@ -46,6 +46,7 @@ const AdvertiserData = () => {
     columnKey: null,
     order: null,
   });
+  const [savingTable, setSavingTable] = useState(false);
   const userId = user?.id || null;
   const [data, setData] = useState([]);
   const [editingKey, setEditingKey] = useState(null);
@@ -502,10 +503,17 @@ const AdvertiserData = () => {
           }
           // Handle auto-save logic
           const handleAutoSave = async (newValue, record, key) => {
-            if (!checkEditableAndAlert()) return;
+            setSavingTable(true); // 🟡 Start table loading
+            if (!checkEditableAndAlert()) {
+              setSavingTable(false);
+              return;
+            }
             const trimmedValue =
               typeof newValue === "string" ? newValue.trim() : newValue;
-            if (trimmedValue === record[key]) return;
+            if (trimmedValue === record[key]) {
+              setSavingTable(false); // ✅ Reset loading even if no change
+              return;
+            }
 
             const updated = { ...record, [key]: newValue };
 
@@ -567,6 +575,7 @@ const AdvertiserData = () => {
               console.error("❌ Auto-save failed:", err);
               message.error("Failed to auto-save");
             }
+            setSavingTable(false); // ✅ End loading
           };
 
           // Dropdown Field Editing
@@ -734,7 +743,6 @@ const AdvertiserData = () => {
       },
     },
   ];
-  console.log(finalFilteredData);
   return (
     <>
       <div className="p-4 bg-gray-100 min-h-screen flex flex-col items-center">
@@ -848,6 +856,7 @@ const AdvertiserData = () => {
               </div>
             ) : !showSubadminData ? (
               <Table
+                loading={savingTable} // 🔄 Loading state here
                 columns={columns}
                 dataSource={finalFilteredData}
                 rowKey="id"
