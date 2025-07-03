@@ -3,7 +3,7 @@ import { useSelector } from "react-redux";
 import axios from "axios";
 import { Table, Button, Input } from "antd";
 import Swal from "sweetalert2";
-
+import { EditOutlined, SearchOutlined } from "@ant-design/icons";
 const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 
@@ -13,7 +13,12 @@ const PIDForm = () => {
   const [pids, setPids] = useState([]);
   const [editIndex, setEditIndex] = useState(null);
   const [editId, setEditId] = useState(null);
+  const [searchTerm, setSearchTerm] = useState(""); // 🔍 For search input
 
+  // Filtered PID list based on search
+  const filteredPids = pids.filter((item) =>
+    item.pid.toLowerCase().includes(searchTerm.toLowerCase())
+  );
   // Function to fetch all PIDs
   const fetchPids = async () => {
     try {
@@ -107,28 +112,53 @@ const PIDForm = () => {
   ];
 
   return (
-    <div className="m-6 p-6 bg-white shadow-lg rounded-xl">
-      <h2 className="text-lg font-bold mb-4">Add PID</h2>
-      <Input
-        placeholder="Enter PID"
-        value={pid}
-        onChange={(e) => setPid(e.target.value)}
-      />
-      <Button type="primary" className="m-6" onClick={handleSubmit}>
-        {editIndex !== null ? "Update" : "Submit"}
-      </Button>
+    <div className="mt-10 bg-white rounded-xl shadow-md p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3">
+        <h3 className="text-lg font-bold text-gray-800">Add PID</h3>
+      </div>
 
-      {pids.length > 0 && (
-        <div className="mt-6">
-          <h3 className="text-md font-semibold mb-2">PID List</h3>
-          <Table
-            columns={columns}
-            dataSource={pids}
-            rowKey={(record) => record.id}
-            pagination={{ pageSize: 10 }}
+      {/* PID Entry Input */}
+      <div className="relative w-full sm:w-96 mb-6">
+        <Input
+          id="pid"
+          value={pid}
+          onChange={(e) => setPid(e.target.value)}
+          className=" pt-4 pb-1 !rounded-lg shadow-sm focus:!border-blue-500 focus:!ring-1 focus:!ring-blue-500"
+          placeholder="Enter PID"
+        />
+        <Button type="primary" className="mt-3" onClick={handleSubmit}>
+          {editIndex !== null ? "Update PID" : "Add PID"}
+        </Button>
+      </div>
+
+      {/* Table */}
+      <div className="mt-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
+        <h3 className="text-md font-semibold text-gray-700">Event List</h3>
+        <div className="relative mt-4 sm:mt-0 w-full sm:w-72">
+          <Input
+            placeholder="Search Event..."
+            prefix={<SearchOutlined className="text-gray-400" />}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="py-2 !rounded-lg shadow-sm focus:!border-blue-500 focus:!ring-1 focus:!ring-blue-500"
           />
         </div>
-      )}
+      </div>
+      <Table
+        columns={columns}
+        dataSource={filteredPids}
+        rowKey={(record) => record.id}
+        pagination={{
+          pageSizeOptions: ["10", "20", "50", "100", "200", "500"],
+          showSizeChanger: true,
+          defaultPageSize: 10,
+          showTotal: (total, range) =>
+            `${range[0]}-${range[1]} of ${total} items`,
+        }}
+        className="rounded-lg shadow-sm"
+      />
+    </div>
     </div>
   );
 };

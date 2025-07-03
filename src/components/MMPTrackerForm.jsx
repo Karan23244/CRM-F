@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import InputField from "./InputField";
 import axios from "axios";
 import { useSelector } from "react-redux";
-import { Table, Button, message } from "antd";
+import { Table, Button, Input } from "antd";
+import { SearchOutlined, EditOutlined } from "@ant-design/icons";
 import Swal from "sweetalert2";
 
 const apiUrl =
@@ -14,8 +14,8 @@ const MMPTrackerForm = () => {
   const [trackers, setTrackers] = useState([]);
   const [editIndex, setEditIndex] = useState(null);
   const [editId, setEditId] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // Function to fetch all MMP trackers
   const fetchTrackers = async () => {
     try {
       const response = await axios.get(`${apiUrl}/get-mmptracker`);
@@ -29,16 +29,13 @@ const MMPTrackerForm = () => {
     }
   };
 
-  // Fetch trackers on component mount
   useEffect(() => {
     fetchTrackers();
   }, []);
 
-  // Function to handle form submission
   const handleSubmit = async () => {
-    if (!tracker.trim()) return;
-    const trimmedTracker = tracker.trim();
-    if (!trimmedTracker) return;
+    const trimmed = tracker.trim();
+    if (!trimmed) return;
 
     try {
       if (editId !== null) {
@@ -46,63 +43,40 @@ const MMPTrackerForm = () => {
           `${apiUrl}/update-mmptracker/${editId}`,
           {
             user_id: user?.id,
-            mmptext: trimmedTracker,
+            mmptext: trimmed,
           }
         );
         if (response.data.success === true) {
-          Swal.fire({
-            icon: "success",
-            title: "Success!",
-            text: "Tracker updated successfully",
-            timer: 2000,
-            showConfirmButton: false,
-          });
+          Swal.fire("Success!", "Tracker updated successfully", "success");
           fetchTrackers();
           setEditId(null);
         }
       } else {
         const response = await axios.post(`${apiUrl}/add-mmptracker`, {
           user_id: user?.id,
-          mmptext: trimmedTracker,
+          mmptext: trimmed,
         });
         if (response.data.success === true) {
-          Swal.fire({
-            icon: "success",
-            title: "Success!",
-            text: "Tracker added successfully",
-            timer: 2000,
-            showConfirmButton: false,
-          });
+          Swal.fire("Success!", "Tracker added successfully", "success");
           fetchTrackers();
         }
       }
     } catch (error) {
       if (error.response && error.response.status === 500) {
-        Swal.fire({
-          icon: "error",
-          title: "Duplicate Tracker!",
-          text: "Tracker already exists. Please use a different one.",
-        });
+        Swal.fire("Duplicate!", "Tracker already exists.", "error");
       } else {
-        console.error("Error:", error);
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "Something went wrong. Please try again later.",
-        });
+        Swal.fire("Error", "Something went wrong. Try again later.", "error");
       }
     }
 
     setTracker("");
   };
 
-  // Function to handle edit button click
   const handleEdit = (record) => {
     setTracker(record.mmptext);
     setEditId(record.id);
   };
 
-  // Define table columns
   const columns = [
     {
       title: "#",
@@ -126,23 +100,58 @@ const MMPTrackerForm = () => {
     },
   ];
 
+  const filteredTrackers = trackers.filter((t) =>
+    t.mmptext.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="m-6 p-6 bg-white shadow-lg rounded-xl">
-      <h2 className="text-lg font-bold mb-4">Add MMP Tracker</h2>
-      <InputField label="MMP Tracker" value={tracker} onChange={setTracker} />
-      <Button type="primary" className="mt-2" onClick={handleSubmit}>
-        {editIndex !== null ? "Update" : "Submit"}
-      </Button>
+      <h2 className="text-lg font-bold mb-3 text-gray-800">Add MMP Tracker</h2>
 
-      {/* Data Table */}
+      {/* Floating Label Input */}
+      <div className="relative w-full sm:w-96 mb-4">
+        <Input
+          id="mmp"
+          value={tracker}
+          onChange={(e) => setTracker(e.target.value)}
+          className="pt-4 pb-1 !rounded-lg shadow-sm focus:!border-blue-500 focus:!ring-1 focus:!ring-blue-500"
+          placeholder="Add MMP Tracker"
+        />
+        <Button type="primary" className="mt-3" onClick={handleSubmit}>
+          {editIndex !== null ? "Update" : "Submit"}
+        </Button>
+      </div>
+
+      {/* Tracker List + Search */}
       {trackers.length > 0 && (
-        <div className="mt-6">
-          <h3 className="text-md font-semibold mb-2">Tracker List</h3>
+        <div className="mt-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
+            <h3 className="text-md font-semibold text-gray-700">
+              Tracker List
+            </h3>
+            <div className="relative mt-4 sm:mt-0 w-full sm:w-72">
+              <Input
+                placeholder="Search Tracker..."
+                prefix={<SearchOutlined className="text-gray-400" />}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="py-2 !rounded-lg shadow-sm focus:!border-blue-500 focus:!ring-1 focus:!ring-blue-500"
+              />
+            </div>
+          </div>
+
           <Table
             columns={columns}
-            dataSource={trackers}
+            dataSource={filteredTrackers}
             rowKey="id"
-            pagination={{ pageSize: 5 }}
+            pagination={{
+              pageSizeOptions: ["10", "20", "50", "100", "200", "500"],
+              showSizeChanger: true,
+              defaultPageSize: 10,
+              showTotal: (total, range) =>
+                `${range[0]}-${range[1]} of ${total} items`,
+            }}
+            className="rounded-lg shadow-sm"
           />
         </div>
       )}
