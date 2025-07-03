@@ -131,7 +131,6 @@ const PublisherPayoutData = () => {
 
     // Set interval to fetch every 10 seconds
     const intervalId = setInterval(() => {
-      console.log("Fetching advertiser data...");
       fetchAdvData();
     }, 10000); // 10000 ms = 10 seconds
 

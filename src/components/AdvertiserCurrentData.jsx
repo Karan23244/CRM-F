@@ -553,12 +553,14 @@ const AdvertiserData = () => {
                 console.warn(
                   "⚠️ Skipped pub_Apno calculation due to missing fields."
                 );
+                updated.pub_Apno = "";
               }
             } catch (calcError) {
               console.error(
                 "❌ Error in pub_Apno calculation:",
                 calcError.message
               );
+              updated.pub_Apno = "";
             }
 
             try {
