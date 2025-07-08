@@ -138,16 +138,165 @@ const SubAdminPubnameData = () => {
     setVector("");
   };
 
-  // Table Columns
+  // Helper: Get unique values for a column
+  const getUniqueValues = (data, key) => [
+    ...new Set(data.map((item) => item[key]).filter(Boolean)),
+  ];
+
+  // Helper: Create filter dropdown with onChange
+  const createFilterDropdown = (
+    data,
+    key,
+    setSelectedKeys,
+    selectedKeys,
+    confirm
+  ) => {
+    const options = getUniqueValues(data, key).sort((a, b) => {
+      const aVal = isNaN(a) ? a.toString().toLowerCase() : parseFloat(a);
+      const bVal = isNaN(b) ? b.toString().toLowerCase() : parseFloat(b);
+      return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+    });
+
+    return (
+      <div style={{ padding: 8 }}>
+        <Select
+          mode="multiple"
+          allowClear
+          showSearch
+          style={{ width: 200 }}
+          placeholder={`Filter ${key}`}
+          value={selectedKeys}
+          onChange={(value) => {
+            setSelectedKeys(value);
+            confirm({ closeDropdown: false });
+          }}
+          optionFilterProp="children">
+          {options.map((option) => (
+            <Option key={option} value={option}>
+              {option}
+            </Option>
+          ))}
+        </Select>
+      </div>
+    );
+  };
+
+  // 💡 You'll need your tableData available in scope for filters
+  // For example: const [tableData, setTableData] = useState([]);
+
   const columns = [
-    { title: "UserName", dataIndex: "username", key: "username" },
-    { title: "Publisher Name", dataIndex: "pub_name", key: "pub_name" },
-    { title: "Publisher ID", dataIndex: "pub_id", key: "pub_id" },
-    { title: "Geo", dataIndex: "geo", key: "geo" },
-    { title: "Note", dataIndex: "note", key: "note" },
-    { title: "Target", dataIndex: "target", key: "target" },
-    { title: "Level", dataIndex: "level", key: "level" },
-    { title: "Vector", dataIndex: "vector", key: "vector" },
+    {
+      title: "UserName",
+      dataIndex: "username",
+      key: "username",
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
+        createFilterDropdown(
+          filteredData,
+          "username",
+          setSelectedKeys,
+          selectedKeys,
+          confirm
+        ),
+      onFilter: (value, record) => record.username === value,
+    },
+    {
+      title: "Publisher Name",
+      dataIndex: "pub_name",
+      key: "pub_name",
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
+        createFilterDropdown(
+          filteredData,
+          "pub_name",
+          setSelectedKeys,
+          selectedKeys,
+          confirm
+        ),
+      onFilter: (value, record) => record.pub_name === value,
+    },
+    {
+      title: "Publisher ID",
+      dataIndex: "pub_id",
+      key: "pub_id",
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
+        createFilterDropdown(
+          filteredData,
+          "pub_id",
+          setSelectedKeys,
+          selectedKeys,
+          confirm
+        ),
+      onFilter: (value, record) => record.pub_id === value,
+    },
+    {
+      title: "Geo",
+      dataIndex: "geo",
+      key: "geo",
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
+        createFilterDropdown(
+          filteredData,
+          "geo",
+          setSelectedKeys,
+          selectedKeys,
+          confirm
+        ),
+      onFilter: (value, record) => record.geo === value,
+    },
+    {
+      title: "Note",
+      dataIndex: "note",
+      key: "note",
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
+        createFilterDropdown(
+          filteredData,
+          "note",
+          setSelectedKeys,
+          selectedKeys,
+          confirm
+        ),
+      onFilter: (value, record) => record.note === value,
+    },
+    {
+      title: "Target",
+      dataIndex: "target",
+      key: "target",
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
+        createFilterDropdown(
+          filteredData,
+          "target",
+          setSelectedKeys,
+          selectedKeys,
+          confirm
+        ),
+      onFilter: (value, record) => record.target === value,
+    },
+    {
+      title: "Level",
+      dataIndex: "level",
+      key: "level",
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
+        createFilterDropdown(
+          filteredData,
+          "level",
+          setSelectedKeys,
+          selectedKeys,
+          confirm
+        ),
+      onFilter: (value, record) => record.level === value,
+    },
+    {
+      title: "Vector",
+      dataIndex: "vector",
+      key: "vector",
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
+        createFilterDropdown(
+          filteredData,
+          "vector",
+          setSelectedKeys,
+          selectedKeys,
+          confirm
+        ),
+      onFilter: (value, record) => record.vector === value,
+    },
     {
       title: "Actions",
       key: "actions",

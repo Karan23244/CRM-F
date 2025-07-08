@@ -419,7 +419,10 @@ const AdvertiserData = () => {
                     <PushpinOutlined />
                   )
                 }
-                onClick={() => toggleStickyColumn(key)}
+                onClick={(e) => {
+                  e.stopPropagation(); // 🛑 Prevent triggering sort
+                  toggleStickyColumn(key);
+                }}
               />
             </Tooltip>
           </div>
@@ -446,6 +449,7 @@ const AdvertiserData = () => {
             setSortInfo({ columnKey: key, order: newOrder });
           },
         }),
+
         render: (text, record) => {
           const value = record[key];
           const createdAt = dayjs(record.created_at);

@@ -23,7 +23,6 @@ const AdvnameData = () => {
   const [note, setNote] = useState("");
   const [advUserId, setAdvUserId] = useState(null);
   const [target, setTarget] = useState("");
-
   // **Fetch advertiser data**
   useEffect(() => {
     const fetchData = async () => {
@@ -59,7 +58,6 @@ const AdvnameData = () => {
         field?.toString().toLowerCase().includes(searchTerm.toLowerCase())
       )
     );
-
   // **Handle Form Submission for Updating**
   const handleUpdate = async (e) => {
     e.preventDefault();
@@ -169,14 +167,132 @@ const AdvnameData = () => {
     }
   };
 
-  // **Table Columns**
+  const getUniqueValues = (data, key) => {
+    return [...new Set(data.map((item) => item[key]).filter(Boolean))];
+  };
+
+  const createFilterDropdown = (
+    data,
+    key,
+    setSelectedKeys,
+    selectedKeys,
+    confirm
+  ) => {
+    const options = getUniqueValues(data, key).sort((a, b) => {
+      const aVal = isNaN(a) ? a.toString().toLowerCase() : parseFloat(a);
+      const bVal = isNaN(b) ? b.toString().toLowerCase() : parseFloat(b);
+      return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+    });
+
+    return (
+      <div style={{ padding: 8 }}>
+        <Select
+          mode="multiple"
+          allowClear
+          showSearch
+          style={{ width: 200 }}
+          placeholder={`Filter ${key}`}
+          value={selectedKeys}
+          onChange={(value) => {
+            setSelectedKeys(value);
+            confirm({ closeDropdown: false });
+          }}
+          optionFilterProp="children">
+          {options.map((option) => (
+            <Option key={option} value={option}>
+              {option}
+            </Option>
+          ))}
+        </Select>
+      </div>
+    );
+  };
+
   const columns = [
-    { title: "UserName", dataIndex: "username", key: "username" },
-    { title: "Advertiser Name", dataIndex: "adv_name", key: "adv_name" },
-    { title: "Advertiser ID", dataIndex: "adv_id", key: "adv_id" },
-    { title: "Geo", dataIndex: "geo", key: "geo" },
-    { title: "Note", dataIndex: "note", key: "note" },
-    { title: "Target", dataIndex: "target", key: "target" },
+    {
+      title: "UserName",
+      dataIndex: "username",
+      key: "username",
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
+        createFilterDropdown(
+          filteredData,
+          "username",
+          setSelectedKeys,
+          selectedKeys,
+          confirm
+        ),
+      onFilter: (value, record) => record.username === value,
+    },
+    {
+      title: "Advertiser Name",
+      dataIndex: "adv_name",
+      key: "adv_name",
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
+        createFilterDropdown(
+          filteredData,
+          "adv_name",
+          setSelectedKeys,
+          selectedKeys,
+          confirm
+        ),
+      onFilter: (value, record) => record.adv_name === value,
+    },
+    {
+      title: "Advertiser ID",
+      dataIndex: "adv_id",
+      key: "adv_id",
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
+        createFilterDropdown(
+          filteredData,
+          "adv_id",
+          setSelectedKeys,
+          selectedKeys,
+          confirm
+        ),
+      onFilter: (value, record) => record.adv_id === value,
+    },
+    {
+      title: "Geo",
+      dataIndex: "geo",
+      key: "geo",
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
+        createFilterDropdown(
+          filteredData,
+          "geo",
+          setSelectedKeys,
+          selectedKeys,
+          confirm
+        ),
+      onFilter: (value, record) => record.geo === value,
+    },
+    {
+      title: "Note",
+      dataIndex: "note",
+      key: "note",
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
+        createFilterDropdown(
+          filteredData,
+          "note",
+          setSelectedKeys,
+          selectedKeys,
+          confirm
+        ),
+      onFilter: (value, record) => record.note === value,
+    },
+    {
+      title: "Target",
+      dataIndex: "target",
+      key: "target",
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
+        createFilterDropdown(
+          filteredData,
+          "target",
+          setSelectedKeys,
+          selectedKeys,
+          confirm
+        ),
+      onFilter: (value, record) => record.target === value,
+    },
     {
       title: "Actions",
       key: "actions",

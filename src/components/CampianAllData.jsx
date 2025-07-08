@@ -80,6 +80,10 @@ const CampianAllData = () => {
   const [dropdownOptions, setDropdownOptions] = useState({
     os: ["Android", "APK", "iOS"],
   });
+  const [sortInfo, setSortInfo] = useState({
+    columnKey: null,
+    order: null,
+  });
   const [selectedDateRange, setSelectedDateRange] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   console.log(selectedDateRange);
@@ -98,6 +102,7 @@ const CampianAllData = () => {
   };
   const clearAllFilters = () => {
     setFilters({});
+    setSortInfo({ columnKey: null, order: null }); // 🔁 reset sorting
   };
   // Fetch Publisher Data
   const fetchPubData = async () => {
@@ -310,9 +315,7 @@ const CampianAllData = () => {
               }}>
               {columnHeadings[key] || key}
             </span>
-            <Tooltip
-              title={stickyColumns.includes(key) ? "Unpin" : "Pin"}
-              className="p-3">
+            <Tooltip title={stickyColumns.includes(key) ? "Unpin" : "Pin"}>
               <Button
                 size="small"
                 icon={
@@ -322,7 +325,10 @@ const CampianAllData = () => {
                     <PushpinOutlined />
                   )
                 }
-                onClick={() => toggleStickyColumn(key)}
+                onClick={(e) => {
+                  e.stopPropagation(); // 🛑 Prevent triggering sort
+                  toggleStickyColumn(key);
+                }}
               />
             </Tooltip>
             {uniqueValues[key]?.length > 1 && (
@@ -388,6 +394,25 @@ const CampianAllData = () => {
         dataIndex: key,
         fixed: stickyColumns.includes(key) ? "left" : undefined,
         key,
+        sorter: (a, b) => {
+          const valA = a[key];
+          const valB = b[key];
+          const isNumeric =
+            !isNaN(parseFloat(valA)) && !isNaN(parseFloat(valB));
+          return isNumeric
+            ? parseFloat(valA) - parseFloat(valB)
+            : (valA || "").toString().localeCompare((valB || "").toString());
+        },
+        sortOrder: sortInfo.columnKey === key ? sortInfo.order : null,
+        onHeaderCell: () => ({
+          onClick: () => {
+            const newOrder =
+              sortInfo.columnKey === key && sortInfo.order === "ascend"
+                ? "descend"
+                : "ascend";
+            setSortInfo({ columnKey: key, order: newOrder });
+          },
+        }),
         render: (text, record) => {
           const isEditing =
             editingCell.key === record.id && editingCell.field === key;
