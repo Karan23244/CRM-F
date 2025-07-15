@@ -749,6 +749,7 @@ const AdvertiserData = () => {
       },
     },
   ];
+  console.log("Final Filtered Data:", finalFilteredData);
   return (
     <>
       <div className="p-4 bg-gray-100 min-h-screen flex flex-col items-center">

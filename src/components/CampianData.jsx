@@ -268,6 +268,39 @@ const CampianData = () => {
   const handleFilterChange = (value, key) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
+  function isEmpty(value) {
+    return value === null || value === undefined || value === "";
+  }
+  function calculatePubApno(record) {
+    const { adv_deductions, adv_approved_no, adv_payout, pay_out } = record;
+
+    if (
+      isEmpty(adv_deductions) ||
+      isEmpty(adv_approved_no) ||
+      isEmpty(adv_payout) ||
+      isEmpty(pay_out)
+    ) {
+      throw new Error("Missing or empty required fields in the record.");
+    }
+
+    const approved = Number(adv_approved_no);
+    const payout = Number(adv_payout);
+    const pub = Number(pay_out);
+
+    const advAmount = approved * payout;
+    const pubAmount = approved * pub;
+    const seventyPercent = advAmount * 0.7;
+
+    let pub_Apno;
+
+    if (pubAmount > seventyPercent) {
+      pub_Apno = Number(((0.7 * approved * payout) / pub).toFixed(1));
+    } else {
+      pub_Apno = approved;
+    }
+
+    return pub_Apno;
+  }
   const handleAutoSave = async (newValue, record, key) => {
     const updateUrl =
       selectedType === "publisher"
@@ -288,6 +321,24 @@ const CampianData = () => {
       if (!isNaN(parsedTotal) && !isNaN(parsedDeductions)) {
         updated.adv_approved_no = parsedTotal - parsedDeductions;
       }
+    }
+    try {
+      const testRecord = { ...record, ...updated };
+
+      if (
+        !isEmpty(testRecord.adv_deductions) &&
+        !isEmpty(testRecord.adv_approved_no) &&
+        !isEmpty(testRecord.adv_payout) &&
+        !isEmpty(testRecord.pay_out)
+      ) {
+        updated.pub_Apno = calculatePubApno(testRecord);
+      } else {
+        console.warn("⚠️ Skipped pub_Apno calculation due to missing fields.");
+        updated.pub_Apno = "";
+      }
+    } catch (calcError) {
+      console.error("❌ Error in pub_Apno calculation:", calcError.message);
+      updated.pub_Apno = "";
     }
 
     try {
@@ -341,7 +392,9 @@ const CampianData = () => {
               <Dropdown
                 overlay={
                   <Menu>
-                    <div className="p-3 w-52">
+                    <div
+                      className="p-3 w-52"
+                      onClick={(e) => e.stopPropagation()}>
                       <div className="mb-2">
                         <Checkbox
                           indeterminate={
@@ -392,7 +445,11 @@ const CampianData = () => {
                 }
                 trigger={["click"]}
                 placement="bottomRight">
-                <FilterOutlined className="cursor-pointer text-gray-500 hover:text-black ml-2" />
+                <span
+                  onClick={(e) => e.stopPropagation()} // ✅ Prevent sorting or parent click
+                >
+                  <FilterOutlined className="cursor-pointer text-gray-500 hover:text-black ml-2" />
+                </span>
               </Dropdown>
             )}
           </div>

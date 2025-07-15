@@ -23,6 +23,7 @@ const apiUrl1 =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 const columnHeadings = {
   pub_name: "Publisher",
+  adv_name: "Advertiser",
   campaign_name: "Campaign",
   payout: "PUB Payout $",
   os: "OS",
