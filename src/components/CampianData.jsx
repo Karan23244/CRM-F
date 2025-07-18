@@ -164,20 +164,40 @@ const CampianData = () => {
       }
 
       // 🔹 Normalize Advanced filters
+      // const passesAdvancedFilters = Object.keys(filters).every((key) => {
+      //   const filterVal = filters[key];
+      //   if (!filterVal || filterVal.length === 0) return true;
+
+      //   const itemVal = item[key]?.toString().trim().toLowerCase();
+
+      //   // Array or multi-select filters
+      //   if (Array.isArray(filterVal)) {
+      //     return filterVal.some(
+      //       (val) => itemVal === val?.toString().trim().toLowerCase()
+      //     );
+      //   }
+
+      //   // Single value comparison
+      //   return itemVal === filterVal?.toString().trim().toLowerCase();
+      // });
       const passesAdvancedFilters = Object.keys(filters).every((key) => {
         const filterVal = filters[key];
         if (!filterVal || filterVal.length === 0) return true;
 
-        const itemVal = item[key]?.toString().trim().toLowerCase();
+        const rawVal = item[key];
+        const itemVal =
+          rawVal === null ||
+          rawVal === undefined ||
+          rawVal.toString().trim() === ""
+            ? "-"
+            : rawVal.toString().trim().toLowerCase();
 
-        // Array or multi-select filters
         if (Array.isArray(filterVal)) {
           return filterVal.some(
             (val) => itemVal === val?.toString().trim().toLowerCase()
           );
         }
 
-        // Single value comparison
         return itemVal === filterVal?.toString().trim().toLowerCase();
       });
 
@@ -206,14 +226,28 @@ const CampianData = () => {
         if (!uniqueVals[key]) {
           uniqueVals[key] = new Set();
         }
-        const normalizedValue = item[key]?.toString().trim(); // normalize
-        if (normalizedValue) uniqueVals[key].add(normalizedValue);
+
+        let value = item[key];
+
+        // Normalize value
+        if (
+          value === null ||
+          value === undefined ||
+          value.toString().trim() === ""
+        ) {
+          uniqueVals[key].add("-"); // Treat empty/null/undefined as "-"
+        } else {
+          value = value.toString().trim();
+          uniqueVals[key].add(value);
+        }
       });
     });
+
     const formattedValues = Object.keys(uniqueVals).reduce((acc, key) => {
       acc[key] = Array.from(uniqueVals[key]);
       return acc;
     }, {});
+
     setUniqueValues(formattedValues);
   };
 
@@ -310,16 +344,38 @@ const CampianData = () => {
     const updated = { ...record, [key]: newValue };
 
     // Auto-calculate adv_approved_no
+    // if (key === "adv_total_no" || key === "adv_deductions") {
+    //   const total = key === "adv_total_no" ? newValue : record.adv_total_no;
+    //   const deductions =
+    //     key === "adv_deductions" ? newValue : record.adv_deductions;
+
+    //   const parsedTotal = parseFloat(total);
+    //   const parsedDeductions = parseFloat(deductions);
+
+    //   if (!isNaN(parsedTotal) && !isNaN(parsedDeductions)) {
+    //     updated.adv_approved_no = parsedTotal - parsedDeductions;
+    //   }
+    // }
     if (key === "adv_total_no" || key === "adv_deductions") {
-      const total = key === "adv_total_no" ? newValue : record.adv_total_no;
+      const total =
+        key === "adv_total_no"
+          ? parseFloat(newValue)
+          : parseFloat(record.adv_total_no);
       const deductions =
-        key === "adv_deductions" ? newValue : record.adv_deductions;
+        key === "adv_deductions"
+          ? parseFloat(newValue)
+          : parseFloat(record.adv_deductions);
 
-      const parsedTotal = parseFloat(total);
-      const parsedDeductions = parseFloat(deductions);
+      const hasTotal = !isNaN(total);
+      const hasDeductions = !isNaN(deductions);
 
-      if (!isNaN(parsedTotal) && !isNaN(parsedDeductions)) {
-        updated.adv_approved_no = parsedTotal - parsedDeductions;
+      if (hasTotal && hasDeductions) {
+        updated.adv_approved_no = total - deductions;
+      } else {
+        updated.adv_approved_no = null; // 👈 set to null if either value is missing
+        console.warn(
+          "⚠️ Either total or deductions is invalid, so approved number set to null."
+        );
       }
     }
     try {
@@ -360,6 +416,25 @@ const CampianData = () => {
       });
     }
   };
+  const processedData = filteredData.map((item) => {
+    const missingLabels = [];
+
+    if (!item?.adv_payout || item.adv_payout === "0") {
+      missingLabels.push("ADV Payout");
+    }
+
+    if (!item?.pay_out || item.pay_out === "0") {
+      missingLabels.push("PUB Payout");
+    }
+
+    return {
+      ...item,
+      pub_Apno:
+        missingLabels.length > 0
+          ? `Missing: ${missingLabels.join(", ")}`
+          : item.pub_Apno?.trim() || "-",
+    };
+  });
   const getColumns = (columnHeadings) => {
     return [
       ...Object.keys(columnHeadings).map((key) => ({
@@ -480,7 +555,14 @@ const CampianData = () => {
           const isEditing =
             editingCell.key === record.id && editingCell.field === key;
           const value = record[key];
-
+          // 🔒 Make adv_approved_no and pub_Apno non-editable
+          if (key === "adv_approved_no" || key === "pub_Apno") {
+            return (
+              <div style={{ color: "gray", cursor: "not-allowed" }}>
+                {value ?? "-"}
+              </div>
+            );
+          }
           if (isEditing) {
             if (dropdownOptions[key]) {
               return (
@@ -639,7 +721,7 @@ const CampianData = () => {
               Table
             </h2>
             <Table
-              dataSource={filteredData}
+              dataSource={processedData}
               columns={
                 selectedType === "publisher"
                   ? getColumns(columnHeadingsPub)

@@ -107,7 +107,8 @@ const AdvertiserData = () => {
   //   data.forEach((item) => {
   //     Object.keys(item).forEach((key) => {
   //       if (!uniqueVals[key]) uniqueVals[key] = new Set();
-  //       uniqueVals[key].add(item[key]);
+  //       const normalizedValue = item[key]?.toString().trim(); // normalize
+  //       if (normalizedValue) uniqueVals[key].add(normalizedValue);
   //     });
   //   });
 
@@ -118,13 +119,23 @@ const AdvertiserData = () => {
 
   //   setUniqueValues(formattedValues);
   // };
+
   const generateUniqueValues = (data) => {
     const uniqueVals = {};
+
     data.forEach((item) => {
       Object.keys(item).forEach((key) => {
         if (!uniqueVals[key]) uniqueVals[key] = new Set();
-        const normalizedValue = item[key]?.toString().trim(); // normalize
-        if (normalizedValue) uniqueVals[key].add(normalizedValue);
+
+        const rawVal = item[key];
+        const normalizedValue =
+          rawVal === null ||
+          rawVal === undefined ||
+          rawVal.toString().trim() === ""
+            ? "-"
+            : rawVal.toString().trim();
+
+        uniqueVals[key].add(normalizedValue);
       });
     });
 
@@ -311,6 +322,7 @@ const AdvertiserData = () => {
   const finalFilteredData = useMemo(() => {
     let filtered = [...data];
 
+    // Date range filter for shared_date
     if (
       selectedDateRange &&
       selectedDateRange.length === 2 &&
@@ -323,10 +335,12 @@ const AdvertiserData = () => {
       );
     }
 
+    // Advanced filters
     Object.keys(filters).forEach((key) => {
       const filterValue = filters[key];
       if (!filterValue || filterValue.length === 0) return;
 
+      // Date range filter on specific columns
       if (
         Array.isArray(filterValue) &&
         filterValue.length === 2 &&
@@ -339,29 +353,34 @@ const AdvertiserData = () => {
         return;
       }
 
+      const normalize = (val) =>
+        val === null || val === undefined || val.toString().trim() === ""
+          ? "-"
+          : val.toString().trim().toLowerCase();
+
       if (Array.isArray(filterValue)) {
         filtered = filtered.filter((item) =>
           filterValue.some(
             (val) =>
-              item[key]?.toString().trim().toLowerCase() ===
-              val.toString().trim().toLowerCase()
+              normalize(item[key]) === val.toString().trim().toLowerCase()
           )
         );
-        return;
+      } else {
+        filtered = filtered.filter(
+          (item) =>
+            normalize(item[key]) === filterValue.toString().trim().toLowerCase()
+        );
       }
-
-      filtered = filtered.filter(
-        (item) =>
-          item[key]?.toString().trim().toLowerCase() ===
-          filterValue.toString().trim().toLowerCase()
-      );
     });
 
+    // Search term filter
     if (searchTerm.trim()) {
       const lowerSearchTerm = searchTerm.toLowerCase();
       filtered = filtered.filter((item) =>
         Object.values(item).some((value) =>
-          String(value).toLowerCase().includes(lowerSearchTerm)
+          String(value || "")
+            .toLowerCase()
+            .includes(lowerSearchTerm)
         )
       );
     }
@@ -537,8 +556,9 @@ const AdvertiserData = () => {
               if (hasTotal && hasDeductions) {
                 updated.adv_approved_no = total - deductions;
               } else {
+                updated.adv_approved_no = null; // 👈 set to null if either value is missing
                 console.warn(
-                  "⚠️ Need both total and deductions to calculate approved number."
+                  "⚠️ Either total or deductions is invalid, so approved number set to null."
                 );
               }
             }
@@ -583,7 +603,14 @@ const AdvertiserData = () => {
             }
             setSavingTable(false); // ✅ End loading
           };
-
+          // ✅ Prevent editing adv_approved_no
+          if (key === "adv_approved_no") {
+            return (
+              <div style={{ color: "gray", cursor: "not-allowed" }}>
+                {value ?? "-"}
+              </div>
+            );
+          }
           // Dropdown Field Editing
           if (isEditing && dropdownOptions[key]) {
             return (

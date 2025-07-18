@@ -159,19 +159,45 @@ const PublisherPayoutData = () => {
   //   generateUniqueValues(data);
   // }, [advData, user]);
 
+  // const generateUniqueValues = (data) => {
+  //   const uniqueVals = {};
+  //   data.forEach((item) => {
+  //     Object.keys(item).forEach((key) => {
+  //       if (!uniqueVals[key]) uniqueVals[key] = new Set();
+  //       const normalizedValue = item[key]?.toString().trim(); // normalize
+  //       if (normalizedValue) uniqueVals[key].add(normalizedValue);
+  //     });
+  //   });
+  //   const formattedValues = Object.keys(uniqueVals).reduce((acc, key) => {
+  //     acc[key] = Array.from(uniqueVals[key]);
+  //     return acc;
+  //   }, {});
+  //   setUniqueValues(formattedValues);
+  // };
   const generateUniqueValues = (data) => {
     const uniqueVals = {};
+
     data.forEach((item) => {
       Object.keys(item).forEach((key) => {
         if (!uniqueVals[key]) uniqueVals[key] = new Set();
-        const normalizedValue = item[key]?.toString().trim(); // normalize
-        if (normalizedValue) uniqueVals[key].add(normalizedValue);
+
+        const rawVal = item[key];
+        const normalizedValue =
+          rawVal === null ||
+          rawVal === undefined ||
+          rawVal.toString().trim() === ""
+            ? "-"
+            : rawVal.toString().trim();
+
+        uniqueVals[key].add(normalizedValue);
       });
     });
-    const formattedValues = Object.keys(uniqueVals).reduce((acc, key) => {
-      acc[key] = Array.from(uniqueVals[key]);
-      return acc;
-    }, {});
+
+    const formattedValues = {};
+    Object.keys(uniqueVals).forEach((key) => {
+      formattedValues[key] = Array.from(uniqueVals[key]);
+    });
+
     setUniqueValues(formattedValues);
   };
 
@@ -186,11 +212,16 @@ const PublisherPayoutData = () => {
     const currentMonth = dayjs().month();
     const currentYear = dayjs().year();
 
+    const normalize = (val) =>
+      val === null || val === undefined || val.toString().trim() === ""
+        ? "-"
+        : val.toString().trim().toLowerCase();
+
     const filtered = advData.filter((item) => {
       const sharedDate = dayjs(item.shared_date);
 
-      // Normalize pub_name for comparison
-      const normalizedPubName = item.pub_name?.toString().trim().toLowerCase();
+      // 🔹 Match by publisher
+      const normalizedPubName = normalize(item.pub_name);
       const matchesPub = [
         user?.username?.toString().trim().toLowerCase(),
         ...(selectedSubAdmins || []).map((sub) =>
@@ -198,7 +229,7 @@ const PublisherPayoutData = () => {
         ),
       ].includes(normalizedPubName);
 
-      // Date filtering
+      // 🔹 Match by date range
       const matchesDate =
         selectedDateRange?.length === 2 &&
         selectedDateRange[0] &&
@@ -212,23 +243,23 @@ const PublisherPayoutData = () => {
           : sharedDate.month() === currentMonth &&
             sharedDate.year() === currentYear;
 
-      // Dynamic filters (category, status, etc.)
+      // 🔹 Match by filters
       const matchesFilters = Object.keys(filters).every((key) => {
-        if (!filters[key]) return true;
+        const filterValues = filters[key];
+        if (!filterValues || filterValues.length === 0) return true;
 
-        const itemVal = item[key]?.toString().trim().toLowerCase();
+        const itemVal = normalize(item[key]);
 
-        if (Array.isArray(filters[key])) {
-          return filters[key].some(
-            (filterVal) =>
-              itemVal === filterVal?.toString().trim().toLowerCase()
+        if (Array.isArray(filterValues)) {
+          return filterValues.some(
+            (filterVal) => itemVal === normalize(filterVal)
           );
         }
 
-        return itemVal === filters[key]?.toString().trim().toLowerCase();
+        return itemVal === normalize(filterValues);
       });
 
-      // Search filter
+      // 🔹 Match by search
       const matchesSearch = !searchTerm.trim()
         ? true
         : Object.values(item).some((val) =>
@@ -239,7 +270,7 @@ const PublisherPayoutData = () => {
     });
 
     setFilteredData(filtered);
-    generateUniqueValues(filtered); // Already normalized in your version
+    generateUniqueValues(filtered); // normalized values are included
   }, [
     advData,
     filters,
@@ -248,6 +279,26 @@ const PublisherPayoutData = () => {
     selectedSubAdmins,
     user,
   ]);
+
+  const processedData = filteredData.map((item) => {
+    const missingLabels = [];
+
+    if (!item?.adv_payout || item.adv_payout === "0") {
+      missingLabels.push("ADV Payout");
+    }
+
+    if (!item?.pay_out || item.pay_out === "0") {
+      missingLabels.push("PUB Payout");
+    }
+
+    return {
+      ...item,
+      pub_Apno:
+        missingLabels.length > 0
+          ? `Missing: ${missingLabels.join(", ")}`
+          : item.pub_Apno?.trim() || "-",
+    };
+  });
 
   const getColumns = (columnHeadings) => {
     return Object.keys(columnHeadings).map((key) => ({
@@ -281,6 +332,17 @@ const PublisherPayoutData = () => {
 
       key,
       dataIndex: key,
+      render: (text, record) => {
+        const value = record[key];
+
+        // Check for null/undefined/empty string
+        if (value === null || value === undefined || value === "") {
+          return <span style={{ color: "gray" }}>-</span>; // You can add Tooltip if needed
+        }
+
+        return value;
+      },
+
       fixed: stickyColumns.includes(key) ? "left" : undefined,
       sorter: (a, b) => {
         const valA = a[key];
@@ -432,8 +494,9 @@ const PublisherPayoutData = () => {
         </div>
 
         <Table
+          bordered
           columns={getColumns(columnHeadingsAdv)}
-          dataSource={filteredData}
+          dataSource={processedData}
           rowKey="id"
           pagination={{
             pageSizeOptions: ["10", "20", "50", "100", "200", "500"],
