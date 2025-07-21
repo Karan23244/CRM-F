@@ -111,7 +111,7 @@ const AdvertiserLayout = () => {
               <SidebarLink to="genrategraph" label="Generate Graph" />
             </>
           )}
-
+          <SidebarLink to="/admin-home/analytics" label="Campaign Analytics" />
           <SidebarLink to="change-password" label="Change Password" />
         </nav>
       </aside>

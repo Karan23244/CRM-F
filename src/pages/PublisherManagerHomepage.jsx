@@ -73,6 +73,7 @@ const PublisherManagerLayout = () => {
               </>
             }
           />
+          <SidebarLink to="/admin-home/analytics" label="Campaign Analytics" />
           <SidebarLink to="changepassword" label="Change Password" />
         </nav>
       </aside>

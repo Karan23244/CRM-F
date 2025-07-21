@@ -51,6 +51,7 @@ const AdminLayout = () => {
             label="Advertiser Data"
           />
           <SidebarLink to="/admin-home/publisher-data" label="Publisher Data" />
+          <SidebarLink to="/admin-home/analytics" label="Campaign Analytics" />
           <SidebarLink
             to="/admin-home/change-password"
             label="Change Password"

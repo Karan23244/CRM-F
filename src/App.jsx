@@ -30,6 +30,7 @@ import PublisherFormComponent from "./components/PublisherFormComponent";
 import PublisherCurrentData from "./components/PublisherCurrentData";
 import MakeRequest from "./components/MakeRequest";
 import BlacklistManager from "./components/BlacklistManager";
+import CampaginAnalytics from "./components/CampaginAnalytics";
 const AppRoutes = () => {
   return (
     <>
@@ -51,6 +52,7 @@ const AppRoutes = () => {
               <Route path="advertiser-data" element={<AdvnameData />} />
               <Route path="publisher-data" element={<PubnameData />} />
               <Route path="change-password" element={<ChangePassword />} />
+              <Route path="analytics" element={<CampaginAnalytics />} />
             </Route>
           </Route>
 
@@ -69,6 +71,7 @@ const AppRoutes = () => {
               <Route path="reportform" element={<ReportForm />} />
               <Route path="genrategraph" element={<ExcelGraphCompare />} />
               <Route path="change-password" element={<ChangePassword />} />
+              <Route path="analytics" element={<CampaginAnalytics />} />
             </Route>
           </Route>
 
@@ -79,6 +82,7 @@ const AppRoutes = () => {
               <Route path="currentpubdata" element={<PublisherCurrentData />} />
               <Route path="makerequest" element={<MakeRequest />} />
               <Route path="changepassword" element={<ChangePassword />} />
+              <Route path="analytics" element={<CampaginAnalytics />} />
             </Route>
           </Route>
           <Route
@@ -92,6 +96,7 @@ const AppRoutes = () => {
               <Route path="blacklistpid" element={<BlacklistManager />} />
               <Route path="makerequest" element={<MakeRequest />} />
               <Route path="changepassword" element={<ChangePassword />} />
+              <Route path="analytics" element={<CampaginAnalytics />} />
             </Route>
           </Route>
 
@@ -111,6 +116,7 @@ const AppRoutes = () => {
               <Route path="mmptracker" element={<MMPTrackerForm />} />
               <Route path="view-request" element={<NewRequest />} />
               <Route path="change-password" element={<ChangePassword />} />
+              <Route path="analytics" element={<CampaginAnalytics />} />
             </Route>
           </Route>
         </Routes>
