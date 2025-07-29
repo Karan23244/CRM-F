@@ -3,7 +3,7 @@ import Swal from "sweetalert2";
 import axios from "axios";
 import { Table, Input, Select, Button, Space } from "antd";
 import { useSelector } from "react-redux";
-import geoData from "../Data/geoData.json";
+import geoData from "../../Data/geoData.json";
 
 const { Option } = Select;
 const apiUrl =
@@ -59,10 +59,9 @@ const AdvnameData = () => {
       try {
         const response = await fetch(`${apiUrl}/get-subadmin`);
         const data = await response.json();
-
         if (response.ok) {
           const filtered = data.data.filter((subAdmin) =>
-            ["advertiser_manager"].includes(subAdmin.role)
+            ["advertiser_manager", "advertiser"].includes(subAdmin.role)
           );
           setSubAdmins(filtered);
         } else {
@@ -239,7 +238,7 @@ const AdvnameData = () => {
           return (
             <Select
               autoFocus
-              value={record.user_id}
+              value={record.username}
               onChange={async (newUserId) => {
                 try {
                   const response = await axios.put(`${apiUrl}/update-advid`, {
@@ -293,7 +292,7 @@ const AdvnameData = () => {
             onClick={() => setEditingAssignRowId(record.adv_id)}
             className="cursor-pointer hover:underline"
             title="Click to change user">
-            { "-"}
+            {"-"}
           </span>
         );
       },
@@ -359,7 +358,7 @@ const AdvnameData = () => {
               filterOption={(input, option) =>
                 option?.label?.toLowerCase().includes(input.toLowerCase())
               }
-              required>
+              >
               {geoData.geo?.map((geo) => (
                 <Option key={geo.code} value={geo.code} label={`${geo.code}`}>
                   {geo.code}

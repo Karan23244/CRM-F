@@ -12,24 +12,24 @@ import PublisherHome from "./pages/PublisherHomepage";
 import ProtectedRoute from "./components/ProtectedRoutes";
 import Advertisermanagerpage from "./pages/AdvertiserManagerHomepage";
 import Publishermanagerpage from "./pages/PublisherManagerHomepage";
-import SubAdminForm from "./components/SubAdminForm";
-import ReviewForm from "./components/ReviewForm";
+import SubAdminForm from "./components/Admin/SubAdminForm";
+import ReviewForm from "./components/Admin/ReviewForm";
 import ChangePassword from "./components/ChangePassword";
-import PubnameData from "./components/PubnameData";
-import AdvnameData from "./components/AdvnameData";
-import CampianData from "./components/CampianData";
-import AdvFormComponent from "./components/AdvFormComponent";
-import AdvertiserCurrentData from "./components/AdvertiserCurrentData";
-import PIDForm from "./components/PIDForm";
-import MMPTrackerForm from "./components/MMPTrackerForm";
-import PayableEventForm from "./components/PayableEventForm";
-import NewRequest from "./components/NewRequest";
-import ExcelGraphCompare from "./components/Graph";
-import ReportForm from "./components/ReportForm";
-import PublisherFormComponent from "./components/PublisherFormComponent";
-import PublisherCurrentData from "./components/PublisherCurrentData";
-import MakeRequest from "./components/MakeRequest";
-import BlacklistManager from "./components/BlacklistManager";
+import PubnameData from "./components/Admin/PubnameData";
+import AdvnameData from "./components/Admin/AdvnameData";
+import CampianData from "./components/Admin/CampianData";
+import AdvFormComponent from "./components/Advertiser/AdvFormComponent";
+import AdvertiserCurrentData from "./components/Advertiser/AdvertiserCurrentData";
+import PIDForm from "./components/Advertiser/PIDForm";
+import MMPTrackerForm from "./components/Advertiser/MMPTrackerForm";
+import PayableEventForm from "./components/Advertiser/PayableEventForm";
+import NewRequest from "./components/Advertiser/NewRequest";
+import ExcelGraphCompare from "./components/Advertiser/Graph";
+import ReportForm from "./components/Advertiser/ReportForm";
+import PublisherFormComponent from "./components/Publisher/PublisherFormComponent";
+import PublisherCurrentData from "./components/Publisher/PublisherCurrentData";
+import MakeRequest from "./components/Publisher/MakeRequest";
+import BlacklistManager from "./components/Publisher/BlacklistManager";
 import CampaginAnalytics from "./components/CampaginAnalytics";
 const AppRoutes = () => {
   return (
@@ -51,8 +51,8 @@ const AppRoutes = () => {
               <Route path="current-campaign" element={<CampianData />} />
               <Route path="advertiser-data" element={<AdvnameData />} />
               <Route path="publisher-data" element={<PubnameData />} />
-              <Route path="change-password" element={<ChangePassword />} />
               <Route path="analytics" element={<CampaginAnalytics />} />
+              <Route path="change-password" element={<ChangePassword />} />
             </Route>
           </Route>
 
@@ -70,8 +70,8 @@ const AppRoutes = () => {
               <Route path="view-request" element={<NewRequest />} />
               <Route path="reportform" element={<ReportForm />} />
               <Route path="genrategraph" element={<ExcelGraphCompare />} />
-              <Route path="change-password" element={<ChangePassword />} />
               <Route path="analytics" element={<CampaginAnalytics />} />
+              <Route path="change-password" element={<ChangePassword />} />
             </Route>
           </Route>
 

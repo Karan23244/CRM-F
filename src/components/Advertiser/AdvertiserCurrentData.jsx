@@ -15,11 +15,11 @@ import { PlusOutlined, DeleteOutlined, CopyOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import { useSelector } from "react-redux";
-import geoData from "../Data/geoData.json";
-import { exportToExcel } from "./exportExcel";
-import MainComponent from "../components/ManagerAllData";
+import geoData from "../../Data/geoData.json";
+import { exportToExcel } from "../exportExcel";
+import MainComponent from "./ManagerAllData";
 import { PushpinOutlined, PushpinFilled } from "@ant-design/icons";
-import Validation from "./Validation";
+import Validation from "../Validation";
 dayjs.extend(isBetween);
 const { RangePicker } = DatePicker;
 const { Option } = Select;
@@ -912,11 +912,7 @@ const AdvertiserData = () => {
                 bordered
                 scroll={{ x: "max-content" }}
                 rowClassName={(record) => {
-                  if (record.flag === "1") {
-                    const monthIndex = new Date(record.shared_date).getMonth(); // 0 = January, 1 = Feb...
-                    return monthClasses[monthIndex] || ""; // Return month class
-                  }
-                  return ""; // Default row (no extra class)
+                  return record.flag === "1" ? "light-yellow-row" : "";
                 }}
                 summary={(pageData) => {
                   let totalAdvTotalNo = 0;

@@ -21,8 +21,8 @@ import {
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import { useSelector } from "react-redux";
-import geoData from "../Data/geoData.json";
-import { exportToExcel } from "./exportExcel";
+import geoData from "../../Data/geoData.json";
+import { exportToExcel } from "../exportExcel";
 import { PushpinOutlined, PushpinFilled } from "@ant-design/icons";
 dayjs.extend(isBetween);
 const { RangePicker } = DatePicker;

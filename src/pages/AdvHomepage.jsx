@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../redux/authSlice";
-import { subscribeToNotifications } from "../components/Socket";
+import { subscribeToNotifications } from "../components/Publisher/Socket";
 import { FaBars, FaTimes, FaBell } from "react-icons/fa";
 
 const AdvertiserLayout = () => {
@@ -111,7 +111,7 @@ const AdvertiserLayout = () => {
               <SidebarLink to="genrategraph" label="Generate Graph" />
             </>
           )}
-          <SidebarLink to="/admin-home/analytics" label="Campaign Analytics" />
+          <SidebarLink to="analytics" label="Campaign Analytics" />
           <SidebarLink to="change-password" label="Change Password" />
         </nav>
       </aside>

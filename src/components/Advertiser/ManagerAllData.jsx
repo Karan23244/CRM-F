@@ -16,7 +16,7 @@ import {
 import { EditOutlined, SaveOutlined } from "@ant-design/icons";
 import { useSelector } from "react-redux";
 import dayjs from "dayjs";
-import { exportToExcel } from "./exportExcel";
+import { exportToExcel } from "../exportExcel";
 import AdvertiserAssignData from "./AdvertiserAssignData";
 
 const apiUrl =
@@ -444,5 +444,3 @@ export default MainComponent;
 //     </div>
 //   );
 // };
-
-

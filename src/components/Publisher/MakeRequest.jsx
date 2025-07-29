@@ -12,7 +12,7 @@ import {
   notification,
 } from "antd";
 import Swal from "sweetalert2";
-import { exportToExcel } from "./exportExcel";
+import { exportToExcel } from "../exportExcel";
 import axios from "axios";
 import { subscribeToNotifications } from "./Socket";
 import { useSelector } from "react-redux";
@@ -46,7 +46,6 @@ const PublisherRequest = () => {
   const [blacklistPIDs, setBlacklistPIDs] = useState([]);
   const [selectedSubAdmins, setSelectedSubAdmins] = useState([]);
   const [subAdmins, setSubAdmins] = useState([]);
-  console.log(requests);
   const [filters, setFilters] = useState({});
   const clearAllFilters = () => {
     setFilters({});

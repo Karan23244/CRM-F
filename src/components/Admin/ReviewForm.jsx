@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import InputField from "./InputField";
+import InputField from "../InputField";
 import axios from "axios";
 import { Table, Button } from "antd";
 import { useSelector } from "react-redux";

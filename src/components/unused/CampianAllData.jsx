@@ -15,17 +15,14 @@ import { FilterOutlined, EditOutlined, SaveOutlined } from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
 import "../index.css";
-import geoData from "../Data/geoData.json";
-import { exportToExcel } from "./exportExcel";
-import Validation from "./Validation";
 import Swal from "sweetalert2";
+import geoData from "../../Data/geoData.json";
+import { exportToExcel } from "../exportExcel";
 import { PushpinOutlined, PushpinFilled } from "@ant-design/icons";
 const { Option } = Select;
-const { RangePicker } = DatePicker;
-
 const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
-
+const { RangePicker } = DatePicker;
 // Publisher Column Headings
 const columnHeadingsPub = {
   username: "Input UserName",
@@ -38,7 +35,7 @@ const columnHeadingsPub = {
   mmp_tracker: "MMP Tracker",
   pub_id: "Pub ID",
   p_id: "PID",
-  pub_payout: "Pub Payout $",
+  pay_out: "Pub Payout $",
   shared_date: "Shared Date",
   paused_date: "Paused Date",
   review: "Review",
@@ -67,30 +64,17 @@ const columnHeadingsAdv = {
   adv_total_no: "ADV Total Numbers",
   adv_deductions: "ADV Deductions",
   adv_approved_no: "ADV Approved Numbers",
-  pub_Apno: "PUB Approved Numbers",
 };
-const monthClasses = [
-  "january-row",
-  "february-row",
-  "march-row",
-  "april-row",
-  "may-row",
-  "june-row",
-  "july-row",
-  "august-row",
-  "september-row",
-  "october-row",
-  "november-row",
-  "december-row",
-];
-const CampianData = () => {
+
+const CampianAllData = () => {
   const [advData, setAdvData] = useState([]);
   const [pubData, setPubData] = useState([]);
   const [selectedType, setSelectedType] = useState("advertiser");
   const [filters, setFilters] = useState({});
   const [filteredData, setFilteredData] = useState([]);
   const [uniqueValues, setUniqueValues] = useState({});
-  const [showValidation, setShowValidation] = useState(false);
+  const [editingKey, setEditingKey] = useState(null);
+  const [editedRow, setEditedRow] = useState({});
   const [stickyColumns, setStickyColumns] = useState([]);
   const [editingCell, setEditingCell] = useState({ key: null, field: null });
   const [dropdownOptions, setDropdownOptions] = useState({
@@ -100,11 +84,22 @@ const CampianData = () => {
     columnKey: null,
     order: null,
   });
-  const [selectedDateRange, setSelectedDateRange] = useState([
-    dayjs().startOf("month"),
-    dayjs().endOf("month"),
-  ]);
+  const [selectedDateRange, setSelectedDateRange] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  console.log(selectedDateRange);
+  const handleDateRangeChange = (dates) => {
+    if (!dates || dates.length === 0) {
+      // Reset to current month
+      setSelectedDateRange([dayjs().startOf("month"), dayjs().endOf("month")]);
+    } else {
+      setSelectedDateRange(dates);
+    }
+  };
+  const toggleStickyColumn = (key) => {
+    setStickyColumns((prev) =>
+      prev.includes(key) ? prev.filter((col) => col !== key) : [...prev, key]
+    );
+  };
   const clearAllFilters = () => {
     setFilters({});
     setSortInfo({ columnKey: null, order: null }); // 🔁 reset sorting
@@ -120,11 +115,7 @@ const CampianData = () => {
       console.error("Error fetching publisher data:", error);
     }
   };
-  const toggleStickyColumn = (key) => {
-    setStickyColumns((prev) =>
-      prev.includes(key) ? prev.filter((col) => col !== key) : [...prev, key]
-    );
-  };
+
   // Fetch Advertiser Data
   const fetchAdvData = async () => {
     try {
@@ -146,9 +137,9 @@ const CampianData = () => {
 
   useEffect(() => {
     const data = selectedType === "publisher" ? pubData : advData;
-
+    generateUniqueValues(data);
     const filtered = data.filter((item) => {
-      // 🔹 Normalize Date Range filter for shared_date
+      // Date Range filter
       if (
         selectedDateRange &&
         selectedDateRange.length === 2 &&
@@ -158,66 +149,41 @@ const CampianData = () => {
         const start = dayjs(selectedDateRange[0]).startOf("day");
         const end = dayjs(selectedDateRange[1]).endOf("day");
         const shared = dayjs(item.shared_date);
+
         if (!shared.isBetween(start, end, null, "[]")) {
           return false;
         }
       }
 
-      // 🔹 Normalize Advanced filters
-      // const passesAdvancedFilters = Object.keys(filters).every((key) => {
-      //   const filterVal = filters[key];
-      //   if (!filterVal || filterVal.length === 0) return true;
-
-      //   const itemVal = item[key]?.toString().trim().toLowerCase();
-
-      //   // Array or multi-select filters
-      //   if (Array.isArray(filterVal)) {
-      //     return filterVal.some(
-      //       (val) => itemVal === val?.toString().trim().toLowerCase()
-      //     );
-      //   }
-
-      //   // Single value comparison
-      //   return itemVal === filterVal?.toString().trim().toLowerCase();
-      // });
+      // Advanced filters
       const passesAdvancedFilters = Object.keys(filters).every((key) => {
-        const filterVal = filters[key];
-        if (!filterVal || filterVal.length === 0) return true;
+        if (!filters[key]) return true;
 
-        const rawVal = item[key];
-        const itemVal =
-          rawVal === null ||
-          rawVal === undefined ||
-          rawVal.toString().trim() === ""
-            ? "-"
-            : rawVal.toString().trim().toLowerCase();
-
-        if (Array.isArray(filterVal)) {
-          return filterVal.some(
-            (val) => itemVal === val?.toString().trim().toLowerCase()
-          );
+        if (Array.isArray(filters[key]) && filters[key].length === 2) {
+          const [start, end] = filters[key];
+          return dayjs(item[key]).isBetween(start, end, null, "[]");
         }
 
-        return itemVal === filterVal?.toString().trim().toLowerCase();
+        return (
+          item[key]?.toString().toLowerCase() ===
+          filters[key].toString().toLowerCase()
+        );
       });
 
       if (!passesAdvancedFilters) return false;
 
-      // 🔹 Normalize Search term
+      // Search filter
       if (!searchTerm.trim()) return true;
-      const lowerSearch = searchTerm.trim().toLowerCase();
 
+      const lowerSearch = searchTerm.toLowerCase();
       return Object.values(item).some((val) =>
-        val?.toString().trim().toLowerCase().includes(lowerSearch)
+        String(val).toLowerCase().includes(lowerSearch)
       );
     });
 
     setFilteredData(filtered.filter((row) => !isRowEmpty(row)));
   }, [pubData, advData, selectedType, filters, searchTerm, selectedDateRange]);
 
-  useEffect(() => {
-    generateUniqueValues(filteredData);
-  }, [filteredData]);
   // Generate unique values for filtering
   const generateUniqueValues = (data) => {
     const uniqueVals = {};
@@ -226,28 +192,13 @@ const CampianData = () => {
         if (!uniqueVals[key]) {
           uniqueVals[key] = new Set();
         }
-
-        let value = item[key];
-
-        // Normalize value
-        if (
-          value === null ||
-          value === undefined ||
-          value.toString().trim() === ""
-        ) {
-          uniqueVals[key].add("-"); // Treat empty/null/undefined as "-"
-        } else {
-          value = value.toString().trim();
-          uniqueVals[key].add(value);
-        }
+        uniqueVals[key].add(item[key]);
       });
     });
-
     const formattedValues = Object.keys(uniqueVals).reduce((acc, key) => {
       acc[key] = Array.from(uniqueVals[key]);
       return acc;
     }, {});
-
     setUniqueValues(formattedValues);
   };
 
@@ -289,6 +240,11 @@ const CampianData = () => {
       message.error("Failed to fetch dropdown options");
     }
   };
+  // Handle Checkbox Change
+  const handleCheckboxChange = (type) => {
+    setSelectedType(type);
+    setFilters({});
+  };
   // Check if all values in a row are empty
   // Check if the row has empty pub_name or adv_name
   const isRowEmpty = (row) => {
@@ -300,11 +256,11 @@ const CampianData = () => {
   };
   // Handle Filter Change
   const handleFilterChange = (value, key) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
+    setFilters((prev) => ({
+      ...prev,
+      [key]: value?.length ? value : undefined,
+    }));
   };
-  function isEmpty(value) {
-    return value === null || value === undefined || value === "";
-  }
   function calculatePubApno(record) {
     const { adv_deductions, adv_approved_no, adv_payout, pay_out } = record;
 
@@ -344,38 +300,16 @@ const CampianData = () => {
     const updated = { ...record, [key]: newValue };
 
     // Auto-calculate adv_approved_no
-    // if (key === "adv_total_no" || key === "adv_deductions") {
-    //   const total = key === "adv_total_no" ? newValue : record.adv_total_no;
-    //   const deductions =
-    //     key === "adv_deductions" ? newValue : record.adv_deductions;
-
-    //   const parsedTotal = parseFloat(total);
-    //   const parsedDeductions = parseFloat(deductions);
-
-    //   if (!isNaN(parsedTotal) && !isNaN(parsedDeductions)) {
-    //     updated.adv_approved_no = parsedTotal - parsedDeductions;
-    //   }
-    // }
     if (key === "adv_total_no" || key === "adv_deductions") {
-      const total =
-        key === "adv_total_no"
-          ? parseFloat(newValue)
-          : parseFloat(record.adv_total_no);
+      const total = key === "adv_total_no" ? newValue : record.adv_total_no;
       const deductions =
-        key === "adv_deductions"
-          ? parseFloat(newValue)
-          : parseFloat(record.adv_deductions);
+        key === "adv_deductions" ? newValue : record.adv_deductions;
 
-      const hasTotal = !isNaN(total);
-      const hasDeductions = !isNaN(deductions);
+      const parsedTotal = parseFloat(total);
+      const parsedDeductions = parseFloat(deductions);
 
-      if (hasTotal && hasDeductions) {
-        updated.adv_approved_no = total - deductions;
-      } else {
-        updated.adv_approved_no = null; // 👈 set to null if either value is missing
-        console.warn(
-          "⚠️ Either total or deductions is invalid, so approved number set to null."
-        );
+      if (!isNaN(parsedTotal) && !isNaN(parsedDeductions)) {
+        updated.adv_approved_no = parsedTotal - parsedDeductions;
       }
     }
     try {
@@ -401,12 +335,12 @@ const CampianData = () => {
       await axios.post(updateUrl, updated, {
         headers: { "Content-Type": "application/json" },
       });
-      // Swal.fire({
-      //   icon: "success",
-      //   title: "Auto-Saved",
-      //   timer: 1000,
-      //   showConfirmButton: false,
-      // });
+      Swal.fire({
+        icon: "success",
+        title: "Auto-Saved",
+        timer: 1000,
+        showConfirmButton: false,
+      });
       fetchPubData();
       fetchAdvData();
     } catch (err) {
@@ -416,25 +350,7 @@ const CampianData = () => {
       });
     }
   };
-  const processedData = filteredData.map((item) => {
-    const missingLabels = [];
 
-    if (!item?.adv_payout || item.adv_payout === "0") {
-      missingLabels.push("ADV Payout");
-    }
-
-    if (!item?.pay_out || item.pay_out === "0") {
-      missingLabels.push("PUB Payout");
-    }
-
-    return {
-      ...item,
-      pub_Apno:
-        missingLabels.length > 0
-          ? `Missing: ${missingLabels.join(", ")}`
-          : item.pub_Apno?.trim() || "-",
-    };
-  });
   const getColumns = (columnHeadings) => {
     return [
       ...Object.keys(columnHeadings).map((key) => ({
@@ -463,13 +379,11 @@ const CampianData = () => {
                 }}
               />
             </Tooltip>
-            {uniqueValues[key]?.length > 0 && (
+            {uniqueValues[key]?.length > 1 && (
               <Dropdown
                 overlay={
                   <Menu>
-                    <div
-                      className="p-3 w-52"
-                      onClick={(e) => e.stopPropagation()}>
+                    <div className="p-3 w-52">
                       <div className="mb-2">
                         <Checkbox
                           indeterminate={
@@ -508,11 +422,11 @@ const CampianData = () => {
                             return a.toString().localeCompare(b.toString());
                           })
                           .map((val) => (
-                            <Select.Option key={val} value={val} label={val}>
+                            <Option key={val} value={val} label={val}>
                               <Checkbox checked={filters[key]?.includes(val)}>
                                 {val}
                               </Checkbox>
-                            </Select.Option>
+                            </Option>
                           ))}
                       </Select>
                     </div>
@@ -520,11 +434,7 @@ const CampianData = () => {
                 }
                 trigger={["click"]}
                 placement="bottomRight">
-                <span
-                  onClick={(e) => e.stopPropagation()} // ✅ Prevent sorting or parent click
-                >
-                  <FilterOutlined className="cursor-pointer text-gray-500 hover:text-black ml-2" />
-                </span>
+                <FilterOutlined className="cursor-pointer text-gray-500 hover:text-black ml-2" />
               </Dropdown>
             )}
           </div>
@@ -555,14 +465,7 @@ const CampianData = () => {
           const isEditing =
             editingCell.key === record.id && editingCell.field === key;
           const value = record[key];
-          // 🔒 Make adv_approved_no and pub_Apno non-editable
-          if (key === "adv_approved_no" || key === "pub_Apno") {
-            return (
-              <div style={{ color: "gray", cursor: "not-allowed" }}>
-                {value ?? "-"}
-              </div>
-            );
-          }
+
           if (isEditing) {
             if (dropdownOptions[key]) {
               return (
@@ -625,186 +528,111 @@ const CampianData = () => {
       })),
     ];
   };
+
   return (
-    <div className="p-5 min-h-screen">
+    <div className="p-6 bg-gradient-to-br from-gray-100 to-gray-200 min-h-screen">
       {/* Toggle Section */}
-      <div className="">
-        <h2 className="text-xl font-bold mb-3 text-gray-700">Campian Data</h2>
+      <div className="bg-white rounded-lg shadow-md p-4 mb-4">
+        <h2 className="text-xl font-bold mb-3 text-gray-700">Data Type</h2>
+        <div className="flex flex-wrap gap-4">
+          <Checkbox
+            checked={selectedType === "advertiser"}
+            onChange={() => handleCheckboxChange("advertiser")}
+            className="flex items-center space-x-2">
+            <span className="text-base font-medium text-gray-800">
+              Advertiser Data
+            </span>
+          </Checkbox>
+          <Checkbox
+            checked={selectedType === "publisher"}
+            onChange={() => handleCheckboxChange("publisher")}
+            className="flex items-center space-x-2">
+            <span className="text-base font-medium text-gray-800">
+              Publisher Data
+            </span>
+          </Checkbox>
+        </div>
       </div>
+
       {/* Controls Section */}
-      {!showValidation ? (
-        <div className="bg-white rounded-xl shadow-lg p-5 mb-6 flex items-end gap-4 md:gap-6 lg:gap-3">
-          {/* Download Button */}
-          <button
-            onClick={() => {
-              const columnHeadings =
-                selectedType === "publisher"
-                  ? columnHeadingsPub
-                  : columnHeadingsAdv;
-              const visibleKeys = Object.keys(columnHeadings);
-              const cleanedData = filteredData.map((row) => {
-                const cleanedRow = {};
-                visibleKeys.forEach((key) => {
-                  cleanedRow[columnHeadings[key]] = row[key];
-                });
-                return cleanedRow;
+      <div className="bg-white rounded-lg shadow-md p-4 mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <button
+          // onClick={() => exportToExcel(filteredData, "advertiser-data.xlsx")}
+          onClick={() => {
+            const columnHeadings =
+              selectedType === "publisher"
+                ? columnHeadingsPub
+                : columnHeadingsAdv;
+
+            const visibleKeys = Object.keys(columnHeadings);
+
+            const cleanedData = filteredData.map((row) => {
+              const cleanedRow = {};
+              visibleKeys.forEach((key) => {
+                cleanedRow[columnHeadings[key]] = row[key];
               });
-              exportToExcel(cleanedData, `${selectedType}-data.xlsx`);
-            }}
-            className="bg-blue-600 hover:bg-blue-700 transition text-white px-4 py-2 rounded-lg font-medium shadow-sm whitespace-nowrap">
-            📥 Download Excel
-          </button>
+              return cleanedRow;
+            });
 
+            exportToExcel(cleanedData, `${selectedType}-data.xlsx`);
+          }}
+          className="bg-blue-600 hover:bg-blue-700 transition text-white px-5 py-2 rounded-lg font-medium shadow">
+          📥 Download Excel
+        </button>
+
+        <Input
+          placeholder="🔍 Search by Username, Pub Name, or Campaign Name"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full md:w-80 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+        />
+
+        <div className="mb-4">
+          <label className="mr-2 font-medium">Date Range:</label>
           {/* Date Picker */}
-          <div className="flex flex-col items-start gap-1">
-            <label className="font-medium text-gray-600">Date Range:</label>
-            <RangePicker
-              allowClear
-              value={selectedDateRange}
-              onChange={(dates) => {
-                if (!dates || dates.length === 0) {
-                  const start = dayjs().startOf("month");
-                  const end = dayjs().endOf("month");
-                  setSelectedDateRange([start, end]);
-                } else {
-                  setSelectedDateRange([dates[0].clone(), dates[1].clone()]);
-                }
-              }}
-              placeholder={["Start Date", "End Date"]}
-              className="w-full md:w-[220px] rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition"
-            />
-          </div>
-
-          {/* Start Validation */}
-          <Button
-            onClick={() => setShowValidation(true)}
-            type="primary"
-            className="bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200 whitespace-nowrap">
-            ✅ Start Validation
-          </Button>
-
-          {/* Clear Filters */}
-          <Button
-            onClick={clearAllFilters}
-            type="default"
-            className="border border-gray-300 rounded-lg px-5 py-2 shadow-sm hover:shadow-md transition whitespace-nowrap w-full sm:w-auto md:w-56">
-            🧹 Remove All Filters
-          </Button>
-          {/* Search Input */}
-          <Input
-            placeholder="🔍 Search Username, Pub Name, or Campaign"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-[250px] px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          <RangePicker
+            onChange={handleDateRangeChange}
+            allowClear
+            placeholder={["Start Date", "End Date"]}
+            className="w-full md:w-[220px] rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition"
           />
         </div>
-      ) : (
+
         <Button
-          type="primary"
-          onClick={() => setShowValidation(false)}
-          className="bg-gray-600 hover:bg-gray-700 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200">
-          ← Back to Table
+          onClick={clearAllFilters}
+          type="default"
+          className="w-full md:w-56 border border-gray-300 rounded-lg shadow-sm">
+          Remove All Filters
         </Button>
-      )}
+      </div>
+
       {/* Table Section */}
-
       <div className="bg-white shadow-xl rounded-xl p-6">
-        {showValidation ? (
-          // Validation Component
-          <div className="w-full">
-            <Validation />
-          </div>
-        ) : (
-          <>
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">
-              {selectedType === "publisher" ? "Publisher" : "Advertiser"} Report
-              Table
-            </h2>
-            <Table
-              dataSource={processedData}
-              columns={
-                selectedType === "publisher"
-                  ? getColumns(columnHeadingsPub)
-                  : getColumns(columnHeadingsAdv)
-              }
-              rowKey="id"
-              bordered
-              pagination={{
-                pageSizeOptions: ["10", "20", "50", "100", "200", "500"],
-                showSizeChanger: true,
-                defaultPageSize: 10,
-                showTotal: (total, range) =>
-                  `${range[0]}-${range[1]} of ${total} items`,
-              }}
-              scroll={{ x: "max-content" }}
-              // Dynamically apply row class based on `flag` and `shared_date` month
-              rowClassName={(record) => {
-                if (record.flag === "1") {
-                  const monthIndex = new Date(record.shared_date).getMonth(); // 0 = January, 1 = Feb...
-                  return monthClasses[monthIndex] || ""; // Return month class
-                }
-                return ""; // Default row (no extra class)
-              }}
-              summary={(pageData) => {
-                let totalAdvTotalNo = 0;
-                let totalAdvDeductions = 0;
-                let totalAdvApprovedNo = 0;
-                let totalpubApprovedNo = 0;
-
-                pageData.forEach(
-                  ({
-                    adv_total_no,
-                    adv_deductions,
-                    adv_approved_no,
-                    pub_Apno,
-                  }) => {
-                    totalAdvTotalNo += Number(adv_total_no) || 0;
-                    totalAdvDeductions += Number(adv_deductions) || 0;
-                    totalAdvApprovedNo += Number(adv_approved_no) || 0;
-                    totalpubApprovedNo += Number(pub_Apno) || 0;
-                  }
-                );
-
-                return (
-                  <Table.Summary.Row>
-                    {Object.keys(columnHeadingsAdv).map((key) => {
-                      if (key === "adv_total_no") {
-                        return (
-                          <Table.Summary.Cell key={key}>
-                            <b>{totalAdvTotalNo}</b>
-                          </Table.Summary.Cell>
-                        );
-                      } else if (key === "adv_deductions") {
-                        return (
-                          <Table.Summary.Cell key={key}>
-                            <b>{totalAdvDeductions}</b>
-                          </Table.Summary.Cell>
-                        );
-                      } else if (key === "adv_approved_no") {
-                        return (
-                          <Table.Summary.Cell key={key}>
-                            <b>{totalAdvApprovedNo}</b>
-                          </Table.Summary.Cell>
-                        );
-                      } else if (key === "pub_Apno") {
-                        return (
-                          <Table.Summary.Cell key={key}>
-                            <b>{totalpubApprovedNo}</b>
-                          </Table.Summary.Cell>
-                        );
-                      } else {
-                        return <Table.Summary.Cell key={key} />;
-                      }
-                    })}
-                  </Table.Summary.Row>
-                );
-              }}
-            />
-          </>
-        )}
+        <h2 className="text-lg font-semibold text-gray-800 mb-4">
+          {selectedType === "publisher" ? "Publisher" : "Advertiser"} Report
+          Table
+        </h2>
+        <Table
+          dataSource={filteredData}
+          columns={
+            selectedType === "publisher"
+              ? getColumns(columnHeadingsPub)
+              : getColumns(columnHeadingsAdv)
+          }
+          rowKey="id"
+          bordered
+          pagination={{
+            pageSizeOptions: ["10", "20", "50", "100"],
+            showSizeChanger: true,
+            defaultPageSize: 10,
+            showTotal: (total, range) =>
+              `${range[0]}-${range[1]} of ${total} items`,
+          }}
+          scroll={{ x: "max-content" }}
+        />
       </div>
     </div>
   );
 };
 
-export default CampianData;
+export default CampianAllData;

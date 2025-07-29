@@ -3,7 +3,7 @@ import axios from "axios";
 import { Table, Spin, Alert, Select, Button, Space, Input } from "antd";
 import { useSelector } from "react-redux";
 import { SearchOutlined } from "@ant-design/icons";
-import geoData from "../Data/geoData.json";
+import geoData from "../../Data/geoData.json";
 import SubAdminPubnameData from "./SubAdminPubnameData";
 import Swal from "sweetalert2";
 const { Option } = Select;
@@ -69,23 +69,11 @@ const PublisherCreateForm = () => {
   const [vector, setVector] = useState("");
   const [target, setTarget] = useState("");
   const [searchTextPub, setSearchTextPub] = useState("");
+  console.log("User Role:", user);
   // **Initialize available IDs from user.ranges**
   useEffect(() => {
-    if (user && user.ranges && user.ranges.length > 0) {
-      let allAvailableIds = [];
-
-      user.ranges.forEach(({ start, end }) => {
-        const rangeStart = Number(start);
-        const rangeEnd = Number(end);
-
-        if (!isNaN(rangeStart) && !isNaN(rangeEnd) && rangeStart <= rangeEnd) {
-          const rangeIds = Array.from(
-            { length: rangeEnd - rangeStart + 1 },
-            (_, i) => (rangeStart + i).toString()
-          );
-          allAvailableIds = [...allAvailableIds, ...rangeIds];
-        }
-      });
+    if (user && Array.isArray(user.single_ids)) {
+      const allAvailableIds = user.single_ids.map((id) => id.toString());
       setAvailableIds(allAvailableIds);
     }
   }, [user]);
@@ -98,7 +86,6 @@ const PublisherCreateForm = () => {
       setLoading(true);
       try {
         const { data } = await axios.get(`${apiUrl}/pubid-data/${userId}`);
-
         if (data.success && Array.isArray(data.Publisher)) {
           setPublishers(data.Publisher);
 

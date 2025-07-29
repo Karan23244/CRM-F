@@ -13,7 +13,7 @@ import { PushpinFilled, PushpinOutlined } from "@ant-design/icons";
 import { ReloadOutlined, DownloadOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
-import { exportToExcel } from "./exportExcel";
+import { exportToExcel } from "../exportExcel";
 
 const { RangePicker } = DatePicker;
 

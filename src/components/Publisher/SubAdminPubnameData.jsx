@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Table, Input, Select, Button, Space } from "antd";
-import geoData from "../Data/geoData.json";
+import geoData from "../../Data/geoData.json";
+import { useSelector } from "react-redux";
 import Swal from "sweetalert2";
 
 const { Option } = Select;
 const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 
-const PubnameData = () => {
+const SubAdminPubnameData = () => {
+  const user = useSelector((state) => state.auth.user);
+  const userId = user?.id || null;
   const [tableData, setTableData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingPub, setEditingPub] = useState(null);
@@ -19,18 +22,15 @@ const PubnameData = () => {
   const [geo, setGeo] = useState("");
   const [note, setNote] = useState("");
   const [pubUserId, setPubUserId] = useState(null);
-  const [editingAssignRowId, setEditingAssignRowId] = useState(null);
   const [target, setTarget] = useState("");
   const [level, setLevel] = useState("");
   const [vector, setVector] = useState("");
-  const [subAdmins, setSubAdmins] = useState([]);
-
-  // **Fetch publisher data**
+  // Fetch publisher data
   useEffect(() => {
     const fetchData = async () => {
       try {
         const response = await axios.get(`${apiUrl}/get-Namepub/`);
-        console.log(response.data);
+
         if (response.data && Array.isArray(response.data.data)) {
           setTableData(response.data.data);
         } else {
@@ -44,73 +44,55 @@ const PubnameData = () => {
 
     fetchData();
   }, []);
-  useEffect(() => {
-    const fetchSubAdmins = async () => {
-      try {
-        const response = await fetch(`${apiUrl}/get-subadmin`);
-        const data = await response.json();
-        console.log(data);
-        if (response.ok) {
-          const filtered = data.data.filter((subAdmin) =>
-            ["publisher_manager", "publisher"].includes(subAdmin.role)
-          );
-          setSubAdmins(filtered);
-        } else {
-          console.log(data.message || "Failed to fetch sub-admins.");
-        }
-      } catch (err) {
-        console.log("An error occurred while fetching sub-admins.");
-      }
-    };
 
-    fetchSubAdmins();
-  }, []);
-  // **Filtered data for search**
-  const filteredData = tableData.filter((item) =>
-    [
-      item.username,
-      item.pub_name,
-      item.pub_id,
-      item.geo,
-      item.note,
-      item.target,
-    ].some((field) =>
-      field?.toString().toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  );
+  // Filtered data for search
+  const filteredData = tableData
+    .filter((item) => user?.assigned_subadmins?.includes(item.user_id))
+    .filter((item) =>
+      [
+        item.username,
+        item.pub_name,
+        item.pub_id,
+        item.geo,
+        item.note,
+        item.target,
+      ].some((field) =>
+        field?.toString().toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    );
 
-  // **Handle Form Submission for Updating**
+  // Handle Form Submission for Updating
   const handleUpdate = async (e) => {
     e.preventDefault();
     if (!name || !selectedId || !geo) {
-      Swal.fire("Error", "Please fill all required fields.", "error");
-      return;
+      return Swal.fire({
+        icon: "warning",
+        title: "Oops...",
+        text: "Please fill all required fields.",
+      });
     }
 
-    // const updatedPub = {
-    //   pub_name: name,
-    //   pub_id: selectedId,
-    //   geo: geo,
-    //   note: note || "",
-    //   target: target || "",
-    //   user_id: pubUserId, // Use the original creator's user_id
-    // };
     const updatedPub = {
       pub_name: name,
       pub_id: selectedId,
       geo: geo,
       note: note || "",
       target: target || "",
-      user_id: pubUserId,
+      user_id: pubUserId, // Use the original creator's user_id
       level: level || "",
       vector: vector || "",
     };
 
     try {
-      // **Update existing publisher**
       const response = await axios.put(`${apiUrl}/update-pubid`, updatedPub);
       if (response.data.success) {
-        Swal.fire("Success", "Publisher updated successfully.", "success");
+        await Swal.fire({
+          icon: "success",
+          title: "Success",
+          text: "Publisher updated successfully.",
+          timer: 2000,
+          showConfirmButton: false,
+        });
 
         // Refresh table data after update
         const { data } = await axios.get(`${apiUrl}/get-Namepub/`);
@@ -122,11 +104,15 @@ const PubnameData = () => {
       }
     } catch (error) {
       console.error("Error updating publisher:", error);
-      alert("Error updating publisher. Please try again.");
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Error updating publisher. Please try again.",
+      });
     }
   };
 
-  // **Handle Edit Button**
+  // Handle Edit Button
   const handleEdit = (record) => {
     setEditingPub(record);
     setName(record.pub_name);
@@ -134,12 +120,12 @@ const PubnameData = () => {
     setGeo(record.geo);
     setNote(record.note);
     setTarget(record.target);
-    setPubUserId(record.user_id);
+    setPubUserId(record.user_id); // Set original creator's user_id for updating
     setLevel(record.level || "");
     setVector(record.vector || "");
   };
 
-  // **Reset Form**
+  // Reset Form
   const resetForm = () => {
     setName("");
     setSelectedId("");
@@ -152,85 +138,164 @@ const PubnameData = () => {
     setVector("");
   };
 
-  // **Table Columns**
+  // Helper: Get unique values for a column
+  const getUniqueValues = (data, key) => [
+    ...new Set(data.map((item) => item[key]).filter(Boolean)),
+  ];
+
+  // Helper: Create filter dropdown with onChange
+  const createFilterDropdown = (
+    data,
+    key,
+    setSelectedKeys,
+    selectedKeys,
+    confirm
+  ) => {
+    const options = getUniqueValues(data, key).sort((a, b) => {
+      const aVal = isNaN(a) ? a.toString().toLowerCase() : parseFloat(a);
+      const bVal = isNaN(b) ? b.toString().toLowerCase() : parseFloat(b);
+      return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+    });
+
+    return (
+      <div style={{ padding: 8 }}>
+        <Select
+          mode="multiple"
+          allowClear
+          showSearch
+          style={{ width: 200 }}
+          placeholder={`Filter ${key}`}
+          value={selectedKeys}
+          onChange={(value) => {
+            setSelectedKeys(value);
+            confirm({ closeDropdown: false });
+          }}
+          optionFilterProp="children">
+          {options.map((option) => (
+            <Option key={option} value={option}>
+              {option}
+            </Option>
+          ))}
+        </Select>
+      </div>
+    );
+  };
+
+  // 💡 You'll need your tableData available in scope for filters
+  // For example: const [tableData, setTableData] = useState([]);
+
   const columns = [
-    { title: "UserName", dataIndex: "username", key: "username" },
-    { title: "Publisher Name", dataIndex: "pub_name", key: "pub_name" },
-    { title: "Publisher ID", dataIndex: "pub_id", key: "pub_id" },
-    { title: "Geo", dataIndex: "geo", key: "geo" },
-    { title: "Note", dataIndex: "note", key: "note" },
-    { title: "Target", dataIndex: "target", key: "target" },
-    { title: "Level", dataIndex: "level", key: "level" },
-    { title: "Vector", dataIndex: "vector", key: "vector" },
     {
-      title: "Transfer PUB AM",
-      key: "user_id",
-      render: (_, record) => {
-        const isEditing = editingAssignRowId === record.pub_id;
-
-        if (isEditing) {
-          return (
-            <Select
-              autoFocus
-              value={record.user_id?.toString()}
-              onChange={async (newUserId) => {
-                try {
-                  // Get selected username from subAdmins
-                  const selectedAdmin = subAdmins.find(
-                    (admin) => admin.id.toString() === newUserId
-                  );
-
-                  if (!selectedAdmin) {
-                    Swal.fire("Error", "Invalid user selected", "error");
-                    return;
-                  }
-
-                  const response = await axios.put(`${apiUrl}/update-pubid`, {
-                    ...record,
-                    user_id: selectedAdmin.id,
-                    username: selectedAdmin.username,
-                  });
-
-                  if (response.data.success) {
-                    Swal.fire(
-                      "Success",
-                      "User transferred successfully!",
-                      "success"
-                    );
-                    fetchData();
-                    // Optionally refresh data
-                  } else {
-                    Swal.fire("Error", "Failed to transfer user", "error");
-                  }
-                } catch (error) {
-                  console.error("User transfer error:", error);
-                  Swal.fire("Error", "Something went wrong", "error");
-                } finally {
-                  setEditingAssignRowId(null);
-                }
-              }}
-              onBlur={() => setEditingAssignRowId(null)}
-              className="min-w-[150px]">
-              <Option value="">Select Sub Admin</Option>
-              {subAdmins.map((admin) => (
-                <Option key={admin.id} value={admin.id.toString()}>
-                  {admin.username}
-                </Option>
-              ))}
-            </Select>
-          );
-        }
-
-        // Show normal text, and enter edit mode on click
-        return (
-          <span
-            onClick={() => setEditingAssignRowId(record.pub_id)}
-            className="cursor-pointer hover:underline"
-            title="Click to change user">
-            {"-"}
-          </span>
-        );
-      },
+      title: "UserName",
+      dataIndex: "username",
+      key: "username",
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
+        createFilterDropdown(
+          filteredData,
+          "username",
+          setSelectedKeys,
+          selectedKeys,
+          confirm
+        ),
+      onFilter: (value, record) => record.username === value,
+    },
+    {
+      title: "Publisher Name",
+      dataIndex: "pub_name",
+      key: "pub_name",
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
+        createFilterDropdown(
+          filteredData,
+          "pub_name",
+          setSelectedKeys,
+          selectedKeys,
+          confirm
+        ),
+      onFilter: (value, record) => record.pub_name === value,
+    },
+    {
+      title: "Publisher ID",
+      dataIndex: "pub_id",
+      key: "pub_id",
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
+        createFilterDropdown(
+          filteredData,
+          "pub_id",
+          setSelectedKeys,
+          selectedKeys,
+          confirm
+        ),
+      onFilter: (value, record) => record.pub_id === value,
+    },
+    {
+      title: "Geo",
+      dataIndex: "geo",
+      key: "geo",
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
+        createFilterDropdown(
+          filteredData,
+          "geo",
+          setSelectedKeys,
+          selectedKeys,
+          confirm
+        ),
+      onFilter: (value, record) => record.geo === value,
+    },
+    {
+      title: "Note",
+      dataIndex: "note",
+      key: "note",
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
+        createFilterDropdown(
+          filteredData,
+          "note",
+          setSelectedKeys,
+          selectedKeys,
+          confirm
+        ),
+      onFilter: (value, record) => record.note === value,
+    },
+    {
+      title: "Target",
+      dataIndex: "target",
+      key: "target",
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
+        createFilterDropdown(
+          filteredData,
+          "target",
+          setSelectedKeys,
+          selectedKeys,
+          confirm
+        ),
+      onFilter: (value, record) => record.target === value,
+    },
+    {
+      title: "Level",
+      dataIndex: "level",
+      key: "level",
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
+        createFilterDropdown(
+          filteredData,
+          "level",
+          setSelectedKeys,
+          selectedKeys,
+          confirm
+        ),
+      onFilter: (value, record) => record.level === value,
+    },
+    {
+      title: "Vector",
+      dataIndex: "vector",
+      key: "vector",
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
+        createFilterDropdown(
+          filteredData,
+          "vector",
+          setSelectedKeys,
+          selectedKeys,
+          confirm
+        ),
+      onFilter: (value, record) => record.vector === value,
     },
     {
       title: "Actions",
@@ -250,9 +315,6 @@ const PubnameData = () => {
 
   return (
     <div className="m-6 p-6 bg-white shadow-md rounded-lg">
-      <h2 className="text-2xl font-bold mb-4">Update Publisher</h2>
-
-      {/* Show Form Only in Edit Mode */}
       {editingPub && (
         <form onSubmit={handleUpdate} className="space-y-4 mb-6">
           {/* Publisher Name */}
@@ -335,7 +397,7 @@ const PubnameData = () => {
 
           {/* Vector Field */}
           <div>
-            <label className="block text-lg font-medium">Vertical</label>
+            <label className="block text-lg font-medium">Vector</label>
             <input
               type="text"
               value={vector}
@@ -359,7 +421,6 @@ const PubnameData = () => {
           </button>
         </form>
       )}
-
       {/* Search Input */}
       <Input
         placeholder="Search by Publisher Name, Geo, or Note"
@@ -388,4 +449,4 @@ const PubnameData = () => {
   );
 };
 
-export default PubnameData;
+export default SubAdminPubnameData;

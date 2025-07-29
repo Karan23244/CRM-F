@@ -4,7 +4,7 @@ import Swal from "sweetalert2";
 import { Table, Select, Button, Space, Input } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import { useSelector } from "react-redux";
-import geoData from "../Data/geoData.json";
+import geoData from "../../Data/geoData.json";
 import SubAdminAdvnameData from "./SubAdminAdvnameData";
 const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
@@ -71,26 +71,14 @@ const AdvertiserCreateForm = () => {
   const [searchText, setSearchText] = useState("");
   const [loadingSubAdmins, setLoadingSubAdmins] = useState(false);
   const [errorSubAdmins, setErrorSubAdmins] = useState(null);
-  // **Initialize available IDs from user.ranges**
+  // ✅ Initialize available IDs from user.single_ids
   useEffect(() => {
-    if (user && user.ranges && user.ranges.length > 0) {
-      let allAvailableIds = [];
-
-      user.ranges.forEach(({ start, end }) => {
-        const rangeStart = Number(start);
-        const rangeEnd = Number(end);
-
-        if (!isNaN(rangeStart) && !isNaN(rangeEnd) && rangeStart <= rangeEnd) {
-          const rangeIds = Array.from(
-            { length: rangeEnd - rangeStart + 1 },
-            (_, i) => (rangeStart + i).toString()
-          );
-          allAvailableIds = [...allAvailableIds, ...rangeIds];
-        }
-      });
+    if (user && Array.isArray(user.single_ids)) {
+      const allAvailableIds = user.single_ids.map((id) => id.toString());
       setAvailableIds(allAvailableIds);
     }
   }, [user]);
+
   // **Fetch advertisers and remove used IDs**
   useEffect(() => {
     const fetchAdvertisers = async () => {

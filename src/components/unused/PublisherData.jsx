@@ -17,9 +17,9 @@ import isBetween from "dayjs/plugin/isBetween";
 import utc from "dayjs/plugin/utc";
 import Swal from "sweetalert2"; // <-- Import SweetAlert
 import "../index.css";
-import geoData from "../Data/geoData.json";
+import geoData from "../../Data/geoData.json";
 import { useSelector } from "react-redux";
-import { exportToExcel } from "./exportExcel";
+import { exportToExcel } from "../exportExcel";
 import { PushpinOutlined, PushpinFilled } from "@ant-design/icons";
 
 dayjs.extend(isBetween);

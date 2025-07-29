@@ -3,7 +3,7 @@ import axios from "axios";
 import { Table, Input, Select, Button, Space } from "antd";
 import { useSelector } from "react-redux";
 import Swal from "sweetalert2"; // <-- Import SweetAlert2
-import geoData from "../Data/geoData.json";
+import geoData from "../../Data/geoData.json";
 
 const { Option } = Select;
 const apiUrl =

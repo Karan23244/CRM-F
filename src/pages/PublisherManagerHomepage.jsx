@@ -4,7 +4,7 @@ import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { logout } from "../redux/authSlice";
 import { FaBars, FaTimes, FaBell } from "react-icons/fa";
-import { subscribeToNotifications } from "../components/Socket";
+import { subscribeToNotifications } from "../components/Publisher/Socket";
 
 const PublisherManagerLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -73,7 +73,7 @@ const PublisherManagerLayout = () => {
               </>
             }
           />
-          <SidebarLink to="/admin-home/analytics" label="Campaign Analytics" />
+          <SidebarLink to="analytics" label="Campaign Analytics" />
           <SidebarLink to="changepassword" label="Change Password" />
         </nav>
       </aside>

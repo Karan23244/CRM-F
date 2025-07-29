@@ -14,11 +14,10 @@ import {
 import { FilterOutlined, EditOutlined, SaveOutlined } from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
-import "../index.css";
+import "../../index.css";
 import isBetween from "dayjs/plugin/isBetween";
-import geoData from "../Data/geoData.json";
 import { useSelector } from "react-redux";
-import { exportToExcel } from "./exportExcel";
+import { exportToExcel } from "../exportExcel";
 import { PushpinOutlined, PushpinFilled } from "@ant-design/icons";
 dayjs.extend(isBetween);
 const { RangePicker } = DatePicker;
@@ -508,11 +507,7 @@ const PublisherPayoutData = () => {
           scroll={{ x: "max-content" }}
           // Dynamically apply row class based on `flag` and `shared_date` month
           rowClassName={(record) => {
-            if (record.flag === "1") {
-              const monthIndex = new Date(record.shared_date).getMonth(); // 0 = January, 1 = Feb...
-              return monthClasses[monthIndex] || ""; // Return month class
-            }
-            return ""; // Default row (no extra class)
+            return record.flag === "1" ? "light-yellow-row" : "";
           }}
         />
       </div>
