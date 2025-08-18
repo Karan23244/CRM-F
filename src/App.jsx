@@ -30,7 +30,7 @@ import PublisherFormComponent from "./components/Publisher/PublisherFormComponen
 import PublisherCurrentData from "./components/Publisher/PublisherCurrentData";
 import MakeRequest from "./components/Publisher/MakeRequest";
 import BlacklistManager from "./components/Publisher/BlacklistManager";
-import CampaginAnalytics from "./components/CampaginAnalytics";
+import CampaginAnalytics from "./components/Campaign_Analytics/CampainDashboard";
 const AppRoutes = () => {
   return (
     <>

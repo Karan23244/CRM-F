@@ -28,6 +28,7 @@ const columnHeadings = {
   pid: "PID",
   pub_id: "PUB ID",
   geo: "Geo",
+  created_at: "Created At", // 👈 Added
 };
 
 const NewRequest = () => {
@@ -37,6 +38,7 @@ const NewRequest = () => {
   const [searchText, setSearchText] = useState("");
   const [filters, setFilters] = useState({});
   // const [stickyColumns, setStickyColumns] = useState([]); // for pin/unpin columns
+  console.log(requests);
   const clearAllFilters = () => {
     setFilters({});
   };
@@ -125,28 +127,27 @@ const NewRequest = () => {
             }}>
             {columnHeadings[key] || key}
           </span>
-          {/* <Tooltip
-            title={stickyColumns.includes(key) ? "Unpin" : "Pin"}
-            className="p-3"
-          >
-            <Button
-              size="small"
-              icon={
-                stickyColumns.includes(key) ? (
-                  <PushpinFilled style={{ color: "#1677ff" }} />
-                ) : (
-                  <PushpinOutlined />
-                )
-              }
-              onClick={() => toggleStickyColumn(key)}
-            />
-          </Tooltip> */}
         </div>
       ),
       key,
       dataIndex: key,
 
-      // Custom filter dropdown
+      render: (value) => {
+        if (key === "created_at" && value) {
+          const date = new Date(value);
+          return date.toLocaleString("en-IN", {
+            year: "numeric",
+            month: "short",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: true,
+          });
+        }
+        return value;
+      },
+
       filterDropdown:
         uniqueValues[key]?.length > 0
           ? () => (
@@ -189,18 +190,12 @@ const NewRequest = () => {
                   }>
                   {[...uniqueValues[key]]
                     .filter((val) => val !== null && val !== undefined)
-                    .sort((a, b) => {
-                      const aNum = parseFloat(a);
-                      const bNum = parseFloat(b);
-                      const isNumeric = !isNaN(aNum) && !isNaN(bNum);
-                      return isNumeric
-                        ? aNum - bNum
-                        : a.toString().localeCompare(b.toString());
-                    })
                     .map((val) => (
                       <Option key={val} value={val} label={val}>
                         <Checkbox checked={filters[key]?.includes(val)}>
-                          {val}
+                          {key === "created_at"
+                            ? new Date(val).toLocaleDateString("en-IN")
+                            : val}
                         </Checkbox>
                       </Option>
                     ))}
@@ -263,7 +258,21 @@ const NewRequest = () => {
             const tableDataToExport = filteredRequests.map((item) => {
               const filteredItem = {};
               Object.keys(columnHeadings).forEach((key) => {
-                filteredItem[columnHeadings[key]] = item[key]; // Custom column names
+                if (key === "created_at" && item[key]) {
+                  filteredItem[columnHeadings[key]] = new Date(
+                    item[key]
+                  ).toLocaleString("en-IN", {
+                    year: "numeric",
+                    month: "short",
+                    day: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                    hour12: true,
+                  });
+                } else {
+                  filteredItem[columnHeadings[key]] = item[key];
+                }
               });
               return filteredItem;
             });
