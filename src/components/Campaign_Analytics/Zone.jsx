@@ -434,7 +434,13 @@ export default function OptimizationCampaignAnalysis({ data = {} }) {
               { title: "PUB AM", dataIndex: "pubam", key: "pubam" },
               { title: "PUBID", dataIndex: "pubid", key: "pubid" },
               { title: "PID", dataIndex: "pid", key: "pid" },
-              { title: "Events", dataIndex: "noe", key: "noe" },
+              { title: "NOI", dataIndex: "noi", key: "noi" },
+              { title: "RTI", dataIndex: "rti", key: "rti" },
+              { title: "PI", dataIndex: "pi", key: "pi" },
+              { title: "NOE", dataIndex: "noe", key: "noe" },
+              { title: "PE", dataIndex: "pe", key: "pe" },
+              { title: "NOCRM", dataIndex: "nocrm", key: "nocrm" },
+              { title: "CLICKS", dataIndex: "clicks", key: "clicks" },
             ]}
             dataSource={modalData.rows}
             rowKey={(record, idx) => idx}
@@ -475,7 +481,7 @@ export default function OptimizationCampaignAnalysis({ data = {} }) {
                 "etc_max",
               ].map((field) => (
                 <div key={field} className="mb-2">
-                  <label className="block text-sm font-medium mb-1 capitalize">
+                  <label className="block text-sm font-medium mb-1 uppercase">
                     {field.replace("_", " ")}
                   </label>
                   <Input
