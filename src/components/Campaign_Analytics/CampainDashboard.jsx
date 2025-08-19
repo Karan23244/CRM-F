@@ -4,7 +4,8 @@ import PidsOnAlert from "./PidAlert";
 import PidStable from "./PidStable";
 import { Select, Card, Space, Typography, Spin, Row, Col } from "antd";
 import UploadForm from "./UploadForm";
-
+import { useSelector } from "react-redux";
+import PerformanceComparison from "./PerformanceComparison";
 const { Title } = Typography;
 const { Option } = Select;
 const cardStyle = {
@@ -15,11 +16,13 @@ const cardStyle = {
 const apiUrl = "https://gapi.clickorbits.in";
 
 export default function OptimizationPage() {
+  const user = useSelector((state) => state.auth.user);
+  console.log("User in OptimizationPage:", user);
   const [rawData, setRawData] = useState([]);
   const [selectedCampaign, setSelectedCampaign] = useState("");
   const [selectedDateRange, setSelectedDateRange] = useState("");
   const [loading, setLoading] = useState(true);
-
+  console.log("Raw data in OptimizationPage:", rawData);
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -85,7 +88,7 @@ export default function OptimizationPage() {
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Upload Form */}
       <Card style={cardStyle} className="mb-6">
-        <UploadForm onUploadSuccess={fetchData}/>
+        <UploadForm onUploadSuccess={fetchData} />
       </Card>
 
       {/* Header & Filters */}
@@ -143,6 +146,12 @@ export default function OptimizationPage() {
           <Card style={cardStyle} className="rounded-xl shadow-md">
             <Zone data={filteredData} />
           </Card>
+        </Col>
+        <Col span={24}>
+          <PerformanceComparison
+            rawData={rawData}
+            selectedCampaign={selectedCampaign}
+          />
         </Col>
 
         <Col xs={24} md={12}>

@@ -19,7 +19,18 @@ import {
   LineElement,
   Title,
 } from "chart.js";
-import { Table, Card, Typography, Button, Modal, Input } from "antd";
+import {
+  Table,
+  Card,
+  Typography,
+  Button,
+  Modal,
+  Input,
+  Collapse,
+  Row,
+  Col,
+  Tooltip as AntTooltip,
+} from "antd";
 const { Title: AntTitle } = Typography;
 // Chart.js setup
 ChartJS.register(
@@ -32,10 +43,26 @@ ChartJS.register(
   LineElement,
   Title
 );
+import { InfoCircleOutlined } from "@ant-design/icons";
+const { Panel } = Collapse;
 const apiUrl = "https://gapi.clickorbits.in";
 
 export default function OptimizationCampaignAnalysis({ data = {} }) {
   console.log("Data received in OptimizationCampaignAnalysis:", data);
+  const fields = [
+    "fraud_min",
+    "fraud_max",
+    "cti_min",
+    "cti_max",
+    "ite_min",
+    "ite_max",
+    "etc_min",
+    "etc_max",
+  ];
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+  });
   const [modalData, setModalData] = useState({
     open: false,
     rows: [],
@@ -45,7 +72,7 @@ export default function OptimizationCampaignAnalysis({ data = {} }) {
   const [editValues, setEditValues] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const campaignName = data[0]?.campaign_name;
-  console.log("Campaign Name:", campaignName);
+  console.log("conditions Name:", conditions);
   // Step 1 – Compute metrics + zone
   const processed = useMemo(() => {
     return data.map((row) => {
@@ -257,13 +284,24 @@ export default function OptimizationCampaignAnalysis({ data = {} }) {
 
   const handleCellClick = (pubam, type) => {
     let rows = [];
-
-    if (type === "paused") {
-      rows = processed.filter((p) => p.pubam === pubam && p.is_paused);
-    } else if (type === "all") {
-      rows = processed.filter((p) => p.pubam === pubam);
+    if (pubam === "__TOTAL__") {
+      // total row → look across all processed data
+      if (type === "paused") {
+        rows = processed.filter((p) => p.is_paused);
+      } else if (type === "all") {
+        rows = processed;
+      } else {
+        rows = processed.filter((p) => p.zone === type);
+      }
     } else {
-      rows = processed.filter((p) => p.pubam === pubam && p.zone === type);
+      // existing logic for per-pubam
+      if (type === "paused") {
+        rows = processed.filter((p) => p.pubam === pubam && p.is_paused);
+      } else if (type === "all") {
+        rows = processed.filter((p) => p.pubam === pubam);
+      } else {
+        rows = processed.filter((p) => p.pubam === pubam && p.zone === type);
+      }
     }
 
     setModalData({
@@ -273,6 +311,7 @@ export default function OptimizationCampaignAnalysis({ data = {} }) {
         type === "paused" ? "Paused PIDs" : type === "all" ? "All PIDs" : type,
     });
   };
+
   const columns = [
     { title: "PUB AM", dataIndex: "pubam", key: "pubam", align: "center" },
     {
@@ -356,31 +395,64 @@ export default function OptimizationCampaignAnalysis({ data = {} }) {
                     className="font-bold text-center">
                     Total
                   </Table.Summary.Cell>
+
+                  {/* All PIDs */}
                   <Table.Summary.Cell index={1} className="text-center">
-                    {totals.totalPIDs}-({totals.totalEvents})i
+                    <span
+                      onClick={() => handleCellClick("__TOTAL__", "all")}
+                      className="cursor-pointer text-black hover:underline">
+                      {totals.totalPIDs}-({totals.totalEvents})i
+                    </span>
                   </Table.Summary.Cell>
+
+                  {/* Paused */}
                   <Table.Summary.Cell index={2} className="text-center">
-                    {totals.pausedPIDs}-({totals.pausedEvents})i
+                    <span
+                      onClick={() => handleCellClick("__TOTAL__", "paused")}
+                      className="cursor-pointer text-black hover:underline">
+                      {totals.pausedPIDs}-({totals.pausedEvents})i
+                    </span>
                   </Table.Summary.Cell>
+
+                  {/* Zones */}
                   <Table.Summary.Cell
                     index={3}
                     className={`text-center ${colorMap.Red}`}>
-                    {totals.red}-({totals.redEvents})i
+                    <span
+                      onClick={() => handleCellClick("__TOTAL__", "Red")}
+                      className="cursor-pointer">
+                      {totals.red}-({totals.redEvents})i
+                    </span>
                   </Table.Summary.Cell>
+
                   <Table.Summary.Cell
                     index={4}
                     className={`text-center ${colorMap.Orange}`}>
-                    {totals.orange}-({totals.orangeEvents})i
+                    <span
+                      onClick={() => handleCellClick("__TOTAL__", "Orange")}
+                      className="cursor-pointer">
+                      {totals.orange}-({totals.orangeEvents})i
+                    </span>
                   </Table.Summary.Cell>
+
                   <Table.Summary.Cell
                     index={5}
                     className={`text-center ${colorMap.Yellow}`}>
-                    {totals.yellow}-({totals.yellowEvents})i
+                    <span
+                      onClick={() => handleCellClick("__TOTAL__", "Yellow")}
+                      className="cursor-pointer">
+                      {totals.yellow}-({totals.yellowEvents})i
+                    </span>
                   </Table.Summary.Cell>
+
                   <Table.Summary.Cell
                     index={6}
                     className={`text-center ${colorMap.Green}`}>
-                    {totals.green}-({totals.greenEvents})i
+                    <span
+                      onClick={() => handleCellClick("__TOTAL__", "Green")}
+                      className="cursor-pointer">
+                      {totals.green}-({totals.greenEvents})i
+                    </span>
                   </Table.Summary.Cell>
                 </Table.Summary.Row>
               )}
@@ -404,9 +476,7 @@ export default function OptimizationCampaignAnalysis({ data = {} }) {
                 dataSource={inactivePIDs}
                 rowKey={(record, idx) => idx}
                 pagination={{
-                  pageSize: 10, // number of rows per page
-                  showSizeChanger: true, // allow user to change page size
-                  pageSizeOptions: ["10", "20", "50", "100"],
+                  pageSize: 15, // number of rows per page
                   showTotal: (total, range) =>
                     `${range[0]}-${range[1]} of ${total} items`,
                 }}
@@ -443,13 +513,16 @@ export default function OptimizationCampaignAnalysis({ data = {} }) {
               { title: "CLICKS", dataIndex: "clicks", key: "clicks" },
             ]}
             dataSource={modalData.rows}
-            rowKey={(record, idx) => idx}
+            rowKey={(record) => record.pid}
             pagination={{
-              pageSize: 10, // number of rows per page
-              showSizeChanger: true, // allow user to change page size
+              ...pagination,
+              showSizeChanger: true,
               pageSizeOptions: ["10", "20", "50", "100"],
               showTotal: (total, range) =>
                 `${range[0]}-${range[1]} of ${total} items`,
+              onChange: (page, pageSize) => {
+                setPagination({ current: page, pageSize });
+              },
             }}
             bordered
           />
@@ -462,42 +535,53 @@ export default function OptimizationCampaignAnalysis({ data = {} }) {
         open={showModal}
         onCancel={() => setShowModal(false)}
         onOk={handleSave}
-        width={700}>
+        width={750}>
         <div className="max-h-[60vh] overflow-y-auto pr-2">
-          {editValues.map((cond, idx) => (
-            <Card
-              key={idx}
-              size="small"
-              className="mb-4 border rounded-md bg-gray-50"
-              title={cond.zone_color}>
-              {[
-                "fraud_min",
-                "fraud_max",
-                "cti_min",
-                "cti_max",
-                "ite_min",
-                "ite_max",
-                "etc_min",
-                "etc_max",
-              ].map((field) => (
-                <div key={field} className="mb-2">
-                  <label className="block text-sm font-medium mb-1 uppercase">
-                    {field.replace("_", " ")}
-                  </label>
-                  <Input
-                    type="number"
-                    step="0.0001"
-                    value={cond[field]}
-                    onChange={(e) => {
-                      const updated = [...editValues];
-                      updated[idx][field] = e.target.value;
-                      setEditValues(updated);
-                    }}
-                  />
-                </div>
-              ))}
-            </Card>
-          ))}
+          <Collapse accordion defaultActiveKey={["1"]} bordered={false}>
+            {editValues.map((cond, idx) => (
+              <Panel
+                header={
+                  <div className="flex items-center gap-2 font-semibold">
+                    <span
+                      className={`w-3 h-3 rounded-full ${
+                        cond.zone_color === "Green"
+                          ? "bg-green-500"
+                          : cond.zone_color === "Orange"
+                          ? "bg-orange-500"
+                          : cond.zone_color === "Yellow"
+                          ? "bg-yellow-400"
+                          : "bg-red-500"
+                      }`}></span>
+                    {cond.zone_color} Zone
+                  </div>
+                }
+                key={cond.id}>
+                <Row gutter={16}>
+                  {fields.map((field) => (
+                    <Col span={12} key={field} className="mb-3">
+                      <label className="block text-xs font-medium mb-1 uppercase text-gray-600">
+                        {field.replace("_", " ")}
+                        <AntTooltip
+                          title={`Enter value for ${field.replace("_", " ")}`}>
+                          <InfoCircleOutlined className="ml-1 text-gray-400" />
+                        </AntTooltip>
+                      </label>
+                      <Input
+                        type="number"
+                        step="0.0001"
+                        value={cond[field]}
+                        onChange={(e) => {
+                          const updated = [...editValues];
+                          updated[idx][field] = e.target.value;
+                          setEditValues(updated);
+                        }}
+                      />
+                    </Col>
+                  ))}
+                </Row>
+              </Panel>
+            ))}
+          </Collapse>
         </div>
       </Modal>
     </div>
