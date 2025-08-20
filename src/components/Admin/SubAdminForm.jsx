@@ -105,8 +105,8 @@ const SubAdminForm = () => {
         role === "publisher_manager" || role === "advertiser_manager"
           ? assignedSubAdmins
           : [],
-      can_see_button1: permissionUploadFiles ? 1 : 0,
-      can_see_input1: permissionEditCondition ? 1 : 0,
+      can_see_button1: permissionEditCondition ? 1 : 0,
+      can_see_input1: permissionUploadFiles ? 1 : 0,
     };
     console.log("Payload to save:", payload); // Debugging payload
 
@@ -173,8 +173,8 @@ const SubAdminForm = () => {
     setRole(subAdmin.role);
     setRanges(subAdmin.ranges);
     setAssignedSubAdmins(subAdmin.assigned_subadmins.map((a) => a.id));
-    setPermissionEditCondition(subAdmin.permissions.can_see_input1 === 1);
-    setPermissionUploadFiles(subAdmin.permissions.can_see_button1 === 1);
+    setPermissionEditCondition(subAdmin.permissions.can_see_button1 === 1);
+    setPermissionUploadFiles(subAdmin.permissions.can_see_input1 === 1);
   };
   const handleDeleteSubAdmin = async (id) => {
     const result = await Swal.fire({
@@ -234,15 +234,16 @@ const SubAdminForm = () => {
     },
     {
       title: "Edit Permission",
-      key: "can_see_input1",
-      render: (record) =>
-        record.permissions?.can_see_input1 === 1 ? "Yes" : "No",
-    },
-    {
-      title: "Upload Permission",
       key: "can_see_button1",
       render: (record) =>
         record.permissions?.can_see_button1 === 1 ? "Yes" : "No",
+    },
+    {
+      title: "Upload Permission",
+      key: "can_see_input1",
+
+      render: (record) =>
+        record.permissions?.can_see_input1 === 1 ? "Yes" : "No",
     },
     {
       title: "Actions",
