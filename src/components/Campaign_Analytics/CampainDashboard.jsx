@@ -87,9 +87,12 @@ export default function OptimizationPage() {
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Upload Form */}
-      <Card style={cardStyle} className="mb-6">
-        <UploadForm onUploadSuccess={fetchData} />
-      </Card>
+      {/* Show UploadForm only if user has permission */}
+      {user?.permissions?.can_see_input1 === 1 && (
+        <Card style={cardStyle} className="mb-6">
+          <UploadForm onUploadSuccess={fetchData} />
+        </Card>
+      )}
 
       {/* Header & Filters */}
       <Space direction="vertical" size="large" className="w-full pt-5">
@@ -144,7 +147,7 @@ export default function OptimizationPage() {
       <Row gutter={[16, 16]} className="mt-6">
         <Col span={24}>
           <Card style={cardStyle} className="rounded-xl shadow-md">
-            <Zone data={filteredData} />
+            <Zone data={filteredData} canEdit={user?.permissions?.can_see_button1 === 1}/>
           </Card>
         </Col>
         <Col span={24}>

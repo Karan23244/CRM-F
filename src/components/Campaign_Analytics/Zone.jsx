@@ -47,7 +47,7 @@ import { InfoCircleOutlined } from "@ant-design/icons";
 const { Panel } = Collapse;
 const apiUrl = "https://gapi.clickorbits.in";
 
-export default function OptimizationCampaignAnalysis({ data = {} }) {
+export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
   console.log("Data received in OptimizationCampaignAnalysis:", data);
   const fields = [
     "fraud_min",
@@ -364,14 +364,16 @@ export default function OptimizationCampaignAnalysis({ data = {} }) {
         <AntTitle level={4} className="text-gray-800">
           Campaign Dashboard
         </AntTitle>
-        <Button
-          type="primary"
-          onClick={() => {
-            setEditValues([...conditions]);
-            setShowModal(true);
-          }}>
-          Edit Conditions
-        </Button>
+        {canEdit && (
+          <Button
+            type="primary"
+            onClick={() => {
+              setEditValues([...conditions]);
+              setShowModal(true);
+            }}>
+            Edit Conditions
+          </Button>
+        )}
       </div>
 
       {/* Switch between Main Dashboard and Zone Detail */}
