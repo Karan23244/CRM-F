@@ -30,6 +30,7 @@ const columnHeadings = {
   pid: "PID",
   pub_id: "PUB ID",
   geo: "Geo",
+  created_at: "Created At",
 };
 const PublisherRequest = () => {
   const user = useSelector((state) => state.auth.user);
@@ -289,7 +290,21 @@ const PublisherRequest = () => {
       ),
       key,
       dataIndex: key,
-
+      render: (value) => {
+        if (key === "created_at" && value) {
+          const date = new Date(value);
+          return date.toLocaleString("en-IN", {
+            year: "numeric",
+            month: "short",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: true,
+          });
+        }
+        return value;
+      },
       filterDropdown:
         uniqueValues[key]?.length > 0
           ? () => (
@@ -450,28 +465,54 @@ const PublisherRequest = () => {
     key: "permission",
     render: (_, record) => {
       if (userRole === "publisher_manager") {
+        // ✅ Publisher Manager → dropdown
         return (
           <Select
-            value={record.prm} // prm will now be 1 or 0
-            style={{ width: 120 }}
+            value={record.prm}
+            style={{
+              width: 120,
+              fontWeight: 600,
+              backgroundColor: record.prm === 1 ? "#e6ffed" : "#ffe6e6", // ✅ box bg
+              color: record.prm === 1 ? "green" : "red", // ✅ selected text
+            }}
             onChange={(val) =>
               handleUpdatePrm(record, {
                 priority: record.priority,
-                prm: val, // already 1 or 0
+                prm: val,
               })
             }>
-            <Option value={1}>Allow</Option>
-            <Option value={0}>Disallow</Option>
+            <Option
+              value={1}
+              style={{
+                backgroundColor: "#e6ffed",
+                color: "green",
+                fontWeight: 600,
+              }}>
+              ✅ Allow
+            </Option>
+            <Option
+              value={0}
+              style={{
+                backgroundColor: "#ffe6e6",
+                color: "red",
+                fontWeight: 600,
+              }}>
+              ❌ Disallow
+            </Option>
           </Select>
         );
       }
 
-      if (userRole === "publisher") {
-        // Just show text, no dropdown
-        return record.priority === 1 ? "Allow" : "Disallow";
-      }
-
-      return record.prm === 1 ? "Allow" : "Disallow";
+      // ✅ Everyone else (publisher & default)
+      return (
+        <span
+          style={{
+            color: record.prm === 1 ? "green" : "red",
+            fontWeight: 600,
+          }}>
+          {record.prm === 1 ? "✅ Allow" : "❌ Disallow"}
+        </span>
+      );
     },
   };
 
@@ -480,6 +521,7 @@ const PublisherRequest = () => {
     key: "priority",
     render: (_, record) => {
       if (userRole === "publisher_manager") {
+        // ✅ Publisher Manager → dropdown
         return (
           <Select
             value={record.priority}
@@ -496,13 +538,12 @@ const PublisherRequest = () => {
         );
       }
 
-      if (userRole === "publisher") {
-        return record.priority === 1 ? 1 : 0; // publishers don’t choose priority
-      }
-
+      // ✅ Everyone else (publisher & default) → just display number
       return record.priority || "N/A";
     },
   };
+
+  console.log(filteredRequests);
   return (
     <div className="p-4">
       <div
