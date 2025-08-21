@@ -30,7 +30,6 @@ const columnHeadings = {
   pid: "PID",
   pub_id: "PUB ID",
   geo: "Geo",
-  adv_res: "Action",
 };
 const PublisherRequest = () => {
   const user = useSelector((state) => state.auth.user);
@@ -44,50 +43,10 @@ const PublisherRequest = () => {
   const [dropdownOptions, setDropdownOptions] = useState({});
   const [searchText, setSearchText] = useState("");
   const [blacklistPIDs, setBlacklistPIDs] = useState([]);
-  const [selectedSubAdmins, setSelectedSubAdmins] = useState([]);
-  const [subAdmins, setSubAdmins] = useState([]);
   const [filters, setFilters] = useState({});
   const clearAllFilters = () => {
     setFilters({});
   };
-  const assignedSubAdmins = useMemo(
-    () => user?.assigned_subadmins || [],
-    [user]
-  );
-
-  // 🚀 Fetch SubAdmins (for dropdown)
-  useEffect(() => {
-    const fetchSubAdmins = async () => {
-      try {
-        const { data } = await axios.get(`${apiUrl1}/get-subadmin`);
-        if (data.success) {
-          const filtered = data.data
-            .filter((s) => assignedSubAdmins.includes(s.id))
-            .map((s) => ({ value: s.id, label: s.username, role: s.role }));
-          setSubAdmins(filtered);
-        }
-      } catch (error) {
-        console.error("Error fetching sub-admins:", error);
-      }
-    };
-
-    if (assignedSubAdmins.length > 0) fetchSubAdmins();
-  }, [assignedSubAdmins]);
-
-  // 🚀 Fetch Advertisers
-  const fetchAdvertisers = async () => {
-    try {
-      const { data } = await axios.get(`${apiUrl1}/get-subadmin`);
-      const names =
-        data?.data
-          ?.filter((a) => ["advertiser_manager", "advertiser"].includes(a.role))
-          .map((a) => a.username) || [];
-      setAdvertisers(names);
-    } catch (error) {
-      message.error("Failed to load advertiser names");
-    }
-  };
-
   // 🚀 Fetch Dropdown Data
   const fetchDropdowns = async () => {
     try {
@@ -103,6 +62,22 @@ const PublisherRequest = () => {
       message.error("Failed to fetch dropdown options");
     }
   };
+  // 🚀 Fetch Advertisers
+  const fetchAdvertisers = async () => {
+    try {
+      const { data } = await axios.get(`${apiUrl1}/get-subadmin`);
+
+      const names =
+        data?.data
+          ?.filter((a) => ["advertiser_manager", "advertiser"].includes(a.role))
+          .map((a) => a.username) || [];
+
+      setAdvertisers(names);
+    } catch (error) {
+      console.error("Error fetching advertisers:", error);
+      message.error("Failed to load advertiser names");
+    }
+  };
 
   // 🚀 Fetch Blacklist PIDs
   const fetchBlacklistPIDs = async () => {
@@ -114,58 +89,28 @@ const PublisherRequest = () => {
       console.error("Failed to fetch blacklist PIDs:", error);
     }
   };
+  const fetchRequests = async () => {
+    try {
+      const res = await axios.get(`${apiUrl}/getAllPubRequests`);
 
-  // 🚀 Fetch Requests - Based on Role & Selection
-  useEffect(() => {
-    const fetchRequests = async () => {
-      try {
-        let usernamesToFetch = [];
+      // Sort by id DESC (newest first)
+      const sortedData = (res.data?.data || []).sort((a, b) => b.id - a.id);
 
-        if (userRole === "publisher_manager" && selectedSubAdmins.length > 0) {
-          usernamesToFetch = selectedSubAdmins;
-        } else if (username) {
-          usernamesToFetch = [username];
-        }
-
-        if (usernamesToFetch.length === 0) {
-          setRequests([]);
-          return;
-        }
-
-        const results = await Promise.all(
-          usernamesToFetch.map(async (u) => {
-            const res = await axios.get(`${apiUrl}/getPubRequest/${u}`);
-            return res.data?.data || [];
-          })
-        );
-
-        setRequests(results.flat());
-      } catch (err) {
-        console.error("Error fetching requests:", err);
-        message.error("Failed to load requests");
-        setRequests([]);
-      }
-    };
-
-    fetchRequests();
-  }, [username, selectedSubAdmins, userRole]);
+      setRequests(sortedData);
+    } catch (err) {
+      console.error("Error fetching requests:", err);
+      message.error("Failed to load requests");
+      setRequests([]);
+    }
+  };
 
   // 🚀 Initial Fetch on Load
   useEffect(() => {
     fetchBlacklistPIDs();
-    fetchAdvertisers();
     fetchDropdowns();
-
+    fetchAdvertisers();
     subscribeToNotifications((data) => {
-      if (data?.payout !== null) {
-        if (userRole === "publisher_manager" && selectedSubAdmins.length > 0) {
-          // Re-fetch current subadmin data
-          fetchRequests();
-        } else {
-          // Default re-fetch for logged-in user
-          fetchRequests();
-        }
-      }
+      fetchRequests();
     });
   }, []);
 
@@ -282,6 +227,48 @@ const PublisherRequest = () => {
       ...prev,
       [key]: value,
     }));
+  };
+  // 🚀 Update Permission/Priority
+  const handleUpdatePrm = async (record, values) => {
+    try {
+      const payload = {
+        id: record.id,
+        campaign_name: record.campaign_name,
+        pid: record.pid,
+        priority: values.priority,
+        prm: values.prm,
+      };
+
+      console.log("Updating record:", payload); // Debugging payload
+
+      const res = await axios.put(`${apiUrl}/updatePubprm`, payload);
+      console.log("Update response:", res.data); // Debugging response
+
+      if (res.data?.success) {
+        Swal.fire({
+          icon: "success",
+          title: "Success",
+          text: res.data.message || "Updated successfully",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+        fetchRequests(); // refresh table
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: res.data.message || "Update failed",
+        });
+      }
+    } catch (err) {
+      console.error("Update error:", err);
+
+      Swal.fire({
+        icon: "error",
+        title: "Server Error",
+        text: err.response?.data?.message || "Failed to update record",
+      });
+    }
   };
 
   // Compose columns with filterDropdown, filter icon state, and sticky column pin button
@@ -457,6 +444,65 @@ const PublisherRequest = () => {
 
     return columns;
   };
+  // 📊 Add Action Column
+  const permissionColumn = {
+    title: "Permission",
+    key: "permission",
+    render: (_, record) => {
+      if (userRole === "publisher_manager") {
+        return (
+          <Select
+            value={record.prm} // prm will now be 1 or 0
+            style={{ width: 120 }}
+            onChange={(val) =>
+              handleUpdatePrm(record, {
+                priority: record.priority,
+                prm: val, // already 1 or 0
+              })
+            }>
+            <Option value={1}>Allow</Option>
+            <Option value={0}>Disallow</Option>
+          </Select>
+        );
+      }
+
+      if (userRole === "publisher") {
+        // Just show text, no dropdown
+        return record.priority === 1 ? "Allow" : "Disallow";
+      }
+
+      return record.prm === 1 ? "Allow" : "Disallow";
+    },
+  };
+
+  const priorityColumn = {
+    title: "Priority",
+    key: "priority",
+    render: (_, record) => {
+      if (userRole === "publisher_manager") {
+        return (
+          <Select
+            value={record.priority}
+            style={{ width: 80 }}
+            onChange={(val) =>
+              handleUpdatePrm(record, { priority: val, prm: record.prm })
+            }>
+            {Array.from({ length: 15 }, (_, i) => (
+              <Option key={i + 1} value={i + 1}>
+                {i + 1}
+              </Option>
+            ))}
+          </Select>
+        );
+      }
+
+      if (userRole === "publisher") {
+        return record.priority === 1 ? 1 : 0; // publishers don’t choose priority
+      }
+
+      return record.priority || "N/A";
+    },
+  };
   return (
     <div className="p-4">
       <div
@@ -493,23 +539,6 @@ const PublisherRequest = () => {
             className="flex items-center gap-2 ml-5 mr-5 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg shadow-md transition-transform duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500">
             📥 <span>Download Excel</span>
           </Button>
-          {/* Subadmins Dropdown */}
-          {user?.role === "publisher_manager" && (
-            <Select
-              mode="multiple"
-              allowClear
-              placeholder="Select Subadmins"
-              value={selectedSubAdmins}
-              onChange={setSelectedSubAdmins}
-              onClear={() => setFilters({})}
-              className="min-w-[200px] md:min-w-[250px] border border-gray-300 rounded-lg py-2 px-3 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400 transition">
-              {subAdmins?.map((subAdmin) => (
-                <Option key={subAdmin.label} value={subAdmin.label}>
-                  {subAdmin.label}
-                </Option>
-              ))}
-            </Select>
-          )}
         </div>
 
         <Input.Search
@@ -630,10 +659,14 @@ const PublisherRequest = () => {
       </Modal>
       <Table
         className="mt-4"
-        dataSource={filteredRequests}
-        columns={[...getColumns(columnHeadings)]}
+        dataSource={filteredRequests} // show latest data directly
+        columns={[
+          ...getColumns(columnHeadings),
+          priorityColumn,
+          permissionColumn,
+        ]}
         pagination={{
-          pageSizeOptions: ["10", "20", "50", "100","200","300","500"],
+          pageSizeOptions: ["10", "20", "50", "100", "200", "300", "500"],
           showSizeChanger: true,
           defaultPageSize: 10,
           showTotal: (total, range) =>

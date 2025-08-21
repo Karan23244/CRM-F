@@ -56,9 +56,10 @@ const NewRequest = () => {
     try {
       const res = await axios.get(`${apiUrl}/getPubRequestss/${username}`);
       const result = res.data?.data;
-
-      if (Array.isArray(result)) {
-        setRequests(result);
+      // Sort by id DESC (newest first)
+      const sortedData = (res.data?.data || []).sort((a, b) => b.id - a.id);
+      if (Array.isArray(sortedData)) {
+        setRequests(sortedData);
       } else {
         console.error("Expected an array but got:", result);
         setRequests([]); // fallback to empty array
