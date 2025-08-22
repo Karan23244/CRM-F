@@ -37,14 +37,12 @@ export default function PidsStable() {
     );
   }
 
-  // Flatten the data for Ant Design Table
   const tableData = alertData.flatMap((item) =>
     item.campaigns.map((c, idx) => ({
       key: `${item.pid}-${idx}`,
-      pid: idx === 0 ? item.pid : "", // merge PID only once
+      pid: item.pid, // Always show PID
       campaign: c.campaign,
       zone: c.zone,
-      rowSpan: item.campaigns.length,
     }))
   );
 

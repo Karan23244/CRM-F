@@ -4,6 +4,7 @@ import { Card, Table, Tag, Spin, Empty, Typography } from "antd";
 const { Title } = Typography;
 const apiUrl = "https://gapi.clickorbits.in";
 
+
 export default function PidsOnAlert() {
   const [alertData, setAlertData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -12,7 +13,7 @@ export default function PidsOnAlert() {
     fetch(`${apiUrl}/api/pids-on-alert`) // adjust API URL
       .then((res) => res.json())
       .then((data) => {
-        setAlertData(data);
+        setAlertData(dummyData);
         setLoading(false);
       })
       .catch((err) => {
@@ -20,7 +21,7 @@ export default function PidsOnAlert() {
         setLoading(false);
       });
   }, []);
-
+  
   if (loading) {
     return (
       <div className="flex justify-center items-center h-40">
@@ -37,14 +38,13 @@ export default function PidsOnAlert() {
     );
   }
 
-  // Flatten the data for Ant Design's Table
+  // Flatten the data without forcing pid = ""
   const tableData = alertData.flatMap((item) =>
     item.campaigns.map((c, idx) => ({
       key: `${item.pid}-${idx}`,
-      pid: idx === 0 ? item.pid : "", // show only once
+      pid: item.pid, // always keep pid
       campaign: c.campaign,
       zone: c.zone,
-      rowSpan: item.campaigns.length,
     }))
   );
 
@@ -52,19 +52,7 @@ export default function PidsOnAlert() {
     {
       title: "PID",
       dataIndex: "pid",
-      render: (text, row, index) => {
-        const obj = {
-          children: text,
-          props: {},
-        };
-        // Merge rows for PID
-        if (row.pid) {
-          obj.props.rowSpan = row.rowSpan;
-        } else {
-          obj.props.rowSpan = 0;
-        }
-        return obj;
-      },
+      render: (text) => text,
     },
     {
       title: "Campaign Name",
