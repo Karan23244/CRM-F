@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Card, Table, Tag, Spin, Empty, Typography } from "antd";
 
 const { Title } = Typography;
-const apiUrl = "http://localhost:3001";
+const apiUrl = "https://gapi.clickorbits.in";
 
 export default function PidsOnAlert() {
   const [alertData, setAlertData] = useState([]);
