@@ -13,16 +13,14 @@ const cardStyle = {
   boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
   border: "1px solid #f0f0f0",
 };
-const apiUrl = "https://gapi.clickorbits.in";
+const apiUrl = "http://localhost:3001";
 
 export default function OptimizationPage() {
   const user = useSelector((state) => state.auth.user);
-  console.log("User in OptimizationPage:", user);
   const [rawData, setRawData] = useState([]);
   const [selectedCampaign, setSelectedCampaign] = useState("");
   const [selectedDateRange, setSelectedDateRange] = useState("");
   const [loading, setLoading] = useState(true);
-  console.log("Raw data in OptimizationPage:", rawData);
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -147,17 +145,21 @@ export default function OptimizationPage() {
       <Row gutter={[16, 16]} className="mt-6">
         <Col span={24}>
           <Card style={cardStyle} className="rounded-xl shadow-md">
-            <Zone data={filteredData} canEdit={user?.permissions?.can_see_button1 === 1}/>
+            <Zone
+              data={filteredData}
+              canEdit={user?.permissions?.can_see_button1 === 1}
+            />
           </Card>
         </Col>
+
         <Col span={24}>
           <PerformanceComparison
             rawData={rawData}
             selectedCampaign={selectedCampaign}
           />
         </Col>
-
-        <Col xs={24} md={12}>
+        {/* Each card in its own row */}
+        <Col span={24}>
           <Card
             style={cardStyle}
             className="rounded-xl shadow-md"
@@ -166,7 +168,7 @@ export default function OptimizationPage() {
           </Card>
         </Col>
 
-        <Col xs={24} md={12}>
+        <Col span={24}>
           <Card
             style={cardStyle}
             className="rounded-xl shadow-md"

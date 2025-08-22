@@ -5,14 +5,13 @@ import {
   Input,
   Button,
   Upload,
-  message,
-  Card,
   Typography,
+  Card,
 } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
-import dayjs from "dayjs";
 import axios from "axios";
 import Swal from "sweetalert2";
+
 const apiUrl = "https://gapi.clickorbits.in/";
 
 const { RangePicker } = DatePicker;
@@ -22,10 +21,15 @@ export default function UploadForm({ onUploadSuccess }) {
   const [form] = Form.useForm();
   const [msg, setMsg] = useState(null);
   const [fileList, setFileList] = useState([]);
+  const [loading, setLoading] = useState(false); // 🔥 loading state
+  const [submitted, setSubmitted] = useState(false); // 🔥 prevent resubmit
 
   const handleFinish = async (values) => {
-    const data = new FormData();
+    if (submitted) return; // block double click
+    setLoading(true);
+    setSubmitted(true);
 
+    const data = new FormData();
     const formattedRange = `${values.dateRange[0].format(
       "YYYY-MM-DD"
     )} - ${values.dateRange[1].format("YYYY-MM-DD")}`;
@@ -37,7 +41,6 @@ export default function UploadForm({ onUploadSuccess }) {
       ? values.geo
       : JSON.stringify(values.geo.split(",").map((g) => g.trim()));
     data.append("geo", geoInput);
-
     data.append("dateRange", formattedRange);
 
     fileList.forEach((file) => {
@@ -46,7 +49,6 @@ export default function UploadForm({ onUploadSuccess }) {
 
     try {
       const res = await axios.post(`${apiUrl}api/metrics`, data);
-      console.log(res);
 
       Swal.fire({
         title: "✅ Success!",
@@ -57,10 +59,7 @@ export default function UploadForm({ onUploadSuccess }) {
 
       form.resetFields();
       setFileList([]);
-      // 🔥 Notify parent to refresh data
-      if (onUploadSuccess) {
-        onUploadSuccess();
-      }
+      if (onUploadSuccess) onUploadSuccess();
     } catch (err) {
       Swal.fire({
         title: "❌ Upload Failed",
@@ -68,6 +67,9 @@ export default function UploadForm({ onUploadSuccess }) {
         icon: "error",
         confirmButtonColor: "#d33",
       });
+      setSubmitted(false); // allow retry on error
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -143,7 +145,10 @@ export default function UploadForm({ onUploadSuccess }) {
             type="primary"
             htmlType="submit"
             size="large"
-            className="w-full rounded-lg shadow-md hover:scale-[1.01] transition-transform">
+            className="w-full rounded-lg shadow-md hover:scale-[1.01] transition-transform"
+            loading={loading} // 🔥 spinner
+            disabled={submitted} // 🔥 disable after submit
+          >
             🚀 Upload & Process
           </Button>
         </Form>

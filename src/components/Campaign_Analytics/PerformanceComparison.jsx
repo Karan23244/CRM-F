@@ -25,13 +25,31 @@ export default function PerformanceComparison({ rawData, selectedCampaign }) {
     }
   }, [pids, selectedPid]);
 
-  // Filter data for selected PID
+  // Filter + sort data for selected PID
   const pidData = useMemo(() => {
-    return rawData.filter(
+    const filtered = rawData.filter(
       (r) =>
         r.campaign_name === selectedCampaign &&
         (!selectedPid || r.pid === selectedPid)
     );
+
+    return [...filtered].sort((a, b) => {
+      const [startAStr, endAStr] = a.date_range.split(" - ");
+      const [startBStr, endBStr] = b.date_range.split(" - ");
+
+      const startA = new Date(startAStr);
+      const startB = new Date(startBStr);
+
+      // ✅ If start dates differ → sort by start
+      if (startA.getTime() !== startB.getTime()) {
+        return startA - startB; // ascending
+      }
+
+      // ✅ If start dates are same → sort by end date
+      const endA = new Date(endAStr);
+      const endB = new Date(endBStr);
+      return endA - endB; // ascending
+    });
   }, [rawData, selectedCampaign, selectedPid]);
 
   // Build chart data → x-axis = date ranges

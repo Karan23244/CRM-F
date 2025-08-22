@@ -521,7 +521,7 @@ const PublisherRequest = () => {
     key: "priority",
     render: (_, record) => {
       if (userRole === "publisher_manager") {
-        // ✅ Publisher Manager → dropdown
+        // ✅ Publisher Manager → dropdown with only available_priorities
         return (
           <Select
             value={record.priority}
@@ -529,16 +529,16 @@ const PublisherRequest = () => {
             onChange={(val) =>
               handleUpdatePrm(record, { priority: val, prm: record.prm })
             }>
-            {Array.from({ length: 15 }, (_, i) => (
-              <Option key={i + 1} value={i + 1}>
-                {i + 1}
+            {record.available_priorities?.map((p) => (
+              <Option key={p} value={p}>
+                {p}
               </Option>
             ))}
           </Select>
         );
       }
 
-      // ✅ Everyone else (publisher & default) → just display number
+      // ✅ Everyone else → just display the priority
       return record.priority || "N/A";
     },
   };
@@ -706,6 +706,7 @@ const PublisherRequest = () => {
           priorityColumn,
           permissionColumn,
         ]}
+        scroll={{ x: "max-content" }}
         pagination={{
           pageSizeOptions: ["10", "20", "50", "100", "200", "300", "500"],
           showSizeChanger: true,

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Card, Table, Tag, Spin, Empty, Typography } from "antd";
 
 const { Title } = Typography;
-const apiUrl = "https://gapi.clickorbits.in";
+const apiUrl = "http://localhost:3001";
 
 export default function PidsOnAlert() {
   const [alertData, setAlertData] = useState([]);
@@ -93,10 +93,11 @@ export default function PidsOnAlert() {
         columns={columns}
         dataSource={tableData}
         pagination={{
-          pageSize: 10,
+          pageSizeOptions: ["10", "20", "50", "100", "200", "300"],
           showSizeChanger: true,
-          pageSizeOptions: ["10", "20", "50"],
-          showQuickJumper: true,
+          defaultPageSize: 10,
+          showTotal: (total, range) =>
+            `${range[0]}-${range[1]} of ${total} items`,
         }}
         bordered
       />

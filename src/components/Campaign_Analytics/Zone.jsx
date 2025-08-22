@@ -6,6 +6,7 @@ import {
   calculateETC,
   calculateFraudScore,
   getZoneDynamic,
+  getZoneReason,
 } from "./zoneUtils";
 import { Pie, Line } from "react-chartjs-2";
 import {
@@ -45,10 +46,9 @@ ChartJS.register(
 );
 import { InfoCircleOutlined } from "@ant-design/icons";
 const { Panel } = Collapse;
-const apiUrl = "https://gapi.clickorbits.in";
+const apiUrl = "https://gapi.clickorbits.in"; // Update with your actual API URL
 
 export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
-  console.log("Data received in OptimizationCampaignAnalysis:", data);
   const fields = [
     "fraud_min",
     "fraud_max",
@@ -72,18 +72,16 @@ export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
   const [editValues, setEditValues] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const campaignName = data[0]?.campaign_name;
-  console.log("conditions Name:", conditions);
   // Step 1 – Compute metrics + zone
-  const processed = useMemo(() => {
-    return data.map((row) => {
-      const cti = calculateCTI(row.clicks, row.noi);
-      const ite = calculateITE(row.noe, row.noi);
-      const etc = calculateETC(row.nocrm, row.noe);
-      const fraud = calculateFraudScore(row.pe, row.rti, row.pi);
-      const zone = getZoneDynamic(fraud, cti, ite, etc, conditions);
-      return { ...row, cti, ite, etc, fraud, zone };
-    });
-  }, [data, conditions]); // ✅ include conditions
+  const processed = data.map((row) => {
+    const cti = calculateCTI(row.clicks, row.noi);
+    const ite = calculateITE(row.noe, row.noi);
+    const etc = calculateETC(row.nocrm, row.noe);
+    const fraud = calculateFraudScore(row.pe, row.rti, row.pi);
+    const zone = getZoneDynamic(fraud, cti, ite, etc, conditions);
+    const reasons = getZoneReason(fraud, cti, ite, etc, conditions);
+    return { ...row, cti, ite, etc, fraud, zone, reasons };
+  });
 
   // Step 2 – Zone counts for Pie chart
   const zoneCounts = useMemo(() => {
@@ -117,60 +115,63 @@ export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
     ],
   };
   // Step 3 – Group by PUB AM
-  const grouped = useMemo(() => {
-    const map = {};
-    processed.forEach((p) => {
-      if (!map[p.pubam]) {
-        map[p.pubam] = {
-          pubam: p.pubam,
+  const grouped = Object.values(
+    processed.reduce((acc, row) => {
+      if (!acc[row.pubam]) {
+        acc[row.pubam] = {
+          pubam: row.pubam,
           totalPIDs: 0,
           totalEvents: 0,
-          pausedEvents: 0,
           pausedPIDs: 0,
+          pausedEvents: 0,
           red: 0,
           redEvents: 0,
-          orange: 0,
-          orangeEvents: 0,
           yellow: 0,
           yellowEvents: 0,
+          orange: 0,
+          orangeEvents: 0,
           green: 0,
           greenEvents: 0,
+          reasons: { red: [], orange: [], yellow: [], green: [] }, // ✅ now array of objects
         };
       }
 
-      // PID count
-      map[p.pubam].totalPIDs += 1;
+      const g = acc[row.pubam];
+      g.totalPIDs += 1;
+      g.totalEvents += row.noe;
 
-      // Total events for pubam
-      map[p.pubam].totalEvents += p.noe || 0;
-
-      // Paused PID count
-      if (p.is_paused) {
-        map[p.pubam].pausedPIDs += 1;
-        map[p.pubam].pausedEvents += p.noe || 0;
+      if (row.zone.toLowerCase() === "red") {
+        g.red += 1;
+        g.redEvents += row.noe;
+        if (row.reasons?.length) {
+          g.reasons.red.push({ pid: row.pid, reasons: row.reasons });
+        }
+      }
+      if (row.zone.toLowerCase() === "orange") {
+        g.orange += 1;
+        g.orangeEvents += row.noe;
+        if (row.reasons?.length) {
+          g.reasons.orange.push({ pid: row.pid, reasons: row.reasons });
+        }
+      }
+      if (row.zone.toLowerCase() === "yellow") {
+        g.yellow += 1;
+        g.yellowEvents += row.noe;
+        if (row.reasons?.length) {
+          g.reasons.yellow.push({ pid: row.pid, reasons: row.reasons });
+        }
+      }
+      if (row.zone.toLowerCase() === "green") {
+        g.green += 1;
+        g.greenEvents += row.noe;
+        if (row.reasons?.length) {
+          g.reasons.green.push({ pid: row.pid, reasons: row.reasons });
+        }
       }
 
-      // Zone-based PID + event counts
-      if (p.zone === "Red") {
-        map[p.pubam].red += 1;
-        map[p.pubam].redEvents += p.noe || 0;
-      }
-      if (p.zone === "Orange") {
-        map[p.pubam].orange += 1;
-        map[p.pubam].orangeEvents += p.noe || 0;
-      }
-      if (p.zone === "Yellow") {
-        map[p.pubam].yellow += 1;
-        map[p.pubam].yellowEvents += p.noe || 0;
-      }
-      if (p.zone === "Green") {
-        map[p.pubam].green += 1;
-        map[p.pubam].greenEvents += p.noe || 0;
-      }
-    });
-
-    return Object.values(map);
-  }, [processed]);
+      return acc;
+    }, {})
+  );
 
   // Step 4 – Totals
   const totals = useMemo(() => {
@@ -227,7 +228,6 @@ export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
         const res = await axios.get(
           `${apiUrl}/api/zone-conditions/${encodeURIComponent(campaignName)}`
         );
-        console.log("Fetched conditions:", res.data);
         // If campaign-specific conditions exist, use them
         if (res.data && res.data.length > 0) {
           setConditions(res.data);
@@ -236,7 +236,6 @@ export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
           const defaultRes = await axios.get(
             `${apiUrl}/api/zone-conditions/__DEFAULT__`
           );
-          console.log("Fetched default conditions:", defaultRes.data);
           setConditions(defaultRes.data);
         }
       } catch (err) {
@@ -323,7 +322,8 @@ export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
         <span
           onClick={() => handleCellClick(record.pubam, "all")}
           className="cursor-pointer text-black hover:underline">
-          {val}-<span className="text-xs">({record.totalEvents})i</span>
+          {" "}
+          {val}-<span className="text-xs">({record.totalEvents})i</span>{" "}
         </span>
       ),
     },
@@ -346,6 +346,29 @@ export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
       key: color.toLowerCase(),
       align: "center",
       render: (val, record) => (
+        // <span
+        //   onClick={() => handleCellClick(record.pubam, color)}
+        //   className={`cursor-pointer ${colorMap[color]} p-2 rounded-lg font-semibold`}>
+        //   {val}-
+        //   <AntTooltip
+        //     title={
+        //       record.reasons?.[color.toLowerCase()]?.length ? (
+        //         <div>
+        //           {record.reasons[color.toLowerCase()].map((item, idx) => (
+        //             <div key={idx}>
+        //               <strong>{item.pid}:</strong> {item.reasons.join(", ")}
+        //             </div>
+        //           ))}
+        //         </div>
+        //       ) : (
+        //         "No reason available"
+        //       )
+        //     }>
+        //     <span className="text-xs cursor-help ml-1 text-black">
+        //       ({record[`${color.toLowerCase()}Events`]}) i
+        //     </span>
+        //   </AntTooltip>
+        // </span>
         <span
           onClick={() => handleCellClick(record.pubam, color)}
           className={`cursor-pointer ${colorMap[color]} p-2 rounded-lg font-semibold`}>
