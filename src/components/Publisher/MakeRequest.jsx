@@ -529,9 +529,9 @@ const PublisherRequest = () => {
             onChange={(val) =>
               handleUpdatePrm(record, { priority: val, prm: record.prm })
             }>
-            {record.available_priorities?.map((p) => (
-              <Option key={p} value={p}>
-                {p}
+            {Array.from({ length: 15 }, (_, i) => (
+              <Option key={i + 1} value={i + 1}>
+                {i + 1}
               </Option>
             ))}
           </Select>
