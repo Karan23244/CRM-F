@@ -4,7 +4,6 @@ import { Card, Table, Tag, Spin, Empty, Typography } from "antd";
 const { Title } = Typography;
 const apiUrl = "https://gapi.clickorbits.in";
 
-
 export default function PidsOnAlert() {
   const [alertData, setAlertData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -13,7 +12,7 @@ export default function PidsOnAlert() {
     fetch(`${apiUrl}/api/pids-on-alert`) // adjust API URL
       .then((res) => res.json())
       .then((data) => {
-        setAlertData(dummyData);
+        setAlertData(alertData);
         setLoading(false);
       })
       .catch((err) => {
@@ -21,7 +20,7 @@ export default function PidsOnAlert() {
         setLoading(false);
       });
   }, []);
-  
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-40">
