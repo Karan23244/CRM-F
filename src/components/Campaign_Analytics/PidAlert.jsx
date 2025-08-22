@@ -12,7 +12,7 @@ export default function PidsOnAlert() {
     fetch(`${apiUrl}/api/pids-on-alert`) // adjust API URL
       .then((res) => res.json())
       .then((data) => {
-        setAlertData(alertData);
+        setAlertData(data);
         setLoading(false);
       })
       .catch((err) => {
