@@ -53,6 +53,7 @@ export default function OptimizationPage() {
       setLoading(false);
     }
   };
+  console.log("Raw Data:", rawData); // Debugging log
   // When campaign changes, preselect start as 1st of that month
   useEffect(() => {
     fetchData();
@@ -106,19 +107,20 @@ export default function OptimizationPage() {
   const filteredData = useMemo(() => {
     if (!selectedDateRange[0] || !selectedDateRange[1]) return [];
 
+    const [selectedStart, selectedEnd] = selectedDateRange;
+
     return rawData.filter((r) => {
       const [start, end] = r.date_range.split(" - ");
       const startDate = dayjs(start, "YYYY-MM-DD");
       const endDate = dayjs(end, "YYYY-MM-DD");
 
-      const inCampaign =
-        !selectedCampaign || r.campaign_name === selectedCampaign;
+      // Strict match: campaign AND exact date range
+      const inCampaign = r.campaign_name === selectedCampaign;
+      const exactRange =
+        startDate.isSame(selectedStart, "day") &&
+        endDate.isSame(selectedEnd, "day");
 
-      const inRange =
-        startDate.isSameOrAfter(selectedDateRange[0], "day") &&
-        endDate.isSameOrBefore(selectedDateRange[1], "day");
-
-      return inCampaign && inRange;
+      return inCampaign && exactRange;
     });
   }, [rawData, selectedCampaign, selectedDateRange]);
 
@@ -129,7 +131,7 @@ export default function OptimizationPage() {
       </div>
     );
   }
-
+  console.log("Filtered Data:", filteredData); // Debugging log
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Upload Form */}
