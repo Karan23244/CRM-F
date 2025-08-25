@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import axios from "axios";
+import { useSelector } from "react-redux";
 import {
   calculateCTI,
   calculateITE,
@@ -47,8 +48,10 @@ ChartJS.register(
 import { InfoCircleOutlined } from "@ant-design/icons";
 const { Panel } = Collapse;
 const apiUrl = "https://gapi.clickorbits.in"; // Update with your actual API URL
+const apiUrl1 = "https://apii.clickorbits.in/api";
 
 export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
+  const user = useSelector((state) => state.auth.user);
   const fields = [
     "fraud_min",
     "fraud_max",
@@ -71,52 +74,58 @@ export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
   const [conditions, setConditions] = useState([]);
   const [editValues, setEditValues] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [subAdmins, setSubAdmins] = useState([]);
   const campaignName = data[0]?.campaign_name;
+  const [globalIgnores, setGlobalIgnores] = useState({
+    fraud: false,
+    cti: false,
+    ite: false,
+    etc: false,
+  });
+
   // Step 1 – Compute metrics + zone
   const processed = data.map((row) => {
     const cti = calculateCTI(row.clicks, row.noi);
     const ite = calculateITE(row.noe, row.noi);
     const etc = calculateETC(row.nocrm, row.noe);
     const fraud = calculateFraudScore(row.pe, row.rti, row.pi);
-    const zone = getZoneDynamic(fraud, cti, ite, etc, conditions);
-    const reasons = getZoneReason(fraud, cti, ite, etc, conditions);
+    const zone = getZoneDynamic(
+      fraud,
+      cti,
+      ite,
+      etc,
+      conditions,
+      globalIgnores
+    );
+    const reasons = getZoneReason(
+      fraud,
+      cti,
+      ite,
+      etc,
+      conditions,
+      globalIgnores
+    );
+
     return { ...row, cti, ite, etc, fraud, zone, reasons };
   });
 
-  // Step 2 – Zone counts for Pie chart
-  const zoneCounts = useMemo(() => {
-    return processed.reduce(
-      (acc, row) => {
-        acc[row.zone.toLowerCase()] += 1;
-        return acc;
-      },
-      { red: 0, orange: 0, yellow: 0, green: 0 }
-    );
-  }, [processed]);
+  // 🔥 Role-based filtering
+  let filteredData = [];
+  if (user?.role === "publisher") {
+    // Publisher → only own username
+    filteredData = processed.filter((row) => row.pubam === user.username);
+  } else if (user?.role === "publisher_manager") {
+    // Publisher Manager → own + assigned subadmins
+    const allowedNames = [user.username, ...subAdmins.map((sa) => sa.label)];
+    filteredData = processed.filter((row) => allowedNames.includes(row.pubam));
+  } else {
+    // Default → all data (e.g. superadmin/admin)
+    filteredData = processed;
+  }
 
-  const pieData = {
-    labels: [
-      "Number of PID's in Red Zone",
-      "Number of PID's in Orange Zone",
-      "Number of PID's in Yellow Zone",
-      "Number of PID's in Green Zone",
-    ],
-    datasets: [
-      {
-        data: [
-          zoneCounts.red,
-          zoneCounts.orange,
-          zoneCounts.yellow,
-          zoneCounts.green,
-        ],
-        backgroundColor: ["#ef4444", "#fb923c", "#fde047", "#22c55e"],
-        borderWidth: 1,
-      },
-    ],
-  };
   // Step 3 – Group by PUB AM
   const grouped = Object.values(
-    processed.reduce((acc, row) => {
+    filteredData.reduce((acc, row) => {
       if (!acc[row.pubam]) {
         acc[row.pubam] = {
           pubam: row.pubam,
@@ -208,10 +217,126 @@ export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
     );
   }, [grouped]);
 
+  // Step 2 – Zone counts for Pie chart
+  const zoneCounts = useMemo(() => {
+    return filteredData.reduce(
+      (acc, row) => {
+        acc[row.zone.toLowerCase()] += 1;
+        return acc;
+      },
+      { red: 0, orange: 0, yellow: 0, green: 0 }
+    );
+  }, [filteredData]);
+
+  // Build raw zone data
+  const zoneData = [
+    {
+      label: "Red Zone (High Risk)",
+      value: totals.red,
+      events: totals.redEvents,
+      color: "rgba(239, 68, 68, 0.9)",
+    },
+    {
+      label: "Orange Zone (Moderate Risk)",
+      value: totals.orange,
+      events: totals.orangeEvents,
+      color: "rgba(251, 146, 60, 0.9)",
+    },
+    {
+      label: "Yellow Zone (Low Risk)",
+      value: totals.yellow,
+      events: totals.yellowEvents,
+      color: "rgba(253, 224, 71, 0.9)",
+    },
+    {
+      label: "Green Zone (Safe)",
+      value: totals.green,
+      events: totals.greenEvents,
+      color: "rgba(34, 197, 94, 0.9)",
+    },
+  ];
+
+  // ✅ Filter out zones with 0 PIDs
+  const filteredZones = zoneData.filter((zone) => zone.value > 0);
+
+  const pieData = {
+    labels: filteredZones.map((z) => z.label),
+    datasets: [
+      {
+        data: filteredZones.map((z) => z.value),
+        backgroundColor: filteredZones.map((z) => z.color),
+        borderColor: "#fff",
+        borderWidth: 2,
+        hoverOffset: 12,
+      },
+    ],
+    customData: filteredZones.map((z) => ({
+      pids: z.value,
+      events: z.events,
+    })),
+  };
+
+  const pieOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: true,
+        position: "bottom",
+        labels: {
+          font: { size: 14, weight: "bold" },
+          color: "#333",
+        },
+      },
+      title: {
+        display: true,
+        text: "Campaign Zone Distribution",
+        font: { size: 18, weight: "bold" },
+        color: "#111",
+        padding: { top: 10, bottom: 20 },
+      },
+      tooltip: {
+        callbacks: {
+          label: function (context) {
+            const index = context.dataIndex;
+            const custom = pieData.customData?.[index];
+            if (!custom) return "";
+            return `PIDs: ${custom.pids}, Events: ${custom.events}`;
+          },
+        },
+      },
+    },
+  };
+
+  // const pieOptions = {
+  //   responsive: true,
+  //   plugins: {
+  //     legend: {
+  //       position: "right",
+  //       labels: {
+  //         font: {
+  //           size: 14,
+  //         },
+  //       },
+  //     },
+  //     tooltip: {
+  //       callbacks: {
+  //         label: function (context) {
+  //           const index = context.dataIndex;
+  //           const custom = pieData.customData?.[index]; // ✅ safe check
+  //           if (!custom) return ""; // if no data, show nothing
+
+  //           return `PIDs: ${custom.pids}, Events: ${custom.events}`;
+  //         },
+  //       },
+  //     },
+  //   },
+  // };
+
   // // Step 5 – Inactive PIDs
   const inactivePIDs = useMemo(
-    () => processed.filter((row) => row.noi < 200),
-    [processed]
+    () => filteredData.filter((row) => row.noi < 200),
+    [filteredData]
   );
 
   const colorMap = {
@@ -220,7 +345,27 @@ export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
     Yellow: "bg-yellow-300 text-black cursor-pointer",
     Green: "bg-green-500 text-black cursor-pointer",
   };
-
+  const assignedSubAdmins = useMemo(
+    () => user?.assigned_subadmins || [],
+    [user]
+  );
+  const fetchSubAdmins = async () => {
+    try {
+      const response = await axios.get(`${apiUrl1}/get-subadmin`);
+      if (response.data.success) {
+        const subAdminOptions = response.data.data
+          .filter((subAdmin) => assignedSubAdmins.includes(subAdmin.id)) // Filter only assigned sub-admins
+          .map((subAdmin) => ({
+            value: subAdmin.id,
+            label: subAdmin.username,
+            role: subAdmin.role,
+          }));
+        setSubAdmins(subAdminOptions);
+      }
+    } catch (error) {
+      console.error("Error fetching sub-admins:", error);
+    }
+  };
   useEffect(() => {
     const fetchConditions = async () => {
       try {
@@ -228,32 +373,67 @@ export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
         const res = await axios.get(
           `${apiUrl}/api/zone-conditions/${encodeURIComponent(campaignName)}`
         );
-        // If campaign-specific conditions exist, use them
-        if (res.data && res.data.length > 0) {
-          setConditions(res.data);
+
+        let rows = res.data;
+        if (rows && rows.length > 0) {
+          setConditions(rows);
+
+          // ✅ Set globalIgnores if data exists
+          const { fraud_ignore, cti_ignore, ite_ignore, etc_ignore } = rows[0];
+          setGlobalIgnores({
+            fraud: !!fraud_ignore,
+            cti: !!cti_ignore,
+            ite: !!ite_ignore,
+            etc: !!etc_ignore,
+          });
         } else {
           // Otherwise fetch the default ones
           const defaultRes = await axios.get(
             `${apiUrl}/api/zone-conditions/__DEFAULT__`
           );
           setConditions(defaultRes.data);
+
+          if (defaultRes.data.length > 0) {
+            const { fraud_ignore, cti_ignore, ite_ignore, etc_ignore } =
+              defaultRes.data[0];
+            setGlobalIgnores({
+              fraud: !!fraud_ignore,
+              cti: !!cti_ignore,
+              ite: !!ite_ignore,
+              etc: !!etc_ignore,
+            });
+          }
         }
       } catch (err) {
         console.error("Error fetching conditions:", err);
+
         // As a safety fallback, try default
         try {
           const defaultRes = await axios.get(
             `${apiUrl}/api/zone-conditions/__DEFAULT__`
           );
           setConditions(defaultRes.data);
+
+          if (defaultRes.data.length > 0) {
+            const { fraud_ignore, cti_ignore, ite_ignore, etc_ignore } =
+              defaultRes.data[0];
+            setGlobalIgnores({
+              fraud: !!fraud_ignore,
+              cti: !!cti_ignore,
+              ite: !!ite_ignore,
+              etc: !!etc_ignore,
+            });
+          }
         } catch (err2) {
           console.error("Error fetching default conditions:", err2);
         }
       }
     };
 
+    fetchSubAdmins();
     fetchConditions();
-  }, [campaignName]);
+  }, [campaignName, JSON.stringify(assignedSubAdmins)]);
+
   const handleSave = async () => {
     try {
       // Save each row individually
@@ -286,20 +466,20 @@ export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
     if (pubam === "__TOTAL__") {
       // total row → look across all processed data
       if (type === "paused") {
-        rows = processed.filter((p) => p.is_paused);
+        rows = filteredData.filter((p) => p.is_paused);
       } else if (type === "all") {
-        rows = processed;
+        rows = filteredData;
       } else {
-        rows = processed.filter((p) => p.zone === type);
+        rows = filteredData.filter((p) => p.zone === type);
       }
     } else {
       // existing logic for per-pubam
       if (type === "paused") {
-        rows = processed.filter((p) => p.pubam === pubam && p.is_paused);
+        rows = filteredData.filter((p) => p.pubam === pubam && p.is_paused);
       } else if (type === "all") {
-        rows = processed.filter((p) => p.pubam === pubam);
+        rows = filteredData.filter((p) => p.pubam === pubam);
       } else {
-        rows = processed.filter((p) => p.pubam === pubam && p.zone === type);
+        rows = filteredData.filter((p) => p.pubam === pubam && p.zone === type);
       }
     }
 
@@ -323,7 +503,7 @@ export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
           onClick={() => handleCellClick(record.pubam, "all")}
           className="cursor-pointer text-black hover:underline">
           {" "}
-          {val}-<span className="text-xs">({record.totalEvents})i</span>{" "}
+          {val}-<span className="text-xs">({record.totalEvents})</span>{" "}
         </span>
       ),
     },
@@ -336,7 +516,7 @@ export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
         <span
           onClick={() => handleCellClick(record.pubam, "paused")}
           className="cursor-pointer text-black hover:underline">
-          {val}-<span className="text-xs">({record.pausedEvents})i</span>
+          {val}-<span className="text-xs">({record.pausedEvents})</span>
         </span>
       ),
     },
@@ -374,7 +554,7 @@ export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
           className={`cursor-pointer ${colorMap[color]} p-2 rounded-lg font-semibold`}>
           {val}-
           <span className="text-xs">
-            ({record[`${color.toLowerCase()}Events`]})i
+            ({record[`${color.toLowerCase()}Events`]})
           </span>
         </span>
       ),
@@ -426,7 +606,7 @@ export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
                     <span
                       onClick={() => handleCellClick("__TOTAL__", "all")}
                       className="cursor-pointer text-black hover:underline">
-                      {totals.totalPIDs}-({totals.totalEvents})i
+                      {totals.totalPIDs}-({totals.totalEvents})
                     </span>
                   </Table.Summary.Cell>
 
@@ -435,7 +615,7 @@ export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
                     <span
                       onClick={() => handleCellClick("__TOTAL__", "paused")}
                       className="cursor-pointer text-black hover:underline">
-                      {totals.pausedPIDs}-({totals.pausedEvents})i
+                      {totals.pausedPIDs}-({totals.pausedEvents})
                     </span>
                   </Table.Summary.Cell>
 
@@ -446,7 +626,7 @@ export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
                     <span
                       onClick={() => handleCellClick("__TOTAL__", "Red")}
                       className="cursor-pointer">
-                      {totals.red}-({totals.redEvents})i
+                      {totals.red}-({totals.redEvents})
                     </span>
                   </Table.Summary.Cell>
 
@@ -456,7 +636,7 @@ export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
                     <span
                       onClick={() => handleCellClick("__TOTAL__", "Orange")}
                       className="cursor-pointer">
-                      {totals.orange}-({totals.orangeEvents})i
+                      {totals.orange}-({totals.orangeEvents})
                     </span>
                   </Table.Summary.Cell>
 
@@ -466,7 +646,7 @@ export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
                     <span
                       onClick={() => handleCellClick("__TOTAL__", "Yellow")}
                       className="cursor-pointer">
-                      {totals.yellow}-({totals.yellowEvents})i
+                      {totals.yellow}-({totals.yellowEvents})
                     </span>
                   </Table.Summary.Cell>
 
@@ -476,7 +656,7 @@ export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
                     <span
                       onClick={() => handleCellClick("__TOTAL__", "Green")}
                       className="cursor-pointer">
-                      {totals.green}-({totals.greenEvents})i
+                      {totals.green}-({totals.greenEvents})
                     </span>
                   </Table.Summary.Cell>
                 </Table.Summary.Row>
@@ -487,8 +667,9 @@ export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
           {/* Top Row: Pie + Inactive PID */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-5">
             <Card className="shadow-lg rounded-2xl">
-              <AntTitle level={5}>Sales</AntTitle>
-              <Pie data={pieData} />
+              <div className="h-[500px]">
+                <Pie data={pieData} options={pieOptions} />
+              </div>
             </Card>
             <Card className="shadow-lg rounded-2xl">
               <AntTitle level={5}>Inactive PIDs</AntTitle>
@@ -562,6 +743,41 @@ export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
         onOk={handleSave}
         width={750}>
         <div className="max-h-[60vh] overflow-y-auto pr-2">
+          <div className="mb-4">
+            <strong>Global Ignore:</strong>
+            {["fraud", "cti", "ite", "etc"].map((metric) => (
+              <label key={metric} className="ml-4 text-sm">
+                <input
+                  type="checkbox"
+                  checked={globalIgnores[metric]}
+                  onChange={async (e) => {
+                    const newValue = e.target.checked;
+                    const updated = { ...globalIgnores, [metric]: newValue };
+                    setGlobalIgnores(updated);
+
+                    await fetch(
+                      `${apiUrl}/api/zone-conditions/${encodeURIComponent(
+                        campaignName
+                      )}/set-ignores`,
+                      {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          fraud_ignore: updated.fraud ? 1 : 0,
+                          cti_ignore: updated.cti ? 1 : 0,
+                          ite_ignore: updated.ite ? 1 : 0,
+                          etc_ignore: updated.etc ? 1 : 0,
+                        }),
+                      }
+                    );
+                  }}
+                />
+
+                {" Ignore "}
+                {metric.toUpperCase()}
+              </label>
+            ))}
+          </div>
           <Collapse accordion defaultActiveKey={["1"]} bordered={false}>
             {editValues.map((cond, idx) => (
               <Panel

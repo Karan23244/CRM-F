@@ -93,10 +93,8 @@ const PublisherRequest = () => {
   const fetchRequests = async () => {
     try {
       const res = await axios.get(`${apiUrl}/getAllPubRequests`);
-
       // Sort by id DESC (newest first)
       const sortedData = (res.data?.data || []).sort((a, b) => b.id - a.id);
-
       setRequests(sortedData);
     } catch (err) {
       console.error("Error fetching requests:", err);

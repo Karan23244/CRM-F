@@ -97,7 +97,7 @@ const PublisherPayoutData = () => {
     try {
       const response = await axios.get(`${apiUrl}/get-advdata`);
       if (response.data.success) {
-        setAdvData(response.data.data);
+        setAdvData(response.data.data.reverse());
       }
     } catch (error) {
       console.error("Error fetching advertiser data:", error);
