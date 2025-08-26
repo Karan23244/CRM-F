@@ -28,8 +28,8 @@ const cardStyle = {
   boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
   border: "1px solid #f0f0f0",
 };
-const apiUrl = "http://localhost:3001"; // Update with your actual API URL
-  
+const apiUrl = "https://gapi.clickorbits.in"; // Replace with your actual API URL
+
 export default function OptimizationPage() {
   const user = useSelector((state) => state.auth.user);
   const [rawData, setRawData] = useState([]);
