@@ -5,15 +5,12 @@ import {
   Button,
   Input,
   DatePicker,
-  Dropdown,
-  Menu,
-  message,
   Checkbox,
   Tooltip,
 } from "antd";
-import { FilterOutlined, EditOutlined, SaveOutlined } from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
+import Swal from "sweetalert2";
 import "../../index.css";
 import isBetween from "dayjs/plugin/isBetween";
 import { useSelector } from "react-redux";
@@ -49,7 +46,6 @@ const PublisherPayoutData = () => {
     dayjs().startOf("month"),
     dayjs().endOf("month"),
   ]);
-
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSubAdmins, setSelectedSubAdmins] = useState([]);
   const [subAdmins, setSubAdmins] = useState([]);
@@ -57,6 +53,57 @@ const PublisherPayoutData = () => {
     columnKey: null,
     order: null,
   });
+  const [editingKey, setEditingKey] = useState(""); // which row is being edited
+  const isEditing = (record) => record.id === editingKey;
+  // 🔹 Save Note
+  const saveNote = async (record, newNote) => {
+    console.log("Saving note for record:", record, "New Note:", newNote);
+
+    try {
+      const resp = await fetch(`${apiUrl}/adv_update/${record.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ note: newNote }),
+      });
+
+      console.log("Response status:", resp);
+      const data = await resp.json();
+
+      if (data.success) {
+        setAdvData((prev) =>
+          prev.map((item) =>
+            item.id === record.id ? { ...item, note: newNote } : item
+          )
+        );
+
+        Swal.fire({
+          icon: "success",
+          title: "Note Updated",
+          text: data.message || "Your note has been saved.",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Update Failed",
+          text: data.message || "Record not found or nothing changed.",
+        });
+      }
+    } catch (error) {
+      console.error("Error saving note:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Request Error",
+        text: "Something went wrong while updating the note.",
+      });
+    }
+
+    setEditingKey("");
+  };
+
   const user = useSelector((state) => state.auth.user);
   const handleDateRangeChange = (dates) => {
     if (!dates || dates.length === 0) {
@@ -97,7 +144,7 @@ const PublisherPayoutData = () => {
     try {
       const response = await axios.get(`${apiUrl}/get-advdata`);
       if (response.data.success) {
-        setAdvData(response.data.data.reverse());
+        setAdvData([...response.data.data].reverse());
       }
     } catch (error) {
       console.error("Error fetching advertiser data:", error);
@@ -300,7 +347,7 @@ const PublisherPayoutData = () => {
   });
 
   const getColumns = (columnHeadings) => {
-    return Object.keys(columnHeadings).map((key) => ({
+    const baseCols = Object.keys(columnHeadings).map((key) => ({
       title: (
         <div className="flex items-center justify-between">
           <span
@@ -427,7 +474,42 @@ const PublisherPayoutData = () => {
       // This controls whether the filter icon is shown in the header
       filtered: filters[key]?.length > 0,
     }));
+    // ✅ Add Note column at the end
+    // 🔹 Add Note column
+    baseCols.push({
+      title: "Note",
+      dataIndex: "note",
+      key: "note",
+      render: (text, record) => {
+        const canEdit =
+          user?.role === "publisher_manager" ||
+          record.pub_name?.toLowerCase() === user?.username?.toLowerCase();
+
+        if (!canEdit) return <span>{text || "-"}</span>;
+
+        return isEditing(record) ? (
+          <span>{text}</span>
+        ) : (
+          <span
+            style={{ cursor: "pointer", color: text ? "inherit" : "gray" }}
+            onClick={() => {
+              setEditingKey(record.id);
+            }}>
+            {text || "Click to add note"}
+          </span>
+        );
+      },
+      onCell: (record) => ({
+        record,
+        dataIndex: "note",
+        editing: isEditing(record),
+        saveNote,
+      }),
+    });
+
+    return baseCols;
   };
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen flex flex-col items-center">
       <div className="w-full bg-white p-6 rounded-xl shadow-lg border border-gray-200">
@@ -495,6 +577,11 @@ const PublisherPayoutData = () => {
         <Table
           bordered
           columns={getColumns(columnHeadingsAdv)}
+          components={{
+            body: {
+              cell: EditableCell,
+            },
+          }}
           dataSource={processedData}
           rowKey="id"
           pagination={{
@@ -512,6 +599,53 @@ const PublisherPayoutData = () => {
         />
       </div>
     </div>
+  );
+};
+
+
+const EditableCell = ({
+  editing,
+  dataIndex,
+  record,
+  children,
+  saveNote,
+  ...restProps
+}) => {
+  // fallback to empty string if anything is undefined
+  const initialValue =
+    (record && dataIndex && record[dataIndex]) ? record[dataIndex] : "";
+
+  const [localValue, setLocalValue] = useState(initialValue);
+
+  // reset whenever editing starts or record changes
+  useEffect(() => {
+    if (editing) {
+      setLocalValue(initialValue);
+    }
+  }, [editing, initialValue]);
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      saveNote(record, localValue);
+    }
+  };
+
+  return (
+    <td {...restProps}>
+      {editing ? (
+        <Input.TextArea
+          value={localValue}
+          autoSize={{ minRows: 1, maxRows: 3 }}
+          onChange={(e) => setLocalValue(e.target.value)}
+          onBlur={() => saveNote(record, localValue)}
+          onKeyDown={handleKeyDown}
+          autoFocus
+        />
+      ) : (
+        children
+      )}
+    </td>
   );
 };
 
