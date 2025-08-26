@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
+import axios from "axios";
 import Zone from "./Zone";
 import PidsOnAlert from "./PidAlert";
 import PidStable from "./PidStable";
@@ -18,7 +19,7 @@ import PerformanceComparison from "./PerformanceComparison";
 import dayjs from "dayjs";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
-
+import Swal from "sweetalert2";
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
 const { Title } = Typography;
@@ -28,7 +29,7 @@ const cardStyle = {
   boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
   border: "1px solid #f0f0f0",
 };
-const apiUrl = "https://gapi.clickorbits.in"; // Replace with your actual API URL
+const apiUrl = "http://localhost:3001"; // Replace with your actual API URL
 
 export default function OptimizationPage() {
   const user = useSelector((state) => state.auth.user);
@@ -53,7 +54,6 @@ export default function OptimizationPage() {
       setLoading(false);
     }
   };
-  console.log("Raw Data:", rawData); // Debugging log
   // When campaign changes, preselect start as 1st of that month
   useEffect(() => {
     fetchData();
@@ -131,7 +131,58 @@ export default function OptimizationPage() {
       </div>
     );
   }
-  console.log("Filtered Data:", filteredData); // Debugging log
+  const handleDelete = async () => {
+    if (!selectedCampaign || !selectedDateRange[0] || !selectedDateRange[1]) {
+      Swal.fire({
+        icon: "warning",
+        title: "Missing Selection",
+        text: "Please select campaign and date range first.",
+      });
+      return;
+    }
+
+    const dateRangeStr = `${selectedDateRange[0].format(
+      "YYYY-MM-DD"
+    )} - ${selectedDateRange[1].format("YYYY-MM-DD")}`;
+
+    Swal.fire({
+      title: "Are you sure?",
+      text: `Delete campaign "${selectedCampaign}" for ${dateRangeStr}?`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, delete it!",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          await axios.delete(`${apiUrl}/api/campaigndelete`, {
+            data: {
+              campaign_name: selectedCampaign,
+              date_range: dateRangeStr,
+            },
+          });
+
+          Swal.fire({
+            icon: "success",
+            title: "Deleted!",
+            text: "Campaign deleted successfully.",
+            timer: 2000,
+            showConfirmButton: false,
+          });
+
+          fetchData(); // refresh after delete
+        } catch (err) {
+          console.error("Error deleting campaign", err);
+          Swal.fire({
+            icon: "error",
+            title: "Oops...",
+            text: "Failed to delete campaign.",
+          });
+        }
+      }
+    });
+  };
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Upload Form */}
@@ -212,6 +263,15 @@ export default function OptimizationPage() {
           </Row>
         </Card>
       </Space>
+      {user?.username === "Akshat" && (
+        <div className="mt-4">
+          <button
+            onClick={handleDelete}
+            className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-red-600 text-white px-5 py-2.5 rounded-xl shadow-md hover:from-red-600 hover:to-red-700 hover:scale-105 transition-all duration-200 ease-in-out">
+            Delete Selected Campaign
+          </button>
+        </div>
+      )}
 
       {/* Data Sections */}
       <Row gutter={[16, 16]} className="mt-6">
