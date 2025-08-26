@@ -18,12 +18,14 @@ export default function PerformanceComparison({ rawData, selectedCampaign }) {
     ];
   }, [rawData, selectedCampaign]);
 
-  // Set default PID on first load
+  // Set default PID whenever campaign or PIDs change
   useEffect(() => {
-    if (pids.length > 0 && !selectedPid) {
-      setSelectedPid(pids[0]);
+    if (pids.length > 0) {
+      setSelectedPid(pids[0]); // always pick first PID of current campaign
+    } else {
+      setSelectedPid(""); // clear if no PIDs
     }
-  }, [pids, selectedPid]);
+  }, [pids, selectedCampaign]);
 
   // Filter + sort data for selected PID
   const pidData = useMemo(() => {
