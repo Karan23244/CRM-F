@@ -23,22 +23,25 @@ const statuses = [
 const columnHeadings = {
   pub_name: "Publisher",
   campaign_name: "Campaign",
+  adv_name: "Advertiser", // 👈 Added
   payout: "PUB Payout $",
   os: "OS",
   pid: "PID",
   pub_id: "PUB ID",
   geo: "Geo",
-  created_at: "Created At", // 👈 Added
+  priority: "Priority", // 👈 Added
+  created_at: "Created At",
 };
 
 const NewRequest = () => {
   const user = useSelector((state) => state.auth.user);
   const username = user?.username || null;
+  console.log("Logged in user:", user);
   const [requests, setRequests] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [filters, setFilters] = useState({});
-  // const [stickyColumns, setStickyColumns] = useState([]); // for pin/unpin columns
   console.log(requests);
+  // const [stickyColumns, setStickyColumns] = useState([]); // for pin/unpin columns
   const clearAllFilters = () => {
     setFilters({});
   };
@@ -54,16 +57,23 @@ const NewRequest = () => {
 
   const fetchRequests = async () => {
     try {
-      const res = await axios.get(`${apiUrl}/getPubRequestss/${username}`);
+      const res = await axios.get(`${apiUrl}/getPrmadvRequests`);
       const result = res.data?.data;
+
       // Sort by id DESC (newest first)
-      const sortedData = (res.data?.data || []).sort((a, b) => b.id - a.id);
-      if (Array.isArray(sortedData)) {
-        setRequests(sortedData);
-      } else {
-        console.error("Expected an array but got:", result);
-        setRequests([]); // fallback to empty array
+      let sortedData = (Array.isArray(result) ? result : []).sort(
+        (a, b) => b.id - a.id
+      );
+
+      // Role-based filtering
+      if (user?.role === "advertiser") {
+        sortedData = sortedData.filter(
+          (item) => item.adv_name === user.username
+        );
       }
+      // if role is advertiser_manager -> no filtering needed
+
+      setRequests(sortedData);
     } catch (error) {
       message.error("Failed to fetch requests");
       setRequests([]); // fallback on error
