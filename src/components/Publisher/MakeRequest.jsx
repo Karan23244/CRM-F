@@ -15,6 +15,7 @@ import Swal from "sweetalert2";
 import { exportToExcel } from "../exportExcel";
 import axios from "axios";
 import { subscribeToNotifications } from "./Socket";
+import { PushpinOutlined } from "@ant-design/icons";
 import { useSelector } from "react-redux";
 import { AutoComplete } from "antd";
 const { Option } = Select;
@@ -45,6 +46,7 @@ const PublisherRequest = () => {
   const [searchText, setSearchText] = useState("");
   const [blacklistPIDs, setBlacklistPIDs] = useState([]);
   const [filters, setFilters] = useState({});
+  const [pinnedColumns, setPinnedColumns] = useState({});
   const clearAllFilters = () => {
     setFilters({});
   };
@@ -63,6 +65,16 @@ const PublisherRequest = () => {
       message.error("Failed to fetch dropdown options");
     }
   };
+  const togglePin = (key) => {
+    setPinnedColumns((prev) => {
+      let next;
+      if (!prev[key]) next = "left"; // not pinned → pin left
+      else if (prev[key] === "left") next = "right"; // left → pin right
+      else next = null; // right → unpin
+      return { ...prev, [key]: next };
+    });
+  };
+
   // 🚀 Fetch Advertisers
   const fetchAdvertisers = async () => {
     try {
@@ -203,20 +215,29 @@ const PublisherRequest = () => {
     }
   };
 
-  // Get unique values for each column for filter options
   const uniqueValues = useMemo(() => {
     const values = {};
     requests.forEach((item) => {
+      // normal columns
       Object.keys(columnHeadings).forEach((key) => {
         if (!values[key]) values[key] = new Set();
-        if (item[key] !== null && item[key] !== undefined)
+        if (item[key] !== null && item[key] !== undefined) {
           values[key].add(item[key]);
+        }
       });
+
+      // ✅ include adv_res manually
+      if (!values["adv_res"]) values["adv_res"] = new Set();
+      if (item.adv_res !== null && item.adv_res !== undefined) {
+        values["adv_res"].add(item.adv_res);
+      }
     });
-    // Convert sets to arrays
+
+    // convert sets → arrays
     Object.keys(values).forEach((key) => {
       values[key] = Array.from(values[key]);
     });
+
     return values;
   }, [requests]);
 
@@ -284,10 +305,19 @@ const PublisherRequest = () => {
             }}>
             {columnHeadings[key] || key}
           </span>
+          <PushpinOutlined
+            onClick={() => togglePin(key)}
+            rotate={pinnedColumns[key] === "right" ? 180 : 0} // rotate if pinned right
+            style={{
+              color: pinnedColumns[key] ? "#1677ff" : "#aaa",
+              cursor: "pointer",
+            }}
+          />
         </div>
       ),
       key,
       dataIndex: key,
+      fixed: pinnedColumns[key] || undefined,
       render: (value) => {
         if (key === "created_at" && value) {
           const date = new Date(value);
@@ -378,10 +408,19 @@ const PublisherRequest = () => {
             }}>
             Action
           </span>
+          <PushpinOutlined
+            onClick={() => togglePin("adv_res")}
+            rotate={pinnedColumns["adv_res"] === "right" ? 180 : 0}
+            style={{
+              color: pinnedColumns["adv_res"] ? "#1677ff" : "#aaa",
+              cursor: "pointer",
+            }}
+          />
         </div>
       ),
       key: "action",
       dataIndex: "adv_res",
+      fixed: pinnedColumns["adv_res"] || undefined,
 
       filterDropdown:
         uniqueValues["adv_res"]?.length > 0
@@ -457,52 +496,187 @@ const PublisherRequest = () => {
 
     return columns;
   };
-  // 📊 Add Action Column
-  const permissionColumn = {
-    title: "Permission",
-    key: "permission",
-    render: (_, record) => {
-      if (userRole === "publisher_manager") {
-        // ✅ Publisher Manager → dropdown
-        return (
+
+  // Priority Column
+  const priorityColumn = {
+    title: (
+      <div className="flex items-center justify-between">
+        <span
+          style={{
+            color: filters["priority"]?.length > 0 ? "#1677ff" : "inherit",
+            fontWeight: filters["priority"]?.length > 0 ? "bold" : "normal",
+          }}>
+          Priority
+        </span>
+        <PushpinOutlined
+          onClick={() => togglePin("priority")}
+          rotate={pinnedColumns["priority"] === "right" ? 180 : 0}
+          style={{
+            color: pinnedColumns["priority"] ? "#1677ff" : "#aaa",
+            cursor: "pointer",
+          }}
+        />
+      </div>
+    ),
+    key: "priority",
+    dataIndex: "priority",
+    fixed: pinnedColumns["priority"] || undefined,
+    filterDropdown: () => {
+      const priorities = [...new Set(requests.map((r) => r.priority))];
+      return (
+        <div style={{ padding: 8 }}>
+          <div style={{ marginBottom: 8 }}>
+            <Checkbox
+              indeterminate={
+                filters["priority"]?.length > 0 &&
+                filters["priority"]?.length < priorities.length
+              }
+              checked={filters["priority"]?.length === priorities.length}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                handleFilterChange(checked ? priorities : [], "priority");
+              }}>
+              Select All
+            </Checkbox>
+          </div>
           <Select
-            value={record.prm}
-            style={{
-              width: 120,
-              fontWeight: 600,
-              backgroundColor: record.prm === 1 ? "#e6ffed" : "#ffe6e6", // ✅ box bg
-              color: record.prm === 1 ? "green" : "red", // ✅ selected text
-            }}
-            onChange={(val) =>
-              handleUpdatePrm(record, {
-                priority: record.priority,
-                prm: val,
-              })
+            mode="multiple"
+            allowClear
+            showSearch
+            style={{ width: 250 }}
+            value={filters["priority"] || []}
+            onChange={(val) => handleFilterChange(val, "priority")}
+            optionLabelProp="label"
+            maxTagCount="responsive"
+            filterOption={(input, option) =>
+              (option?.label ?? "")
+                .toString()
+                .toLowerCase()
+                .includes(input.toLowerCase())
             }>
-            <Option
-              value={1}
-              style={{
-                backgroundColor: "#e6ffed",
-                color: "green",
-                fontWeight: 600,
-              }}>
-              ✅ Allow
+            {priorities.map((p) => (
+              <Option key={p} value={p} label={p}>
+                <Checkbox checked={filters["priority"]?.includes(p)}>
+                  {p}
+                </Checkbox>
+              </Option>
+            ))}
+          </Select>
+        </div>
+      );
+    },
+    filtered: filters["priority"]?.length > 0,
+    render: (_, record) =>
+      userRole === "publisher_manager" ? (
+        <Select
+          value={record.priority}
+          style={{ width: 80 }}
+          onChange={(val) =>
+            handleUpdatePrm(record, { priority: val, prm: record.prm })
+          }>
+          {Array.from({ length: 15 }, (_, i) => (
+            <Option key={i + 1} value={i + 1}>
+              {i + 1}
             </Option>
-            <Option
-              value={0}
-              style={{
-                backgroundColor: "#ffe6e6",
-                color: "red",
-                fontWeight: 600,
+          ))}
+        </Select>
+      ) : (
+        record.priority || "N/A"
+      ),
+  };
+
+  // Permission Column
+  const permissionColumn = {
+    title: (
+      <div className="flex items-center justify-between">
+        <span
+          style={{
+            color: filters["prm"]?.length > 0 ? "#1677ff" : "inherit",
+            fontWeight: filters["prm"]?.length > 0 ? "bold" : "normal",
+          }}>
+          Permission
+        </span>
+        <PushpinOutlined
+          onClick={() => togglePin("prm")}
+          rotate={pinnedColumns["prm"] === "right" ? 180 : 0}
+          style={{
+            color: pinnedColumns["prm"] ? "#1677ff" : "#aaa",
+            cursor: "pointer",
+          }}
+        />
+      </div>
+    ),
+    key: "prm",
+    dataIndex: "prm",
+    fixed: pinnedColumns["prm"] || undefined,
+    filterDropdown: () => {
+      const permissionValues = [1, 0];
+      return (
+        <div style={{ padding: 8 }}>
+          <div style={{ marginBottom: 8 }}>
+            <Checkbox
+              indeterminate={
+                filters["prm"]?.length > 0 &&
+                filters["prm"]?.length < permissionValues.length
+              }
+              checked={filters["prm"]?.length === permissionValues.length}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                handleFilterChange(checked ? permissionValues : [], "prm");
               }}>
-              ❌ Disallow
+              Select All
+            </Checkbox>
+          </div>
+          <Select
+            mode="multiple"
+            allowClear
+            showSearch
+            style={{ width: 250 }}
+            value={filters["prm"] || []}
+            onChange={(val) => handleFilterChange(val, "prm")}
+            optionLabelProp="label"
+            maxTagCount="responsive"
+            filterOption={(input, option) =>
+              (option?.label ?? "")
+                .toString()
+                .toLowerCase()
+                .includes(input.toLowerCase())
+            }>
+            <Option key={1} value={1} label="✅ Allow">
+              <Checkbox checked={filters["prm"]?.includes(1)}>
+                ✅ Allow
+              </Checkbox>
+            </Option>
+            <Option key={0} value={0} label="❌ Disallow">
+              <Checkbox checked={filters["prm"]?.includes(0)}>
+                ❌ Disallow
+              </Checkbox>
             </Option>
           </Select>
-        );
-      }
-
-      // ✅ Everyone else (publisher & default)
-      return (
+        </div>
+      );
+    },
+    filtered: filters["prm"]?.length > 0,
+    render: (_, record) =>
+      userRole === "publisher_manager" ? (
+        <Select
+          value={record.prm}
+          style={{
+            width: 120,
+            fontWeight: 600,
+            backgroundColor: record.prm === 1 ? "#e6ffed" : "#ffe6e6",
+            color: record.prm === 1 ? "green" : "red",
+          }}
+          onChange={(val) =>
+            handleUpdatePrm(record, {
+              priority: record.priority,
+              prm: val,
+            })
+          }>
+          <Option value={1}>✅ Allow</Option>
+          <Option value={0}>❌ Disallow</Option>
+        </Select>
+      ) : (
         <span
           style={{
             color: record.prm === 1 ? "green" : "red",
@@ -510,38 +684,9 @@ const PublisherRequest = () => {
           }}>
           {record.prm === 1 ? "✅ Allow" : "❌ Disallow"}
         </span>
-      );
-    },
+      ),
   };
 
-  const priorityColumn = {
-    title: "Priority",
-    key: "priority",
-    render: (_, record) => {
-      if (userRole === "publisher_manager") {
-        // ✅ Publisher Manager → dropdown with only available_priorities
-        return (
-          <Select
-            value={record.priority}
-            style={{ width: 80 }}
-            onChange={(val) =>
-              handleUpdatePrm(record, { priority: val, prm: record.prm })
-            }>
-            {Array.from({ length: 15 }, (_, i) => (
-              <Option key={i + 1} value={i + 1}>
-                {i + 1}
-              </Option>
-            ))}
-          </Select>
-        );
-      }
-
-      // ✅ Everyone else → just display the priority
-      return record.priority || "N/A";
-    },
-  };
-
-  console.log(filteredRequests);
   return (
     <div className="p-4">
       <div
