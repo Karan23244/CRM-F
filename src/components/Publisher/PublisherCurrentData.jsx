@@ -54,6 +54,7 @@ const PublisherPayoutData = () => {
     order: null,
   });
   const [editingKey, setEditingKey] = useState(""); // which row is being edited
+  console.log(filteredData);
   const isEditing = (record) => record.id === editingKey;
   // 🔹 Save Note
   const saveNote = async (record, newNote) => {
@@ -102,6 +103,61 @@ const PublisherPayoutData = () => {
     }
 
     setEditingKey("");
+  };
+  // 🔹 Save Vertical
+  const saveVertical = async (record, newVertical) => {
+    try {
+      const resp = await fetch(`${apiUrl}/adv_update/${record.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vertical: newVertical }),
+      });
+
+      const data = await resp.json();
+      if (data.success) {
+        setAdvData((prev) =>
+          prev.map((item) =>
+            item.id === record.id ? { ...item, vertical: newVertical } : item
+          )
+        );
+        Swal.fire({
+          icon: "success",
+          title: "Vertical Updated",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      }
+    } catch (error) {
+      console.error("Error updating vertical:", error);
+    }
+  };
+
+  // 🔹 Save FP
+  const saveFP = async (record, newFP) => {
+    try {
+      const resp = await fetch(`${apiUrl}/adv_update/${record.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fp: newFP }),
+      });
+
+      const data = await resp.json();
+      if (data.success) {
+        setAdvData((prev) =>
+          prev.map((item) =>
+            item.id === record.id ? { ...item, fp: newFP } : item
+          )
+        );
+        Swal.fire({
+          icon: "success",
+          title: "FP Status Updated",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      }
+    } catch (error) {
+      console.error("Error updating FP:", error);
+    }
   };
 
   const user = useSelector((state) => state.auth.user);
@@ -474,6 +530,194 @@ const PublisherPayoutData = () => {
       // This controls whether the filter icon is shown in the header
       filtered: filters[key]?.length > 0,
     }));
+    // 🔹 Insert Vertical after campaign_name
+    const campaignIdx = baseCols.findIndex(
+      (col) => col.key === "campaign_name"
+    );
+    if (campaignIdx > -1) {
+      baseCols.splice(campaignIdx + 1, 0, {
+        title: (
+          <div className="flex items-center justify-between">
+            <span
+              style={{
+                color: filters["vertical"] ? "#1677ff" : "inherit",
+                fontWeight: filters["vertical"] ? "bold" : "normal",
+              }}>
+              Vertical
+            </span>
+            <Tooltip
+              title={stickyColumns.includes("vertical") ? "Unpin" : "Pin"}>
+              <Button
+                size="small"
+                icon={
+                  stickyColumns.includes("vertical") ? (
+                    <PushpinFilled style={{ color: "#1677ff" }} />
+                  ) : (
+                    <PushpinOutlined />
+                  )
+                }
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleStickyColumn("vertical");
+                }}
+              />
+            </Tooltip>
+          </div>
+        ),
+        dataIndex: "vertical",
+        key: "vertical",
+        sorter: (a, b) => (a.vertical || "").localeCompare(b.vertical || ""),
+        fixed: stickyColumns.includes("vertical") ? "left" : undefined,
+
+        // 🔹 Custom filter dropdown like your other headers
+        filterDropdown: ({
+          setSelectedKeys,
+          selectedKeys,
+          confirm,
+          clearFilters,
+        }) => (
+          <Select
+            mode="multiple"
+            allowClear
+            showSearch
+            placeholder="Select Vertical"
+            style={{ width: 250 }}
+            value={selectedKeys}
+            onChange={(value) => {
+              setSelectedKeys(value);
+              handleFilterChange(value, "vertical"); // your custom handler
+              confirm();
+            }}
+            optionLabelProp="label"
+            maxTagCount="responsive"
+            filterOption={(input, option) =>
+              (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+            }>
+            {[
+              "E-commerce",
+              "Betting Casino",
+              "Betting Sports",
+              "Utilities",
+              "Finance",
+              "Food Delivery",
+            ].map((val) => (
+              <Select.Option key={val} value={val} label={val}>
+                <Checkbox checked={selectedKeys.includes(val)}>{val}</Checkbox>
+              </Select.Option>
+            ))}
+          </Select>
+        ),
+        onFilter: (value, record) =>
+          record.vertical?.toString().toLowerCase() === value.toLowerCase(),
+
+        // Inline editing still works
+        render: (text, record) => (
+          <Select
+            value={text || undefined}
+            style={{ width: 160 }}
+            showSearch
+            allowClear
+            bordered={false}
+            optionFilterProp="children"
+            dropdownMatchSelectWidth={false}
+            placeholder="Select Vertical"
+            onChange={(val) => saveVertical(record, val)}>
+            <Option value="E-commerce">E-commerce</Option>
+            <Option value="Betting Casino">Betting Casino</Option>
+            <Option value="Betting Sports">Betting Sports</Option>
+            <Option value="Utilities">Utilities</Option>
+            <Option value="Finance">Finance</Option>
+            <Option value="Food Delivery">Food Delivery</Option>
+          </Select>
+        ),
+      });
+    }
+
+    // 🔹 Insert FP after paused_date
+    const pauseIdx = baseCols.findIndex((col) => col.key === "paused_date");
+    if (pauseIdx > -1) {
+      baseCols.splice(pauseIdx + 1, 0, {
+        title: (
+          <div className="flex items-center justify-between">
+            <span
+              style={{
+                color: filters["fp_status"] ? "#1677ff" : "inherit",
+                fontWeight: filters["fp_status"] ? "bold" : "normal",
+              }}>
+              FP (Publisher Side)
+            </span>
+            <Tooltip
+              title={stickyColumns.includes("fp_status") ? "Unpin" : "Pin"}>
+              <Button
+                size="small"
+                icon={
+                  stickyColumns.includes("fp_status") ? (
+                    <PushpinFilled style={{ color: "#1677ff" }} />
+                  ) : (
+                    <PushpinOutlined />
+                  )
+                }
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleStickyColumn("fp_status");
+                }}
+              />
+            </Tooltip>
+          </div>
+        ),
+        dataIndex: "fp",
+        key: "fp",
+        sorter: (a, b) => (a.fp_status || "").localeCompare(b.fp_status || ""),
+        fixed: stickyColumns.includes("fp_status") ? "left" : undefined,
+
+        // 🔹 Custom filter dropdown like other headers
+        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
+          <Select
+            mode="multiple"
+            allowClear
+            showSearch
+            placeholder="Select Status"
+            style={{ width: 200 }}
+            value={selectedKeys}
+            onChange={(value) => {
+              setSelectedKeys(value);
+              handleFilterChange(value, "fp_status");
+              confirm();
+            }}
+            optionLabelProp="label"
+            maxTagCount="responsive"
+            filterOption={(input, option) =>
+              (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+            }>
+            {["Live", "Not Live"].map((val) => (
+              <Select.Option key={val} value={val} label={val}>
+                <Checkbox checked={selectedKeys.includes(val)}>{val}</Checkbox>
+              </Select.Option>
+            ))}
+          </Select>
+        ),
+        onFilter: (value, record) =>
+          record.fp_status?.toString().toLowerCase() === value.toLowerCase(),
+
+        // Inline editing
+        render: (text, record) => (
+          <Select
+            value={text || undefined}
+            style={{ width: 140 }}
+            showSearch
+            allowClear
+            bordered={false}
+            optionFilterProp="children"
+            dropdownMatchSelectWidth={false}
+            placeholder="Select Status"
+            onChange={(val) => saveFP(record, val)}>
+            <Option value="Live">Live</Option>
+            <Option value="Not Live">Not Live</Option>
+          </Select>
+        ),
+      });
+    }
+
     // ✅ Add Note column at the end
     // 🔹 Add Note column
     baseCols.push({
@@ -602,7 +846,6 @@ const PublisherPayoutData = () => {
   );
 };
 
-
 const EditableCell = ({
   editing,
   dataIndex,
@@ -613,7 +856,7 @@ const EditableCell = ({
 }) => {
   // fallback to empty string if anything is undefined
   const initialValue =
-    (record && dataIndex && record[dataIndex]) ? record[dataIndex] : "";
+    record && dataIndex && record[dataIndex] ? record[dataIndex] : "";
 
   const [localValue, setLocalValue] = useState(initialValue);
 

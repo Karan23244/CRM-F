@@ -22,7 +22,6 @@ const PubnameData = () => {
   const [editingAssignRowId, setEditingAssignRowId] = useState(null);
   const [target, setTarget] = useState("");
   const [level, setLevel] = useState("");
-  const [vector, setVector] = useState("");
   const [subAdmins, setSubAdmins] = useState([]);
 
   // **Fetch publisher data**
@@ -103,7 +102,6 @@ const PubnameData = () => {
       target: target || "",
       user_id: pubUserId,
       level: level || "",
-      vector: vector || "",
     };
 
     try {
@@ -136,7 +134,6 @@ const PubnameData = () => {
     setTarget(record.target);
     setPubUserId(record.user_id);
     setLevel(record.level || "");
-    setVector(record.vector || "");
   };
 
   // **Reset Form**
@@ -149,7 +146,6 @@ const PubnameData = () => {
     setPubUserId(null);
     setEditingPub(null);
     setLevel("");
-    setVector("");
   };
 
   // **Table Columns**
@@ -161,7 +157,6 @@ const PubnameData = () => {
     { title: "Note", dataIndex: "note", key: "note" },
     { title: "Target", dataIndex: "target", key: "target" },
     { title: "Level", dataIndex: "level", key: "level" },
-    { title: "Vector", dataIndex: "vector", key: "vector" },
     {
       title: "Transfer PUB AM",
       key: "user_id",
@@ -329,17 +324,6 @@ const PubnameData = () => {
               type="text"
               value={level}
               onChange={(e) => setLevel(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-lg"
-            />
-          </div>
-
-          {/* Vector Field */}
-          <div>
-            <label className="block text-lg font-medium">Vertical</label>
-            <input
-              type="text"
-              value={vector}
-              onChange={(e) => setVector(e.target.value)}
               className="w-full p-2 border border-gray-300 rounded-lg"
             />
           </div>

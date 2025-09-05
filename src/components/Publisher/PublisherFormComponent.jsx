@@ -66,7 +66,6 @@ const PublisherCreateForm = () => {
   const [usedIds, setUsedIds] = useState(new Set());
   const [editingPub, setEditingPub] = useState(null);
   const [level, setLevel] = useState("");
-  const [vector, setVector] = useState("");
   const [target, setTarget] = useState("");
   const [searchTextPub, setSearchTextPub] = useState("");
   console.log("User Role:", user);
@@ -130,7 +129,6 @@ const PublisherCreateForm = () => {
       note: note || "",
       target: target || "",
       level: level || "",
-      vector: vector || "",
     };
     console.log("Updated Publisher Data:", updatedPub);
     setLoading(true);
@@ -195,7 +193,6 @@ const PublisherCreateForm = () => {
     setNote(record.note);
     setTarget(record.target || "");
     setLevel(record.level || "");
-    setVector(record.vector || "");
   };
 
   // Reset Form
@@ -208,7 +205,6 @@ const PublisherCreateForm = () => {
     setTarget("");
     setError("");
     setLevel("");
-    setVector("");
   };
 
   // Filter publishers based on search input
@@ -223,8 +219,7 @@ const PublisherCreateForm = () => {
     { title: "Geo", dataIndex: "geo", key: "geo" },
     { title: "Note", dataIndex: "note", key: "note" },
     { title: "Target", dataIndex: "target", key: "target" },
-    { title: "Level", dataIndex: "level", key: "level" },
-    { title: "Vector", dataIndex: "vector", key: "vector" },
+    { title: "Rating", dataIndex: "level", key: "level" },
     {
       title: "Actions",
       key: "actions",
@@ -237,7 +232,7 @@ const PublisherCreateForm = () => {
       ),
     },
   ];
-
+  console.log(filteredPublishers)
   return (
     <div className="m-6 p-6 bg-white shadow-md rounded-lg">
       <h2 className="text-2xl font-bold mb-4">
@@ -339,22 +334,11 @@ const PublisherCreateForm = () => {
             </div>
             {/* Level Field */}
             <div>
-              <label className="block text-lg font-medium">Level</label>
+              <label className="block text-lg font-medium">Rating</label>
               <input
                 type="text"
                 value={level}
                 onChange={(e) => setLevel(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-lg"
-              />
-            </div>
-
-            {/* Vector Field */}
-            <div>
-              <label className="block text-lg font-medium">Vector</label>
-              <input
-                type="text"
-                value={vector}
-                onChange={(e) => setVector(e.target.value)}
                 className="w-full p-2 border border-gray-300 rounded-lg"
               />
             </div>
@@ -389,7 +373,7 @@ const PublisherCreateForm = () => {
         {/* Header and Search */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <h3 className="text-2xl font-bold text-gray-800 dark:text-white">
-            📚 Existing Publishers
+            Existing Publishers
           </h3>
           <div className="relative w-full md:w-[300px]">
             <Input

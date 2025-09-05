@@ -31,6 +31,7 @@ const columnHeadingsPub = {
   username: "Input UserName",
   adv_name: "ADVM Name",
   campaign_name: "Campaign Name",
+  vertical: "Vertical", // ✅ Added here
   geo: "GEO",
   city: "State Or City",
   os: "OS",
@@ -41,6 +42,9 @@ const columnHeadingsPub = {
   pub_payout: "Pub Payout $",
   shared_date: "Shared Date",
   paused_date: "Paused Date",
+  pa: "PA", // ✅ Added after paused_date
+  fa: "FA", // ✅ Added after paused_date
+  fa1: "FA1", // ✅ Added after paused_date
   review: "Review",
   pub_total_numbers: "PUB Total Numbers",
   pub_deductions: "PUB Deductions",
@@ -52,6 +56,7 @@ const columnHeadingsAdv = {
   username: "Input UserName",
   pub_name: "PUBM Name",
   campaign_name: "Campaign Name",
+  vertical: "Vertical", // ✅ Added here
   geo: "GEO",
   city: "State Or City",
   os: "OS",
@@ -64,11 +69,15 @@ const columnHeadingsAdv = {
   pid: "PID",
   shared_date: "Shared Date",
   paused_date: "Paused Date",
+  fp: "FP", // ✅ Added after paused_date
+  fa: "FA", // ✅ Added after paused_date
+  fa1: "FA1", // ✅ Added after paused_date
   adv_total_no: "ADV Total Numbers",
   adv_deductions: "ADV Deductions",
   adv_approved_no: "ADV Approved Numbers",
   pub_Apno: "PUB Approved Numbers",
 };
+
 const monthClasses = [
   "january-row",
   "february-row",
@@ -96,6 +105,7 @@ const CampianData = () => {
   const [dropdownOptions, setDropdownOptions] = useState({
     os: ["Android", "APK", "iOS"],
   });
+  console.log(filteredData);
   const [sortInfo, setSortInfo] = useState({
     columnKey: null,
     order: null,
@@ -342,7 +352,7 @@ const CampianData = () => {
         : `${apiUrl}/advdata-update/${record.id}`;
 
     const updated = { ...record, [key]: newValue };
-
+    console.log(updated);
     // Auto-calculate adv_approved_no
     // if (key === "adv_total_no" || key === "adv_deductions") {
     //   const total = key === "adv_total_no" ? newValue : record.adv_total_no;
@@ -396,17 +406,17 @@ const CampianData = () => {
       console.error("❌ Error in pub_Apno calculation:", calcError.message);
       updated.pub_Apno = "";
     }
-
+    console.log(updateUrl);
     try {
       await axios.post(updateUrl, updated, {
         headers: { "Content-Type": "application/json" },
       });
-      // Swal.fire({
-      //   icon: "success",
-      //   title: "Auto-Saved",
-      //   timer: 1000,
-      //   showConfirmButton: false,
-      // });
+      Swal.fire({
+        icon: "success",
+        title: "Auto-Saved",
+        timer: 1000,
+        showConfirmButton: false,
+      });
       fetchPubData();
       fetchAdvData();
     } catch (err) {
@@ -582,6 +592,79 @@ const CampianData = () => {
                   ))}
                 </Select>
               );
+            } else if (key === "pa") {
+              // ✅ PA Dropdown
+              return (
+                <Select
+                  defaultValue={value}
+                  autoFocus
+                  style={{ width: "100%" }}
+                  onChange={(val) => {
+                    handleAutoSave(val, record, key);
+                    setEditingCell({ key: null, field: null });
+                  }}
+                  onBlur={() => setEditingCell({ key: null, field: null })}>
+                  <Option value="Live">Live</Option>
+                  <Option value="Not Live">Not Live</Option>
+                </Select>
+              );
+            } else if (key === "fa") {
+              // Step 1 dropdown for FA
+              const step1 = (value || "").split(" - ")[0]; // Only first part
+
+              return (
+                <Select
+                  value={step1 || undefined}
+                  placeholder="Select FA"
+                  style={{ width: "100%" }}
+                  onChange={(val) => {
+                    const step2 = (value || "").split(" - ")[1] || ""; // Preserve FA1 if already selected
+                    const newVal = step2 ? `${val} - ${step2}` : val;
+                    handleAutoSave(newVal, record, key);
+                  }}>
+                  <Option value="Quality">Quality</Option>
+                  <Option value="No Quality">No Quality</Option>
+                  <Option value="No Live">No Live</Option>
+                </Select>
+              );
+            } else if (key === "fa1") {
+              // Step 2 dropdown for FA1
+              const step2 = (value || "").split(" - ")[1]; // Only second part
+              const step1 = (value || "").split(" - ")[0] || ""; // Preserve FA if already selected
+
+              return (
+                <Select
+                  value={step2 || undefined}
+                  placeholder="Select FA1"
+                  style={{ width: "100%" }}
+                  onChange={(val) => {
+                    const newVal = step1 ? `${step1} - ${val}` : val;
+                    handleAutoSave(newVal, record, key);
+                  }}>
+                  <Option value="Optimised">Optimised</Option>
+                  <Option value="Not Optimised">Not Optimised</Option>
+                </Select>
+              );
+            } else if (key === "vertical") {
+              // ✅ Vertical Dropdown
+              return (
+                <Select
+                  defaultValue={value}
+                  autoFocus
+                  style={{ width: "100%" }}
+                  onChange={(val) => {
+                    handleAutoSave(val, record, key);
+                    setEditingCell({ key: null, field: null });
+                  }}
+                  onBlur={() => setEditingCell({ key: null, field: null })}>
+                  <Option value="E-commerce- E">E-commerce- E</Option>
+                  <Option value="Betting Casino- BC">Betting Casino- BC</Option>
+                  <Option value="Betting Sports- BS">Betting Sports- BS</Option>
+                  <Option value="Utilities- U">Utilities- U</Option>
+                  <Option value="Finance- F">Finance- F</Option>
+                  <Option value="Food Delivery- FD">Food Delivery- FD</Option>
+                </Select>
+              );
             } else if (key.toLowerCase().includes("date")) {
               return (
                 <DatePicker
@@ -613,7 +696,6 @@ const CampianData = () => {
               );
             }
           }
-
           return (
             <div
               style={{ cursor: "pointer" }}

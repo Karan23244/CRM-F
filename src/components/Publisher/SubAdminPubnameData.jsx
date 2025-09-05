@@ -24,7 +24,6 @@ const SubAdminPubnameData = () => {
   const [pubUserId, setPubUserId] = useState(null);
   const [target, setTarget] = useState("");
   const [level, setLevel] = useState("");
-  const [vector, setVector] = useState("");
   // Fetch publisher data
   useEffect(() => {
     const fetchData = async () => {
@@ -80,7 +79,6 @@ const SubAdminPubnameData = () => {
       target: target || "",
       user_id: pubUserId, // Use the original creator's user_id
       level: level || "",
-      vector: vector || "",
     };
 
     try {
@@ -122,7 +120,6 @@ const SubAdminPubnameData = () => {
     setTarget(record.target);
     setPubUserId(record.user_id); // Set original creator's user_id for updating
     setLevel(record.level || "");
-    setVector(record.vector || "");
   };
 
   // Reset Form
@@ -135,7 +132,6 @@ const SubAdminPubnameData = () => {
     setPubUserId(null);
     setEditingPub(null);
     setLevel("");
-    setVector("");
   };
 
   // Helper: Get unique values for a column
@@ -270,7 +266,7 @@ const SubAdminPubnameData = () => {
       onFilter: (value, record) => record.target === value,
     },
     {
-      title: "Level",
+      title: "Rating",
       dataIndex: "level",
       key: "level",
       filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
@@ -282,20 +278,6 @@ const SubAdminPubnameData = () => {
           confirm
         ),
       onFilter: (value, record) => record.level === value,
-    },
-    {
-      title: "Vector",
-      dataIndex: "vector",
-      key: "vector",
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
-        createFilterDropdown(
-          filteredData,
-          "vector",
-          setSelectedKeys,
-          selectedKeys,
-          confirm
-        ),
-      onFilter: (value, record) => record.vector === value,
     },
     {
       title: "Actions",
@@ -386,22 +368,11 @@ const SubAdminPubnameData = () => {
           </div>
           {/* Level Field */}
           <div>
-            <label className="block text-lg font-medium">Level</label>
+            <label className="block text-lg font-medium">Rating</label>
             <input
               type="text"
               value={level}
               onChange={(e) => setLevel(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-lg"
-            />
-          </div>
-
-          {/* Vector Field */}
-          <div>
-            <label className="block text-lg font-medium">Vector</label>
-            <input
-              type="text"
-              value={vector}
-              onChange={(e) => setVector(e.target.value)}
               className="w-full p-2 border border-gray-300 rounded-lg"
             />
           </div>

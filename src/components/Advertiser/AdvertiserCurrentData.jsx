@@ -64,6 +64,8 @@ const AdvertiserData = () => {
   const [showSubadminData, setShowSubadminData] = useState(false);
   const [dropdownOptions, setDropdownOptions] = useState({
     os: ["Android", "APK", "iOS"],
+    fa: ["Quality", "No Quality", "No Live"], // Step 1
+    fa1: ["Optimised", "Not Optimised"],
   });
   const [filters, setFilters] = useState({});
   useEffect(() => {
@@ -272,6 +274,7 @@ const AdvertiserData = () => {
   const columnHeadings = {
     pub_name: "PUBM Name",
     campaign_name: "Campaign Name",
+    vertical: "Vertical",
     geo: "GEO",
     city: "State Or City",
     os: "OS",
@@ -285,6 +288,9 @@ const AdvertiserData = () => {
     pay_out: "PUB Payout $",
     shared_date: "Shared Date",
     paused_date: "Paused Date",
+    fp: "FP",
+    fa: "FA (Step 1)",
+    fa1: "FA (Step 2)",
     adv_total_no: "ADV Total Numbers",
     adv_deductions: "ADV Deductions",
     adv_approved_no: "ADV Approved Numbers",
@@ -397,6 +403,7 @@ const AdvertiserData = () => {
   const desiredOrder = [
     "adv_id",
     "campaign_name",
+    "vertical",
     "geo",
     "city",
     "os",
@@ -410,6 +417,9 @@ const AdvertiserData = () => {
     "pay_out",
     "shared_date",
     "paused_date",
+    "fp",
+    "fa",
+    "fa1",
     "adv_total_no",
     "adv_deductions",
     "adv_approved_no",
@@ -539,7 +549,7 @@ const AdvertiserData = () => {
             }
 
             const updated = { ...record, [key]: newValue };
-
+            console.log(updated)
             if (key === "adv_total_no" || key === "adv_deductions") {
               const total =
                 key === "adv_total_no"
@@ -633,6 +643,50 @@ const AdvertiserData = () => {
               </Select>
             );
           }
+          if (isEditing && key === "fa") {
+            return (
+              <Select
+                defaultValue={value}
+                style={{ width: 150 }}
+                onBlur={() => setEditingCell({ key: null, field: null })}
+                onChange={(val) => {
+                  handleAutoSave(val, record, "fa");
+                  // Reset fa2 if fa1 changes
+                  handleAutoSave(null, record, "fa1");
+                  setEditingCell({ key: null, field: null });
+                }}
+                autoFocus>
+                {dropdownOptions.fa.map((opt) => (
+                  <Select.Option key={opt} value={opt}>
+                    {opt}
+                  </Select.Option>
+                ))}
+              </Select>
+            );
+          }
+
+          if (isEditing && key === "fa1") {
+            if (!record.fa1) {
+              return <span style={{ color: "gray" }}>Select FA1 first</span>;
+            }
+            return (
+              <Select
+                defaultValue={value}
+                style={{ width: 150 }}
+                onBlur={() => setEditingCell({ key: null, field: null })}
+                onChange={(val) => {
+                  handleAutoSave(val, record, "fa1");
+                  setEditingCell({ key: null, field: null });
+                }}
+                autoFocus>
+                {dropdownOptions.fa1.map((opt) => (
+                  <Select.Option key={opt} value={opt}>
+                    {opt}
+                  </Select.Option>
+                ))}
+              </Select>
+            );
+          }
 
           // Text Input Field Editing
           // Date Field Editing
@@ -669,7 +723,10 @@ const AdvertiserData = () => {
               />
             );
           }
-
+          // 👇 Make FP + Vertical non-editable (just display value)
+          if (key === "fp" || key === "vertical") {
+            return <span>{value}</span>;
+          }
           // Display-only Cell (Click to Edit)
           return (
             <div

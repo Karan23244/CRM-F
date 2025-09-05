@@ -23,6 +23,7 @@ const statuses = [
 const columnHeadings = {
   pub_name: "Publisher",
   campaign_name: "Campaign",
+  note: "Note", 
   adv_name: "Advertiser", // 👈 Added
   payout: "PUB Payout $",
   os: "OS",

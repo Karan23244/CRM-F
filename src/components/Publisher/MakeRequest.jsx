@@ -26,6 +26,7 @@ const columnHeadings = {
   pub_name: "Publisher",
   adv_name: "Advertiser",
   campaign_name: "Campaign",
+  note: "Note", 
   payout: "PUB Payout $",
   os: "OS",
   pid: "PID",
@@ -107,6 +108,7 @@ const PublisherRequest = () => {
       const res = await axios.get(`${apiUrl}/getAllPubRequests`);
       // Sort by id DESC (newest first)
       const sortedData = (res.data?.data || []).sort((a, b) => b.id - a.id);
+      console.log(sortedData)
       setRequests(sortedData);
     } catch (err) {
       console.error("Error fetching requests:", err);
@@ -174,6 +176,7 @@ const PublisherRequest = () => {
         pid: values.pid,
         pub_id: values.pub_id,
         geo: values.geo,
+        note: values.note,
       };
 
       const response = await axios.post(`${apiUrl}/addPubRequest`, requestData);
@@ -838,6 +841,9 @@ const PublisherRequest = () => {
                 option.value.toLowerCase().includes(inputValue.toLowerCase())
               }
             />
+          </Form.Item>
+          <Form.Item label="Note" name="note" rules={[{ required: false }]}>
+            <Input.TextArea placeholder="Enter note (optional)" rows={3} />
           </Form.Item>
         </Form>
       </Modal>
