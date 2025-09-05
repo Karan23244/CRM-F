@@ -66,6 +66,14 @@ const AdvertiserData = () => {
     os: ["Android", "APK", "iOS"],
     fa: ["Quality", "No Quality", "No Live"], // Step 1
     fa1: ["Optimised", "Not Optimised"],
+    vertical: [
+      "E-commerce",
+      "Betting Casino",
+      "Betting Sports",
+      "Utilities",
+      "Finance",
+      "Food Delivery",
+    ],
   });
   const [filters, setFilters] = useState({});
   useEffect(() => {
@@ -160,27 +168,51 @@ const AdvertiserData = () => {
           axios.get(`${apiUrl}/get-allpub`),
           axios.get(`${apiUrl}/advid-data/${userId}`),
         ]);
+
       setDropdownOptions((prev) => ({
         ...prev,
-        // pub_name: advmName.data?.data?.map((item) => item.username) || [],
-        pub_name:
-          advmName.data?.data
-            ?.filter(
-              (item) =>
-                (item.role === "publisher_manager" ||
-                  item.role === "publisher") &&
-                item.username !== "AtiqueADV" &&
-                item.username !== "AnveshaADV"
-            )
-            .map((item) => item.username) || [],
-
-        payable_event:
-          payableEvent.data?.data?.map((item) => item.payble_event) || [],
-        mmp_tracker: mmpTracker.data?.data?.map((item) => item.mmptext) || [],
-        pid: pid.data?.data?.map((item) => item.pid) || [],
-        pub_id: pub_id.data?.data?.map((item) => item.pub_id) || [],
-        geo: geoData.geo?.map((item) => item.code) || [],
-        adv_id: adv_id?.data?.advertisements?.map((item) => item.adv_id) || [],
+        pub_name: [
+          ...new Set(
+            advmName?.data?.data
+              ?.filter(
+                (item) =>
+                  (item.role === "publisher_manager" ||
+                    item.role === "publisher") &&
+                  !["AtiqueADV", "AnveshaADV"].includes(item.username)
+              )
+              .map((item) => item.username) ||
+              prev.pub_name ||
+              []
+          ),
+        ],
+        payable_event: [
+          ...new Set(
+            payableEvent?.data?.data?.map((i) => i.payble_event) ||
+              prev.payable_event ||
+              []
+          ),
+        ],
+        mmp_tracker: [
+          ...new Set(
+            mmpTracker?.data?.data?.map((i) => i.mmptext) ||
+              prev.mmp_tracker ||
+              []
+          ),
+        ],
+        pid: [...new Set(pid?.data?.data?.map((i) => i.pid) || prev.pid || [])],
+        pub_id: [
+          ...new Set(
+            pub_id?.data?.data?.map((i) => i.pub_id) || prev.pub_id || []
+          ),
+        ],
+        geo: [...new Set(geoData.geo?.map((i) => i.code) || prev.geo || [])],
+        adv_id: [
+          ...new Set(
+            adv_id?.data?.advertisements?.map((i) => i.adv_id) ||
+              prev.adv_id ||
+              []
+          ),
+        ],
       }));
     } catch (error) {
       message.error("Failed to fetch dropdown options");
@@ -549,7 +581,6 @@ const AdvertiserData = () => {
             }
 
             const updated = { ...record, [key]: newValue };
-            console.log(updated)
             if (key === "adv_total_no" || key === "adv_deductions") {
               const total =
                 key === "adv_total_no"
@@ -624,18 +655,42 @@ const AdvertiserData = () => {
           // Dropdown Field Editing
           if (isEditing && dropdownOptions[key]) {
             return (
+              // <Select
+              //   allowClear
+              //   showSearch
+              //   defaultValue={value}
+              //   style={{ width: 120 }}
+              //   onBlur={() => setEditingCell({ key: null, field: null })}
+              //   onChange={(val) => {
+              //     handleAutoSave(val, record, key);
+              //     setEditingCell({ key: null, field: null });
+              //   }}
+              //   autoFocus>
+              //   {dropdownOptions[key].map((opt) => (
+              //     <Select.Option key={opt} value={opt}>
+              //       {opt}
+              //     </Select.Option>
+              //   ))}
+              // </Select>
               <Select
                 allowClear
                 showSearch
-                defaultValue={value}
-                style={{ width: 120 }}
+                value={value || undefined}
+                style={{ width: 180 }}
                 onBlur={() => setEditingCell({ key: null, field: null })}
                 onChange={(val) => {
                   handleAutoSave(val, record, key);
                   setEditingCell({ key: null, field: null });
                 }}
-                autoFocus>
-                {dropdownOptions[key].map((opt) => (
+                autoFocus
+                optionFilterProp="children"
+                filterOption={(input, option) =>
+                  (option?.children ?? "")
+                    .toString()
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
+                }>
+                {[...new Set(dropdownOptions[key] || [])].map((opt) => (
                   <Select.Option key={opt} value={opt}>
                     {opt}
                   </Select.Option>
@@ -724,7 +779,7 @@ const AdvertiserData = () => {
             );
           }
           // 👇 Make FP + Vertical non-editable (just display value)
-          if (key === "fp" || key === "vertical") {
+          if (key === "fp") {
             return <span>{value}</span>;
           }
           // Display-only Cell (Click to Edit)
@@ -833,7 +888,6 @@ const AdvertiserData = () => {
       },
     },
   ];
-  console.log("Final Filtered Data:", finalFilteredData);
   return (
     <>
       <div className="p-4 bg-gray-100 min-h-screen flex flex-col items-center">

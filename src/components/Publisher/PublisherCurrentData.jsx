@@ -178,6 +178,7 @@ const PublisherPayoutData = () => {
     pub_name: "PUBM Name",
     username: "Adv AM",
     campaign_name: "Campaign Name",
+    vertical: "Vertical",
     geo: "GEO",
     city: "State Or City",
     os: "OS",
@@ -533,107 +534,107 @@ const PublisherPayoutData = () => {
       filtered: filters[key]?.length > 0,
     }));
     // 🔹 Insert Vertical after campaign_name
-    const campaignIdx = baseCols.findIndex(
-      (col) => col.key === "campaign_name"
-    );
-    if (campaignIdx > -1) {
-      baseCols.splice(campaignIdx + 1, 0, {
-        title: (
-          <div className="flex items-center justify-between">
-            <span
-              style={{
-                color: filters["vertical"] ? "#1677ff" : "inherit",
-                fontWeight: filters["vertical"] ? "bold" : "normal",
-              }}>
-              Vertical
-            </span>
-            <Tooltip
-              title={stickyColumns.includes("vertical") ? "Unpin" : "Pin"}>
-              <Button
-                size="small"
-                icon={
-                  stickyColumns.includes("vertical") ? (
-                    <PushpinFilled style={{ color: "#1677ff" }} />
-                  ) : (
-                    <PushpinOutlined />
-                  )
-                }
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleStickyColumn("vertical");
-                }}
-              />
-            </Tooltip>
-          </div>
-        ),
-        dataIndex: "vertical",
-        key: "vertical",
-        sorter: (a, b) => (a.vertical || "").localeCompare(b.vertical || ""),
-        fixed: stickyColumns.includes("vertical") ? "left" : undefined,
+    // const campaignIdx = baseCols.findIndex(
+    //   (col) => col.key === "campaign_name"
+    // );
+    // if (campaignIdx > -1) {
+    //   baseCols.splice(campaignIdx + 1, 0, {
+    //     title: (
+    //       <div className="flex items-center justify-between">
+    //         <span
+    //           style={{
+    //             color: filters["vertical"] ? "#1677ff" : "inherit",
+    //             fontWeight: filters["vertical"] ? "bold" : "normal",
+    //           }}>
+    //           Vertical
+    //         </span>
+    //         <Tooltip
+    //           title={stickyColumns.includes("vertical") ? "Unpin" : "Pin"}>
+    //           <Button
+    //             size="small"
+    //             icon={
+    //               stickyColumns.includes("vertical") ? (
+    //                 <PushpinFilled style={{ color: "#1677ff" }} />
+    //               ) : (
+    //                 <PushpinOutlined />
+    //               )
+    //             }
+    //             onClick={(e) => {
+    //               e.stopPropagation();
+    //               toggleStickyColumn("vertical");
+    //             }}
+    //           />
+    //         </Tooltip>
+    //       </div>
+    //     ),
+    //     dataIndex: "vertical",
+    //     key: "vertical",
+    //     sorter: (a, b) => (a.vertical || "").localeCompare(b.vertical || ""),
+    //     fixed: stickyColumns.includes("vertical") ? "left" : undefined,
 
-        // 🔹 Custom filter dropdown like your other headers
-        filterDropdown: ({
-          setSelectedKeys,
-          selectedKeys,
-          confirm,
-          clearFilters,
-        }) => (
-          <Select
-            mode="multiple"
-            allowClear
-            showSearch
-            placeholder="Select Vertical"
-            style={{ width: 250 }}
-            value={selectedKeys}
-            onChange={(value) => {
-              setSelectedKeys(value);
-              handleFilterChange(value, "vertical"); // your custom handler
-              confirm();
-            }}
-            optionLabelProp="label"
-            maxTagCount="responsive"
-            filterOption={(input, option) =>
-              (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-            }>
-            {[
-              "E-commerce",
-              "Betting Casino",
-              "Betting Sports",
-              "Utilities",
-              "Finance",
-              "Food Delivery",
-            ].map((val) => (
-              <Select.Option key={val} value={val} label={val}>
-                <Checkbox checked={selectedKeys.includes(val)}>{val}</Checkbox>
-              </Select.Option>
-            ))}
-          </Select>
-        ),
-        onFilter: (value, record) =>
-          record.vertical?.toString().toLowerCase() === value.toLowerCase(),
+    //     // 🔹 Custom filter dropdown like your other headers
+    //     filterDropdown: ({
+    //       setSelectedKeys,
+    //       selectedKeys,
+    //       confirm,
+    //       clearFilters,
+    //     }) => (
+    //       <Select
+    //         mode="multiple"
+    //         allowClear
+    //         showSearch
+    //         placeholder="Select Vertical"
+    //         style={{ width: 250 }}
+    //         value={selectedKeys}
+    //         onChange={(value) => {
+    //           setSelectedKeys(value);
+    //           handleFilterChange(value, "vertical"); // your custom handler
+    //           confirm();
+    //         }}
+    //         optionLabelProp="label"
+    //         maxTagCount="responsive"
+    //         filterOption={(input, option) =>
+    //           (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+    //         }>
+    //         {[
+    //           "E-commerce",
+    //           "Betting Casino",
+    //           "Betting Sports",
+    //           "Utilities",
+    //           "Finance",
+    //           "Food Delivery",
+    //         ].map((val) => (
+    //           <Select.Option key={val} value={val} label={val}>
+    //             <Checkbox checked={selectedKeys.includes(val)}>{val}</Checkbox>
+    //           </Select.Option>
+    //         ))}
+    //       </Select>
+    //     ),
+    //     onFilter: (value, record) =>
+    //       record.vertical?.toString().toLowerCase() === value.toLowerCase(),
 
-        // Inline editing still works
-        render: (text, record) => (
-          <Select
-            value={text || undefined}
-            style={{ width: 160 }}
-            showSearch
-            allowClear
-            bordered={false}
-            optionFilterProp="children"
-            dropdownMatchSelectWidth={false}
-            placeholder="Select Vertical"
-            onChange={(val) => saveVertical(record, val)}>
-            <Option value="E-commerce">E-commerce</Option>
-            <Option value="Betting Casino">Betting Casino</Option>
-            <Option value="Betting Sports">Betting Sports</Option>
-            <Option value="Utilities">Utilities</Option>
-            <Option value="Finance">Finance</Option>
-            <Option value="Food Delivery">Food Delivery</Option>
-          </Select>
-        ),
-      });
-    }
+    //     // Inline editing still works
+    //     render: (text, record) => (
+    //       <Select
+    //         value={text || undefined}
+    //         style={{ width: 160 }}
+    //         showSearch
+    //         allowClear
+    //         bordered={false}
+    //         optionFilterProp="children"
+    //         dropdownMatchSelectWidth={false}
+    //         placeholder="Select Vertical"
+    //         onChange={(val) => saveVertical(record, val)}>
+    //         <Option value="E-commerce">E-commerce</Option>
+    //         <Option value="Betting Casino">Betting Casino</Option>
+    //         <Option value="Betting Sports">Betting Sports</Option>
+    //         <Option value="Utilities">Utilities</Option>
+    //         <Option value="Finance">Finance</Option>
+    //         <Option value="Food Delivery">Food Delivery</Option>
+    //       </Select>
+    //     ),
+    //   });
+    // }
 
     // 🔹 Insert FP after paused_date
     const pauseIdx = baseCols.findIndex((col) => col.key === "paused_date");
