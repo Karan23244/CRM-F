@@ -82,7 +82,7 @@ export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
     ite: false,
     etc: false,
   });
-
+  console.log(conditions, " conditions");
   // Step 1 – Compute metrics + zone
   const processed = data.map((row) => {
     const cti = calculateCTI(row.clicks, row.noi);

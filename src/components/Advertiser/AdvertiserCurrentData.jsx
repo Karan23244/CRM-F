@@ -331,6 +331,7 @@ const AdvertiserData = () => {
   const allowedFieldsAfter3Days = [
     "adv_id",
     "campaign_name",
+    "vertical",
     "geo",
     "city",
     "os",
@@ -343,6 +344,8 @@ const AdvertiserData = () => {
     "pid",
     "pay_out",
     "shared_date",
+    "fa",
+    "fa1",
     "paused_date",
     "adv_total_no",
     "adv_deductions",
