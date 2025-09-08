@@ -211,12 +211,20 @@ export default function OptimizationPage() {
                 size="large"
                 className="w-full"
                 placeholder="Choose a campaign"
-                allowClear>
-                {campaigns.map((c) => (
-                  <Option key={c} value={c}>
-                    {c}
-                  </Option>
-                ))}
+                allowClear
+                showSearch
+                optionFilterProp="children" // enables searching by text
+                filterOption={(input, option) =>
+                  option?.children?.toLowerCase().includes(input.toLowerCase())
+                }>
+                {campaigns
+                  .slice() // copy to avoid mutating original
+                  .sort((a, b) => a.localeCompare(b)) // sort alphabetically
+                  .map((c) => (
+                    <Option key={c} value={c}>
+                      {c}
+                    </Option>
+                  ))}
               </Select>
             </Col>
 
