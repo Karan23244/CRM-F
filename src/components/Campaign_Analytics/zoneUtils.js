@@ -97,11 +97,14 @@ export function getZoneReason(
   return results;
 }
 
-// ✅ New helper for extra required percentages
+// ✅ New helper for extra required percentages with debugging
 export function calculatePercentages(
   { clicks, installs, noe, rti, pi, pe },
   conditions = []
 ) {
+  // console.log("📊 Input row:", { clicks, installs, noe, rti, pi, pe });
+  // console.log("📋 Conditions received:", conditions);
+
   const NOI = clicks ? (installs / clicks) * 100 : 0;
   const NOE = installs ? (noe / installs) * 100 : 0;
   const RTI = installs ? (rti / installs) * 100 : 0;
@@ -109,26 +112,42 @@ export function calculatePercentages(
   const PE = noe ? (pe / noe) * 100 : 0;
 
   function getMetricZone(value, key) {
-    if (!conditions || !conditions.length) return "Gray"; // no conditions provided
+    // console.log(`➡️ Checking zone for ${key.toUpperCase()} = ${value}`);
+
+    // if (!conditions || !conditions.length) {
+    //   console.warn("⚠️ No conditions provided, defaulting to Gray");
+    //   return "Gray";
+    // }
 
     for (const cond of conditions) {
       const min = Number(cond[`${key}_min`]);
       const max = Number(cond[`${key}_max`]);
+      // console.log(
+      //   `   🔎 Comparing ${value} with [${min}, ${max}] in zone ${cond.zone_color}`
+      // );
+
       if (value >= min && value <= max) {
+        // console.log(`   ✅ Matched zone: ${cond.zone_color}`);
         return cond.zone_color;
       }
     }
+
+    console.warn(`   ❌ No match for ${key}, defaulting to Red`);
     return "Red"; // fallback if no match
   }
 
-  return {
+  const result = {
     NOI: { value: NOI, zone: getMetricZone(NOI, "cti") },
     NOE: { value: NOE, zone: getMetricZone(NOE, "ite") },
     RTI: { value: RTI, zone: getMetricZone(RTI, "fraud") },
     PI: { value: PI, zone: getMetricZone(PI, "fraud") },
     PE: { value: PE, zone: getMetricZone(PE, "etc") },
   };
+
+  // console.log("✅ Final calculated percentages with zones:", result);
+  return result;
 }
+
 
 // Dynamic evaluation: loop through all DB condition rows
 // export function getZoneDynamic(fraud, cti, ite, etc, conditions = []) {

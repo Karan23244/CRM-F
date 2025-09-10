@@ -50,8 +50,8 @@ ChartJS.register(
 );
 import { InfoCircleOutlined } from "@ant-design/icons";
 const { Panel } = Collapse;
-const apiUrl = "https://gapi.clickorbits.in"; // Update with your actual API URL
-const apiUrl1 = "https://gapi.clickorbits.in/api";
+const apiUrl = "http://localhost:2001"; // Update with your actual API URL
+const apiUrl1 = "http://localhost:2001/api";
 
 export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
   const user = useSelector((state) => state.auth.user);
@@ -579,18 +579,21 @@ export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
   // Enhance rows with percentage calculations
   const enhancedRows = useMemo(() => {
     return modalData.rows.map((row) => {
-      const perc = calculatePercentages({
-        clicks: row.clicks,
-        installs: row.noi,
-        noe: row.noe,
-        rti: row.rti,
-        pi: row.pi,
-        pe: row.pe,
-      });
+      const perc = calculatePercentages(
+        {
+          clicks: row.clicks,
+          installs: row.noi,
+          noe: row.noe,
+          rti: row.rti,
+          pi: row.pi,
+          pe: row.pe,
+        },
+        conditions // ✅ second argument
+      );
 
       return { ...row, percentages: perc };
     });
-  }, [modalData.rows]);
+  }, [modalData.rows, conditions, globalIgnores]);
   const filteredDataModal = useMemo(() => {
     return enhancedRows.filter((row) =>
       Object.entries(selectedFilters).every(([key, values]) =>
