@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import axios from "axios";
 import { useSelector } from "react-redux";
+import { FilterOutlined } from "@ant-design/icons";
 import {
   calculateCTI,
   calculateITE,
@@ -8,6 +9,7 @@ import {
   calculateFraudScore,
   getZoneDynamic,
   getZoneReason,
+  calculatePercentages,
 } from "./zoneUtils";
 import { Pie, Line } from "react-chartjs-2";
 import {
@@ -25,6 +27,7 @@ import {
   Table,
   Card,
   Typography,
+  Select,
   Button,
   Modal,
   Input,
@@ -48,7 +51,7 @@ ChartJS.register(
 import { InfoCircleOutlined } from "@ant-design/icons";
 const { Panel } = Collapse;
 const apiUrl = "https://gapi.clickorbits.in"; // Update with your actual API URL
-const apiUrl1 = "https://apii.clickorbits.in/api";
+const apiUrl1 = "https://gapi.clickorbits.in/api";
 
 export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
   const user = useSelector((state) => state.auth.user);
@@ -75,6 +78,7 @@ export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
   const [editValues, setEditValues] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [subAdmins, setSubAdmins] = useState([]);
+  const [selectedFilters, setSelectedFilters] = useState({});
   const campaignName = data[0]?.campaign_name;
   const [globalIgnores, setGlobalIgnores] = useState({
     fraud: false,
@@ -148,7 +152,11 @@ export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
       const g = acc[row.pubam];
       g.totalPIDs += 1;
       g.totalEvents += row.noe;
-
+      // ✅ Track paused
+      if (row.is_paused) {
+        g.pausedPIDs += 1;
+        g.pausedEvents += row.noe;
+      }
       if (row.zone.toLowerCase() === "red") {
         g.red += 1;
         g.redEvents += row.noe;
@@ -560,6 +568,189 @@ export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
       ),
     })),
   ];
+  // Extract unique values for each column
+  const getUniqueValues = (key) => {
+    return [...new Set(modalData.rows.map((row) => row[key]))].filter(Boolean);
+  };
+
+  const handleFilterChange = (value, dataIndex) => {
+    setSelectedFilters((prev) => ({ ...prev, [dataIndex]: value }));
+  };
+  // Enhance rows with percentage calculations
+  const enhancedRows = useMemo(() => {
+    return modalData.rows.map((row) => {
+      const perc = calculatePercentages({
+        clicks: row.clicks,
+        installs: row.noi,
+        noe: row.noe,
+        rti: row.rti,
+        pi: row.pi,
+        pe: row.pe,
+      });
+
+      return { ...row, percentages: perc };
+    });
+  }, [modalData.rows]);
+  const filteredDataModal = useMemo(() => {
+    return enhancedRows.filter((row) =>
+      Object.entries(selectedFilters).every(([key, values]) =>
+        values && values.length > 0 ? values.includes(row[key]) : true
+      )
+    );
+  }, [enhancedRows, selectedFilters]);
+
+  const getColumnWithFilter = (title, dataIndex) => ({
+    title: (
+      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        {title}
+      </div>
+    ),
+    dataIndex,
+    key: dataIndex,
+    filterDropdown: () => (
+      <div style={{ padding: 8 }}>
+        <Select
+          mode="multiple"
+          showSearch
+          style={{ width: 180 }}
+          allowClear
+          placeholder={`Filter ${title}`}
+          value={selectedFilters[dataIndex] || []}
+          onChange={(value) => handleFilterChange(value, dataIndex)}
+          optionFilterProp="children" // enables search by label text
+        >
+          {getUniqueValues(dataIndex).map((val) => (
+            <Select.Option key={val} value={val}>
+              {val}
+            </Select.Option>
+          ))}
+        </Select>
+      </div>
+    ),
+    filterIcon: (filtered) => (
+      <FilterOutlined style={{ color: filtered ? "#1890ff" : "#aaa" }} />
+    ),
+    onFilterDropdownVisibleChange: (visible) => {
+      if (visible) {
+        // optional: do something when dropdown opens
+      }
+    },
+  });
+
+  // helper to map zone -> color class
+  const getZoneColorClass = (zone) => {
+    switch (zone) {
+      case "Green":
+        return "text-green-600";
+      case "Yellow":
+        return "text-yellow-600";
+      case "Orange":
+        return "text-orange-600";
+      case "Red":
+      default:
+        return "text-red-600";
+    }
+  };
+
+  const modalColumns = [
+    getColumnWithFilter("PUB AM", "pubam"),
+    getColumnWithFilter("PUBID", "pubid"),
+    getColumnWithFilter("PID", "pid"),
+
+    {
+      ...getColumnWithFilter("NOI", "noi"),
+      render: (val, record) => {
+        const perc = record.percentages?.NOI;
+        const colorClass = perc
+          ? getZoneColorClass(perc.zone)
+          : "text-gray-500";
+        return (
+          <>
+            {val}{" "}
+            <span className={`${colorClass} text-xs`}>
+              ({perc?.value.toFixed(2)}%)
+            </span>
+          </>
+        );
+      },
+    },
+
+    {
+      ...getColumnWithFilter("RTI", "rti"),
+      render: (val, record) => {
+        const perc = record.percentages?.RTI;
+        const colorClass = perc
+          ? getZoneColorClass(perc.zone)
+          : "text-gray-500";
+        return (
+          <>
+            {val}{" "}
+            <span className={`${colorClass} text-xs`}>
+              ({perc?.value.toFixed(2)}%)
+            </span>
+          </>
+        );
+      },
+    },
+
+    {
+      ...getColumnWithFilter("PI", "pi"),
+      render: (val, record) => {
+        const perc = record.percentages?.PI;
+        const colorClass = perc
+          ? getZoneColorClass(perc.zone)
+          : "text-gray-500";
+        return (
+          <>
+            {val}{" "}
+            <span className={`${colorClass} text-xs`}>
+              ({perc?.value.toFixed(2)}%)
+            </span>
+          </>
+        );
+      },
+    },
+
+    {
+      ...getColumnWithFilter("NOE", "noe"),
+      render: (val, record) => {
+        const perc = record.percentages?.NOE;
+        const colorClass = perc
+          ? getZoneColorClass(perc.zone)
+          : "text-gray-500";
+        return (
+          <>
+            {val}{" "}
+            <span className={`${colorClass} text-xs`}>
+              ({perc?.value.toFixed(2)}%)
+            </span>
+          </>
+        );
+      },
+    },
+
+    {
+      ...getColumnWithFilter("PE", "pe"),
+      render: (val, record) => {
+        const perc = record.percentages?.PE;
+        const colorClass = perc
+          ? getZoneColorClass(perc.zone)
+          : "text-gray-500";
+        return (
+          <>
+            {val}{" "}
+            <span className={`${colorClass} text-xs`}>
+              ({perc?.value.toFixed(2)}%)
+            </span>
+          </>
+        );
+      },
+    },
+
+    getColumnWithFilter("NOCRM", "nocrm"),
+    getColumnWithFilter("CLICKS", "clicks"),
+  ];
+
   return (
     <div className="min-h-screen space-y-6">
       {/* Always show Edit Conditions on top */}
@@ -706,29 +897,14 @@ export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
           </div>
 
           <Table
-            columns={[
-              { title: "PUB AM", dataIndex: "pubam", key: "pubam" },
-              { title: "PUBID", dataIndex: "pubid", key: "pubid" },
-              { title: "PID", dataIndex: "pid", key: "pid" },
-              { title: "NOI", dataIndex: "noi", key: "noi" },
-              { title: "RTI", dataIndex: "rti", key: "rti" },
-              { title: "PI", dataIndex: "pi", key: "pi" },
-              { title: "NOE", dataIndex: "noe", key: "noe" },
-              { title: "PE", dataIndex: "pe", key: "pe" },
-              { title: "NOCRM", dataIndex: "nocrm", key: "nocrm" },
-              { title: "CLICKS", dataIndex: "clicks", key: "clicks" },
-            ]}
-            dataSource={modalData.rows}
+            columns={modalColumns}
+            dataSource={filteredDataModal}
             rowKey={(record) => record.pid}
             pagination={{
-              ...pagination,
               showSizeChanger: true,
               pageSizeOptions: ["10", "20", "50", "100"],
               showTotal: (total, range) =>
                 `${range[0]}-${range[1]} of ${total} items`,
-              onChange: (page, pageSize) => {
-                setPagination({ current: page, pageSize });
-              },
             }}
             bordered
           />
