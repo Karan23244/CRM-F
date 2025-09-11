@@ -51,7 +51,7 @@ ChartJS.register(
 import { InfoCircleOutlined } from "@ant-design/icons";
 const { Panel } = Collapse;
 const apiUrl = "https://gapi.clickorbits.in"; // Update with your actual API URL
-const apiUrl1 = "https://gapi.clickorbits.in/api";
+const apiUrl1 = "https://apii.clickorbits.in/api";
 
 export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
   const user = useSelector((state) => state.auth.user);
