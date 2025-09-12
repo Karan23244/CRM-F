@@ -24,23 +24,23 @@ const PubnameData = () => {
   const [level, setLevel] = useState("");
   const [subAdmins, setSubAdmins] = useState([]);
 
-  // **Fetch publisher data**
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await axios.get(`${apiUrl}/get-Namepub/`);
-        console.log(response.data);
-        if (response.data && Array.isArray(response.data.data)) {
-          setTableData(response.data.data);
-        } else {
-          console.error("Unexpected response format:", response.data);
-          setTableData([]);
-        }
-      } catch (error) {
-        console.error("Error fetching data:", error);
+  // ✅ Make fetchData reusable
+  const fetchData = async () => {
+    try {
+      const response = await axios.get(`${apiUrl}/get-Namepub/`);
+      if (response.data && Array.isArray(response.data.data)) {
+        setTableData(response.data.data);
+      } else {
+        console.error("Unexpected response format:", response.data);
+        setTableData([]);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
+  };
 
+  // **Fetch publisher data on mount**
+  useEffect(() => {
     fetchData();
   }, []);
   useEffect(() => {
@@ -222,7 +222,7 @@ const PubnameData = () => {
             onClick={() => setEditingAssignRowId(record.pub_id)}
             className="cursor-pointer hover:underline"
             title="Click to change user">
-            {"-"}
+            {record.username || "Select Sub Admin"}
           </span>
         );
       },
