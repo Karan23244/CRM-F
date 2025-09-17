@@ -34,6 +34,7 @@ const columnHeadingsMap = {
   pub_id: "PUB ID",
   geo: "Geo",
   created_at: "Created At",
+  adv_res: "Status",
 };
 const PublisherRequest = () => {
   const user = useSelector((state) => state.auth.user);
@@ -51,7 +52,7 @@ const PublisherRequest = () => {
   const [blacklistPIDs, setBlacklistPIDs] = useState([]);
   const [filters, setFilters] = useState({});
   const [pinnedColumns, setPinnedColumns] = useState({});
-
+  console.log(requests)
   // ✅ Callbacks to prevent re-creation on each render
   const clearAllFilters = useCallback(() => setFilters({}), []);
   const togglePin = useCallback((key) => {
