@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Table,
   Button,
@@ -13,6 +13,7 @@ import {
 } from "antd";
 import Swal from "sweetalert2";
 import { exportToExcel } from "../exportExcel";
+import { debounce } from "lodash";
 import axios from "axios";
 import { subscribeToNotifications } from "./Socket";
 import { PushpinOutlined } from "@ant-design/icons";
@@ -22,7 +23,7 @@ const { Option } = Select;
 const apiUrl = import.meta.env.VITE_API_URL || "https://apii.clickorbits.in";
 const apiUrl1 =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
-const columnHeadings = {
+const columnHeadingsMap = {
   pub_name: "Publisher",
   adv_name: "Advertiser",
   campaign_name: "Campaign",
@@ -38,9 +39,11 @@ const PublisherRequest = () => {
   const user = useSelector((state) => state.auth.user);
   const username = user?.username || null;
   const userRole = user?.role;
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm();
+
   const [requests, setRequests] = useState([]);
   const [advertisers, setAdvertisers] = useState([]);
   const [dropdownOptions, setDropdownOptions] = useState({});
@@ -48,11 +51,32 @@ const PublisherRequest = () => {
   const [blacklistPIDs, setBlacklistPIDs] = useState([]);
   const [filters, setFilters] = useState({});
   const [pinnedColumns, setPinnedColumns] = useState({});
-  const clearAllFilters = () => {
-    setFilters({});
-  };
-  // 🚀 Fetch Dropdown Data
-  const fetchDropdowns = async () => {
+
+  // ✅ Callbacks to prevent re-creation on each render
+  const clearAllFilters = useCallback(() => setFilters({}), []);
+  const togglePin = useCallback((key) => {
+    setPinnedColumns((prev) => {
+      let next;
+      if (!prev[key]) next = "left";
+      else if (prev[key] === "left") next = "right";
+      else next = null;
+      return { ...prev, [key]: next };
+    });
+  }, []);
+  const handleFilterChange = useCallback((value, key) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+  }, []);
+
+  const debouncedSearch = useMemo(
+    () =>
+      debounce((val) => {
+        setSearchText(val);
+      }, 400),
+    []
+  );
+
+  // 🚀 Fetchers
+  const fetchDropdowns = useCallback(async () => {
     try {
       const [pidRes, pubRes] = await Promise.all([
         axios.get(`${apiUrl1}/get-pid`),
@@ -62,73 +86,63 @@ const PublisherRequest = () => {
         pid: pidRes.data?.data?.map((item) => item.pid) || [],
         pub_id: pubRes.data?.data?.map((item) => item.pub_id) || [],
       });
-    } catch (error) {
+    } catch {
       message.error("Failed to fetch dropdown options");
     }
-  };
-  const togglePin = (key) => {
-    setPinnedColumns((prev) => {
-      let next;
-      if (!prev[key]) next = "left"; // not pinned → pin left
-      else if (prev[key] === "left") next = "right"; // left → pin right
-      else next = null; // right → unpin
-      return { ...prev, [key]: next };
-    });
-  };
+  }, [apiUrl1]);
 
-  // 🚀 Fetch Advertisers
-  const fetchAdvertisers = async () => {
+  const fetchAdvertisers = useCallback(async () => {
     try {
       const { data } = await axios.get(`${apiUrl1}/get-subadmin`);
-
       const names =
         data?.data
           ?.filter((a) => ["advertiser_manager", "advertiser"].includes(a.role))
           .map((a) => a.username) || [];
-
       setAdvertisers(names);
-    } catch (error) {
-      console.error("Error fetching advertisers:", error);
+    } catch {
       message.error("Failed to load advertiser names");
     }
-  };
+  }, [apiUrl1]);
 
-  // 🚀 Fetch Blacklist PIDs
-  const fetchBlacklistPIDs = async () => {
+  const fetchBlacklistPIDs = useCallback(async () => {
     try {
       const { data } = await axios.get(`${apiUrl1}/get-blacklist`);
-      const list = data?.map((item) => item.blacklistID) || [];
-      setBlacklistPIDs(list);
-    } catch (error) {
-      console.error("Failed to fetch blacklist PIDs:", error);
+      setBlacklistPIDs(data?.map((item) => item.blacklistID) || []);
+    } catch {
+      console.error("Failed to fetch blacklist PIDs");
     }
-  };
-  const fetchRequests = async () => {
+  }, [apiUrl1]);
+
+  const fetchRequests = useCallback(async () => {
     try {
       const res = await axios.get(`${apiUrl}/getAllPubRequests`);
-      // Sort by id DESC (newest first)
       const sortedData = (res.data?.data || []).sort((a, b) => b.id - a.id);
-      console.log(sortedData);
       setRequests(sortedData);
-    } catch (err) {
-      console.error("Error fetching requests:", err);
+    } catch {
       message.error("Failed to load requests");
       setRequests([]);
     }
+  }, [apiUrl]);
+  const showModal = () => {
+    setIsModalVisible(true);
   };
-
-  // 🚀 Initial Fetch on Load
+  // 🚀 Initial Load
   useEffect(() => {
     fetchBlacklistPIDs();
     fetchDropdowns();
     fetchAdvertisers();
-    subscribeToNotifications((data) => {
-      fetchRequests();
-    });
-  }, []);
+    subscribeToNotifications(() => fetchRequests());
+  }, [
+    fetchBlacklistPIDs,
+    fetchDropdowns,
+    fetchAdvertisers,
+    fetchRequests,
+    subscribeToNotifications,
+  ]);
 
   // 🔍 Filtered Requests
   const filteredRequests = useMemo(() => {
+    if (!requests.length) return [];
     return requests.filter((item) => {
       const matchesSearch = Object.values(item).some((val) =>
         String(val).toLowerCase().includes(searchText.toLowerCase())
@@ -143,15 +157,31 @@ const PublisherRequest = () => {
       return true;
     });
   }, [requests, filters, searchText]);
-  const showModal = () => {
-    setIsModalVisible(true);
-  };
+
+  // ✅ Unique filter values
+  const uniqueValues = useMemo(() => {
+    const values = {};
+    for (const item of requests) {
+      for (const key of Object.keys(columnHeadingsMap)) {
+        if (!values[key]) values[key] = new Set();
+        if (item[key] !== null && item[key] !== undefined) {
+          values[key].add(item[key]);
+        }
+      }
+      if (!values["adv_res"]) values["adv_res"] = new Set();
+      if (item.adv_res !== null && item.adv_res !== undefined) {
+        values["adv_res"].add(item.adv_res);
+      }
+    }
+    return Object.fromEntries(
+      Object.entries(values).map(([k, v]) => [k, [...v]])
+    );
+  }, [requests, columnHeadingsMap]);
 
   const handleCancel = () => {
     setIsModalVisible(false);
     form.resetFields();
   };
-
   const handleOk = async () => {
     try {
       setIsSubmitting(true);
@@ -218,99 +248,197 @@ const PublisherRequest = () => {
     }
   };
 
-  const uniqueValues = useMemo(() => {
-    const values = {};
-    requests.forEach((item) => {
-      // normal columns
-      Object.keys(columnHeadings).forEach((key) => {
-        if (!values[key]) values[key] = new Set();
-        if (item[key] !== null && item[key] !== undefined) {
-          values[key].add(item[key]);
+  // 🚀 Update Permission / Priority
+  const handleUpdatePrm = useCallback(
+    async (record, values) => {
+      try {
+        const payload = {
+          id: record.id,
+          campaign_name: record.campaign_name,
+          pid: record.pid,
+          priority: values.priority,
+          prm: values.prm,
+        };
+
+        const res = await axios.put(`${apiUrl}/updatePubprm`, payload);
+
+        if (res.data?.success) {
+          // Update only the specific row in local state
+          setRequests((prev) =>
+            prev.map((item) =>
+              item.id === record.id
+                ? { ...item, priority: values.priority, prm: values.prm }
+                : item
+            )
+          );
+
+          Swal.fire({
+            icon: "success",
+            title: "Success",
+            text: res.data.message || "Updated successfully",
+            timer: 1500,
+            showConfirmButton: false,
+          });
+        } else {
+          Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: res.data.message || "Update failed",
+          });
         }
-      });
-
-      // ✅ include adv_res manually
-      if (!values["adv_res"]) values["adv_res"] = new Set();
-      if (item.adv_res !== null && item.adv_res !== undefined) {
-        values["adv_res"].add(item.adv_res);
-      }
-    });
-
-    // convert sets → arrays
-    Object.keys(values).forEach((key) => {
-      values[key] = Array.from(values[key]);
-    });
-
-    return values;
-  }, [requests]);
-
-  // Handle filter change for a column
-  const handleFilterChange = (value, key) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-  };
-  // 🚀 Update Permission/Priority
-  const handleUpdatePrm = async (record, values) => {
-    try {
-      const payload = {
-        id: record.id,
-        campaign_name: record.campaign_name,
-        pid: record.pid,
-        priority: values.priority,
-        prm: values.prm,
-      };
-
-      console.log("Updating record:", payload); // Debugging payload
-
-      const res = await axios.put(`${apiUrl}/updatePubprm`, payload);
-      console.log("Update response:", res.data); // Debugging response
-
-      if (res.data?.success) {
-        Swal.fire({
-          icon: "success",
-          title: "Success",
-          text: res.data.message || "Updated successfully",
-          timer: 2000,
-          showConfirmButton: false,
-        });
-        fetchRequests(); // refresh table
-      } else {
+      } catch (err) {
         Swal.fire({
           icon: "error",
-          title: "Error",
-          text: res.data.message || "Update failed",
+          title: "Server Error",
+          text: "Failed to update record",
         });
       }
-    } catch (err) {
-      console.error("Update error:", err);
+    },
+    [apiUrl]
+  );
 
-      Swal.fire({
-        icon: "error",
-        title: "Server Error",
-        text: err.response?.data?.message || "Failed to update record",
-      });
-    }
-  };
+  // ✅ Optimized Columns (with Priority & Permission merged)
+  // const columns = useMemo(() => {
+  //   const baseCols = Object.keys(columnHeadingsMap).map((key) => ({
+  //     title: (
+  //       <div className="flex items-center justify-between">
+  //         <span
+  //           style={{
+  //             color: filters[key]?.length > 0 ? "#1677ff" : "inherit",
+  //             fontWeight: filters[key]?.length > 0 ? "bold" : "normal",
+  //           }}>
+  //           {columnHeadingsMap[key] || key}
+  //         </span>
+  //         <PushpinOutlined
+  //           onClick={() => togglePin(key)}
+  //           rotate={pinnedColumns[key] === "right" ? 180 : 0}
+  //           style={{
+  //             color: pinnedColumns[key] ? "#1677ff" : "#aaa",
+  //             cursor: "pointer",
+  //           }}
+  //         />
+  //       </div>
+  //     ),
+  //     key,
+  //     dataIndex: key,
+  //     fixed: pinnedColumns[key] || undefined,
+  //     render: (value) =>
+  //       key === "created_at" ? new Date(value).toLocaleString("en-IN") : value,
+  //     filterDropdown:
+  //       uniqueValues[key]?.length > 0
+  //         ? () => (
+  //             <div style={{ padding: 8 }}>
+  //               <Select
+  //                 mode="multiple"
+  //                 allowClear
+  //                 style={{ width: 250 }}
+  //                 value={filters[key] || []}
+  //                 onChange={(v) => handleFilterChange(v, key)}>
+  //                 {uniqueValues[key]
+  //                   ?.slice() // create a copy to avoid mutating original
+  //                   .sort((a, b) => a.localeCompare(b)) // alphabetical order
+  //                   .map((val) => (
+  //                     <Option key={val} value={val}>
+  //                       {val}
+  //                     </Option>
+  //                   ))}
+  //               </Select>
+  //             </div>
+  //           )
+  //         : null,
+  //     filtered: filters[key]?.length > 0,
+  //   }));
 
-  // Compose columns with filterDropdown, filter icon state, and sticky column pin button
-  const getColumns = (columnHeadings) => {
-    const columns = Object.keys(columnHeadings).map((key) => ({
+  //   // Priority column
+  //   baseCols.push({
+  //     title: "Priority",
+  //     key: "priority",
+  //     dataIndex: "priority",
+  //     fixed: pinnedColumns["priority"] || undefined,
+  //     render: (_, record) =>
+  //       userRole === "publisher_manager" ? (
+  //         <Select
+  //           value={record.priority}
+  //           style={{ width: 80 }}
+  //           onChange={(val) =>
+  //             handleUpdatePrm(record, { priority: val, prm: record.prm })
+  //           }>
+  //           {Array.from({ length: 15 }, (_, i) => (
+  //             <Option key={i + 1} value={i + 1}>
+  //               {i + 1}
+  //             </Option>
+  //           ))}
+  //         </Select>
+  //       ) : (
+  //         record.priority || "N/A"
+  //       ),
+  //   });
+
+  //   // Permission column
+  //   baseCols.push({
+  //     title: "Permission",
+  //     key: "prm",
+  //     dataIndex: "prm",
+  //     fixed: pinnedColumns["prm"] || undefined,
+  //     render: (_, record) =>
+  //       userRole === "publisher_manager" ? (
+  //         <Select
+  //           value={record.prm}
+  //           style={{
+  //             width: 120,
+  //             fontWeight: 600,
+  //             backgroundColor: record.prm === 1 ? "#e6ffed" : "#ffe6e6",
+  //             color: record.prm === 1 ? "green" : "red",
+  //           }}
+  //           onChange={(val) =>
+  //             handleUpdatePrm(record, { priority: record.priority, prm: val })
+  //           }>
+  //           <Option value={1}>✅ Allow</Option>
+  //           <Option value={0}>❌ Disallow</Option>
+  //         </Select>
+  //       ) : (
+  //         <span
+  //           style={{
+  //             color: record.prm === 1 ? "green" : "red",
+  //             fontWeight: 600,
+  //           }}>
+  //           {record.prm === 1 ? "✅ Allow" : "❌ Disallow"}
+  //         </span>
+  //       ),
+  //   });
+
+  //   return baseCols;
+  // }, [
+  //   filters,
+  //   pinnedColumns,
+  //   togglePin,
+  //   uniqueValues,
+  //   userRole,
+  //   handleFilterChange,
+  //   handleUpdatePrm,
+  // ]);
+  const buildColumns = ({
+    filters,
+    pinnedColumns,
+    togglePin,
+    uniqueValues,
+    userRole,
+    handleFilterChange,
+    handleUpdatePrm,
+  }) => {
+    const cols = Object.keys(columnHeadingsMap).map((key) => ({
       title: (
         <div className="flex items-center justify-between">
           <span
             style={{
               color: filters[key]?.length > 0 ? "#1677ff" : "inherit",
               fontWeight: filters[key]?.length > 0 ? "bold" : "normal",
-              cursor: "pointer",
-              userSelect: "none",
             }}>
-            {columnHeadings[key] || key}
+            {columnHeadingsMap[key] || key}
           </span>
           <PushpinOutlined
             onClick={() => togglePin(key)}
-            rotate={pinnedColumns[key] === "right" ? 180 : 0} // rotate if pinned right
+            rotate={pinnedColumns[key] === "right" ? 180 : 0}
             style={{
               color: pinnedColumns[key] ? "#1677ff" : "#aaa",
               cursor: "pointer",
@@ -321,374 +449,113 @@ const PublisherRequest = () => {
       key,
       dataIndex: key,
       fixed: pinnedColumns[key] || undefined,
-      render: (value) => {
-        if (key === "created_at" && value) {
-          const date = new Date(value);
-          return date.toLocaleString("en-IN", {
-            year: "numeric",
-            month: "short",
-            day: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-            hour12: true,
-          });
-        }
-        return value;
-      },
+      render: (value) =>
+        key === "created_at" ? new Date(value).toLocaleString("en-IN") : value,
       filterDropdown:
         uniqueValues[key]?.length > 0
           ? () => (
               <div style={{ padding: 8 }}>
-                <div style={{ marginBottom: 8 }}>
-                  <Checkbox
-                    indeterminate={
-                      filters[key]?.length > 0 &&
-                      filters[key]?.length < uniqueValues[key]?.length
-                    }
-                    checked={filters[key]?.length === uniqueValues[key]?.length}
-                    onChange={(e) => {
-                      const checked = e.target.checked;
-                      handleFilterChange(
-                        checked ? [...uniqueValues[key]] : [],
-                        key
-                      );
-                    }}>
-                    Select All
-                  </Checkbox>
-                </div>
                 <Select
                   mode="multiple"
                   allowClear
-                  showSearch
-                  placeholder={`Select ${columnHeadings[key]}`}
                   style={{ width: 250 }}
                   value={filters[key] || []}
-                  onChange={(value) => handleFilterChange(value, key)}
-                  optionLabelProp="label"
-                  maxTagCount="responsive"
-                  filterOption={(input, option) =>
-                    (option?.label ?? "")
-                      .toString()
-                      .toLowerCase()
-                      .includes(input.toLowerCase())
-                  }>
-                  {[...uniqueValues[key]]
-                    .filter((val) => val !== null && val !== undefined)
-                    .sort((a, b) => {
-                      const aNum = parseFloat(a);
-                      const bNum = parseFloat(b);
-                      const isNumeric = !isNaN(aNum) && !isNaN(bNum);
-                      return isNumeric
-                        ? aNum - bNum
-                        : a.toString().localeCompare(b.toString());
-                    })
+                  onChange={(v) => handleFilterChange(v, key)}>
+                  {uniqueValues[key]
+                    .slice()
+                    .sort((a, b) => a.localeCompare(b))
                     .map((val) => (
-                      <Option key={val} value={val} label={val}>
-                        <Checkbox checked={filters[key]?.includes(val)}>
-                          {val}
-                        </Checkbox>
+                      <Option key={val} value={val}>
+                        {val}
                       </Option>
                     ))}
                 </Select>
               </div>
             )
           : null,
-
       filtered: filters[key]?.length > 0,
     }));
 
-    // Add Action column at the end
-    columns.push({
-      title: (
-        <div className="flex items-center justify-between">
-          <span
-            style={{
-              color: filters["adv_res"]?.length > 0 ? "#1677ff" : "inherit",
-              fontWeight: filters["adv_res"]?.length > 0 ? "bold" : "normal",
-              cursor: "pointer",
-              userSelect: "none",
-            }}>
-            Action
-          </span>
-          <PushpinOutlined
-            onClick={() => togglePin("adv_res")}
-            rotate={pinnedColumns["adv_res"] === "right" ? 180 : 0}
-            style={{
-              color: pinnedColumns["adv_res"] ? "#1677ff" : "#aaa",
-              cursor: "pointer",
-            }}
-          />
-        </div>
-      ),
-      key: "action",
-      dataIndex: "adv_res",
-      fixed: pinnedColumns["adv_res"] || undefined,
-
-      filterDropdown:
-        uniqueValues["adv_res"]?.length > 0
-          ? () => (
-              <div style={{ padding: 8 }}>
-                <div style={{ marginBottom: 8 }}>
-                  <Checkbox
-                    indeterminate={
-                      filters["adv_res"]?.length > 0 &&
-                      filters["adv_res"]?.length <
-                        uniqueValues["adv_res"]?.length
-                    }
-                    checked={
-                      filters["adv_res"]?.length ===
-                      uniqueValues["adv_res"]?.length
-                    }
-                    onChange={(e) => {
-                      const checked = e.target.checked;
-                      handleFilterChange(
-                        checked ? [...uniqueValues["adv_res"]] : [],
-                        "adv_res"
-                      );
-                    }}>
-                    Select All
-                  </Checkbox>
-                </div>
-                <Select
-                  mode="multiple"
-                  allowClear
-                  showSearch
-                  placeholder={`Select Action`}
-                  style={{ width: 250 }}
-                  value={filters["adv_res"] || []}
-                  onChange={(value) => handleFilterChange(value, "adv_res")}
-                  optionLabelProp="label"
-                  maxTagCount="responsive"
-                  filterOption={(input, option) =>
-                    (option?.label ?? "")
-                      .toString()
-                      .toLowerCase()
-                      .includes(input.toLowerCase())
-                  }>
-                  {[...uniqueValues["adv_res"]]
-                    .filter((val) => val !== null && val !== undefined)
-                    .map((val) => (
-                      <Option key={val} value={val} label={val}>
-                        <Checkbox checked={filters["adv_res"]?.includes(val)}>
-                          {val.charAt(0).toUpperCase() + val.slice(1)}
-                        </Checkbox>
-                      </Option>
-                    ))}
-                </Select>
-              </div>
-            )
-          : null,
-
-      filtered: filters["adv_res"]?.length > 0,
-
-      render: (_, record) => {
-        const status = record.adv_res?.toLowerCase();
-        let color = "default";
-        if (status === "waiting") color = "warning";
-        else if (status === "shared") color = "primary";
-        else if (status === "rejected") color = "danger";
-
-        return (
-          <Button type={color} disabled>
-            {status?.charAt(0).toUpperCase() + status?.slice(1) || "N/A"}
-          </Button>
-        );
+    cols.push(
+      {
+        title: "Priority",
+        key: "priority",
+        dataIndex: "priority",
+        fixed: pinnedColumns["priority"] || undefined,
+        render: (_, record) =>
+          userRole === "publisher_manager" ? (
+            <Select
+              value={record.priority}
+              style={{ width: 80 }}
+              onChange={(val) =>
+                handleUpdatePrm(record, { priority: val, prm: record.prm })
+              }>
+              {Array.from({ length: 15 }, (_, i) => (
+                <Option key={i + 1} value={i + 1}>
+                  {i + 1}
+                </Option>
+              ))}
+            </Select>
+          ) : (
+            record.priority || "N/A"
+          ),
       },
-    });
-
-    return columns;
-  };
-
-  // Priority Column
-  const priorityColumn = {
-    title: (
-      <div className="flex items-center justify-between">
-        <span
-          style={{
-            color: filters["priority"]?.length > 0 ? "#1677ff" : "inherit",
-            fontWeight: filters["priority"]?.length > 0 ? "bold" : "normal",
-          }}>
-          Priority
-        </span>
-        <PushpinOutlined
-          onClick={() => togglePin("priority")}
-          rotate={pinnedColumns["priority"] === "right" ? 180 : 0}
-          style={{
-            color: pinnedColumns["priority"] ? "#1677ff" : "#aaa",
-            cursor: "pointer",
-          }}
-        />
-      </div>
-    ),
-    key: "priority",
-    dataIndex: "priority",
-    fixed: pinnedColumns["priority"] || undefined,
-    filterDropdown: () => {
-      const priorities = [...new Set(requests.map((r) => r.priority))];
-      return (
-        <div style={{ padding: 8 }}>
-          <div style={{ marginBottom: 8 }}>
-            <Checkbox
-              indeterminate={
-                filters["priority"]?.length > 0 &&
-                filters["priority"]?.length < priorities.length
-              }
-              checked={filters["priority"]?.length === priorities.length}
-              onChange={(e) => {
-                const checked = e.target.checked;
-                handleFilterChange(checked ? priorities : [], "priority");
+      {
+        title: "Permission",
+        key: "prm",
+        dataIndex: "prm",
+        fixed: pinnedColumns["prm"] || undefined,
+        render: (_, record) =>
+          userRole === "publisher_manager" ? (
+            <Select
+              value={record.prm}
+              style={{
+                width: 120,
+                fontWeight: 600,
+                backgroundColor: record.prm === 1 ? "#e6ffed" : "#ffe6e6",
+                color: record.prm === 1 ? "green" : "red",
+              }}
+              onChange={(val) =>
+                handleUpdatePrm(record, { priority: record.priority, prm: val })
+              }>
+              <Option value={1}>✅ Allow</Option>
+              <Option value={0}>❌ Disallow</Option>
+            </Select>
+          ) : (
+            <span
+              style={{
+                color: record.prm === 1 ? "green" : "red",
+                fontWeight: 600,
               }}>
-              Select All
-            </Checkbox>
-          </div>
-          <Select
-            mode="multiple"
-            allowClear
-            showSearch
-            style={{ width: 250 }}
-            value={filters["priority"] || []}
-            onChange={(val) => handleFilterChange(val, "priority")}
-            optionLabelProp="label"
-            maxTagCount="responsive"
-            filterOption={(input, option) =>
-              (option?.label ?? "")
-                .toString()
-                .toLowerCase()
-                .includes(input.toLowerCase())
-            }>
-            {priorities.map((p) => (
-              <Option key={p} value={p} label={p}>
-                <Checkbox checked={filters["priority"]?.includes(p)}>
-                  {p}
-                </Checkbox>
-              </Option>
-            ))}
-          </Select>
-        </div>
-      );
-    },
-    filtered: filters["priority"]?.length > 0,
-    render: (_, record) =>
-      userRole === "publisher_manager" ? (
-        <Select
-          value={record.priority}
-          style={{ width: 80 }}
-          onChange={(val) =>
-            handleUpdatePrm(record, { priority: val, prm: record.prm })
-          }>
-          {Array.from({ length: 15 }, (_, i) => (
-            <Option key={i + 1} value={i + 1}>
-              {i + 1}
-            </Option>
-          ))}
-        </Select>
-      ) : (
-        record.priority || "N/A"
-      ),
+              {record.prm === 1 ? "✅ Allow" : "❌ Disallow"}
+            </span>
+          ),
+      }
+    );
+
+    return cols;
   };
 
-  // Permission Column
-  const permissionColumn = {
-    title: (
-      <div className="flex items-center justify-between">
-        <span
-          style={{
-            color: filters["prm"]?.length > 0 ? "#1677ff" : "inherit",
-            fontWeight: filters["prm"]?.length > 0 ? "bold" : "normal",
-          }}>
-          Permission
-        </span>
-        <PushpinOutlined
-          onClick={() => togglePin("prm")}
-          rotate={pinnedColumns["prm"] === "right" ? 180 : 0}
-          style={{
-            color: pinnedColumns["prm"] ? "#1677ff" : "#aaa",
-            cursor: "pointer",
-          }}
-        />
-      </div>
-    ),
-    key: "prm",
-    dataIndex: "prm",
-    fixed: pinnedColumns["prm"] || undefined,
-    filterDropdown: () => {
-      const permissionValues = [1, 0];
-      return (
-        <div style={{ padding: 8 }}>
-          <div style={{ marginBottom: 8 }}>
-            <Checkbox
-              indeterminate={
-                filters["prm"]?.length > 0 &&
-                filters["prm"]?.length < permissionValues.length
-              }
-              checked={filters["prm"]?.length === permissionValues.length}
-              onChange={(e) => {
-                const checked = e.target.checked;
-                handleFilterChange(checked ? permissionValues : [], "prm");
-              }}>
-              Select All
-            </Checkbox>
-          </div>
-          <Select
-            mode="multiple"
-            allowClear
-            showSearch
-            style={{ width: 250 }}
-            value={filters["prm"] || []}
-            onChange={(val) => handleFilterChange(val, "prm")}
-            optionLabelProp="label"
-            maxTagCount="responsive"
-            filterOption={(input, option) =>
-              (option?.label ?? "")
-                .toString()
-                .toLowerCase()
-                .includes(input.toLowerCase())
-            }>
-            <Option key={1} value={1} label="✅ Allow">
-              <Checkbox checked={filters["prm"]?.includes(1)}>
-                ✅ Allow
-              </Checkbox>
-            </Option>
-            <Option key={0} value={0} label="❌ Disallow">
-              <Checkbox checked={filters["prm"]?.includes(0)}>
-                ❌ Disallow
-              </Checkbox>
-            </Option>
-          </Select>
-        </div>
-      );
-    },
-    filtered: filters["prm"]?.length > 0,
-    render: (_, record) =>
-      userRole === "publisher_manager" ? (
-        <Select
-          value={record.prm}
-          style={{
-            width: 120,
-            fontWeight: 600,
-            backgroundColor: record.prm === 1 ? "#e6ffed" : "#ffe6e6",
-            color: record.prm === 1 ? "green" : "red",
-          }}
-          onChange={(val) =>
-            handleUpdatePrm(record, {
-              priority: record.priority,
-              prm: val,
-            })
-          }>
-          <Option value={1}>✅ Allow</Option>
-          <Option value={0}>❌ Disallow</Option>
-        </Select>
-      ) : (
-        <span
-          style={{
-            color: record.prm === 1 ? "green" : "red",
-            fontWeight: 600,
-          }}>
-          {record.prm === 1 ? "✅ Allow" : "❌ Disallow"}
-        </span>
-      ),
-  };
+  const columns = useMemo(
+    () =>
+      buildColumns({
+        filters,
+        pinnedColumns,
+        togglePin,
+        uniqueValues,
+        userRole,
+        handleFilterChange,
+        handleUpdatePrm,
+      }),
+    [
+      filters,
+      pinnedColumns,
+      uniqueValues,
+      userRole,
+      handleFilterChange,
+      handleUpdatePrm,
+    ]
+  );
 
   return (
     <div className="p-4">
@@ -732,13 +599,8 @@ const PublisherRequest = () => {
           placeholder="Search by Advertiser, Campaign, PID, etc."
           allowClear
           enterButton
-          onChange={(e) => setSearchText(e.target.value)}
-          style={{
-            width: 400,
-            maxWidth: "100%",
-            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
-            borderRadius: 6,
-          }}
+          onChange={(e) => debouncedSearch(e.target.value)}
+          style={{ width: 400, maxWidth: "100%", borderRadius: 6 }}
         />
       </div>
 
@@ -847,13 +709,10 @@ const PublisherRequest = () => {
         </Form>
       </Modal>
       <Table
+        rowKey="id"
         className="mt-4"
         dataSource={filteredRequests} // show latest data directly
-        columns={[
-          ...getColumns(columnHeadings),
-          priorityColumn,
-          permissionColumn,
-        ]}
+        columns={columns}
         scroll={{ x: "max-content" }}
         pagination={{
           pageSizeOptions: ["10", "20", "50", "100", "200", "300", "500"],
