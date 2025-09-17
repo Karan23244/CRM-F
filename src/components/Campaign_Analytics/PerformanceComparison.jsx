@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState } from "react";
 import { Card, Select, Typography } from "antd";
 import { Line } from "react-chartjs-2";
 
@@ -6,8 +6,9 @@ const { Title } = Typography;
 const { Option } = Select;
 
 export default function PerformanceComparison({ rawData, selectedCampaign }) {
-  const [selectedPid, setSelectedPid] = useState("");
-  // Get all PIDs for the selected campaign
+  const [selectedPids, setSelectedPids] = useState([]);
+
+  // Unique PIDs for selected campaign
   const pids = useMemo(() => {
     return [
       ...new Set(
@@ -18,76 +19,104 @@ export default function PerformanceComparison({ rawData, selectedCampaign }) {
     ];
   }, [rawData, selectedCampaign]);
 
-  // Set default PID whenever campaign or PIDs change
-  useEffect(() => {
-    if (pids.length > 0) {
-      setSelectedPid(pids[0]); // always pick first PID of current campaign
-    } else {
-      setSelectedPid(""); // clear if no PIDs
-    }
-  }, [pids, selectedCampaign]);
+  // All available dates (sorted)
+  const allDates = useMemo(() => {
+    const dates = [
+      ...new Set(
+        rawData
+          .filter((r) => r.campaign_name === selectedCampaign)
+          .map((r) => r.metrics_date)
+      ),
+    ];
+    return dates.sort((a, b) => new Date(a) - new Date(b));
+  }, [rawData, selectedCampaign]);
 
-  // Filter + sort data for selected PID
-  const pidData = useMemo(() => {
-    const filtered = rawData.filter(
-      (r) =>
-        r.campaign_name === selectedCampaign &&
-        (!selectedPid || r.pid === selectedPid)
-    );
+  // Fixed color palette
+  const colorPalette = [
+    "rgba(255, 99, 132, 0.8)", // pink
+    "rgba(54, 162, 235, 0.8)", // blue
+    "rgba(255, 206, 86, 0.8)", // yellow
+    "rgba(75, 192, 192, 0.8)", // teal
+    "rgba(153, 102, 255, 0.8)", // purple
+    "rgba(255, 159, 64, 0.8)", // orange
+    "rgba(46, 204, 113, 0.8)", // green
+    "rgba(231, 76, 60, 0.8)", // red
+    "rgba(52, 152, 219, 0.8)", // light blue
+    "rgba(241, 196, 15, 0.8)", // gold
+  ];
 
-    return [...filtered].sort((a, b) => {
-      const [startAStr, endAStr] = a.date_range.split(" - ");
-      const [startBStr, endBStr] = b.date_range.split(" - ");
+  const pointStyles = [
+    "circle",
+    "rect",
+    "triangle",
+    "rectRot",
+    "cross",
+    "star",
+    "line",
+    "dash",
+  ];
 
-      const startA = new Date(startAStr);
-      const startB = new Date(startBStr);
+  const getColorForIndex = (index) => colorPalette[index % colorPalette.length];
+  const getPointStyleForIndex = (index) =>
+    pointStyles[index % pointStyles.length];
 
-      // ✅ If start dates differ → sort by start
-      if (startA.getTime() !== startB.getTime()) {
-        return startA - startB; // ascending
-      }
+  // Build datasets for each selected PID
+  const datasets = useMemo(() => {
+    return selectedPids.map((pid, idx) => {
+      const pidRecords = rawData.filter(
+        (r) => r.campaign_name === selectedCampaign && r.pid === pid
+      );
 
-      // ✅ If start dates are same → sort by end date
-      const endA = new Date(endAStr);
-      const endB = new Date(endBStr);
-      return endA - endB; // ascending
+      const dateToNoe = {};
+      pidRecords.forEach((r) => {
+        dateToNoe[r.metrics_date] =
+          (dateToNoe[r.metrics_date] || 0) + (r.noe || 0);
+      });
+
+      const color = getColorForIndex(idx);
+
+      return {
+        label: `PID: ${pid}`,
+        data: allDates.map((d) => dateToNoe[d] || 0),
+        borderColor: color,
+        backgroundColor: color,
+        fill: false,
+        tension: 0.3,
+        borderWidth: 3, // thicker lines
+        pointBackgroundColor: "#fff",
+        pointBorderColor: color,
+        pointBorderWidth: 2,
+        pointRadius: 6,
+        pointHoverRadius: 8,
+        pointStyle: getPointStyleForIndex(idx), // unique point shapes
+      };
     });
-  }, [rawData, selectedCampaign, selectedPid]);
+  }, [selectedPids, rawData, selectedCampaign, allDates]);
 
-  // Build chart data → x-axis = date ranges
-  const chartData = useMemo(() => {
-    return {
-      labels: pidData.map((r) => r.date_range), // 👈 x-axis = date ranges
-      datasets: [
-        {
-          label: "NOE",
-          data: pidData.map((r) => r.noe ?? r.clicks ?? 0),
-          borderColor: "hsl(200, 70%, 50%)",
-          backgroundColor: "hsl(200, 70%, 70%)",
-          fill: false,
-        },
-      ],
-    };
-  }, [pidData]);
+  const chartData = {
+    labels: allDates,
+    datasets,
+  };
 
   return (
     <Card className="mt-6 rounded-xl shadow-md">
       <Title level={4}>Performance Comparison</Title>
 
-      {/* PID Dropdown */}
+      {/* PID Multi-Select */}
       <div className="mb-4">
         <label className="block mb-1 font-medium text-gray-700">
-          Select PID
+          Select PID(s)
         </label>
         <Select
-          value={selectedPid}
-          onChange={setSelectedPid}
+          mode="multiple"
+          value={selectedPids}
+          onChange={setSelectedPids}
           size="large"
           className="w-full"
-          placeholder="Choose PID"
+          placeholder="Choose one or more PIDs"
           allowClear
           showSearch
-          optionFilterProp="children" // filters based on option text
+          optionFilterProp="children"
           filterOption={(input, option) =>
             option?.children?.toLowerCase().includes(input.toLowerCase())
           }>
@@ -100,91 +129,47 @@ export default function PerformanceComparison({ rawData, selectedCampaign }) {
       </div>
 
       {/* Chart */}
-      {pidData.length > 0 ? (
+      {datasets.length > 0 ? (
         <div style={{ height: "700px" }}>
           <Line
             data={chartData}
             options={{
               responsive: true,
               maintainAspectRatio: false,
-              layout: {
-                padding: { top: 30, right: 20, left: 20, bottom: 20 },
-              },
               plugins: {
-                legend: {
-                  display: true,
-                  position: "bottom",
-                  labels: {
-                    font: {
-                      size: 14,
-                      weight: "bold",
-                    },
-                    padding: 15,
-                  },
-                },
+                legend: { display: true, position: "bottom" },
                 title: {
                   display: true,
-                  text: "Campaign Performance by Date Range",
+                  text: "NOE per Date by PID",
                   font: { size: 18, weight: "bold" },
-                  color: "#333",
-                  padding: { bottom: 20 },
                 },
                 tooltip: {
-                  backgroundColor: "rgba(0,0,0,0.8)",
-                  titleColor: "#fff",
-                  bodyColor: "#fff",
-                  padding: 12,
-                  borderColor: "#ddd",
-                  borderWidth: 1,
+                  mode: "index",
+                  intersect: false, // show all overlapping lines
                   callbacks: {
-                    label: (ctx) => `NOE: ${ctx.raw}`,
+                    label: (ctx) => `${ctx.dataset.label}: ${ctx.raw}`,
                   },
                 },
+              },
+              interaction: {
+                mode: "nearest",
+                axis: "x",
+                intersect: false,
               },
               scales: {
                 x: {
-                  offset: true, // 👈 adds space before first & after last label
-                  ticks: {
-                    autoSkip: false,
-                    maxRotation: 30,
-                    minRotation: 30,
-                    font: { size: 12 },
-                  },
-                  grid: {
-                    drawOnChartArea: false, // cleaner x grid
-                  },
+                  ticks: { font: { size: 12 } },
                 },
                 y: {
                   beginAtZero: true,
-                  suggestedMax: Math.max(...pidData.map((r) => r.noe)) + 100, // 👈 add breathing room above max
-                  grid: {
-                    borderDash: [5, 5],
-                  },
-                  ticks: {
-                    font: { size: 12 },
-                  },
-                },
-              },
-              elements: {
-                line: {
-                  tension: 0.4, // smooth curve
-                  borderWidth: 3,
-                  borderColor: "rgba(54, 162, 235, 1)",
-                },
-                point: {
-                  radius: 6,
-                  hoverRadius: 8,
-                  backgroundColor: "#fff",
-                  borderColor: "rgba(54, 162, 235, 1)",
-                  borderWidth: 2,
+                  ticks: { font: { size: 12 } },
                 },
               },
             }}
-            height={50}
           />
         </div>
       ) : (
-        <p className="text-gray-500">No data available</p>
+        <p className="text-gray-500">Select PID(s) to view data</p>
       )}
     </Card>
   );

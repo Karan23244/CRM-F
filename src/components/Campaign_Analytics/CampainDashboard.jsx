@@ -1,3 +1,4 @@
+// Campaign Dashboard
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 import Zone from "./Zone";
@@ -20,10 +21,14 @@ import dayjs from "dayjs";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import Swal from "sweetalert2";
+
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
+
 const { Title } = Typography;
 const { Option } = Select;
+const { RangePicker } = DatePicker;
+
 const cardStyle = {
   borderRadius: 12,
   boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
@@ -37,24 +42,21 @@ export default function OptimizationPage() {
   const [selectedCampaign, setSelectedCampaign] = useState("");
   const [selectedDateRange, setSelectedDateRange] = useState([null, null]);
   const [loading, setLoading] = useState(true);
+
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${apiUrl}/api/campaign-metrics`);
-      const json = await res.json();
-      setRawData(json);
+      const res = await axios.get(`${apiUrl}/api/campaign-metrics`);
+      const validData = Array.isArray(res.data) ? res.data : [];
+      console.log("Fetched Data:", validData);
 
-      const campaigns = [...new Set(json.map((r) => r.campaign_name))];
-      if (campaigns.length) {
-        setSelectedCampaign(campaigns[0]);
-      }
-    } catch (err) {
-      console.error("Error fetching data", err);
-    } finally {
-      setLoading(false);
+      setRawData(validData);
+    } catch (error) {
+      message.error("Failed to fetch data");
     }
+    setLoading(false);
   };
-  // When campaign changes, preselect start as 1st of that month
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -63,65 +65,83 @@ export default function OptimizationPage() {
     () => [...new Set(rawData.map((r) => r.campaign_name))],
     [rawData]
   );
-  // Date ranges only for the selected campaign
-  const parsedRanges = useMemo(() => {
-    return rawData
-      .filter((r) => r.campaign_name === selectedCampaign)
-      .map((r) => {
-        const [start, end] = r.date_range.split(" - ");
-        return {
-          start: dayjs(start, "YYYY-MM-DD"),
-          end: dayjs(end, "YYYY-MM-DD"),
-        };
-      });
-  }, [rawData, selectedCampaign]);
 
-  // Collect all available end dates (unchanged)
-  const availableEndDates = useMemo(
-    () => parsedRanges.map((r) => r.end),
-    [parsedRanges]
-  );
+  // Handle range selection
+  const handleDateChange = (dates) => {
+    if (!dates || dates.length !== 2) {
+      setSelectedDateRange([null, null]);
+      return;
+    }
 
-  // For fast lookup in disabledDate
-  const allowedEndSet = useMemo(
-    () => new Set(availableEndDates.map((d) => d.format("YYYY-MM-DD"))),
-    [availableEndDates]
-  );
-  // helper: is the clicked day an allowed end date?
-  const isAllowedEnd = (d) => d && allowedEndSet.has(d.format("YYYY-MM-DD"));
+    const [start, end] = dates;
+    if (!start || !end) return;
 
-  useEffect(() => {
-    if (!availableEndDates.length) return;
-
-    const latestEnd = availableEndDates.reduce(
-      (a, b) => (b.isAfter(a) ? b : a),
-      availableEndDates[0]
+    // Collect available dates for the selected campaign
+    const allMetricsDates = new Set(
+      rawData
+        .filter((r) => r.campaign_name === selectedCampaign)
+        .map((r) => dayjs(r.metrics_date).format("YYYY-MM-DD"))
     );
 
-    // Use latestEnd to calculate the first day of its month
-    const start = latestEnd.clone().startOf("month").date(1);
+    let cursor = start.clone();
+    let missing = false;
+    while (cursor.isSameOrBefore(end, "day")) {
+      if (!allMetricsDates.has(cursor.format("YYYY-MM-DD"))) {
+        missing = true;
+        break;
+      }
+      cursor = cursor.add(1, "day");
+    }
 
-    setSelectedDateRange([start, latestEnd]);
-  }, [availableEndDates]);
+    if (missing) {
+      Swal.fire({
+        icon: "warning",
+        title: "Incomplete Data",
+        text: "Data not available for the full selected range. Please select a correct date range.",
+      });
+      return;
+    }
 
+    setSelectedDateRange([start, end]);
+  };
+
+  // Filter + Aggregate
   const filteredData = useMemo(() => {
-    if (!selectedDateRange[0] || !selectedDateRange[1]) return [];
+    if (!selectedCampaign || !selectedDateRange[0] || !selectedDateRange[1])
+      return [];
 
     const [selectedStart, selectedEnd] = selectedDateRange;
 
-    return rawData.filter((r) => {
-      const [start, end] = r.date_range.split(" - ");
-      const startDate = dayjs(start, "YYYY-MM-DD");
-      const endDate = dayjs(end, "YYYY-MM-DD");
-
-      // Strict match: campaign AND exact date range
-      const inCampaign = r.campaign_name === selectedCampaign;
-      const exactRange =
-        startDate.isSame(selectedStart, "day") &&
-        endDate.isSame(selectedEnd, "day");
-
-      return inCampaign && exactRange;
+    // step 1: filter by campaign + date range
+    const campaignData = rawData.filter((r) => {
+      const mDate = dayjs(r.metrics_date, "YYYY-MM-DD");
+      return (
+        r.campaign_name === selectedCampaign &&
+        mDate.isSameOrAfter(selectedStart, "day") &&
+        mDate.isSameOrBefore(selectedEnd, "day")
+      );
     });
+
+    // step 2: accumulate by pid
+    const aggregated = campaignData.reduce((acc, curr) => {
+      const key = curr.pid;
+      if (!acc[key]) {
+        acc[key] = { ...curr };
+      } else {
+        // accumulate numeric fields
+        acc[key].clicks += curr.clicks || 0;
+        acc[key].noi += curr.noi || 0;
+        acc[key].noe += curr.noe || 0;
+        acc[key].nocrm += curr.nocrm || 0;
+        acc[key].pi += curr.pi || 0;
+        acc[key].pe += curr.pe || 0;
+        acc[key].rti += curr.rti || 0;
+        // add more fields if needed
+      }
+      return acc;
+    }, {});
+
+    return Object.values(aggregated);
   }, [rawData, selectedCampaign, selectedDateRange]);
 
   if (loading) {
@@ -131,6 +151,7 @@ export default function OptimizationPage() {
       </div>
     );
   }
+
   const handleDelete = async () => {
     if (!selectedCampaign || !selectedDateRange[0] || !selectedDateRange[1]) {
       Swal.fire({
@@ -171,7 +192,7 @@ export default function OptimizationPage() {
             showConfirmButton: false,
           });
 
-          fetchData(); // refresh after delete
+          fetchData();
         } catch (err) {
           console.error("Error deleting campaign", err);
           Swal.fire({
@@ -183,10 +204,10 @@ export default function OptimizationPage() {
       }
     });
   };
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Upload Form */}
-      {/* Show UploadForm only if user has permission */}
       {user?.permissions?.can_see_input1 === 1 && (
         <Card style={cardStyle} className="mb-6">
           <UploadForm onUploadSuccess={fetchData} />
@@ -213,50 +234,30 @@ export default function OptimizationPage() {
                 placeholder="Choose a campaign"
                 allowClear
                 showSearch
-                optionFilterProp="children" // enables searching by text
+                optionFilterProp="children"
                 filterOption={(input, option) =>
                   option?.children?.toLowerCase().includes(input.toLowerCase())
                 }>
-                {campaigns
-                  .slice() // copy to avoid mutating original
-                  .sort((a, b) => a.localeCompare(b)) // sort alphabetically
-                  .map((c) => (
-                    <Option key={c} value={c}>
-                      {c}
-                    </Option>
-                  ))}
+                {campaigns.map((c) => (
+                  <Option key={c} value={c}>
+                    {c}
+                  </Option>
+                ))}
               </Select>
             </Col>
 
             <Col xs={24} md={12}>
               <label className="block mb-1 font-medium text-gray-700">
-                Select Date (end date only)
+                Select Date Range
               </label>
-              <DatePicker
-                value={selectedDateRange[1]}
+              <RangePicker
+                value={selectedDateRange}
                 size="large"
                 className="w-full"
-                allowClear={false}
+                allowClear
                 inputReadOnly
-                // use onChange (more reliable in antd DatePicker than onSelect)
-                onChange={(date) => {
-                  if (!date) return;
-                  // ignore clicks on disallowed days (shouldn't happen, but safe)
-                  if (!isAllowedEnd(date)) return;
-
-                  // always snap start to the 1st of the selected date's month
-                  const start = date.clone().startOf("month");
-                  setSelectedDateRange([start, date]);
-                }}
-                disabledDate={(current) => {
-                  if (!current) return true;
-
-                  // don't allow picking the 1st directly
-                  if (current.date() === 1) return true;
-
-                  // only allow dates that appear in your available end-date set
-                  return !isAllowedEnd(current);
-                }}
+                onChange={handleDateChange}
+                format="YYYY-MM-DD"
               />
               {selectedDateRange[0] && selectedDateRange[1] && (
                 <div className="mt-2 text-sm text-gray-600">
@@ -271,6 +272,7 @@ export default function OptimizationPage() {
           </Row>
         </Card>
       </Space>
+
       {user?.username === "Akshat" && (
         <div className="mt-4">
           <button
@@ -298,7 +300,7 @@ export default function OptimizationPage() {
             selectedCampaign={selectedCampaign}
           />
         </Col>
-        {/* Each card in its own row */}
+
         <Col span={24}>
           <Card
             style={cardStyle}
