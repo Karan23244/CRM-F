@@ -53,7 +53,7 @@ const { Panel } = Collapse;
 const apiUrl = "https://gapi.clickorbits.in"; // Update with your actual API URL
 const apiUrl1 = "https://apii.clickorbits.in/api";
 
-export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
+export default function OptimizationCampaignAnalysis({ data = {}, canEdit,selectedDateRange }) {
   const user = useSelector((state) => state.auth.user);
   const fields = [
     "fraud_min",
