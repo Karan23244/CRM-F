@@ -157,14 +157,14 @@ export default function OptimizationPage() {
       Swal.fire({
         icon: "warning",
         title: "Missing Selection",
-        text: "Please select campaign and date range first.",
+        text: "Please select a campaign and a valid date range first.",
       });
       return;
     }
 
-    const dateRangeStr = `${selectedDateRange[0].format(
-      "YYYY-MM-DD"
-    )} - ${selectedDateRange[1].format("YYYY-MM-DD")}`;
+    const startDate = selectedDateRange[0].format("YYYY-MM-DD");
+    const endDate = selectedDateRange[1].format("YYYY-MM-DD");
+    const dateRangeStr = `${startDate} - ${endDate}`;
 
     Swal.fire({
       title: "Are you sure?",
@@ -180,14 +180,15 @@ export default function OptimizationPage() {
           await axios.delete(`${apiUrl}/api/campaigndelete`, {
             data: {
               campaign_name: selectedCampaign,
-              date_range: dateRangeStr,
+              start_date: startDate,
+              end_date: endDate,
             },
           });
 
           Swal.fire({
             icon: "success",
             title: "Deleted!",
-            text: "Campaign deleted successfully.",
+            text: "Campaign and related events deleted successfully.",
             timer: 2000,
             showConfirmButton: false,
           });
