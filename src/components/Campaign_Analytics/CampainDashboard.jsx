@@ -24,7 +24,9 @@ import Swal from "sweetalert2";
 
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
+import minMax from "dayjs/plugin/minMax";
 
+dayjs.extend(minMax);
 const { Title } = Typography;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -67,42 +69,79 @@ export default function OptimizationPage() {
   );
 
   // Handle range selection
+  // const handleDateChange = (dates) => {
+  //   if (!dates || dates.length !== 2) {
+  //     setSelectedDateRange([null, null]);
+  //     return;
+  //   }
+
+  //   const [start, end] = dates;
+  //   if (!start || !end) return;
+
+  //   // Collect available dates for the selected campaign
+  //   const allMetricsDates = new Set(
+  //     rawData
+  //       .filter((r) => r.campaign_name === selectedCampaign)
+  //       .map((r) => dayjs(r.metrics_date).format("YYYY-MM-DD"))
+  //   );
+
+  //   let cursor = start.clone();
+  //   let missing = false;
+  //   while (cursor.isSameOrBefore(end, "day")) {
+  //     if (!allMetricsDates.has(cursor.format("YYYY-MM-DD"))) {
+  //       missing = true;
+  //       break;
+  //     }
+  //     cursor = cursor.add(1, "day");
+  //   }
+
+  //   if (missing) {
+  //     Swal.fire({
+  //       icon: "warning",
+  //       title: "Incomplete Data",
+  //       text: "Data not available for the full selected range. Please select a correct date range.",
+  //     });
+  //     return;
+  //   }
+
+  //   setSelectedDateRange([start, end]);
+  // };
+  const availableDates = useMemo(() => {
+    if (!selectedCampaign) return [];
+    return rawData
+      .filter((r) => r.campaign_name === selectedCampaign)
+      .map((r) => dayjs(r.metrics_date).startOf("day")); // normalize
+  }, [rawData, selectedCampaign]);
+
+  const availableDateSet = useMemo(() => {
+    return new Set(availableDates.map((d) => d.format("YYYY-MM-DD")));
+  }, [availableDates]);
+
+  const minDate = useMemo(
+    () => (availableDates.length ? dayjs.min(availableDates) : null),
+    [availableDates]
+  );
+  const maxDate = useMemo(
+    () => (availableDates.length ? dayjs.max(availableDates) : null),
+    [availableDates]
+  );
+
+  const disabledDate = (current) => {
+    if (!current || !minDate || !maxDate) return true;
+    // disable dates outside min/max or not in the available set
+    return (
+      current.isBefore(minDate, "day") ||
+      current.isAfter(maxDate, "day") ||
+      !availableDateSet.has(current.format("YYYY-MM-DD"))
+    );
+  };
+
   const handleDateChange = (dates) => {
     if (!dates || dates.length !== 2) {
       setSelectedDateRange([null, null]);
       return;
     }
-
-    const [start, end] = dates;
-    if (!start || !end) return;
-
-    // Collect available dates for the selected campaign
-    const allMetricsDates = new Set(
-      rawData
-        .filter((r) => r.campaign_name === selectedCampaign)
-        .map((r) => dayjs(r.metrics_date).format("YYYY-MM-DD"))
-    );
-
-    let cursor = start.clone();
-    let missing = false;
-    while (cursor.isSameOrBefore(end, "day")) {
-      if (!allMetricsDates.has(cursor.format("YYYY-MM-DD"))) {
-        missing = true;
-        break;
-      }
-      cursor = cursor.add(1, "day");
-    }
-
-    if (missing) {
-      Swal.fire({
-        icon: "warning",
-        title: "Incomplete Data",
-        text: "Data not available for the full selected range. Please select a correct date range.",
-      });
-      return;
-    }
-
-    setSelectedDateRange([start, end]);
+    setSelectedDateRange(dates);
   };
 
   // Filter + Aggregate
@@ -205,7 +244,7 @@ export default function OptimizationPage() {
       }
     });
   };
-
+  console.log(filteredData)
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Upload Form */}
@@ -251,6 +290,15 @@ export default function OptimizationPage() {
               <label className="block mb-1 font-medium text-gray-700">
                 Select Date Range
               </label>
+              {/* <RangePicker
+                value={selectedDateRange}
+                size="large"
+                className="w-full"
+                allowClear
+                inputReadOnly
+                onChange={handleDateChange}
+                format="YYYY-MM-DD"
+              /> */}
               <RangePicker
                 value={selectedDateRange}
                 size="large"
@@ -259,13 +307,14 @@ export default function OptimizationPage() {
                 inputReadOnly
                 onChange={handleDateChange}
                 format="YYYY-MM-DD"
+                disabledDate={disabledDate}
               />
-              {selectedDateRange[0] && selectedDateRange[1] && (
+              {minDate && maxDate && (
                 <div className="mt-2 text-sm text-gray-600">
-                  Selected Range:{" "}
+                  Available Range:{" "}
                   <span className="font-medium">
-                    {selectedDateRange[0].format("YYYY-MM-DD")} →{" "}
-                    {selectedDateRange[1].format("YYYY-MM-DD")}
+                    {minDate.format("YYYY-MM-DD")} →{" "}
+                    {maxDate.format("YYYY-MM-DD")}
                   </span>
                 </div>
               )}

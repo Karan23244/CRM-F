@@ -34,8 +34,10 @@ export default function UploadForm({ onUploadSuccess }) {
       "YYYY-MM-DD"
     )} - ${values.dateRange[1].format("YYYY-MM-DD")}`;
 
-    data.append("campaignName", values.campaignName);
-    data.append("os", values.os);
+    const cleanedCampaignName = values.campaignName.trim().replace(/\s+/g, " ");
+
+    data.append("campaignName", cleanedCampaignName);
+    data.append("os", values.os.trim());
 
     const geoInput = values.geo.includes("[")
       ? values.geo
