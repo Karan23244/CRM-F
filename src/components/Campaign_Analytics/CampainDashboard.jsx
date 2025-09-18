@@ -244,7 +244,7 @@ export default function OptimizationPage() {
       }
     });
   };
-  console.log(filteredData)
+  console.log(filteredData);
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Upload Form */}
@@ -340,6 +340,7 @@ export default function OptimizationPage() {
             <Zone
               data={filteredData}
               canEdit={user?.permissions?.can_see_button1 === 1}
+              selectedDateRange={selectedDateRange}
             />
           </Card>
         </Col>

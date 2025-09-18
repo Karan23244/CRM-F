@@ -86,7 +86,10 @@ export default function OptimizationCampaignAnalysis({ data = {}, canEdit }) {
     ite: false,
     etc: false,
   });
-  console.log(conditions, " conditions");
+  // whenever selectedDateRange changes → reset modalData
+  useEffect(() => {
+    setModalData({ open: false, rows: [], color: "" });
+  }, [selectedDateRange]);
   // Step 1 – Compute metrics + zone
   const processed = data.map((row) => {
     const cti = calculateCTI(row.clicks, row.noi);

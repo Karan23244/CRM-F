@@ -27,20 +27,6 @@ const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 
 const AdvertiserData = () => {
-  const monthClasses = [
-    "january-row",
-    "february-row",
-    "march-row",
-    "april-row",
-    "may-row",
-    "june-row",
-    "july-row",
-    "august-row",
-    "september-row",
-    "october-row",
-    "november-row",
-    "december-row",
-  ];
   const user = useSelector((state) => state.auth.user);
   const [sortInfo, setSortInfo] = useState({
     columnKey: null,
@@ -49,7 +35,6 @@ const AdvertiserData = () => {
   const [savingTable, setSavingTable] = useState(false);
   const userId = user?.id || null;
   const [data, setData] = useState([]);
-  const [editingKey, setEditingKey] = useState(null);
   const [editedRow, setEditedRow] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
   const [uniqueValues, setUniqueValues] = useState({});
@@ -112,24 +97,7 @@ const AdvertiserData = () => {
       message.error("Failed to fetch data");
     }
   };
-  // const generateUniqueValues = (data) => {
-  //   const uniqueVals = {};
-  //   data.forEach((item) => {
-  //     Object.keys(item).forEach((key) => {
-  //       if (!uniqueVals[key]) uniqueVals[key] = new Set();
-  //       const normalizedValue = item[key]?.toString().trim(); // normalize
-  //       if (normalizedValue) uniqueVals[key].add(normalizedValue);
-  //     });
-  //   });
-
-  //   const formattedValues = {};
-  //   Object.keys(uniqueVals).forEach((key) => {
-  //     formattedValues[key] = Array.from(uniqueVals[key]);
-  //   });
-
-  //   setUniqueValues(formattedValues);
-  // };
-
+  
   const generateUniqueValues = (data) => {
     const uniqueVals = {};
 
@@ -891,6 +859,375 @@ const AdvertiserData = () => {
       },
     },
   ];
+
+  // const isEmpty = (val) => val === null || val === undefined || val === "";
+
+  // const calculatePubApno = (record) => {
+  //   const { adv_deductions, adv_approved_no, adv_payout, pay_out } = record;
+  //   if (
+  //     isEmpty(adv_deductions) ||
+  //     isEmpty(adv_approved_no) ||
+  //     isEmpty(adv_payout) ||
+  //     isEmpty(pay_out)
+  //   ) {
+  //     throw new Error("Missing or empty required fields in the record.");
+  //   }
+
+  //   const approved = Number(adv_approved_no);
+  //   const payout = Number(adv_payout);
+  //   const pub = Number(pay_out);
+
+  //   const advAmount = approved * payout;
+  //   const pubAmount = approved * pub;
+  //   const seventyPercent = advAmount * 0.7;
+
+  //   return pubAmount > seventyPercent
+  //     ? Number(((0.7 * approved * payout) / pub).toFixed(1))
+  //     : approved;
+  // };
+
+  // const checkEditableAndAlert = (editable) => {
+  //   if (!editable) {
+  //     message.warning("You can't edit this field after 3 days.");
+  //     return false;
+  //   }
+  //   return true;
+  // };
+
+  // const columns = [
+  //   ...desiredOrder
+  //     .filter((key) => data[0] && key in data[0])
+  //     .map((key) => ({
+  //       title: (
+  //         <div className="flex items-center gap-2">
+  //           <span
+  //             style={{
+  //               color: filters[key] ? "#1677ff" : "inherit",
+  //               fontWeight: filters[key] ? "bold" : "normal",
+  //             }}>
+  //             {columnHeadings[key] || key}
+  //           </span>
+  //           <Tooltip title={stickyColumns.includes(key) ? "Unpin" : "Pin"}>
+  //             <Button
+  //               size="small"
+  //               icon={
+  //                 stickyColumns.includes(key) ? (
+  //                   <PushpinFilled style={{ color: "#1677ff" }} />
+  //                 ) : (
+  //                   <PushpinOutlined />
+  //                 )
+  //               }
+  //               onClick={(e) => {
+  //                 e.stopPropagation();
+  //                 toggleStickyColumn(key);
+  //               }}
+  //             />
+  //           </Tooltip>
+  //         </div>
+  //       ),
+  //       dataIndex: key,
+  //       fixed: stickyColumns.includes(key) ? "left" : undefined,
+  //       key,
+  //       sorter: (a, b) => {
+  //         const valA = a[key];
+  //         const valB = b[key];
+  //         return !isNaN(valA) && !isNaN(valB)
+  //           ? valA - valB
+  //           : (valA || "").toString().localeCompare((valB || "").toString());
+  //       },
+  //       sortOrder: sortInfo.columnKey === key ? sortInfo.order : null,
+  //       onHeaderCell: () => ({
+  //         onClick: () => {
+  //           const newOrder =
+  //             sortInfo.columnKey === key && sortInfo.order === "ascend"
+  //               ? "descend"
+  //               : "ascend";
+  //           setSortInfo({ columnKey: key, order: newOrder });
+  //         },
+  //       }),
+
+  //       render: (text, record) => {
+  //         const value = record[key];
+  //         const createdAt = dayjs(record.created_at);
+  //         const isWithin3Days = dayjs().diff(createdAt, "day") <= 3;
+  //         const editable =
+  //           isWithin3Days || allowedFieldsAfter3Days.includes(key);
+  //         const isEditing =
+  //           editingCell.key === record.id && editingCell.field === key;
+
+  //         // ✅ Prevent editing adv_approved_no
+  //         if (key === "adv_approved_no") {
+  //           return (
+  //             <div style={{ color: "gray", cursor: "not-allowed" }}>
+  //               {value ?? "-"}
+  //             </div>
+  //           );
+  //         }
+
+  //         const handleAutoSave = async (newValue) => {
+  //           setSavingTable(true);
+  //           if (!checkEditableAndAlert(editable)) {
+  //             setSavingTable(false);
+  //             return;
+  //           }
+
+  //           const trimmedValue =
+  //             typeof newValue === "string" ? newValue.trim() : newValue;
+  //           if (trimmedValue === record[key]) {
+  //             setSavingTable(false);
+  //             return;
+  //           }
+
+  //           const updated = { ...record, [key]: newValue };
+
+  //           if (["adv_total_no", "adv_deductions"].includes(key)) {
+  //             const total =
+  //               key === "adv_total_no"
+  //                 ? parseFloat(newValue)
+  //                 : parseFloat(record.adv_total_no);
+  //             const deductions =
+  //               key === "adv_deductions"
+  //                 ? parseFloat(newValue)
+  //                 : parseFloat(record.adv_deductions);
+
+  //             updated.adv_approved_no =
+  //               !isNaN(total) && !isNaN(deductions) ? total - deductions : null;
+  //           }
+
+  //           try {
+  //             const testRecord = { ...record, ...updated };
+  //             updated.pub_Apno =
+  //               !isEmpty(testRecord.adv_deductions) &&
+  //               !isEmpty(testRecord.adv_approved_no) &&
+  //               !isEmpty(testRecord.adv_payout) &&
+  //               !isEmpty(testRecord.pay_out)
+  //                 ? calculatePubApno(testRecord)
+  //                 : "";
+  //           } catch {
+  //             updated.pub_Apno = "";
+  //           }
+
+  //           try {
+  //             await axios.post(
+  //               `${apiUrl}/advdata-update/${record.id}`,
+  //               updated,
+  //               {
+  //                 headers: { "Content-Type": "application/json" },
+  //               }
+  //             );
+  //             message.success("Auto-saved");
+  //             fetchData();
+  //           } catch {
+  //             message.error("Failed to auto-save");
+  //           }
+  //           setSavingTable(false);
+  //         };
+
+  //         if (isEditing) {
+  //           if (dropdownOptions[key]) {
+  //             return (
+  //               <Select
+  //                 allowClear
+  //                 showSearch
+  //                 value={value || undefined}
+  //                 style={{ width: 180 }}
+  //                 onBlur={() => setEditingCell({ key: null, field: null })}
+  //                 onChange={(val) => {
+  //                   handleAutoSave(val);
+  //                   setEditingCell({ key: null, field: null });
+  //                 }}
+  //                 autoFocus
+  //                 optionFilterProp="children"
+  //                 filterOption={(input, option) =>
+  //                   (option?.children ?? "")
+  //                     .toString()
+  //                     .toLowerCase()
+  //                     .includes(input.toLowerCase())
+  //                 }>
+  //                 {[...new Set(dropdownOptions[key] || [])].map((opt) => (
+  //                   <Select.Option key={opt} value={opt}>
+  //                     {opt}
+  //                   </Select.Option>
+  //                 ))}
+  //               </Select>
+  //             );
+  //           }
+
+  //           if (key === "fa") {
+  //             return (
+  //               <Select
+  //                 defaultValue={value}
+  //                 style={{ width: 150 }}
+  //                 onBlur={() => setEditingCell({ key: null, field: null })}
+  //                 onChange={(val) => {
+  //                   handleAutoSave(val);
+  //                   handleAutoSave(null, record, "fa1"); // reset fa1
+  //                   setEditingCell({ key: null, field: null });
+  //                 }}
+  //                 autoFocus>
+  //                 {dropdownOptions.fa.map((opt) => (
+  //                   <Select.Option key={opt} value={opt}>
+  //                     {opt}
+  //                   </Select.Option>
+  //                 ))}
+  //               </Select>
+  //             );
+  //           }
+
+  //           if (key === "fa1") {
+  //             if (!record.fa1)
+  //               return <span style={{ color: "gray" }}>Select FA1 first</span>;
+  //             return (
+  //               <Select
+  //                 defaultValue={value}
+  //                 style={{ width: 150 }}
+  //                 onBlur={() => setEditingCell({ key: null, field: null })}
+  //                 onChange={(val) => {
+  //                   handleAutoSave(val);
+  //                   setEditingCell({ key: null, field: null });
+  //                 }}
+  //                 autoFocus>
+  //                 {dropdownOptions.fa1.map((opt) => (
+  //                   <Select.Option key={opt} value={opt}>
+  //                     {opt}
+  //                   </Select.Option>
+  //                 ))}
+  //               </Select>
+  //             );
+  //           }
+
+  //           if (["shared_date", "paused_date"].includes(key)) {
+  //             return (
+  //               <DatePicker
+  //                 allowClear
+  //                 defaultValue={value ? dayjs(value) : null}
+  //                 format="YYYY-MM-DD"
+  //                 onChange={(date) => {
+  //                   handleAutoSave(
+  //                     date ? date.format("YYYY-MM-DD") : null
+  //                   ).finally(() => setEditingCell({ key: null, field: null }));
+  //                 }}
+  //                 autoFocus
+  //               />
+  //             );
+  //           }
+
+  //           return (
+  //             <Input
+  //               defaultValue={value}
+  //               autoFocus
+  //               onBlur={(e) => {
+  //                 handleAutoSave(e.target.value.trim());
+  //                 setEditingCell({ key: null, field: null });
+  //               }}
+  //               onPressEnter={(e) => {
+  //                 handleAutoSave(e.target.value.trim());
+  //                 setEditingCell({ key: null, field: null });
+  //               }}
+  //             />
+  //           );
+  //         }
+
+  //         if (key === "fp") return <span>{value}</span>;
+
+  //         return (
+  //           <div
+  //             style={{ cursor: editable ? "pointer" : "default" }}
+  //             onClick={() => {
+  //               if (!checkEditableAndAlert(editable)) return;
+  //               setEditingCell({ key: record.id, field: key });
+  //             }}>
+  //             {value || "-"}
+  //           </div>
+  //         );
+  //       },
+
+  //       filterDropdown: () =>
+  //         uniqueValues[key]?.length > 0 ? (
+  //           <div style={{ padding: 8 }}>
+  //             <div style={{ marginBottom: 8 }}>
+  //               <Checkbox
+  //                 indeterminate={
+  //                   filters[key]?.length > 0 &&
+  //                   filters[key]?.length < uniqueValues[key]?.length
+  //                 }
+  //                 checked={filters[key]?.length === uniqueValues[key]?.length}
+  //                 onChange={(e) =>
+  //                   handleFilterChange(
+  //                     e.target.checked ? [...uniqueValues[key]] : [],
+  //                     key
+  //                   )
+  //                 }>
+  //                 Select All
+  //               </Checkbox>
+  //             </div>
+  //             <Select
+  //               mode="multiple"
+  //               allowClear
+  //               showSearch
+  //               placeholder={`Select ${columnHeadings[key]}`}
+  //               style={{ width: 250 }}
+  //               value={filters[key] || []}
+  //               onChange={(val) => handleFilterChange(val, key)}
+  //               optionLabelProp="label"
+  //               maxTagCount="responsive"
+  //               filterOption={(input, option) =>
+  //                 (option?.label ?? "")
+  //                   .toString()
+  //                   .toLowerCase()
+  //                   .includes(input.toLowerCase())
+  //               }>
+  //               {[...uniqueValues[key]]
+  //                 .filter((val) => !isEmpty(val))
+  //                 .sort((a, b) =>
+  //                   !isNaN(a) && !isNaN(b)
+  //                     ? a - b
+  //                     : a.toString().localeCompare(b.toString())
+  //                 )
+  //                 .map((val) => (
+  //                   <Select.Option key={val} value={val} label={val}>
+  //                     <Checkbox checked={filters[key]?.includes(val)}>
+  //                       {val}
+  //                     </Checkbox>
+  //                   </Select.Option>
+  //                 ))}
+  //             </Select>
+  //           </div>
+  //         ) : null,
+  //     })),
+  //   {
+  //     title: "Actions",
+  //     fixed: "right",
+  //     render: (_, record) => {
+  //       const createdAt = dayjs(record.created_at);
+  //       const hoursSinceCreation = dayjs().diff(createdAt, "hour");
+  //       const remainingHours = Math.max(24 - hoursSinceCreation, 0);
+  //       const isDeletable = hoursSinceCreation < 24;
+
+  //       return (
+  //         <div style={{ display: "flex", gap: "8px" }}>
+  //           {isDeletable && (
+  //             <Tooltip title={`Delete option available for ${remainingHours}h`}>
+  //               <Button
+  //                 type="primary"
+  //                 danger
+  //                 icon={<DeleteOutlined />}
+  //                 onClick={() => handleDelete(record.id)}
+  //               />
+  //             </Tooltip>
+  //           )}
+  //           <Tooltip title="Copy this row">
+  //             <Button
+  //               icon={<CopyOutlined />}
+  //               onClick={() => handleCopyRow(record)}
+  //             />
+  //           </Tooltip>
+  //         </div>
+  //       );
+  //     },
+  //   },
+  // ];
+
   return (
     <>
       <div className="p-4 bg-gray-100 min-h-screen flex flex-col items-center">
