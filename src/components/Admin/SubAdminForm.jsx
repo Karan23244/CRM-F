@@ -29,10 +29,11 @@ const SubAdminForm = () => {
   const [subAdminOptions, setSubAdminOptions] = useState([]);
   const [permissionEditCondition, setPermissionEditCondition] = useState(false);
   const [permissionUploadFiles, setPermissionUploadFiles] = useState(false);
-  console.log(subAdmins, "Sub-Admins in SubAdminForm");
+  console.log(subAdminOptions, "Sub-Admins in SubAdminForm");
   useEffect(() => {
     fetchSubAdmins();
   }, []);
+  // Fetch Sub-Admins
   // Fetch Sub-Admins
   const fetchSubAdmins = async () => {
     setLoading(true);
@@ -40,6 +41,7 @@ const SubAdminForm = () => {
       const response = await fetch(`${apiUrl}/get-subadmin`);
       const data = await response.json();
       if (response.ok) {
+        // Store all eligible sub-admins
         setSubAdmins(
           data.data.filter((subAdmin) =>
             [
@@ -51,11 +53,6 @@ const SubAdminForm = () => {
             ].includes(subAdmin.role)
           )
         );
-        setSubAdminOptions(
-          data.data.filter((subAdmin) =>
-            ["advertiser", "publisher"].includes(subAdmin.role)
-          )
-        );
       } else {
         setError(data.message || "Failed to fetch sub-admins.");
       }
@@ -65,6 +62,21 @@ const SubAdminForm = () => {
       setLoading(false);
     }
   };
+
+  // Filter sub-admins for assignment dropdown, excluding current username
+  useEffect(() => {
+    if (subAdmins.length > 0) {
+      setSubAdminOptions(
+        subAdmins
+          .filter((subAdmin) =>
+            ["advertiser", "publisher", "publisher_manager"].includes(
+              subAdmin.role
+            )
+          )
+          .filter((subAdmin) => subAdmin.username !== username) // exclude current username
+      );
+    }
+  }, [username, subAdmins]);
 
   // Handle Add New Range
   const addRange = () => {
