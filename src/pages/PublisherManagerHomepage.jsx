@@ -49,8 +49,15 @@ const PublisherManagerLayout = () => {
             ? "translate-x-0 w-48 md:w-64"
             : "-translate-x-full w-0 md:w-0"
         } md:relative md:translate-x-0 shadow-lg flex flex-col overflow-hidden`}>
-        <div className="flex justify-between items-center px-4">
-          <h2 className="text-xl font-semibold">Manager Panel</h2>
+        <div className="flex items-center justify-between px-4 mb-6">
+          <div className="flex items-center space-x-2">
+            <img
+              src="/crm2.svg" // replace with your logo path
+              alt="Logo"
+              className="h-14 w-14"
+            />
+            <h2 className="text-lg font-bold tracking-wide">Manager Panel</h2>
+          </div>
           <button
             className="text-white text-2xl md:hidden"
             onClick={() => setSidebarOpen(false)}>

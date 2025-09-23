@@ -53,15 +53,21 @@ const AdvertiserLayout = () => {
             ? "translate-x-0 w-48 md:w-64"
             : "-translate-x-full w-0 md:w-0"
         } md:relative md:translate-x-0 shadow-lg flex flex-col overflow-hidden`}>
-        <div className="flex justify-between items-center px-4">
-          <h2 className="text-xl font-semibold">Advertiser Panel</h2>
+        <div className="flex items-center justify-between px-4 mb-6">
+          <div className="flex items-center space-x-2">
+            <img
+              src="/crm2.svg" // replace with your logo path
+              alt="Logo"
+              className="h-14 w-14"
+            />
+            <h2 className="text-lg font-bold tracking-wide">Advertiser Panel</h2>
+          </div>
           <button
             className="text-white text-2xl md:hidden"
             onClick={() => setSidebarOpen(false)}>
             <FaTimes />
           </button>
         </div>
-
         <nav className="space-y-2 flex-1 overflow-y-auto px-2">
           <SidebarLink to="advform" label="Advertiser Form/Data" />
           <SidebarLink to="currentadvdata" label="Adv Campaign Data" />

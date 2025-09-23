@@ -110,7 +110,10 @@ export default function OptimizationPage() {
     if (!selectedCampaign) return [];
     return rawData
       .filter((r) => r.campaign_name === selectedCampaign)
-      .map((r) => dayjs(r.metrics_date).startOf("day")); // normalize
+      .map((r) => {
+        const cleanDateStr = r.metrics_date.split(" ")[0]; // take only date part
+        return dayjs(cleanDateStr, ["YYYY-MM-DD", "DD/MM/YY"]).startOf("day");
+      });
   }, [rawData, selectedCampaign]);
 
   const availableDateSet = useMemo(() => {
@@ -151,9 +154,15 @@ export default function OptimizationPage() {
 
     const [selectedStart, selectedEnd] = selectedDateRange;
 
-    // step 1: filter by campaign + date range
     const campaignData = rawData.filter((r) => {
-      const mDate = dayjs(r.metrics_date, "YYYY-MM-DD");
+      // 🟢 Take only the date part before any space
+      const cleanDateStr = r.metrics_date.split(" ")[0];
+
+      // Try parsing in both formats
+      let mDate = dayjs(cleanDateStr, "YYYY-MM-DD", true).isValid()
+        ? dayjs(cleanDateStr, "YYYY-MM-DD")
+        : dayjs(cleanDateStr, "DD/MM/YY");
+
       return (
         r.campaign_name === selectedCampaign &&
         mDate.isSameOrAfter(selectedStart, "day") &&
@@ -167,7 +176,6 @@ export default function OptimizationPage() {
       if (!acc[key]) {
         acc[key] = { ...curr };
       } else {
-        // accumulate numeric fields
         acc[key].clicks += curr.clicks || 0;
         acc[key].noi += curr.noi || 0;
         acc[key].noe += curr.noe || 0;
@@ -175,7 +183,6 @@ export default function OptimizationPage() {
         acc[key].pi += curr.pi || 0;
         acc[key].pe += curr.pe || 0;
         acc[key].rti += curr.rti || 0;
-        // add more fields if needed
       }
       return acc;
     }, {});
