@@ -54,12 +54,10 @@ const PublisherPayoutData = () => {
     order: null,
   });
   const [editingKey, setEditingKey] = useState(""); // which row is being edited
-  console.log(filteredData);
+  console.log(advData);
   const isEditing = (record) => record.id === editingKey;
   // 🔹 Save Note
   const saveNote = async (record, newNote) => {
-    console.log("Saving note for record:", record, "New Note:", newNote);
-
     try {
       const resp = await fetch(`${apiUrl}/adv_update/${record.id}`, {
         method: "PUT",
@@ -69,14 +67,12 @@ const PublisherPayoutData = () => {
         body: JSON.stringify({ note: newNote }),
       });
 
-      console.log("Response status:", resp);
       const data = await resp.json();
-
-      if (data.success) {
+      console.log(data);
+      if (data.success && data.updatedRow) {
+        // ✅ Replace the row with fresh data from backend
         setAdvData((prev) =>
-          prev.map((item) =>
-            item.id === record.id ? { ...item, note: newNote } : item
-          )
+          prev.map((item) => (item.id === record.id ? data.updatedRow : item))
         );
 
         Swal.fire({
@@ -142,11 +138,10 @@ const PublisherPayoutData = () => {
       });
 
       const data = await resp.json();
-      if (data.success) {
-        setAdvData((prev) =>
-          prev.map((item) =>
-            item.id === record.id ? { ...item, fp: newFP } : item
-          )
+      console.log(data);
+      if (data.success && data.updatedRow) {
+        setFilteredData((prev) =>
+          prev.map((item) => (item.id === record.id ? data.updatedRow : item))
         );
         Swal.fire({
           icon: "success",

@@ -50,7 +50,6 @@ export default function OptimizationPage() {
     try {
       const res = await axios.get(`${apiUrl}/api/campaign-metrics`);
       const validData = Array.isArray(res.data) ? res.data : [];
-      console.log("Fetched Data:", validData);
 
       setRawData(validData);
     } catch (error) {
