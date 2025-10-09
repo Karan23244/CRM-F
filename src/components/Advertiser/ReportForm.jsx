@@ -6,6 +6,7 @@ const ExcelUploader = () => {
   const apiUrl = import.meta.env.VITE_API_URL || "https://apii.clickorbits.in";
   const [files, setFiles] = useState([]);
   const [inputText, setInputText] = useState("");
+  const [campaignName, setCampaignName] = useState("");
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -23,12 +24,14 @@ const ExcelUploader = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (files.length === 0 || !inputText) {
+    // Trim inputs to remove extra spaces
+    const trimmedColumn = inputText.trim();
+    const trimmedCampaign = campaignName.trim();
+    if (files.length === 0 || !trimmedColumn || !trimmedCampaign) {
       Swal.fire({
         icon: "warning",
         title: "Missing Input",
-        text: "Please provide both at least one file and a column name.",
+        text: "Please provide a campaign name, at least one file, and a column name.",
       });
       return;
     }
@@ -38,8 +41,8 @@ const ExcelUploader = () => {
       formData.append("files", file);
       console.log(`Added file ${index + 1}:`, file.name);
     });
-    formData.append("column", inputText);
-
+    formData.append("column", trimmedColumn);
+    formData.append("campaign_name", trimmedCampaign);
     for (let [key, value] of formData.entries()) {
       console.log(`${key}:`, value);
     }
@@ -91,6 +94,7 @@ const ExcelUploader = () => {
       setLoading(false);
       setFiles([]);
       setInputText("");
+      setCampaignName("");
       if (fileInputRef.current) {
         fileInputRef.current.value = null;
       }
@@ -104,6 +108,19 @@ const ExcelUploader = () => {
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-blue-800 font-semibold mb-2">
+              Campaign Name
+            </label>
+            <input
+              type="text"
+              value={campaignName}
+              onChange={(e) => setCampaignName(e.target.value)}
+              placeholder="Enter campaign name"
+              className="w-full px-4 py-2 border border-blue-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+          </div>
+
           <div>
             <label className="block text-blue-800 font-semibold mb-2">
               Column Name
