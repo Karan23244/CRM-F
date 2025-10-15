@@ -67,44 +67,6 @@ export default function OptimizationPage() {
     [rawData]
   );
 
-  // Handle range selection
-  // const handleDateChange = (dates) => {
-  //   if (!dates || dates.length !== 2) {
-  //     setSelectedDateRange([null, null]);
-  //     return;
-  //   }
-
-  //   const [start, end] = dates;
-  //   if (!start || !end) return;
-
-  //   // Collect available dates for the selected campaign
-  //   const allMetricsDates = new Set(
-  //     rawData
-  //       .filter((r) => r.campaign_name === selectedCampaign)
-  //       .map((r) => dayjs(r.metrics_date).format("YYYY-MM-DD"))
-  //   );
-
-  //   let cursor = start.clone();
-  //   let missing = false;
-  //   while (cursor.isSameOrBefore(end, "day")) {
-  //     if (!allMetricsDates.has(cursor.format("YYYY-MM-DD"))) {
-  //       missing = true;
-  //       break;
-  //     }
-  //     cursor = cursor.add(1, "day");
-  //   }
-
-  //   if (missing) {
-  //     Swal.fire({
-  //       icon: "warning",
-  //       title: "Incomplete Data",
-  //       text: "Data not available for the full selected range. Please select a correct date range.",
-  //     });
-  //     return;
-  //   }
-
-  //   setSelectedDateRange([start, end]);
-  // };
   const availableDates = useMemo(() => {
     if (!selectedCampaign) return [];
     return rawData
@@ -250,7 +212,6 @@ export default function OptimizationPage() {
       }
     });
   };
-  console.log(filteredData);
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Upload Form */}

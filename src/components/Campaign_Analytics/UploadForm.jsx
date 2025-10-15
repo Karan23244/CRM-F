@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   DatePicker,
   Form,
@@ -11,6 +11,7 @@ import {
 import { UploadOutlined } from "@ant-design/icons";
 import axios from "axios";
 import Swal from "sweetalert2";
+import { socket } from "../Socket/Socket";
 
 const apiUrl = "https://gapi.clickorbits.in/";
 
@@ -24,8 +25,36 @@ export default function UploadForm({ onUploadSuccess }) {
   const [loading, setLoading] = useState(false); // 🔥 loading state
   const [submitted, setSubmitted] = useState(false); // 🔥 prevent resubmit
 
+  // 🔹 Register socket listener once
+  useEffect(() => {
+    const handler = (data) => {
+      Swal.close(); // 🔹 close processing modal
+
+      if (data.status === "success") {
+        Swal.fire({
+          title: "✅ Upload Completed!",
+          text: `${data.message} for ${data.campaignName}`,
+          icon: "success",
+        });
+        if (onUploadSuccess) onUploadSuccess();
+      } else {
+        Swal.fire({
+          title: "❌ Upload Failed",
+          text: `${data.message} for ${data.campaignName}`,
+          icon: "error",
+        });
+      }
+      setSubmitted(false);
+      setLoading(false);
+    };
+
+    socket.on("uploadComplete", handler);
+
+    return () => socket.off("uploadComplete", handler);
+  }, []);
+
   const handleFinish = async (values) => {
-    if (submitted) return; // block double click
+    if (submitted) return; // prevent double submit
     setLoading(true);
     setSubmitted(true);
 
@@ -35,7 +64,6 @@ export default function UploadForm({ onUploadSuccess }) {
     )} - ${values.dateRange[1].format("YYYY-MM-DD")}`;
 
     const cleanedCampaignName = values.campaignName.trim().replace(/\s+/g, " ");
-
     data.append("campaignName", cleanedCampaignName);
     data.append("os", values.os.trim());
 
@@ -49,28 +77,33 @@ export default function UploadForm({ onUploadSuccess }) {
       data.append("files", file.originFileObj);
     });
 
+    // 🔹 Show processing Swal immediately BEFORE axios call
+    Swal.fire({
+      title: "⏳ Processing...",
+      text: "Your file is being processed. You'll be notified once it's done.",
+      icon: "info",
+      allowOutsideClick: true, // 🔹 allow socket events to update Swal
+      allowEscapeKey: true,
+      showConfirmButton: false,
+      didOpen: () => {
+        Swal.showLoading();
+      },
+    });
+
     try {
-      const res = await axios.post(`${apiUrl}api/metrics`, data);
+      await axios.post(`${apiUrl}api/metrics`, data);
 
-      Swal.fire({
-        title: "✅ Success!",
-        text: "Rows inserted successfully.",
-        icon: "success",
-        confirmButtonColor: "#3085d6",
-      });
-
+      // 🔹 Clear form immediately after request is sent
       form.resetFields();
       setFileList([]);
-      if (onUploadSuccess) onUploadSuccess();
     } catch (err) {
+      Swal.close(); // 🔹 close processing Swal if failed
       Swal.fire({
         title: "❌ Upload Failed",
         text: err.response?.data?.msg || "Something went wrong.",
         icon: "error",
-        confirmButtonColor: "#d33",
       });
-      setSubmitted(false); // allow retry on error
-    } finally {
+      setSubmitted(false);
       setLoading(false);
     }
   };

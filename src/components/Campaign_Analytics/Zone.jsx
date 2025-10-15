@@ -93,6 +93,7 @@ export default function OptimizationCampaignAnalysis({
   // whenever selectedDateRange changes → reset modalData
   useEffect(() => {
     setModalData({ open: false, rows: [], color: "" });
+    setSelectedFilters({});
   }, [selectedDateRange]);
   // Step 1 – Compute metrics + zone
   const processed = data.map((row) => {
@@ -323,31 +324,6 @@ export default function OptimizationCampaignAnalysis({
     },
   };
 
-  // const pieOptions = {
-  //   responsive: true,
-  //   plugins: {
-  //     legend: {
-  //       position: "right",
-  //       labels: {
-  //         font: {
-  //           size: 14,
-  //         },
-  //       },
-  //     },
-  //     tooltip: {
-  //       callbacks: {
-  //         label: function (context) {
-  //           const index = context.dataIndex;
-  //           const custom = pieData.customData?.[index]; // ✅ safe check
-  //           if (!custom) return ""; // if no data, show nothing
-
-  //           return `PIDs: ${custom.pids}, Events: ${custom.events}`;
-  //         },
-  //       },
-  //     },
-  //   },
-  // };
-
   // // Step 5 – Inactive PIDs
   const inactivePIDs = useMemo(
     () => filteredData.filter((row) => row.noi < 200),
@@ -541,29 +517,6 @@ export default function OptimizationCampaignAnalysis({
       key: color.toLowerCase(),
       align: "center",
       render: (val, record) => (
-        // <span
-        //   onClick={() => handleCellClick(record.pubam, color)}
-        //   className={`cursor-pointer ${colorMap[color]} p-2 rounded-lg font-semibold`}>
-        //   {val}-
-        //   <AntTooltip
-        //     title={
-        //       record.reasons?.[color.toLowerCase()]?.length ? (
-        //         <div>
-        //           {record.reasons[color.toLowerCase()].map((item, idx) => (
-        //             <div key={idx}>
-        //               <strong>{item.pid}:</strong> {item.reasons.join(", ")}
-        //             </div>
-        //           ))}
-        //         </div>
-        //       ) : (
-        //         "No reason available"
-        //       )
-        //     }>
-        //     <span className="text-xs cursor-help ml-1 text-black">
-        //       ({record[`${color.toLowerCase()}Events`]}) i
-        //     </span>
-        //   </AntTooltip>
-        // </span>
         <span
           onClick={() => handleCellClick(record.pubam, color)}
           className={`cursor-pointer ${colorMap[color]} p-2 rounded-lg font-semibold`}>
@@ -609,43 +562,81 @@ export default function OptimizationCampaignAnalysis({
     );
   }, [enhancedRows, selectedFilters]);
 
-  const getColumnWithFilter = (title, dataIndex) => ({
-    title: (
-      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-        {title}
-      </div>
-    ),
-    dataIndex,
-    key: dataIndex,
-    filterDropdown: () => (
-      <div style={{ padding: 8 }}>
-        <Select
-          mode="multiple"
-          showSearch
-          style={{ width: 180 }}
-          allowClear
-          placeholder={`Filter ${title}`}
-          value={selectedFilters[dataIndex] || []}
-          onChange={(value) => handleFilterChange(value, dataIndex)}
-          optionFilterProp="children" // enables search by label text
-        >
-          {getUniqueValues(dataIndex).map((val) => (
-            <Select.Option key={val} value={val}>
-              {val}
-            </Select.Option>
-          ))}
-        </Select>
-      </div>
-    ),
-    filterIcon: (filtered) => (
-      <FilterOutlined style={{ color: filtered ? "#1890ff" : "#aaa" }} />
-    ),
-    onFilterDropdownVisibleChange: (visible) => {
-      if (visible) {
-        // optional: do something when dropdown opens
-      }
-    },
-  });
+  // const getColumnWithFilter = (title, dataIndex) => ({
+  //   title: (
+  //     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+  //       {title}
+  //     </div>
+  //   ),
+  //   dataIndex,
+  //   key: dataIndex,
+  //   filterDropdown: () => (
+  //     <div style={{ padding: 8 }}>
+  //       <Select
+  //         mode="multiple"
+  //         showSearch
+  //         style={{ width: 180 }}
+  //         allowClear
+  //         placeholder={`Filter ${title}`}
+  //         value={selectedFilters[dataIndex] || []}
+  //         onChange={(value) => handleFilterChange(value, dataIndex)}
+  //         optionFilterProp="children" // enables search by label text
+  //       >
+  //         {getUniqueValues(dataIndex).map((val) => (
+  //           <Select.Option key={val} value={val}>
+  //             {val}
+  //           </Select.Option>
+  //         ))}
+  //       </Select>
+  //     </div>
+  //   ),
+  //   filterIcon: (filtered) => (
+  //     <FilterOutlined style={{ color: filtered ? "#1890ff" : "#aaa" }} />
+  //   ),
+  //   onFilterDropdownVisibleChange: (visible) => {
+  //     if (visible) {
+  //       // optional: do something when dropdown opens
+  //     }
+  //   },
+  // });
+
+  const getColumnWithFilter = (title, dataIndex) => {
+    const isFiltered = selectedFilters[dataIndex]?.length > 0; // 🔹 check if filter applied
+
+    return {
+      title: (
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <span style={{ color: isFiltered ? "#1890ff" : "#000" }}>
+            {title}
+          </span>
+        </div>
+      ),
+      dataIndex,
+      key: dataIndex,
+      filterDropdown: () => (
+        <div style={{ padding: 8 }}>
+          <Select
+            mode="multiple"
+            showSearch
+            style={{ width: 180 }}
+            allowClear
+            placeholder={`Filter ${title}`}
+            value={selectedFilters[dataIndex] || []}
+            onChange={(value) => handleFilterChange(value, dataIndex)}
+            optionFilterProp="children">
+            {getUniqueValues(dataIndex).map((val) => (
+              <Select.Option key={val} value={val}>
+                {val}
+              </Select.Option>
+            ))}
+          </Select>
+        </div>
+      ),
+      filterIcon: () => (
+        <FilterOutlined style={{ color: isFiltered ? "#1890ff" : "#aaa" }} />
+      ),
+    };
+  };
 
   // helper to map zone -> color class
   const getZoneColorClass = (zone) => {
@@ -898,11 +889,13 @@ export default function OptimizationCampaignAnalysis({
         <Card className="shadow-lg rounded-2xl p-4">
           <div className="flex items-center justify-between mb-4">
             <Button
-              onClick={() =>
-                setModalData({ open: false, rows: [], color: "" })
-              }>
+              onClick={() => {
+                setModalData({ open: false, rows: [], color: "" });
+                setSelectedFilters({});
+              }}>
               ← Back
             </Button>
+
             <AntTitle level={4}>{modalData.color} Zone Details</AntTitle>
           </div>
 
