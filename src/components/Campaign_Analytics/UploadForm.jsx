@@ -11,7 +11,7 @@ import {
 import { UploadOutlined } from "@ant-design/icons";
 import axios from "axios";
 import Swal from "sweetalert2";
-import { socket } from "../Socket/Socket";
+import { socket, joinRoom } from "../Socket/Socket";
 
 const apiUrl = "https://gapi.clickorbits.in/";
 
@@ -24,7 +24,19 @@ export default function UploadForm({ onUploadSuccess }) {
   const [fileList, setFileList] = useState([]);
   const [loading, setLoading] = useState(false); // 🔥 loading state
   const [submitted, setSubmitted] = useState(false); // 🔥 prevent resubmit
-
+  const [socketId, setSocketId] = useState(null);
+  // 🔹 On mount, join room using socket.id
+  useEffect(() => {
+    if (socket.connected) {
+      setSocketId(socket.id);
+      joinRoom(socket.id);
+    } else {
+      socket.on("connect", () => {
+        setSocketId(socket.id);
+        joinRoom(socket.id);
+      });
+    }
+  }, []);
   // 🔹 Register socket listener once
   useEffect(() => {
     const handler = (data) => {
@@ -73,6 +85,10 @@ export default function UploadForm({ onUploadSuccess }) {
     data.append("geo", geoInput);
     data.append("dateRange", formattedRange);
 
+    // 🔹 Append socketId to identify user
+    if (socketId) {
+      data.append("socketId", socketId);
+    }
     fileList.forEach((file) => {
       data.append("files", file.originFileObj);
     });

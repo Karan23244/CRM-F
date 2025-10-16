@@ -68,8 +68,8 @@ const AdvertiserManagerLayout = () => {
 
         <nav className="space-y-2 flex-1 overflow-y-auto px-2">
           <SidebarLink to="advform" label="Advertiser Form" />
+          <SidebarLink to="createcampaign" label="Create Campaign" />
           <SidebarLink to="currentadvdata" label="Adv Campaign Data" />
-
           {/* Dropdown Section */}
           <div>
             <button

@@ -31,6 +31,7 @@ import PublisherCurrentData from "./components/Publisher/PublisherCurrentData";
 import MakeRequest from "./components/Publisher/MakeRequest";
 import BlacklistManager from "./components/Publisher/BlacklistManager";
 import CampaginAnalytics from "./components/Campaign_Analytics/CampainDashboard";
+import CreateCampaign from "./components/Advertiser/CreateCampaign";
 const AppRoutes = () => {
   return (
     <>
@@ -64,6 +65,7 @@ const AppRoutes = () => {
                 path="currentadvdata"
                 element={<AdvertiserCurrentData />}
               />
+              <Route path="createcampaign" element={<CreateCampaign />} />
               <Route path="pid" element={<PIDForm />} />
               <Route path="payableevent" element={<PayableEventForm />} />
               <Route path="mmptracker" element={<MMPTrackerForm />} />
@@ -107,6 +109,7 @@ const AppRoutes = () => {
               element={<Advertisermanagerpage />}>
               <Route index element={<Navigate to="advform" replace />} />
               <Route path="advform" element={<AdvFormComponent />} />
+              <Route path="createcampaign" element={<CreateCampaign />} />
               <Route
                 path="currentadvdata"
                 element={<AdvertiserCurrentData />}

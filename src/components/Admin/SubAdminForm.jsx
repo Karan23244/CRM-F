@@ -29,7 +29,7 @@ const SubAdminForm = () => {
   const [subAdminOptions, setSubAdminOptions] = useState([]);
   const [permissionEditCondition, setPermissionEditCondition] = useState(false);
   const [permissionUploadFiles, setPermissionUploadFiles] = useState(false);
-  console.log(subAdminOptions, "Sub-Admins in SubAdminForm");
+  console.log(subAdminOptions.username);
   useEffect(() => {
     fetchSubAdmins();
   }, []);
@@ -65,13 +65,17 @@ const SubAdminForm = () => {
 
   // Filter sub-admins for assignment dropdown, excluding current username
   useEffect(() => {
+    console.log(subAdmins);
     if (subAdmins.length > 0) {
       setSubAdminOptions(
         subAdmins
           .filter((subAdmin) =>
-            ["advertiser", "publisher", "publisher_manager"].includes(
-              subAdmin.role
-            )
+            [
+              "advertiser",
+              "publisher",
+              "publisher_manager",
+              "advertiser_manager",
+            ].includes(subAdmin.role)
           )
           .filter((subAdmin) => subAdmin.username !== username) // exclude current username
       );
@@ -317,36 +321,36 @@ const SubAdminForm = () => {
               Permission for Uploading Files
             </Checkbox>
           </Form.Item>
-          {role === "advertiser_manager" && (
+          {(role === "advertiser_manager" || role === "publisher_manager") && (
             <Form.Item label="Assign Sub-Admins">
               <Select
                 mode="multiple"
+                showSearch
                 value={assignedSubAdmins}
                 onChange={setAssignedSubAdmins}
-                placeholder="Select sub-admins">
-                {subAdminOptions.map((subAdmin) => (
-                  <Option key={subAdmin.id} value={subAdmin.id}>
-                    {subAdmin.username}
-                  </Option>
-                ))}
+                placeholder="Select sub-admins"
+                filterOption={(input, option) =>
+                  option.children.toLowerCase().includes(input.toLowerCase())
+                }>
+                {subAdminOptions
+                  .filter((subAdmin) =>
+                    role === "advertiser_manager"
+                      ? ["advertiser_manager", "advertiser"].includes(
+                          subAdmin.role
+                        )
+                      : ["publisher_manager", "publisher"].includes(
+                          subAdmin.role
+                        )
+                  )
+                  .map((subAdmin) => (
+                    <Option key={subAdmin.id} value={subAdmin.id}>
+                      {subAdmin.username}
+                    </Option>
+                  ))}
               </Select>
             </Form.Item>
           )}
-          {role === "publisher_manager" && (
-            <Form.Item label="Assign Sub-Admins">
-              <Select
-                mode="multiple"
-                value={assignedSubAdmins}
-                onChange={setAssignedSubAdmins}
-                placeholder="Select sub-admins">
-                {subAdminOptions.map((subAdmin) => (
-                  <Option key={subAdmin.id} value={subAdmin.id}>
-                    {subAdmin.username}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-          )}
+
           <Form.Item label="Ranges">
             {ranges.map((range, index) => (
               <div key={index} className="flex space-x-2 items-center mb-2">
