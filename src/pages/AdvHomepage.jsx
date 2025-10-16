@@ -70,7 +70,7 @@ const AdvertiserLayout = () => {
         </div>
         <nav className="space-y-2 flex-1 overflow-y-auto px-2">
           <SidebarLink to="advform" label="Advertiser Form/Data" />
-          <SidebarLink to="createcampaign" label="Create Campaign" />
+          {/* <SidebarLink to="createcampaign" label="Create Campaign" /> */}
           <SidebarLink to="currentadvdata" label="Adv Campaign Data" />
 
           <div>

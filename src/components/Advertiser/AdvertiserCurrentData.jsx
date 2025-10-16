@@ -63,8 +63,8 @@ const AdvertiserData = () => {
   const [showValidation, setShowValidation] = useState(false);
   const [editingCell, setEditingCell] = useState({ key: null, field: null });
   const [stickyColumns, setStickyColumns] = useState([]);
-  const [selectedSubAdmins, setSelectedSubAdmins] = useState([]);
-  const [subAdmins, setSubAdmins] = useState([]);
+  // const [selectedSubAdmins, setSelectedSubAdmins] = useState([]);
+  // const [subAdmins, setSubAdmins] = useState([]);
   useEffect(() => {
     if (user?.id) {
       fetchData();
@@ -90,28 +90,28 @@ const AdvertiserData = () => {
       message.error("Failed to fetch data");
     }
   }, [userId]);
-  const assignedSubAdmins = user?.assigned_subadmins || [];
-  useEffect(() => {
-    const fetchSubAdmins = async () => {
-      try {
-        const response = await axios.get(`${apiUrl}/get-subadmin`);
-        if (response.data.success) {
-          const subAdminOptions = response.data.data
-            .filter((subAdmin) => assignedSubAdmins.includes(subAdmin.id)) // Filter only assigned sub-admins
-            .map((subAdmin) => ({
-              value: subAdmin.id,
-              label: subAdmin.username,
-              role: subAdmin.role,
-            }));
-          setSubAdmins(subAdminOptions);
-        }
-      } catch (error) {
-        console.error("Error fetching sub-admins:", error);
-      }
-    };
+  // const assignedSubAdmins = user?.assigned_subadmins || [];
+  // useEffect(() => {
+  //   const fetchSubAdmins = async () => {
+  //     try {
+  //       const response = await axios.get(`${apiUrl}/get-subadmin`);
+  //       if (response.data.success) {
+  //         const subAdminOptions = response.data.data
+  //           .filter((subAdmin) => assignedSubAdmins.includes(subAdmin.id)) // Filter only assigned sub-admins
+  //           .map((subAdmin) => ({
+  //             value: subAdmin.id,
+  //             label: subAdmin.username,
+  //             role: subAdmin.role,
+  //           }));
+  //         setSubAdmins(subAdminOptions);
+  //       }
+  //     } catch (error) {
+  //       console.error("Error fetching sub-admins:", error);
+  //     }
+  //   };
 
-    fetchSubAdmins();
-  }, [assignedSubAdmins]);
+  //   fetchSubAdmins();
+  // }, [assignedSubAdmins]);
   const fetchDropdowns = useCallback(async () => {
     try {
       const [advmName, payableEvent, mmpTracker, pid, pub_id, adv_id] =
@@ -201,12 +201,12 @@ const AdvertiserData = () => {
   // Filters / search / date range memoized
   const finalFilteredData = useMemo(() => {
     let filtered = [...data];
-    // 🔹 Filter by selected Subadmin user_id
-    if (selectedSubAdmins.length > 0) {
-      filtered = filtered.filter((item) =>
-        selectedSubAdmins.includes(item.user_id)
-      );
-    }
+    // // 🔹 Filter by selected Subadmin user_id
+    // if (selectedSubAdmins.length > 0) {
+    //   filtered = filtered.filter((item) =>
+    //     selectedSubAdmins.includes(item.user_id)
+    //   );
+    // }
     // Date range filter for shared_date
     if (
       selectedDateRange &&
@@ -271,7 +271,8 @@ const AdvertiserData = () => {
     }
 
     return filtered;
-  }, [data, selectedDateRange, filters, searchTerm, selectedSubAdmins]);
+  }, [data, selectedDateRange, filters, searchTerm]);
+  // }, [data, selectedDateRange, filters, searchTerm, selectedSubAdmins]);
   // regenerate unique values when filtered data changes
   useEffect(() => {
     generateUniqueValues(finalFilteredData);
@@ -944,13 +945,13 @@ const AdvertiserData = () => {
 
                 {user?.role === "advertiser_manager" && (
                   <>
-                    {/* <Button
+                    <Button
                       type="primary"
                       onClick={() => setShowSubadminData(true)}
                       className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200">
                       📊 Assigned Sub-Admin Data
-                    </Button> */}
-                    <Select
+                    </Button>
+                    {/* <Select
                       mode="multiple"
                       allowClear
                       placeholder="Select Subadmins"
@@ -963,7 +964,7 @@ const AdvertiserData = () => {
                           {subAdmin.label}
                         </Option>
                       ))}
-                    </Select>
+                    </Select> */}
 
                     <Button
                       onClick={() => setShowValidation(true)}
