@@ -185,6 +185,7 @@ const PublisherPayoutData = () => {
     shared_date: "Shared Date",
     fa: "FA (Advertiser Side)",
     fa1: "FA1 (Advertiser Side)",
+    fp: "FP (Publisher Side)",
     paused_date: "Paused Date",
     adv_total_no: "PUB Total Numbers",
     pub_Apno: "PUB Approved Numbers",
