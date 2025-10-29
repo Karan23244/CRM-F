@@ -530,7 +530,9 @@ export default function OptimizationCampaignAnalysis({
   ];
   // Extract unique values for each column
   const getUniqueValues = (key) => {
-    return [...new Set(modalData.rows.map((row) => row[key]))].filter(Boolean);
+    return [...new Set(modalData.rows.map((row) => row[key]))].filter(
+      (val) => val !== null && val !== undefined && val !== ""
+    );
   };
 
   const handleFilterChange = (value, dataIndex) => {
@@ -899,17 +901,25 @@ export default function OptimizationCampaignAnalysis({
             <AntTitle level={4}>{modalData.color} Zone Details</AntTitle>
           </div>
 
+          {/* ✅ Only the table will scroll, not the page */}
           <Table
             columns={modalColumns}
             dataSource={filteredDataModal}
             rowKey={(record) => record.pid}
+            bordered
             pagination={{
               showSizeChanger: true,
               pageSizeOptions: ["10", "20", "50", "100"],
               showTotal: (total, range) =>
                 `${range[0]}-${range[1]} of ${total} items`,
             }}
-            bordered
+            scroll={{
+              y: 600, // 👈 makes only table body scrollable (adjust height as needed)
+            }}
+            sticky // 👈 keeps table header fixed while scrolling
+            style={{
+              maxHeight: "700px", // ✅ ensures the table fits inside the card
+            }}
           />
         </Card>
       )}

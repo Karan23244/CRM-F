@@ -632,10 +632,17 @@ const PublisherPayoutData = () => {
     //   });
     // }
 
-    // 🔹 Insert FP after paused_date
     const pauseIdx = baseCols.findIndex((col) => col.key === "paused_date");
+
+    // ✅ Remove existing FP if found
+    const existingFpIdx = baseCols.findIndex((col) => col.key === "fp");
+    if (existingFpIdx !== -1) {
+      baseCols.splice(existingFpIdx, 1);
+    }
+
+    // ✅ Insert FP column BEFORE paused_date instead of after
     if (pauseIdx > -1) {
-      baseCols.splice(pauseIdx + 1, 0, {
+      baseCols.splice(pauseIdx, 0, {
         title: (
           <div className="flex items-center justify-between">
             <span
@@ -669,7 +676,6 @@ const PublisherPayoutData = () => {
         sorter: (a, b) => (a.fp_status || "").localeCompare(b.fp_status || ""),
         fixed: stickyColumns.includes("fp_status") ? "left" : undefined,
 
-        // 🔹 Custom filter dropdown like other headers
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
           <Select
             mode="multiple"
@@ -695,10 +701,10 @@ const PublisherPayoutData = () => {
             ))}
           </Select>
         ),
+
         onFilter: (value, record) =>
           record.fp_status?.toString().toLowerCase() === value.toLowerCase(),
 
-        // Inline editing
         render: (text, record) => (
           <Select
             value={text || undefined}
