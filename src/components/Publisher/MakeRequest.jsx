@@ -10,7 +10,10 @@ import {
   message,
   Checkbox,
   notification,
+  DatePicker,
 } from "antd";
+import dayjs from "dayjs";
+const { RangePicker } = DatePicker;
 import Swal from "sweetalert2";
 import { exportToExcel } from "../exportExcel";
 import { debounce } from "lodash";
@@ -40,7 +43,12 @@ const PublisherRequest = () => {
   const user = useSelector((state) => state.auth.user);
   const username = user?.username || null;
   const userRole = user?.role;
-
+  // Default: start = first day of current month, end = today
+  const [dateRange, setDateRange] = useState([
+    dayjs().startOf("month"),
+    dayjs(),
+  ]);
+  console.log("Selected Date Range:", dateRange);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm();
@@ -52,7 +60,6 @@ const PublisherRequest = () => {
   const [blacklistPIDs, setBlacklistPIDs] = useState([]);
   const [filters, setFilters] = useState({});
   const [pinnedColumns, setPinnedColumns] = useState({});
-  console.log(requests)
   // ✅ Callbacks to prevent re-creation on each render
   const clearAllFilters = useCallback(() => setFilters({}), []);
   const togglePin = useCallback((key) => {
@@ -116,30 +123,38 @@ const PublisherRequest = () => {
 
   const fetchRequests = useCallback(async () => {
     try {
-      const res = await axios.get(`${apiUrl}/getAllPubRequests`);
+      const [startDate, endDate] = dateRange;
+      console.log("Fetching requests for:", startDate.format("YYYY-MM-DD"), endDate.format("YYYY-MM-DD"));
+      const res = await axios.get(`${apiUrl}/getAllPubRequests12`, {
+        params: {
+          startDate: startDate.format("YYYY-MM-DD"),
+          endDate: endDate.format("YYYY-MM-DD"),
+        },
+      });
+
       const sortedData = (res.data?.data || []).sort((a, b) => b.id - a.id);
       setRequests(sortedData);
-    } catch {
+    } catch (err) {
+      console.error(err);
       message.error("Failed to load requests");
       setRequests([]);
     }
-  }, [apiUrl]);
+  }, [apiUrl, dateRange]);
+
   const showModal = () => {
     setIsModalVisible(true);
   };
-  // 🚀 Initial Load
   useEffect(() => {
     fetchBlacklistPIDs();
     fetchDropdowns();
     fetchAdvertisers();
+  }, [fetchBlacklistPIDs, fetchDropdowns, fetchAdvertisers]);
+
+  // Separate effect to fetch requests when dateRange changes
+  useEffect(() => {
+    fetchRequests();
     subscribeToNotifications(() => fetchRequests());
-  }, [
-    fetchBlacklistPIDs,
-    fetchDropdowns,
-    fetchAdvertisers,
-    fetchRequests,
-    subscribeToNotifications,
-  ]);
+  }, [fetchRequests, subscribeToNotifications]);
 
   // 🔍 Filtered Requests
   const filteredRequests = useMemo(() => {
@@ -485,15 +500,27 @@ const PublisherRequest = () => {
         fixed: pinnedColumns["priority"] || undefined,
         render: (_, record) =>
           userRole === "publisher_manager" ? (
+            // <Select
+            //   value={record.priority}
+            //   style={{ width: 80 }}
+            //   onChange={(val) =>
+            //     handleUpdatePrm(record, { priority: val, prm: record.prm })
+            //   }>
+            //   {Array.from({ length: 15 }, (_, i) => (
+            //     <Option key={i + 1} value={i + 1}>
+            //       {i + 1}
+            //     </Option>
+            //   ))}
+            // </Select>
             <Select
               value={record.priority}
               style={{ width: 80 }}
               onChange={(val) =>
                 handleUpdatePrm(record, { priority: val, prm: record.prm })
               }>
-              {Array.from({ length: 15 }, (_, i) => (
-                <Option key={i + 1} value={i + 1}>
-                  {i + 1}
+              {(record.available_priorities || []).map((p) => (
+                <Option key={p} value={p}>
+                  {p}
                 </Option>
               ))}
             </Select>
@@ -595,7 +622,16 @@ const PublisherRequest = () => {
             📥 <span>Download Excel</span>
           </Button>
         </div>
-
+        {/* 🗓️ Date Range Picker */}
+        <RangePicker
+          value={dateRange}
+          format="YYYY-MM-DD"
+          onChange={(values) => {
+            if (values) setDateRange(values);
+          }}
+          allowClear={false}
+          style={{ marginRight: 16 }}
+        />
         <Input.Search
           placeholder="Search by Advertiser, Campaign, PID, etc."
           allowClear
