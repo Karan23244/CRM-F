@@ -83,15 +83,13 @@ const LoginForm = () => {
     <div className="bg-[#496e93] min-h-screen flex items-center justify-center p-4 md:p-10">
       <div className="relative flex flex-col md:flex-row w-full max-w-7xl h-auto md:h-[80vh] rounded-2xl overflow-hidden shadow-2xl">
         {/* Left Side */}
-        <div className="w-full md:w-2/5 bg-[#01509D] text-white flex flex-col justify-center px-8 py-10 md:px-14 relative">
+        <div className="w-full md:w-2/5 bg-[#002F65] text-white flex flex-col justify-center px-8 py-10 md:px-14 relative">
           <h1 className="text-3xl md:text-5xl font-bold mb-6 leading-snug text-center md:text-left">
             Welcome to ClickOrbits
           </h1>
           <p className="text-base md:text-lg leading-relaxed opacity-90 text-center md:text-left">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque
-            pharetra, nulla at cursus pretium, sem urna vulputate nisi, sed
-            vestibulum neque justo et metus. Duis a libero at ligula ultrices
-            imperdiet.
+            PID Metric: Powering seamless campaign management and precise
+            performance tracking.
           </p>
         </div>
 

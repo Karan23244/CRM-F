@@ -50,8 +50,7 @@ const columnHeadingsMap = {
 const PublisherRequest = ({ senderId, receiverId }) => {
   const user = useSelector((state) => state.auth.user);
   const username = user?.username || null;
-  const userRole = user?.role;
-
+  const userRole = user?.role || []; // array of roles
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm();
@@ -461,7 +460,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
         dataIndex: "priority",
         fixed: pinnedColumns["priority"] || undefined,
         render: (_, record) =>
-          userRole && ["publisher_manager", "admin"].includes(userRole) ? (
+          userRole?.some((r) => ["publisher_manager", "admin"].includes(r)) ? (
             <Select
               value={record.priority}
               style={{ width: 80 }}
@@ -515,7 +514,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
         dataIndex: "prm",
         fixed: pinnedColumns["prm"] || undefined,
         render: (_, record) =>
-          userRole && ["publisher_manager", "admin"].includes(userRole) ? (
+          userRole?.some((r) => ["publisher_manager", "admin"].includes(r)) ? (
             <Select
               value={record.prm}
               style={{

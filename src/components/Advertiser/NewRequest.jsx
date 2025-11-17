@@ -65,7 +65,7 @@ const NewRequest = () => {
   });
   const [pinnedColumns, setPinnedColumns] = useState({});
   const [sortInfo, setSortInfo] = useState({});
-
+  console.log("🚀 sortInfo:", requests);
   const handlePinColumn = (key) => {
     setPinnedColumns((prev) => {
       const current = prev[key];
@@ -480,8 +480,9 @@ const NewRequest = () => {
 
       // Find record to get receiver info
       const updatedRecord = requests.find((r) => r.id === id);
-      const receiverName = updatedRecord?.pub_name || "Unknown Advertiser";
-      const campaignName = updatedRecord?.campaign_name || "Unknown Campaign";
+      console.log("🚀 Updated Record:", updatedRecord);
+      const receiverName = updatedRecord?.pub_name;
+      const campaignName = updatedRecord?.campaign_name;
 
       // 📨 Send notification dynamically
       await createNotification({

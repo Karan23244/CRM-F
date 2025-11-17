@@ -247,7 +247,7 @@ const DashboardLayout = () => {
           <div
             onClick={() => {
               if (hasChildren) toggleMenu(link.label);
-              else if (link.to) window.open(`/dashboard/${link.to}`, "_blank");
+              else if (link.to) window.open(`/dashboard/${link.to}`, "_self");
             }}
             className={`flex justify-between items-center px-3 py-2 rounded-md cursor-pointer transition-all ${
               isActive
@@ -273,97 +273,6 @@ const DashboardLayout = () => {
     });
 
   return (
-    // <div className="flex h-screen bg-gray-100">
-    //   {sidebarOpen && (
-    //     <div
-    //       className="fixed inset-0 bg-black bg-opacity-50 transition-opacity md:hidden"
-    //       onClick={() => setSidebarOpen(false)}></div>
-    //   )}
-
-    //   {/* Sidebar */}
-    //   <aside
-    //     className={`bg-blue-500 text-white py-5 space-y-6 fixed inset-y-0 left-0 transform transition-transform duration-300 ease-in-out ${
-    //       sidebarOpen ? "translate-x-0 w-56 md:w-64" : "-translate-x-full w-0"
-    //     } md:relative md:translate-x-0 shadow-lg flex flex-col overflow-hidden`}>
-    //     <div className="flex items-center justify-between px-4 mb-6">
-    //       <div className="flex items-center space-x-2">
-    //         <img src="/crm2.svg" alt="Logo" className="h-14 w-14" />
-    //         <h2 className="text-lg font-bold tracking-wide pl-4">
-    //           {Array.isArray(user.role)
-    //             ? user.role
-    //                 .map((r) =>
-    //                   r
-    //                     .split("_")
-    //                     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    //                     .join(" ")
-    //                 )
-    //                 .join(", ")
-    //             : user.role}
-    //         </h2>
-    //       </div>
-    //       <button
-    //         className="text-white text-2xl md:hidden"
-    //         onClick={() => setSidebarOpen(false)}>
-    //         <FaTimes />
-    //       </button>
-    //     </div>
-
-    //     <nav className="space-y-1 flex-1 px-2 overflow-y-auto">
-    //       {renderLinks(links)}
-    //     </nav>
-    //   </aside>
-
-    //   {/* Main Area */}
-    //   <div className="flex-1 flex flex-col transition-all min-w-0">
-    //     <header className="bg-white shadow-md p-4 flex justify-between items-center">
-    //       <button
-    //         className="text-blue-900 text-2xl p-2"
-    //         onClick={() => setSidebarOpen(!sidebarOpen)}>
-    //         {sidebarOpen ? <FaTimes /> : <FaBars />}
-    //       </button>
-
-    //       <h2 className="text-xl font-semibold capitalize">
-    //         {Array.isArray(user.role)
-    //           ? user.role
-    //               .map((r) =>
-    //                 r
-    //                   .split("_")
-    //                   .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    //                   .join(" ")
-    //               )
-    //               .join(", ")
-    //           : user.role
-    //           ? user.role
-    //               .split("_")
-    //               .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    //               .join(" ")
-    //           : ""}{" "}
-    //         Dashboard
-    //       </h2>
-
-    //       <div className="flex items-center gap-6">
-    //         <NavLink to="notifications" className="relative">
-    //           <FaBell className="text-2xl text-blue-700 hover:text-blue-900 transition" />
-    //           {notificationCount > 0 && (
-    //             <span className="absolute -top-1 -right-2 bg-red-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5">
-    //               {notificationCount}
-    //             </span>
-    //           )}
-    //         </NavLink>
-
-    //         <button
-    //           className="bg-red-500 text-white font-semibold px-4 py-2 rounded-lg hover:bg-red-600 transition"
-    //           onClick={handleLogout}>
-    //           Logout
-    //         </button>
-    //       </div>
-    //     </header>
-
-    //     <main className="overflow-auto p-4">
-    //       <Outlet />
-    //     </main>
-    //   </div>
-    // </div>
     <>
       <div className="min-h-screen flex flex-col bg-white">
         {/* HEADER */}
@@ -440,7 +349,7 @@ const DashboardLayout = () => {
         <div className="flex flex-1 overflow-hidden min-h-screen mt-21">
           {/* SIDEBAR */}
           {sidebarOpen && (
-            <aside className=" fixed text-white w-64 flex flex-row items-start bg-gradient-to-b from-[#2F5D99] to-[#1E3A66] h-screen">
+            <aside className=" fixed text-white w-64 flex flex-row items-start bg-gradient-to-b from-[#002F65] to-[#002F65] h-screen">
               <div className="flex-1 px-4 py-3 space-y-4 overflow-y-auto">
                 <nav className="space-y-2">{renderLinks(links)}</nav>
               </div>

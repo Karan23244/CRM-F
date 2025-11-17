@@ -30,6 +30,7 @@ const CampaignList = () => {
   const [campaigns, setCampaigns] = useState([]);
   const [filters, setFilters] = useState({});
   const [pinnedColumns, setPinnedColumns] = useState({});
+  const [searchText, setSearchText] = useState("");
   const [editingCell, setEditingCell] = useState({ id: null, key: null });
   const [hiddenColumns, setHiddenColumns] = useState(() => {
     const saved = localStorage.getItem("hiddenCampaignColumns");
@@ -252,13 +253,20 @@ const CampaignList = () => {
             gap: 6,
           }}>
           <span>{title}</span>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div
+            style={{ display: "flex", alignItems: "center", gap: 6 }}
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}>
             {/* Filter Dropdown */}
             <Dropdown
               trigger={["click"]}
               dropdownRender={() => (
                 <div style={{ padding: 8, width: 180 }}>
                   <Select
+                    onClick={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
                     showSearch
                     allowClear
                     placeholder={`Filter ${title}`}
@@ -332,6 +340,32 @@ const CampaignList = () => {
         : (text) => text || "-",
     };
   };
+  // 🔍 APPLY SEARCH + FILTERS + SORT
+  const filteredCampaigns = campaigns
+    .filter((row) => {
+      // SEARCH
+      const rowText = Object.values(row).join(" ").toLowerCase();
+      const matchesSearch = rowText.includes(searchText.toLowerCase());
+
+      // FILTERS
+      const matchesFilters = Object.keys(filters).every((key) => {
+        if (!filters[key]) return true;
+        return (row[key] || "").toString() === filters[key];
+      });
+
+      return matchesSearch && matchesFilters;
+    })
+    .sort((a, b) => {
+      if (!sortInfo.order || !sortInfo.columnKey) return 0;
+
+      const col = sortInfo.columnKey;
+      const valA = (a[col] || "").toString().toLowerCase();
+      const valB = (b[col] || "").toString().toLowerCase();
+
+      return sortInfo.order === "ascend"
+        ? valA.localeCompare(valB)
+        : valB.localeCompare(valA);
+    });
 
   // ✅ Normalize to array safely
   let roles = [];
@@ -529,6 +563,12 @@ const CampaignList = () => {
         className="shadow-md rounded-2xl border border-gray-200">
         {/* 🧩 Hide Column Selector */}
         <div className="flex flex-wrap items-center gap-3 mb-4">
+          <Input
+            placeholder="Search anything..."
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            style={{ width: 250 }}
+          />
           <Select
             mode="multiple"
             allowClear
@@ -553,7 +593,7 @@ const CampaignList = () => {
         <StyledTable
           rowKey="id"
           columns={visibleColumns}
-          dataSource={campaigns}
+          dataSource={filteredCampaigns}
           bordered
           pagination={{
             pageSizeOptions: ["10", "20", "50", "100"],

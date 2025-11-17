@@ -230,7 +230,7 @@ export const sidebarLinks = [
   // ==========================
   {
     to: "blacklistpid",
-    label: "Blacklist Manager",
+    label: "Blacklist PID",
     roles: ["publisher_manager", "admin"],
   },
   // ==========================

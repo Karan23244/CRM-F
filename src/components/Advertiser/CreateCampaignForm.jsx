@@ -19,9 +19,8 @@ const CreateCampaignForm = () => {
     pub_name: [],
     payable_event: [],
     mmp_tracker: [],
-    pid: [],
     geo: [],
-    adv_id: [],
+    adv_list: [],
   });
 
   const fetchCampaigns = useCallback(async () => {
@@ -46,15 +45,12 @@ const CreateCampaignForm = () => {
 
   const fetchDropdowns = useCallback(async () => {
     try {
-      const [advmName, payableEvent, mmpTracker, pid, adv_id] =
-        await Promise.all([
-          axios.get(`${apiUrl}/get-subadmin`),
-          axios.get(`${apiUrl}/get-paybleevernt`),
-          axios.get(`${apiUrl}/get-mmptracker`),
-          axios.get(`${apiUrl}/get-pid`),
-          axios.get(`${apiUrl}/advid-data/${userId}`),
-        ]);
-
+      const [advmName, payableEvent, mmpTracker, adv_id] = await Promise.all([
+        axios.get(`${apiUrl}/get-subadmin`),
+        axios.get(`${apiUrl}/get-paybleevernt`),
+        axios.get(`${apiUrl}/get-mmptracker`),
+        axios.get(`${apiUrl}/advid-data/${userId}`),
+      ]);
       setDropdownOptions({
         pub_name: [
           ...new Set(
@@ -76,10 +72,11 @@ const CreateCampaignForm = () => {
         mmp_tracker: [
           ...new Set(mmpTracker?.data?.data?.map((i) => i.mmptext) || []),
         ],
-        pid: [...new Set(pid?.data?.data?.map((i) => i.pid) || [])],
-        adv_id: [
-          ...new Set(adv_id?.data?.advertisements?.map((i) => i.adv_id) || []),
-        ],
+        adv_list:
+          adv_id?.data?.advertisements?.map((i) => ({
+            adv_id: i.adv_id,
+            adv_name: i.adv_name,
+          })) || [],
         geo: [...new Set(geoData.geo?.map((i) => i.code) || [])],
       });
     } catch (error) {
@@ -87,12 +84,12 @@ const CreateCampaignForm = () => {
       Swal.fire("Error", "Failed to fetch dropdown data", "error");
     }
   }, [userId]);
-
   useEffect(() => {
     fetchDropdowns();
   }, [fetchDropdowns]);
 
   const onFinish = async (values) => {
+    console.log("Form Values:", values);
     try {
       const res = await axios.post(`${apiUrl}/campaigns`, values);
       if (res.data?.message === "Campaign created successfully") {
@@ -149,32 +146,45 @@ const CreateCampaignForm = () => {
           onFinish={onFinish}
           className="grid grid-cols-1 md:grid-cols-2 gap-x-5">
           <Form.Item
-            label="Advertiser Name"
-            name="Adv_name"
-            rules={[
-              { required: true, message: "Please enter advertiser name" },
-            ]}>
-            <Input
-              placeholder="Enter Advertiser Name"
-              className="h-11 rounded-lg border-gray-200 bg-gray-50"
-            />
-          </Form.Item>
-
-          <Form.Item
-            label="Advertiser ID"
-            name="adv_id"
-            rules={[
-              { required: true, message: "Please select advertiser ID" },
-            ]}>
+            label="Advertiser"
+            name="advertiser"
+            rules={[{ required: true, message: "Please select advertiser" }]}>
             <Select
-              placeholder="Select Advertiser ID"
-              className="!h-11 rounded-lg border-gray-200 bg-gray-50">
-              {dropdownOptions.adv_id.map((id) => (
-                <Option key={id} value={id}>
-                  {id}
+              showSearch
+              placeholder="Select Advertiser"
+              className="!h-11 rounded-lg border-gray-200 bg-gray-50"
+              optionFilterProp="label"
+              filterOption={(input, option) =>
+                option?.label?.toLowerCase().includes(input.toLowerCase())
+              }
+              onChange={(val) => {
+                const selected = dropdownOptions.adv_list.find(
+                  (i) => i.adv_id === val
+                );
+
+                form.setFieldsValue({
+                  adv_d: selected?.adv_id, // 👈 will now work
+                  Adv_name: selected?.adv_name,
+                });
+              }}>
+              {dropdownOptions.adv_list.map((item) => (
+                <Option
+                  key={item.adv_id}
+                  value={item.adv_id}
+                  label={`${item.adv_name} / ${item.adv_id}`}>
+                  {item.adv_name} / {item.adv_id}
                 </Option>
               ))}
             </Select>
+          </Form.Item>
+
+          {/* 👇 REQUIRED HIDDEN FIELDS */}
+          <Form.Item name="adv_d" hidden>
+            <Input />
+          </Form.Item>
+
+          <Form.Item name="Adv_name" hidden>
+            <Input />
           </Form.Item>
 
           <Form.Item
@@ -197,6 +207,7 @@ const CreateCampaignForm = () => {
               <Option value="Finance">Finance</Option>
               <Option value="Gaming">Gaming</Option>
               <Option value="E-commerce">E-commerce</Option>
+              <Option value="Health">Utility</Option>
               <Option value="Health">Health</Option>
             </Select>
           </Form.Item>
@@ -271,21 +282,6 @@ const CreateCampaignForm = () => {
           </Form.Item>
 
           <Form.Item
-            label="PID"
-            name="pid"
-            rules={[{ required: true, message: "Please select PID" }]}>
-            <Select
-              placeholder="Select PID"
-              className="rounded-lg !h-11 border-gray-200 bg-gray-50">
-              {dropdownOptions.pid.map((p) => (
-                <Option key={p} value={p}>
-                  {p}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-
-          <Form.Item
             label="Adv Payout"
             name="adv_payout"
             rules={[{ required: true, message: "Please enter adv payout" }]}>
@@ -305,7 +301,15 @@ const CreateCampaignForm = () => {
               className="h-11 rounded-lg border-gray-200 bg-gray-50"
             />
           </Form.Item>
-
+          <Form.Item
+            label="LINK"
+            name="link"
+            rules={[{ required: true, message: "Please add Link" }]}>
+            <Input
+              placeholder="Enter Link"
+              className="h-11 rounded-lg border-gray-200 bg-gray-50"
+            />
+          </Form.Item>
           <Form.Item
             label="Status"
             name="status"

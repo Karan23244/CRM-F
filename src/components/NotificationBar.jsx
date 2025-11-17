@@ -270,7 +270,7 @@ export default function NotificationList() {
   const navigate = useNavigate();
   const user = useSelector((state) => state.auth?.user);
   const userId = user?.id || JSON.parse(localStorage.getItem("user"))?.id;
-
+  console.log("🚀 NotificationList rendered for userId:", notifications);
   useEffect(() => {
     if (!userId) return;
 

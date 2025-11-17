@@ -28,6 +28,7 @@ const apiUrl = import.meta.env.VITE_API_URL;
 const PubIdTable = () => {
   const [data, setData] = useState([]);
   const [pinnedColumns, setPinnedColumns] = useState({});
+  const [searchText, setSearchText] = useState("");
   const [filters, setFilters] = useState({});
   const [loading, setLoading] = useState(false);
   const [editingCell, setEditingCell] = useState({ rowId: null, field: null });
@@ -85,7 +86,10 @@ const PubIdTable = () => {
     try {
       setLoading(true);
       const res = await axios.get(`${apiUrl}/getpubdata`);
-      setData(res.data.data || []);
+
+      const sortedData = (res.data.data || []).reverse(); // latest first
+      console.log("Fetched PUBID data:", sortedData);
+      setData(sortedData);
     } catch (error) {
       console.error("Error fetching PUBID data:", error);
       message.error("❌ Failed to fetch PUBID data");
@@ -261,7 +265,20 @@ const PubIdTable = () => {
         : (text) => text || "-",
     };
   };
+  // ✅ APPLY FILTER + SEARCH HERE
+  const filteredData = data.filter((row) => {
+    // 🔍 Search
+    const rowString = Object.values(row).join(" ").toLowerCase();
+    const matchesSearch = rowString.includes(searchText.toLowerCase());
 
+    // 🏷️ Filters
+    const matchesFilters = Object.keys(filters).every((key) => {
+      if (!filters[key]) return true;
+      return (row[key] || "").toString() === filters[key];
+    });
+
+    return matchesSearch && matchesFilters;
+  });
   // 🔹 Editable Cell Helper
   const renderEditableCell = (record, field, value, type = "text") => {
     const isEditing =
@@ -586,7 +603,6 @@ const PubIdTable = () => {
     (col) => !hiddenColumns.includes(col.key)
   );
 
-
   return (
     <div className="p-4">
       <h2 className="text-xl font-semibold mb-4 text-gray-700">
@@ -594,6 +610,12 @@ const PubIdTable = () => {
       </h2>
 
       <div className="flex flex-wrap items-center gap-3 mb-4">
+        <Input
+          placeholder="Search anything..."
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          style={{ width: 300 }}
+        />
         <Select
           mode="multiple"
           allowClear
@@ -616,7 +638,7 @@ const PubIdTable = () => {
 
       <StyledTable
         columns={visibleColumns}
-        dataSource={data}
+        dataSource={filteredData}
         loading={loading}
         rowKey="id"
         pagination={{
