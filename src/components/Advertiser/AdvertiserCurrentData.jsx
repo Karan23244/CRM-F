@@ -18,6 +18,11 @@ import {
   PushpinOutlined,
   PushpinFilled,
 } from "@ant-design/icons";
+import { FaFilterCircleXmark, FaDownload } from "react-icons/fa6";
+import { LuFileSpreadsheet } from "react-icons/lu";
+import { RiFileExcel2Line } from "react-icons/ri";
+import { TbColumns3 } from "react-icons/tb";
+import { IoMdSearch } from "react-icons/io";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import { useSelector } from "react-redux";
@@ -25,6 +30,7 @@ import geoData from "../../Data/geoData.json";
 import { exportToExcel } from "../exportExcel";
 import MainComponent from "./ManagerAllData";
 import Validation from "../Validation";
+import StyledTable from "../../Utils/StyledTable";
 
 dayjs.extend(isBetween);
 const { RangePicker } = DatePicker;
@@ -33,7 +39,7 @@ const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 
 const AdvertiserData = () => {
-  const user = useSelector((state) => state.auth.user);
+  const user = useSelector((state) => state.auth?.user);
   const userId = user?.id || null;
 
   const [data, setData] = useState([]);
@@ -41,6 +47,20 @@ const AdvertiserData = () => {
   const [sortInfo, setSortInfo] = useState({ columnKey: null, order: null });
   const [searchTerm, setSearchTerm] = useState("");
   const [uniqueValues, setUniqueValues] = useState({});
+  const [hiddenColumns, setHiddenColumns] = useState(() => {
+    const saved = localStorage.getItem("hiddenColumns");
+    try {
+      const parsed = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
+  console.log(data);
+  // When hiddenColumns changes, save to localStorage
+  useEffect(() => {
+    localStorage.setItem("hiddenColumns", JSON.stringify(hiddenColumns));
+  }, [hiddenColumns]);
   const [dropdownOptions, setDropdownOptions] = useState({
     os: ["Android", "APK", "iOS"],
     fa: ["Quality", "No Quality", "No Live"],
@@ -63,8 +83,9 @@ const AdvertiserData = () => {
   const [showValidation, setShowValidation] = useState(false);
   const [editingCell, setEditingCell] = useState({ key: null, field: null });
   const [stickyColumns, setStickyColumns] = useState([]);
-  // const [selectedSubAdmins, setSelectedSubAdmins] = useState([]);
-  // const [subAdmins, setSubAdmins] = useState([]);
+  const [selectedSubAdmins, setSelectedSubAdmins] = useState([]);
+  const [roleData, setRoleData] = useState([]);
+  const [subAdmins, setSubAdmins] = useState([]);
   useEffect(() => {
     if (user?.id) {
       fetchData();
@@ -76,6 +97,7 @@ const AdvertiserData = () => {
   const fetchData = useCallback(async () => {
     try {
       const response = await axios.get(`${apiUrl}/advdata-byuser/${userId}`);
+      console.log("fetchData response:", response);
       if (response?.data) {
         const formatted = [...(response.data || [])].reverse().map((item) => ({
           ...item,
@@ -90,28 +112,76 @@ const AdvertiserData = () => {
       message.error("Failed to fetch data");
     }
   }, [userId]);
-  // const assignedSubAdmins = user?.assigned_subadmins || [];
-  // useEffect(() => {
-  //   const fetchSubAdmins = async () => {
-  //     try {
-  //       const response = await axios.get(`${apiUrl}/get-subadmin`);
-  //       if (response.data.success) {
-  //         const subAdminOptions = response.data.data
-  //           .filter((subAdmin) => assignedSubAdmins.includes(subAdmin.id)) // Filter only assigned sub-admins
-  //           .map((subAdmin) => ({
-  //             value: subAdmin.id,
-  //             label: subAdmin.username,
-  //             role: subAdmin.role,
-  //           }));
-  //         setSubAdmins(subAdminOptions);
-  //       }
-  //     } catch (error) {
-  //       console.error("Error fetching sub-admins:", error);
-  //     }
-  //   };
+  // 🔹 Fetch and merge subadmin data dynamically
+  const fetchSubAdminData = async (selectedAdmins) => {
+    try {
+      if (selectedAdmins.length === 0) {
+        setRoleData([]);
+        return;
+      }
 
-  //   fetchSubAdmins();
-  // }, [assignedSubAdmins]);
+      const promises = selectedAdmins.map((admin) =>
+        axios.get(`${apiUrl}/user-data/${admin.value}`)
+      );
+      const responses = await Promise.all(promises);
+
+      const newRoleData = responses.map((res, index) => ({
+        adminId: selectedAdmins[index].value,
+        name: selectedAdmins[index].label,
+        role: selectedAdmins[index].role,
+        data: res.data.data,
+      }));
+
+      setRoleData(newRoleData);
+
+      // 🔹 Merge all fetched subadmin data into main table
+      const mergedData = [
+        ...data,
+        ...newRoleData.flatMap((r) =>
+          (r.data || []).map((item) => ({ ...item, subadminId: r.adminId }))
+        ),
+      ];
+
+      setData(mergedData);
+    } catch (error) {
+      console.error("Error fetching subadmin data:", error);
+      message.error("Failed to fetch subadmin data");
+    }
+  };
+  useEffect(() => {
+    if (selectedSubAdmins.length === 0) {
+      // No subadmins selected → remove their data from table
+      setData((prev) => prev.filter((item) => !item.subadminId));
+      setRoleData([]);
+      return;
+    }
+
+    // Get newly added subadmins
+    fetchSubAdminData(selectedSubAdmins);
+  }, [selectedSubAdmins]);
+
+  const assignedSubAdmins = user?.assigned_subadmins || [];
+  useEffect(() => {
+    const fetchSubAdmins = async () => {
+      try {
+        const response = await axios.get(`${apiUrl}/get-subadmin`);
+        if (response.data.success) {
+          const subAdminOptions = response.data.data
+            .filter((subAdmin) => assignedSubAdmins.includes(subAdmin.id)) // Filter only assigned sub-admins
+            .map((subAdmin) => ({
+              value: subAdmin.id,
+              label: subAdmin.username,
+              role: subAdmin.role,
+            }));
+          setSubAdmins(subAdminOptions);
+        }
+      } catch (error) {
+        console.error("Error fetching sub-admins:", error);
+      }
+    };
+
+    fetchSubAdmins();
+  }, [assignedSubAdmins]);
   const fetchDropdowns = useCallback(async () => {
     try {
       const [advmName, payableEvent, mmpTracker, pid, pub_id, adv_id] =
@@ -126,20 +196,35 @@ const AdvertiserData = () => {
 
       setDropdownOptions((prev) => ({
         ...prev,
-        pub_name: [
-          ...new Set(
-            advmName?.data?.data
-              ?.filter(
-                (item) =>
-                  (item.role === "publisher_manager" ||
-                    item.role === "publisher") &&
-                  !["AtiqueADV", "AnveshaADV"].includes(item.username)
-              )
-              .map((item) => item.username) ||
-              prev.pub_name ||
-              []
-          ),
-        ],
+        pub_name:
+          advmName.data?.data
+            ?.filter((item) => {
+              let roles = [];
+
+              if (typeof item.role === "string") {
+                if (item.role.trim().startsWith("[")) {
+                  try {
+                    roles = JSON.parse(item.role);
+                  } catch {
+                    roles = [];
+                  }
+                } else {
+                  roles = item.role
+                    .replace(/"/g, "")
+                    .split(",")
+                    .map((r) => r.trim());
+                }
+              } else if (Array.isArray(item.role)) {
+                roles = item.role;
+              } else {
+                roles = [item.role];
+              }
+
+              return roles.some((r) =>
+                ["publisher_manager", "publisher"].includes(r)
+              );
+            })
+            .map((item) => item.username) || [],
         payable_event: [
           ...new Set(
             payableEvent?.data?.data?.map((i) => i.payble_event) ||
@@ -280,6 +365,7 @@ const AdvertiserData = () => {
 
   const clearAllFilters = useCallback(() => {
     setFilters({});
+    setHiddenColumns([]);
     setSortInfo({ columnKey: null, order: null });
   }, []);
 
@@ -583,7 +669,9 @@ const AdvertiserData = () => {
   const columns = useMemo(() => {
     return [
       ...desiredOrder
-        .filter((key) => data[0] && key in data[0])
+        .filter(
+          (key) => data[0] && key in data[0] && !hiddenColumns.includes(key)
+        )
         .map((key) => ({
           title: (
             <div className="flex items-center gap-2">
@@ -595,20 +683,22 @@ const AdvertiserData = () => {
                 {columnHeadings[key] || key}
               </span>
               <Tooltip title={stickyColumns.includes(key) ? "Unpin" : "Pin"}>
-                <Button
-                  size="small"
-                  icon={
-                    stickyColumns.includes(key) ? (
-                      <PushpinFilled style={{ color: "#1677ff" }} />
-                    ) : (
-                      <PushpinOutlined />
-                    )
-                  }
+                <span
                   onClick={(e) => {
-                    e.stopPropagation();
+                    e.stopPropagation(); // stop sort
                     toggleStickyColumn(key);
                   }}
-                />
+                  style={{
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                  }}>
+                  {stickyColumns.includes(key) ? (
+                    <PushpinFilled style={{ color: "#1677ff" }} />
+                  ) : (
+                    <PushpinOutlined />
+                  )}
+                </span>
               </Tooltip>
             </div>
           ),
@@ -851,12 +941,12 @@ const AdvertiserData = () => {
                   />
                 </Tooltip>
               )}
-              <Tooltip title="Copy this row">
+              {/* <Tooltip title="Copy this row">
                 <Button
                   icon={<CopyOutlined />}
                   onClick={() => handleCopyRow(record)}
                 />
-              </Tooltip>
+              </Tooltip> */}
             </div>
           );
         },
@@ -872,6 +962,7 @@ const AdvertiserData = () => {
     stickyColumns,
     sortInfo,
     allowedFieldsAfter3Days,
+    hiddenColumns,
   ]);
 
   // Summary function (memoized)
@@ -923,111 +1014,135 @@ const AdvertiserData = () => {
   return (
     <div className="p-4 bg-gray-100 min-h-screen flex flex-col items-center">
       <div className="w-full bg-white p-6 rounded shadow-md relative">
-        <div className="sticky top-0 left-0 right-0 z-20 bg-white p-4 rounded shadow-md flex flex-col md:flex-row md:items-center md:justify-between gap-4 border border-gray-200">
-          <div className="flex items-center gap-4">
-            {!showSubadminData && !showValidation ? (
-              <>
+        <div className="sticky top-0 left-0 right-0 z-20 bg-white rounded-2xl shadow-lg p-5 mb-6 border border-gray-200">
+          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+            {/* Left Section */}
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Search Input */}
+              <Input
+                placeholder="Search Username, Pub Name, or Campaign"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                prefix={<IoMdSearch className="text-gray-400" size={18} />}
+                className="!w-[240px] md:!w-[320px] px-4 py-2 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 transition-all"
+              />
+
+              {/* Date Range Picker */}
+              {!showValidation && (
+                <Tooltip title="Filter by Date Range" placement="top">
+                  <RangePicker
+                    value={selectedDateRange}
+                    onChange={(dates) => {
+                      if (!dates || dates.length === 0) {
+                        setSelectedDateRange([
+                          dayjs().startOf("month"),
+                          dayjs().endOf("month"),
+                        ]);
+                      } else {
+                        setSelectedDateRange(dates);
+                      }
+                    }}
+                    allowClear
+                    placeholder={["Start Date", "End Date"]}
+                    className="w-[250px] rounded-xl border border-gray-300 shadow-sm hover:shadow-md transition-all"
+                  />
+                </Tooltip>
+              )}
+
+              {/* Back Button (When Validation Active) */}
+              {showValidation && (
                 <Button
                   type="primary"
-                  onClick={() => {
-                    const tableDataToExport = finalFilteredData.map((item) => {
-                      const filteredItem = {};
-                      Object.keys(columnHeadings).forEach((key) => {
-                        filteredItem[columnHeadings[key]] = item[key];
-                      });
-                      return filteredItem;
-                    });
-                    exportToExcel(tableDataToExport, "advertiser-data.xlsx");
-                  }}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200">
-                  📥 Download Excel
+                  onClick={() => setShowValidation(false)}
+                  className="!bg-gray-600 hover:!bg-gray-700 text-white font-medium px-6 py-2 rounded-xl shadow-md flex items-center gap-2 transition-all duration-200">
+                  ← Back to Table
                 </Button>
+              )}
+            </div>
 
-                {user?.role === "advertiser_manager" && (
-                  <>
-                    <Button
-                      type="primary"
-                      onClick={() => setShowSubadminData(true)}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200">
-                      📊 Assigned Sub-Admin Data
-                    </Button>
-                    {/* <Select
+            {/* Right Section */}
+            {!showValidation && (
+              <div className="flex flex-wrap items-center gap-3 justify-start lg:justify-end">
+                {/* Hide Columns Dropdown */}
+                <Tooltip title="Select Columns to Hide" placement="top">
+                  <Select
+                    mode="multiple"
+                    allowClear
+                    placeholder="Hide Columns"
+                    style={{ minWidth: 200 }}
+                    value={hiddenColumns}
+                    onChange={(values) => setHiddenColumns(values)}
+                    maxTagCount="responsive"
+                    className="rounded-xl border border-gray-300 shadow-sm hover:shadow-md transition-all">
+                    {desiredOrder.map((key) => (
+                      <Option key={key} value={key}>
+                        {columnHeadings[key] || key}
+                      </Option>
+                    ))}
+                  </Select>
+                </Tooltip>
+
+                {/* Subadmins Dropdown */}
+                {user?.role?.includes("advertiser_manager") && (
+                  <Tooltip title="Select Sub-Admins" placement="top">
+                    <Select
                       mode="multiple"
-                      allowClear
-                      placeholder="Select Subadmins"
+                      style={{ minWidth: 200 }}
+                      placeholder="Select Sub-Admins"
                       value={selectedSubAdmins}
-                      onChange={setSelectedSubAdmins}
-                      onClear={() => setSelectedSubAdmins([])}
-                      className="min-w-[200px] md:min-w-[250px] border border-gray-300 rounded-lg py-2 px-3 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400 transition">
-                      {subAdmins?.map((subAdmin) => (
-                        <Option key={subAdmin.value} value={subAdmin.value}>
-                          {subAdmin.label}
-                        </Option>
-                      ))}
-                    </Select> */}
+                      labelInValue
+                      options={subAdmins}
+                      onChange={(values) => setSelectedSubAdmins(values)}
+                      optionFilterProp="label"
+                      className="rounded-xl border border-gray-300 shadow-sm hover:shadow-md transition-all"
+                    />
+                  </Tooltip>
+                )}
 
+                {/* Excel Download */}
+                <Tooltip title="Download Excel" placement="top">
+                  <Button
+                    onClick={() => {
+                      const tableDataToExport = finalFilteredData.map(
+                        (item) => {
+                          const filteredItem = {};
+                          Object.keys(columnHeadings).forEach((key) => {
+                            filteredItem[columnHeadings[key]] = item[key];
+                          });
+                          return filteredItem;
+                        }
+                      );
+                      exportToExcel(tableDataToExport, "advertiser-data.xlsx");
+                    }}
+                    type="primary"
+                    className="!bg-blue-600 hover:!bg-blue-700 !text-white !rounded-xl !px-2 !py-[10px] shadow-md flex items-center justify-center transition-all duration-200">
+                    <RiFileExcel2Line size={20} />
+                  </Button>
+                </Tooltip>
+
+                {/* Start Validation */}
+                {user?.role?.includes("advertiser_manager") && (
+                  <Tooltip title="Start Validation" placement="top">
                     <Button
                       onClick={() => setShowValidation(true)}
                       type="primary"
-                      className="bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200">
-                      ✅ Start Validation
+                      className="!bg-green-600 hover:!bg-green-700 !text-white !rounded-xl !px-2 !py-[10px] shadow-md flex items-center justify-center transition-all duration-200">
+                      <LuFileSpreadsheet size={20} />
                     </Button>
-                  </>
+                  </Tooltip>
                 )}
 
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={handleAddRow}
-                  className="bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200">
-                  Add Row
-                </Button>
-
-                <RangePicker
-                  value={selectedDateRange}
-                  onChange={(dates) => {
-                    if (!dates || dates.length === 0) {
-                      setSelectedDateRange([
-                        dayjs().startOf("month"),
-                        dayjs().endOf("month"),
-                      ]);
-                    } else {
-                      setSelectedDateRange(dates);
-                    }
-                  }}
-                />
-
-                <Button
-                  onClick={clearAllFilters}
-                  type="default"
-                  className="bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200">
-                  Remove All Filters
-                </Button>
-              </>
-            ) : showSubadminData ? (
-              <Button
-                type="primary"
-                onClick={() => setShowSubadminData(false)}
-                className="bg-red-500 hover:bg-red-600 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200">
-                ← Back to Table
-              </Button>
-            ) : (
-              <Button
-                type="primary"
-                onClick={() => setShowValidation(false)}
-                className="bg-gray-600 hover:bg-gray-700 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200">
-                ← Back to Table
-              </Button>
+                {/* Clear Filters */}
+                <Tooltip title="Remove All Filters" placement="top">
+                  <Button
+                    onClick={clearAllFilters}
+                    type="default"
+                    className="!bg-red-600 hover:!bg-red-700 !text-white !rounded-xl !px-2 !py-[10px] shadow-md flex items-center justify-center transition-all duration-200">
+                    <FaFilterCircleXmark size={20} />
+                  </Button>
+                </Tooltip>
+              </div>
             )}
-          </div>
-
-          <div className="w-full md:w-auto">
-            <Input
-              placeholder="Search by Username, Pub Name, or Campaign Name"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full md:w-80 px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
           </div>
         </div>
 
@@ -1037,7 +1152,7 @@ const AdvertiserData = () => {
               <Validation />
             </div>
           ) : !showSubadminData ? (
-            <Table
+            <StyledTable
               loading={savingTable}
               columns={columns}
               dataSource={finalFilteredData}

@@ -16,6 +16,10 @@ import isBetween from "dayjs/plugin/isBetween";
 import { useSelector } from "react-redux";
 import { exportToExcel } from "../exportExcel";
 import { PushpinOutlined, PushpinFilled } from "@ant-design/icons";
+import StyledTable from "../../Utils/StyledTable";
+import { LuEye } from "react-icons/lu";
+import { RiFileExcel2Line } from "react-icons/ri";
+import { FaFilterCircleXmark } from "react-icons/fa6";
 dayjs.extend(isBetween);
 const { RangePicker } = DatePicker;
 const { Option } = Select;
@@ -54,7 +58,18 @@ const PublisherPayoutData = () => {
     order: null,
   });
   const [editingKey, setEditingKey] = useState(""); // which row is being edited
-  console.log(advData);
+  const [hiddenColumns, setHiddenColumns] = useState(() => {
+    const saved = localStorage.getItem("hiddenPublisherColumns");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem(
+      "hiddenPublisherColumns",
+      JSON.stringify(hiddenColumns)
+    );
+  }, [hiddenColumns]);
+
   const isEditing = (record) => record.id === editingKey;
   // 🔹 Save Note
   const saveNote = async (record, newNote) => {
@@ -68,11 +83,12 @@ const PublisherPayoutData = () => {
       });
 
       const data = await resp.json();
-      console.log(data);
-      if (data.success && data.updatedRow) {
+      console.log("saveNote data:", data);
+
+      if (data.success && data.data) {
         // ✅ Replace the row with fresh data from backend
         setAdvData((prev) =>
-          prev.map((item) => (item.id === record.id ? data.updatedRow : item))
+          prev.map((item) => (item.id === record.id ? data.data : item))
         );
 
         Swal.fire({
@@ -100,6 +116,7 @@ const PublisherPayoutData = () => {
 
     setEditingKey("");
   };
+
   // 🔹 Save Vertical
   const saveVertical = async (record, newVertical) => {
     try {
@@ -138,7 +155,6 @@ const PublisherPayoutData = () => {
       });
 
       const data = await resp.json();
-      console.log(data);
       if (data.success && data.updatedRow) {
         setFilteredData((prev) =>
           prev.map((item) => (item.id === record.id ? data.updatedRow : item))
@@ -156,6 +172,7 @@ const PublisherPayoutData = () => {
   };
 
   const user = useSelector((state) => state.auth.user);
+  console.log("Current User:", user);
   const handleDateRangeChange = (dates) => {
     if (!dates || dates.length === 0) {
       // Reset to current month
@@ -166,6 +183,7 @@ const PublisherPayoutData = () => {
   };
   const clearAllFilters = () => {
     setFilters({});
+    setHiddenColumns([]);
     setSortInfo({ columnKey: null, order: null }); // 🔁 reset sorting
   };
   const columnHeadingsAdv = {
@@ -242,39 +260,6 @@ const PublisherPayoutData = () => {
     // Cleanup on unmount
     return () => clearInterval(intervalId);
   }, []);
-
-  // useEffect(() => {
-  //   const currentMonth = dayjs().month(); // 0-based (0 = January)
-  //   const currentYear = dayjs().year();
-
-  //   const data = advData.filter((row) => {
-  //     const sharedDate = dayjs(row.shared_date);
-  //     return (
-  //       row.pub_name === user?.username &&
-  //       sharedDate.month() === currentMonth &&
-  //       sharedDate.year() === currentYear
-  //     );
-  //   });
-
-  //   setFilteredData(data);
-  //   generateUniqueValues(data);
-  // }, [advData, user]);
-
-  // const generateUniqueValues = (data) => {
-  //   const uniqueVals = {};
-  //   data.forEach((item) => {
-  //     Object.keys(item).forEach((key) => {
-  //       if (!uniqueVals[key]) uniqueVals[key] = new Set();
-  //       const normalizedValue = item[key]?.toString().trim(); // normalize
-  //       if (normalizedValue) uniqueVals[key].add(normalizedValue);
-  //     });
-  //   });
-  //   const formattedValues = Object.keys(uniqueVals).reduce((acc, key) => {
-  //     acc[key] = Array.from(uniqueVals[key]);
-  //     return acc;
-  //   }, {});
-  //   setUniqueValues(formattedValues);
-  // };
   const generateUniqueValues = (data) => {
     const uniqueVals = {};
 
@@ -402,238 +387,143 @@ const PublisherPayoutData = () => {
   });
 
   const getColumns = (columnHeadings) => {
-    const baseCols = Object.keys(columnHeadings).map((key) => ({
-      title: (
-        <div className="flex items-center justify-between">
-          <span
-            style={{
-              color: filters[key] ? "#1677ff" : "inherit",
-              fontWeight: filters[key] ? "bold" : "normal",
-            }}>
-            {columnHeadings[key] || key}
-          </span>
-          <Tooltip title={stickyColumns.includes(key) ? "Unpin" : "Pin"}>
-            <Button
-              size="small"
-              icon={
-                stickyColumns.includes(key) ? (
+    const baseCols = Object.keys(columnHeadings)
+      .filter((key) => !hiddenColumns.includes(key))
+      .map((key) => ({
+        title: (
+          <div className="flex items-center justify-between">
+            <span
+              style={{
+                color: filters[key] ? "#1677ff" : "inherit",
+                fontWeight: filters[key] ? "bold" : "normal",
+              }}>
+              {columnHeadings[key] || key}
+            </span>
+            <Tooltip title={stickyColumns.includes(key) ? "Unpin" : "Pin"}>
+              <span
+                onClick={(e) => {
+                  e.stopPropagation(); // stop sort
+                  toggleStickyColumn(key);
+                }}
+                style={{
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                }}>
+                {stickyColumns.includes(key) ? (
                   <PushpinFilled style={{ color: "#1677ff" }} />
                 ) : (
                   <PushpinOutlined />
-                )
-              }
-              onClick={(e) => {
-                e.stopPropagation(); // 🛑 Prevent triggering sort
-                toggleStickyColumn(key);
-              }}
-            />
-          </Tooltip>
-        </div>
-      ),
+                )}
+              </span>
+            </Tooltip>
+          </div>
+        ),
 
-      key,
-      dataIndex: key,
-      render: (text, record) => {
-        const value = record[key];
+        key,
+        dataIndex: key,
+        render: (text, record) => {
+          const value = record[key];
 
-        // Check for null/undefined/empty string
-        if (value === null || value === undefined || value === "") {
-          return <span style={{ color: "gray" }}>-</span>; // You can add Tooltip if needed
-        }
+          // Check for null/undefined/empty string
+          if (value === null || value === undefined || value === "") {
+            return <span style={{ color: "gray" }}>-</span>; // You can add Tooltip if needed
+          }
 
-        return value;
-      },
-
-      fixed: stickyColumns.includes(key) ? "left" : undefined,
-      sorter: (a, b) => {
-        const valA = a[key];
-        const valB = b[key];
-        const isNumeric = !isNaN(parseFloat(valA)) && !isNaN(parseFloat(valB));
-        return isNumeric
-          ? parseFloat(valA) - parseFloat(valB)
-          : (valA || "").toString().localeCompare((valB || "").toString());
-      },
-      sortOrder: sortInfo.columnKey === key ? sortInfo.order : null,
-      onHeaderCell: () => ({
-        onClick: () => {
-          const newOrder =
-            sortInfo.columnKey === key && sortInfo.order === "ascend"
-              ? "descend"
-              : "ascend";
-          setSortInfo({ columnKey: key, order: newOrder });
+          return value;
         },
-      }),
-      // Add filterDropdown to show the custom filter UI (Select All + Select multiple)
-      filterDropdown:
-        uniqueValues[key]?.length > 0
-          ? () => (
-              <div style={{ padding: 8 }}>
-                {/* Select All Checkbox */}
-                <div style={{ marginBottom: 8 }}>
-                  <Checkbox
-                    indeterminate={
-                      filters[key]?.length > 0 &&
-                      filters[key]?.length < uniqueValues[key]?.length
-                    }
-                    checked={filters[key]?.length === uniqueValues[key]?.length}
-                    onChange={(e) => {
-                      const checked = e.target.checked;
-                      handleFilterChange(
-                        checked ? [...uniqueValues[key]] : [],
-                        key
-                      );
-                    }}>
-                    Select All
-                  </Checkbox>
+
+        fixed: stickyColumns.includes(key) ? "left" : undefined,
+        sorter: (a, b) => {
+          const valA = a[key];
+          const valB = b[key];
+          const isNumeric =
+            !isNaN(parseFloat(valA)) && !isNaN(parseFloat(valB));
+          return isNumeric
+            ? parseFloat(valA) - parseFloat(valB)
+            : (valA || "").toString().localeCompare((valB || "").toString());
+        },
+        sortOrder: sortInfo.columnKey === key ? sortInfo.order : null,
+        onHeaderCell: () => ({
+          onClick: () => {
+            const newOrder =
+              sortInfo.columnKey === key && sortInfo.order === "ascend"
+                ? "descend"
+                : "ascend";
+            setSortInfo({ columnKey: key, order: newOrder });
+          },
+        }),
+        // Add filterDropdown to show the custom filter UI (Select All + Select multiple)
+        filterDropdown:
+          uniqueValues[key]?.length > 0
+            ? () => (
+                <div style={{ padding: 8 }}>
+                  {/* Select All Checkbox */}
+                  <div style={{ marginBottom: 8 }}>
+                    <Checkbox
+                      indeterminate={
+                        filters[key]?.length > 0 &&
+                        filters[key]?.length < uniqueValues[key]?.length
+                      }
+                      checked={
+                        filters[key]?.length === uniqueValues[key]?.length
+                      }
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        handleFilterChange(
+                          checked ? [...uniqueValues[key]] : [],
+                          key
+                        );
+                      }}>
+                      Select All
+                    </Checkbox>
+                  </div>
+
+                  {/* Multi Select Dropdown */}
+                  <Select
+                    mode="multiple"
+                    allowClear
+                    showSearch
+                    placeholder={`Select ${columnHeadings[key]}`}
+                    style={{ width: 250 }}
+                    value={filters[key] || []}
+                    onChange={(value) => handleFilterChange(value, key)}
+                    optionLabelProp="label"
+                    maxTagCount="responsive"
+                    filterOption={(input, option) =>
+                      (option?.label ?? "")
+                        .toString()
+                        .toLowerCase()
+                        .includes(input.toLowerCase())
+                    }>
+                    {[...uniqueValues[key]]
+                      .filter((val) => val !== null && val !== undefined)
+                      .sort((a, b) => {
+                        const aNum = parseFloat(a);
+                        const bNum = parseFloat(b);
+                        const isNumeric = !isNaN(aNum) && !isNaN(bNum);
+                        return isNumeric
+                          ? aNum - bNum
+                          : a.toString().localeCompare(b.toString());
+                      })
+                      .map((val) => (
+                        <Select.Option key={val} value={val} label={val}>
+                          <Checkbox checked={filters[key]?.includes(val)}>
+                            {val}
+                          </Checkbox>
+                        </Select.Option>
+                      ))}
+                  </Select>
                 </div>
+              )
+            : null,
 
-                {/* Multi Select Dropdown */}
-                <Select
-                  mode="multiple"
-                  allowClear
-                  showSearch
-                  placeholder={`Select ${columnHeadings[key]}`}
-                  style={{ width: 250 }}
-                  value={filters[key] || []}
-                  onChange={(value) => handleFilterChange(value, key)}
-                  optionLabelProp="label"
-                  maxTagCount="responsive"
-                  filterOption={(input, option) =>
-                    (option?.label ?? "")
-                      .toString()
-                      .toLowerCase()
-                      .includes(input.toLowerCase())
-                  }>
-                  {[...uniqueValues[key]]
-                    .filter((val) => val !== null && val !== undefined)
-                    .sort((a, b) => {
-                      const aNum = parseFloat(a);
-                      const bNum = parseFloat(b);
-                      const isNumeric = !isNaN(aNum) && !isNaN(bNum);
-                      return isNumeric
-                        ? aNum - bNum
-                        : a.toString().localeCompare(b.toString());
-                    })
-                    .map((val) => (
-                      <Select.Option key={val} value={val} label={val}>
-                        <Checkbox checked={filters[key]?.includes(val)}>
-                          {val}
-                        </Checkbox>
-                      </Select.Option>
-                    ))}
-                </Select>
-              </div>
-            )
-          : null,
+        // This controls whether the filter icon is shown in the header
+        filtered: filters[key]?.length > 0,
+      }));
 
-      // This controls whether the filter icon is shown in the header
-      filtered: filters[key]?.length > 0,
-    }));
-    // 🔹 Insert Vertical after campaign_name
-    // const campaignIdx = baseCols.findIndex(
-    //   (col) => col.key === "campaign_name"
-    // );
-    // if (campaignIdx > -1) {
-    //   baseCols.splice(campaignIdx + 1, 0, {
-    //     title: (
-    //       <div className="flex items-center justify-between">
-    //         <span
-    //           style={{
-    //             color: filters["vertical"] ? "#1677ff" : "inherit",
-    //             fontWeight: filters["vertical"] ? "bold" : "normal",
-    //           }}>
-    //           Vertical
-    //         </span>
-    //         <Tooltip
-    //           title={stickyColumns.includes("vertical") ? "Unpin" : "Pin"}>
-    //           <Button
-    //             size="small"
-    //             icon={
-    //               stickyColumns.includes("vertical") ? (
-    //                 <PushpinFilled style={{ color: "#1677ff" }} />
-    //               ) : (
-    //                 <PushpinOutlined />
-    //               )
-    //             }
-    //             onClick={(e) => {
-    //               e.stopPropagation();
-    //               toggleStickyColumn("vertical");
-    //             }}
-    //           />
-    //         </Tooltip>
-    //       </div>
-    //     ),
-    //     dataIndex: "vertical",
-    //     key: "vertical",
-    //     sorter: (a, b) => (a.vertical || "").localeCompare(b.vertical || ""),
-    //     fixed: stickyColumns.includes("vertical") ? "left" : undefined,
-
-    //     // 🔹 Custom filter dropdown like your other headers
-    //     filterDropdown: ({
-    //       setSelectedKeys,
-    //       selectedKeys,
-    //       confirm,
-    //       clearFilters,
-    //     }) => (
-    //       <Select
-    //         mode="multiple"
-    //         allowClear
-    //         showSearch
-    //         placeholder="Select Vertical"
-    //         style={{ width: 250 }}
-    //         value={selectedKeys}
-    //         onChange={(value) => {
-    //           setSelectedKeys(value);
-    //           handleFilterChange(value, "vertical"); // your custom handler
-    //           confirm();
-    //         }}
-    //         optionLabelProp="label"
-    //         maxTagCount="responsive"
-    //         filterOption={(input, option) =>
-    //           (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-    //         }>
-    //         {[
-    //           "E-commerce",
-    //           "Betting Casino",
-    //           "Betting Sports",
-    //           "Utilities",
-    //           "Finance",
-    //           "Food Delivery",
-    //         ].map((val) => (
-    //           <Select.Option key={val} value={val} label={val}>
-    //             <Checkbox checked={selectedKeys.includes(val)}>{val}</Checkbox>
-    //           </Select.Option>
-    //         ))}
-    //       </Select>
-    //     ),
-    //     onFilter: (value, record) =>
-    //       record.vertical?.toString().toLowerCase() === value.toLowerCase(),
-
-    //     // Inline editing still works
-    //     render: (text, record) => (
-    //       <Select
-    //         value={text || undefined}
-    //         style={{ width: 160 }}
-    //         showSearch
-    //         allowClear
-    //         bordered={false}
-    //         optionFilterProp="children"
-    //         dropdownMatchSelectWidth={false}
-    //         placeholder="Select Vertical"
-    //         onChange={(val) => saveVertical(record, val)}>
-    //         <Option value="E-commerce">E-commerce</Option>
-    //         <Option value="Betting Casino">Betting Casino</Option>
-    //         <Option value="Betting Sports">Betting Sports</Option>
-    //         <Option value="Utilities">Utilities</Option>
-    //         <Option value="Finance">Finance</Option>
-    //         <Option value="Food Delivery">Food Delivery</Option>
-    //       </Select>
-    //     ),
-    //   });
-    // }
-
+    // 🔹 Insert FP after paused_date
     const pauseIdx = baseCols.findIndex((col) => col.key === "paused_date");
-
     // ✅ Remove existing FP if found
     const existingFpIdx = baseCols.findIndex((col) => col.key === "fp");
     if (existingFpIdx !== -1) {
@@ -676,6 +566,7 @@ const PublisherPayoutData = () => {
         sorter: (a, b) => (a.fp_status || "").localeCompare(b.fp_status || ""),
         fixed: stickyColumns.includes("fp_status") ? "left" : undefined,
 
+        // 🔹 Custom filter dropdown like other headers
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
           <Select
             mode="multiple"
@@ -701,10 +592,10 @@ const PublisherPayoutData = () => {
             ))}
           </Select>
         ),
-
         onFilter: (value, record) =>
           record.fp_status?.toString().toLowerCase() === value.toLowerCase(),
 
+        // Inline editing
         render: (text, record) => (
           <Select
             value={text || undefined}
@@ -722,8 +613,6 @@ const PublisherPayoutData = () => {
         ),
       });
     }
-
-    // ✅ Add Note column at the end
     // 🔹 Add Note column
     baseCols.push({
       title: "Note",
@@ -758,72 +647,98 @@ const PublisherPayoutData = () => {
 
     return baseCols;
   };
-
   return (
-    <div className="p-6 bg-gray-50 min-h-screen flex flex-col items-center">
+    <div className="bg-gray-50 min-h-screen flex flex-col items-center">
       <div className="w-full bg-white p-6 rounded-xl shadow-lg border border-gray-200">
         <div className="sticky top-0 z-30 bg-white -mx-6 px-6 pt-4 pb-4 border-b border-gray-200">
-          <div className="flex flex-wrap md:flex-nowrap items-center justify-between gap-4 md:gap-6">
-            {/* Download Excel Button */}
-            <Button
-              type="primary"
-              onClick={() => {
-                const tableDataToExport = filteredData.map((item) => {
-                  const filteredItem = {};
-                  Object.keys(columnHeadingsAdv).forEach((key) => {
-                    filteredItem[columnHeadingsAdv[key]] = item[key]; // Custom column names
-                  });
-                  return filteredItem;
-                });
+          <div className="bg-white rounded-xl shadow-md p-5 mb-6 flex flex-wrap items-end justify-between gap-4 md:gap-6 lg:gap-4">
+            {/* Left Section - Filters and Dropdowns */}
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Search Input */}
+              <Input
+                placeholder="Search Publisher, Campaign, or Username"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                prefix={<span className="text-gray-400">🔍</span>}
+                className="!w-[200px] px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
 
-                exportToExcel(tableDataToExport, "advertiser-data.xlsx");
-              }}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-lg shadow-md transition duration-300 transform hover:scale-105">
-              📥 <span>Download Excel</span>
-            </Button>
-
-            <div className="flex justify-end">
-              <Button onClick={clearAllFilters} type="default">
-                Remove All Filters
-              </Button>
+              {/* Date Range Picker */}
+              <RangePicker
+                onChange={handleDateRangeChange}
+                allowClear
+                placeholder={["Start Date", "End Date"]}
+                className="w-[250px] rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition"
+              />
             </div>
-            {/* Subadmins Dropdown */}
-            {user?.role === "publisher_manager" && (
+
+            {/* Right Section - Actions */}
+            <div className="flex flex-wrap items-end gap-2">
+              {/* Hide Columns Dropdown */}
               <Select
                 mode="multiple"
                 allowClear
-                placeholder="Select Subadmins"
-                value={selectedSubAdmins}
-                onChange={setSelectedSubAdmins}
-                onClear={() => setFilters({})}
-                className="min-w-[200px] md:min-w-[250px] border border-gray-300 rounded-lg py-2 px-3 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400 transition">
-                {subAdmins?.map((subAdmin) => (
-                  <Option key={subAdmin.label} value={subAdmin.label}>
-                    {subAdmin.label}
+                placeholder="Select columns to hide"
+                style={{ minWidth: 250 }}
+                value={hiddenColumns}
+                onChange={(values) => setHiddenColumns(values)}
+                maxTagCount="responsive">
+                {Object.keys(columnHeadingsAdv).map((key) => (
+                  <Option key={key} value={key}>
+                    {columnHeadingsAdv[key] || key}
                   </Option>
                 ))}
               </Select>
-            )}
+              {/* Subadmins Dropdown */}
+              {user?.role?.includes("publisher_manager") && (
+                <Select
+                  mode="multiple"
+                  allowClear
+                  placeholder="Select Subadmins"
+                  value={selectedSubAdmins}
+                  onChange={setSelectedSubAdmins}
+                  onClear={() => setFilters({})}
+                  className="min-w-[150px] md:min-w-[250px] border border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-400 transition">
+                  {subAdmins?.map((subAdmin) => (
+                    <Option key={subAdmin.label} value={subAdmin.label}>
+                      {subAdmin.label}
+                    </Option>
+                  ))}
+                </Select>
+              )}
+              {/* Remove All Filters Button */}
+              <Tooltip title="Remove Filters" placement="top">
+                <Button
+                  onClick={clearAllFilters}
+                  type="default"
+                  className="!bg-red-600 hover:!bg-red-700 !border-gray-300 !rounded-lg !px-2 !py-4 shadow-sm hover:shadow-md transition-all duration-200">
+                  <FaFilterCircleXmark size={20} color="white" />
+                </Button>
+              </Tooltip>
 
-            {/* Search Input */}
-            <Input
-              placeholder="Search"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full md:w-1/3 border border-gray-300 rounded-lg py-2 px-4 shadow-sm focus:ring-2 focus:ring-blue-400 transition"
-            />
-
-            {/* Date Picker */}
-            <RangePicker
-              onChange={handleDateRangeChange}
-              allowClear
-              placeholder={["Start Date", "End Date"]}
-              className="w-full md:w-[220px] rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition"
-            />
+              {/* Download Excel Button */}
+              <Tooltip title="Download Excel" placement="top">
+                <Button
+                  onClick={() => {
+                    const tableDataToExport = filteredData.map((item) => {
+                      const filteredItem = {};
+                      Object.keys(columnHeadingsAdv).forEach((key) => {
+                        filteredItem[columnHeadingsAdv[key]] = item[key];
+                      });
+                      return filteredItem;
+                    });
+                    exportToExcel(tableDataToExport, "advertiser-data.xlsx");
+                  }}
+                  type="primary"
+                  className="!bg-blue-600 hover:!bg-blue-700 !text-white !rounded-lg !px-2 !py-4 shadow-md flex items-center justify-center">
+                  <RiFileExcel2Line size={20} />
+                </Button>
+              </Tooltip>
+            </div>
           </div>
         </div>
 
-        <Table
+        <StyledTable
           bordered
           columns={getColumns(columnHeadingsAdv)}
           components={{
@@ -845,6 +760,7 @@ const PublisherPayoutData = () => {
           rowClassName={(record) => {
             return record.flag === "1" ? "light-yellow-row" : "";
           }}
+          className="mt-5"
         />
       </div>
     </div>

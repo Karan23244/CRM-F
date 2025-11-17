@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { createNotification } from "../../Utils/Notification";
+import io from "socket.io-client";
+
 import {
   Table,
   Button,
@@ -11,6 +14,7 @@ import {
   Checkbox,
   notification,
   DatePicker,
+  Tooltip,
 } from "antd";
 import dayjs from "dayjs";
 const { RangePicker } = DatePicker;
@@ -22,8 +26,12 @@ import { subscribeToNotifications } from "./Socket";
 import { PushpinOutlined } from "@ant-design/icons";
 import { useSelector } from "react-redux";
 import { AutoComplete } from "antd";
+import StyledTable from "../../Utils/StyledTable";
+import { RiFileExcel2Line } from "react-icons/ri";
+import { FaFilterCircleXmark } from "react-icons/fa6";
+
 const { Option } = Select;
-const apiUrl = import.meta.env.VITE_API_URL || "https://apii.clickorbits.in";
+const apiUrl = "https://apii.clickorbits.in";
 const apiUrl1 =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 const columnHeadingsMap = {
@@ -39,16 +47,11 @@ const columnHeadingsMap = {
   created_at: "Created At",
   adv_res: "Status",
 };
-const PublisherRequest = () => {
+const PublisherRequest = ({ senderId, receiverId }) => {
   const user = useSelector((state) => state.auth.user);
   const username = user?.username || null;
   const userRole = user?.role;
-  // Default: start = first day of current month, end = today
-  const [dateRange, setDateRange] = useState([
-    dayjs().startOf("month"),
-    dayjs(),
-  ]);
-  console.log("Selected Date Range:", dateRange);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm();
@@ -60,8 +63,35 @@ const PublisherRequest = () => {
   const [blacklistPIDs, setBlacklistPIDs] = useState([]);
   const [filters, setFilters] = useState({});
   const [pinnedColumns, setPinnedColumns] = useState({});
+  const [hiddenColumns, setHiddenColumns] = useState(() => {
+    const saved = localStorage.getItem("hiddenCampaignColumns");
+    return saved ? JSON.parse(saved) : [];
+  });
+  // Default: start = first day of current month, end = today
+  const [dateRange, setDateRange] = useState([
+    dayjs().startOf("month"),
+    dayjs(),
+  ]);
+  // persist hidden columns
+  useEffect(() => {
+    localStorage.setItem(
+      "hiddenCampaignColumns",
+      JSON.stringify(hiddenColumns)
+    );
+  }, [hiddenColumns]);
+
   // ✅ Callbacks to prevent re-creation on each render
-  const clearAllFilters = useCallback(() => setFilters({}), []);
+  const clearAllFilters = useCallback(() => {
+    setFilters({});
+    setHiddenColumns([]);
+    setPinnedColumns({});
+    setSearchText("");
+    localStorage.removeItem("hiddenCampaignColumns");
+
+    // Reset date range to default Month Start → Today
+    setDateRange([dayjs().startOf("month"), dayjs()]);
+  }, []);
+
   const togglePin = useCallback((key) => {
     setPinnedColumns((prev) => {
       let next;
@@ -102,10 +132,24 @@ const PublisherRequest = () => {
   const fetchAdvertisers = useCallback(async () => {
     try {
       const { data } = await axios.get(`${apiUrl1}/get-subadmin`);
+
       const names =
         data?.data
-          ?.filter((a) => ["advertiser_manager", "advertiser"].includes(a.role))
-          .map((a) => a.username) || [];
+          ?.filter((a) => {
+            // Normalize role string (remove quotes/spaces, split by comma)
+            const roles =
+              a.role
+                ?.replace(/"/g, "") // remove quotes
+                ?.split(",") // split by comma
+                ?.map((r) => r.trim()) || [];
+
+            // Check if any role matches desired roles
+            return roles.some((r) =>
+              ["advertiser_manager", "advertiser", "operations"].includes(r)
+            );
+          })
+          ?.map((a) => a.username) || [];
+
       setAdvertisers(names);
     } catch {
       message.error("Failed to load advertiser names");
@@ -124,7 +168,6 @@ const PublisherRequest = () => {
   const fetchRequests = useCallback(async () => {
     try {
       const [startDate, endDate] = dateRange;
-      console.log("Fetching requests for:", startDate.format("YYYY-MM-DD"), endDate.format("YYYY-MM-DD"));
       const res = await axios.get(`${apiUrl}/getAllPubRequests12`, {
         params: {
           startDate: startDate.format("YYYY-MM-DD"),
@@ -140,10 +183,10 @@ const PublisherRequest = () => {
       setRequests([]);
     }
   }, [apiUrl, dateRange]);
-
   const showModal = () => {
     setIsModalVisible(true);
   };
+  // 🚀 Initial Load
   useEffect(() => {
     fetchBlacklistPIDs();
     fetchDropdowns();
@@ -275,6 +318,26 @@ const PublisherRequest = () => {
           priority: values.priority,
           prm: values.prm,
         };
+        // 🧠 Dynamic sender (logged-in user)
+        const senderName = username; // from Redux
+        const receiverName = record.adv_name; // advertiser name from table row
+
+        // 📨 Send notification dynamically
+        await createNotification({
+          sender: senderName, // will be resolved to sender_id internally
+          receiver: receiverName, // will be resolved to receiver_id internally
+          type: "link_shared",
+          message: `📢 Permission by ${senderName} for campaign "${
+            record.campaign_name
+          }" — ${
+            values.prm === 1
+              ? "✅ Allow"
+              : values.prm === 2
+              ? "❌ Disallow"
+              : "🟡 Hold"
+          }`,
+          url: "/dashboard/view-request",
+        });
 
         const res = await axios.put(`${apiUrl}/updatePubprm`, payload);
 
@@ -312,127 +375,6 @@ const PublisherRequest = () => {
     },
     [apiUrl]
   );
-
-  // ✅ Optimized Columns (with Priority & Permission merged)
-  // const columns = useMemo(() => {
-  //   const baseCols = Object.keys(columnHeadingsMap).map((key) => ({
-  //     title: (
-  //       <div className="flex items-center justify-between">
-  //         <span
-  //           style={{
-  //             color: filters[key]?.length > 0 ? "#1677ff" : "inherit",
-  //             fontWeight: filters[key]?.length > 0 ? "bold" : "normal",
-  //           }}>
-  //           {columnHeadingsMap[key] || key}
-  //         </span>
-  //         <PushpinOutlined
-  //           onClick={() => togglePin(key)}
-  //           rotate={pinnedColumns[key] === "right" ? 180 : 0}
-  //           style={{
-  //             color: pinnedColumns[key] ? "#1677ff" : "#aaa",
-  //             cursor: "pointer",
-  //           }}
-  //         />
-  //       </div>
-  //     ),
-  //     key,
-  //     dataIndex: key,
-  //     fixed: pinnedColumns[key] || undefined,
-  //     render: (value) =>
-  //       key === "created_at" ? new Date(value).toLocaleString("en-IN") : value,
-  //     filterDropdown:
-  //       uniqueValues[key]?.length > 0
-  //         ? () => (
-  //             <div style={{ padding: 8 }}>
-  //               <Select
-  //                 mode="multiple"
-  //                 allowClear
-  //                 style={{ width: 250 }}
-  //                 value={filters[key] || []}
-  //                 onChange={(v) => handleFilterChange(v, key)}>
-  //                 {uniqueValues[key]
-  //                   ?.slice() // create a copy to avoid mutating original
-  //                   .sort((a, b) => a.localeCompare(b)) // alphabetical order
-  //                   .map((val) => (
-  //                     <Option key={val} value={val}>
-  //                       {val}
-  //                     </Option>
-  //                   ))}
-  //               </Select>
-  //             </div>
-  //           )
-  //         : null,
-  //     filtered: filters[key]?.length > 0,
-  //   }));
-
-  //   // Priority column
-  //   baseCols.push({
-  //     title: "Priority",
-  //     key: "priority",
-  //     dataIndex: "priority",
-  //     fixed: pinnedColumns["priority"] || undefined,
-  //     render: (_, record) =>
-  //       userRole === "publisher_manager" ? (
-  //         <Select
-  //           value={record.priority}
-  //           style={{ width: 80 }}
-  //           onChange={(val) =>
-  //             handleUpdatePrm(record, { priority: val, prm: record.prm })
-  //           }>
-  //           {Array.from({ length: 15 }, (_, i) => (
-  //             <Option key={i + 1} value={i + 1}>
-  //               {i + 1}
-  //             </Option>
-  //           ))}
-  //         </Select>
-  //       ) : (
-  //         record.priority || "N/A"
-  //       ),
-  //   });
-
-  //   // Permission column
-  //   baseCols.push({
-  //     title: "Permission",
-  //     key: "prm",
-  //     dataIndex: "prm",
-  //     fixed: pinnedColumns["prm"] || undefined,
-  //     render: (_, record) =>
-  //       userRole === "publisher_manager" ? (
-  //         <Select
-  //           value={record.prm}
-  //           style={{
-  //             width: 120,
-  //             fontWeight: 600,
-  //             backgroundColor: record.prm === 1 ? "#e6ffed" : "#ffe6e6",
-  //             color: record.prm === 1 ? "green" : "red",
-  //           }}
-  //           onChange={(val) =>
-  //             handleUpdatePrm(record, { priority: record.priority, prm: val })
-  //           }>
-  //           <Option value={1}>✅ Allow</Option>
-  //           <Option value={0}>❌ Disallow</Option>
-  //         </Select>
-  //       ) : (
-  //         <span
-  //           style={{
-  //             color: record.prm === 1 ? "green" : "red",
-  //             fontWeight: 600,
-  //           }}>
-  //           {record.prm === 1 ? "✅ Allow" : "❌ Disallow"}
-  //         </span>
-  //       ),
-  //   });
-
-  //   return baseCols;
-  // }, [
-  //   filters,
-  //   pinnedColumns,
-  //   togglePin,
-  //   uniqueValues,
-  //   userRole,
-  //   handleFilterChange,
-  //   handleUpdatePrm,
-  // ]);
   const buildColumns = ({
     filters,
     pinnedColumns,
@@ -463,6 +405,26 @@ const PublisherRequest = () => {
         </div>
       ),
       key,
+      sorter: (a, b) => {
+        const valA = a[key] ?? "";
+        const valB = b[key] ?? "";
+
+        // If value is number
+        if (!isNaN(valA) && !isNaN(valB)) {
+          return Number(valA) - Number(valB);
+        }
+
+        // If value is date
+        if (key === "created_at") {
+          return new Date(valA) - new Date(valB);
+        }
+
+        // Normal text sorting
+        return String(valA).localeCompare(String(valB));
+      },
+
+      sortDirections: ["ascend", "descend"],
+
       dataIndex: key,
       fixed: pinnedColumns[key] || undefined,
       render: (value) =>
@@ -499,19 +461,7 @@ const PublisherRequest = () => {
         dataIndex: "priority",
         fixed: pinnedColumns["priority"] || undefined,
         render: (_, record) =>
-          userRole === "publisher_manager" ? (
-            // <Select
-            //   value={record.priority}
-            //   style={{ width: 80 }}
-            //   onChange={(val) =>
-            //     handleUpdatePrm(record, { priority: val, prm: record.prm })
-            //   }>
-            //   {Array.from({ length: 15 }, (_, i) => (
-            //     <Option key={i + 1} value={i + 1}>
-            //       {i + 1}
-            //     </Option>
-            //   ))}
-            // </Select>
+          userRole && ["publisher_manager", "admin"].includes(userRole) ? (
             <Select
               value={record.priority}
               style={{ width: 80 }}
@@ -528,34 +478,85 @@ const PublisherRequest = () => {
             record.priority || "N/A"
           ),
       },
+      // {
+      //   title: "Permission",
+      //   key: "prm",
+      //   dataIndex: "prm",
+      //   fixed: pinnedColumns["prm"] || undefined,
+      //   render: (_, record) =>
+      //     userRole === "publisher_manager" ? (
+      //       <Select
+      //         value={record.prm}
+      //         style={{
+      //           width: 120,
+      //           fontWeight: 600,
+      //           backgroundColor: record.prm === 1 ? "#e6ffed" : "#ffe6e6",
+      //           color: record.prm === 1 ? "green" : "red",
+      //         }}
+      //         onChange={(val) =>
+      //           handleUpdatePrm(record, { priority: record.priority, prm: val })
+      //         }>
+      //         <Option value={1}>✅ Allow</Option>
+      //         <Option value={0}>❌ Disallow</Option>
+      //       </Select>
+      //     ) : (
+      //       <span
+      //         style={{
+      //           color: record.prm === 1 ? "green" : "red",
+      //           fontWeight: 600,
+      //         }}>
+      //         {record.prm === 1 ? "✅ Allow" : "❌ Disallow"}
+      //       </span>
+      //     ),
+      // }
       {
         title: "Permission",
         key: "prm",
         dataIndex: "prm",
         fixed: pinnedColumns["prm"] || undefined,
         render: (_, record) =>
-          userRole === "publisher_manager" ? (
+          userRole && ["publisher_manager", "admin"].includes(userRole) ? (
             <Select
               value={record.prm}
               style={{
-                width: 120,
+                width: 130,
                 fontWeight: 600,
-                backgroundColor: record.prm === 1 ? "#e6ffed" : "#ffe6e6",
-                color: record.prm === 1 ? "green" : "red",
+                backgroundColor:
+                  record.prm === 1
+                    ? "#e6ffed" // ✅ Allow
+                    : record.prm === 2
+                    ? "#ffe6e6" // ❌ Disallow
+                    : "#fff3cd", // 🟡 Hold
+                color:
+                  record.prm === 1
+                    ? "green"
+                    : record.prm === 2
+                    ? "red"
+                    : "#b8860b",
               }}
               onChange={(val) =>
                 handleUpdatePrm(record, { priority: record.priority, prm: val })
               }>
+              <Option value={0}>🟡 Hold</Option>
               <Option value={1}>✅ Allow</Option>
-              <Option value={0}>❌ Disallow</Option>
+              <Option value={2}>❌ Disallow</Option>
             </Select>
           ) : (
             <span
               style={{
-                color: record.prm === 1 ? "green" : "red",
+                color:
+                  record.prm === 1
+                    ? "green"
+                    : record.prm === 2
+                    ? "red"
+                    : "#b8860b",
                 fontWeight: 600,
               }}>
-              {record.prm === 1 ? "✅ Allow" : "❌ Disallow"}
+              {record.prm === 1
+                ? "✅ Allow"
+                : record.prm === 2
+                ? "❌ Disallow"
+                : "🟡 Hold"}
             </span>
           ),
       }
@@ -563,202 +564,292 @@ const PublisherRequest = () => {
 
     return cols;
   };
-
-  const columns = useMemo(
-    () =>
-      buildColumns({
-        filters,
-        pinnedColumns,
-        togglePin,
-        uniqueValues,
-        userRole,
-        handleFilterChange,
-        handleUpdatePrm,
-      }),
-    [
+  const columns = useMemo(() => {
+    const allColumns = buildColumns({
       filters,
       pinnedColumns,
+      togglePin,
       uniqueValues,
       userRole,
       handleFilterChange,
       handleUpdatePrm,
-    ]
-  );
+    });
+    // ✅ Remove hidden columns
+    return allColumns.filter((col) => !hiddenColumns.includes(col.key));
+  }, [
+    filters,
+    pinnedColumns,
+    uniqueValues,
+    userRole,
+    handleFilterChange,
+    handleUpdatePrm,
+    hiddenColumns,
+  ]);
 
   return (
-    <div className="p-4">
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "1rem",
-          marginBottom: 20,
-        }}>
-        <div>
-          <Button type="primary" onClick={showModal}>
-            ➕ Request New Campaign Link
-          </Button>
-          <Button
-            onClick={clearAllFilters}
-            type="default"
-            className="bg-gray-200 ml-5 hover:bg-gray-300 text-gray-700 font-semibold px-5 py-2.5 rounded-lg shadow-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400">
-            Remove All Filters
-          </Button>
-          <Button
-            type="primary"
-            onClick={() => {
-              const tableDataToExport = filteredRequests.map((item) => {
-                const filteredItem = {};
-                Object.keys(columnHeadings).forEach((key) => {
-                  filteredItem[columnHeadings[key]] = item[key]; // Custom column names
-                });
-                return filteredItem;
-              });
-              exportToExcel(tableDataToExport, "advertiser-data.xlsx");
-            }}
-            className="flex items-center gap-2 ml-5 mr-5 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg shadow-md transition-transform duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            📥 <span>Download Excel</span>
-          </Button>
-        </div>
-        {/* 🗓️ Date Range Picker */}
-        <RangePicker
-          value={dateRange}
-          format="YYYY-MM-DD"
-          onChange={(values) => {
-            if (values) setDateRange(values);
-          }}
-          allowClear={false}
-          style={{ marginRight: 16 }}
-        />
-        <Input.Search
-          placeholder="Search by Advertiser, Campaign, PID, etc."
-          allowClear
-          enterButton
-          onChange={(e) => debouncedSearch(e.target.value)}
-          style={{ width: 400, maxWidth: "100%", borderRadius: 6 }}
-        />
-      </div>
+    <div className="p-6 max-w-full rounded-lg shadow-lg h-screen">
+      <h2 className="text-2xl font-bold mb-6 text-gray-900">
+        All Campaign Requests
+      </h2>
+      {/* Header / Controls Section */}
+      <div className="bg-white rounded-xl shadow-lg p-5 mb-6 flex flex-wrap items-end justify-between gap-4 md:gap-6 lg:gap-4">
+        {/* Left Section - Search + Date Range */}
+        <div className="flex gap-3">
+          {/* Search Input */}
+          <Input
+            placeholder="Search by Advertiser, Campaign, PID, etc."
+            allowClear
+            onChange={(e) => debouncedSearch(e.target.value)}
+            className="w-[100px] px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            prefix={<span className="text-gray-400">🔍</span>}
+          />
 
-      <Modal
-        title="Request New Link"
-        visible={isModalVisible}
-        onOk={handleOk}
-        onCancel={handleCancel}
-        okText={isSubmitting ? "Processing..." : "Submit"}
-        confirmLoading={isSubmitting}>
-        <Form layout="vertical" form={form}>
-          <Form.Item
-            label="Advertiser Name"
-            name="advertiserName"
-            rules={[
-              { required: true, message: "Please select an advertiser" },
-            ]}>
-            <Select placeholder="Select Advertiser">
-              {advertisers.map((name, index) => (
-                <Option key={index} value={name}>
-                  {name}
+          {/* Date Range Picker */}
+          <RangePicker
+            value={dateRange}
+            format="YYYY-MM-DD"
+            onChange={(values) => {
+              if (values) setDateRange(values);
+            }}
+            allowClear
+            className="w-[300px] rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition"
+          />
+        </div>
+
+        {/* Right Section - Actions */}
+        <div className="flex flex-wrap items-end gap-2">
+          {/* Hide / Show Columns */}
+          <Tooltip title="Hide / Show Columns" placement="top">
+            <Select
+              mode="multiple"
+              allowClear
+              placeholder="Select columns to hide"
+              value={hiddenColumns}
+              onChange={(selected) => setHiddenColumns(selected)}
+              style={{ minWidth: 220 }}
+              maxTagCount="responsive"
+              className="rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition">
+              {Object.entries(columnHeadingsMap).map(([key, label]) => (
+                <Option key={key} value={key}>
+                  {label}
                 </Option>
               ))}
             </Select>
-          </Form.Item>
+          </Tooltip>
+          {/* ➕ Request New Campaign Link */}
+          <Tooltip title="Request New Campaign Link" placement="top">
+            <Button
+              type="primary"
+              onClick={showModal}
+              className="!bg-green-600 hover:!bg-green-700 text-white !rounded-lg !px-2 !py-4 !shadow-md flex items-center justify-center">
+              <span className="text-lg">➕</span>
+            </Button>
+          </Tooltip>
 
-          <Form.Item
-            label="Campaign Name"
-            name="campaignName"
-            rules={[{ required: true, message: "Please enter campaign name" }]}>
-            <Input placeholder="Enter campaign name" />
-          </Form.Item>
-          <Form.Item label="Note" name="note" rules={[{ required: false }]}>
-            <Input.TextArea placeholder="Enter note (optional)" rows={3} />
-          </Form.Item>
-          <Form.Item
-            label="Payout"
-            name="payout"
-            rules={[
-              { required: true, message: "Please enter payout amounts" },
-            ]}>
-            <Input
-              style={{ width: "100%" }}
-              placeholder="Enter payout values (e.g., 100, 200, 300)"
-            />
-          </Form.Item>
-
-          <Form.Item
-            label="OS"
-            name="os"
-            rules={[{ required: true, message: "Please select an OS" }]}>
-            <Select placeholder="Select OS">
-              <Option value="Android">Android</Option>
-              <Option value="iOS">iOS</Option>
-              <Option value="apk">apk</Option>
-              <Option value="both">Both</Option>
-            </Select>
-          </Form.Item>
-          <Form.Item
-            label="Geo"
-            name="geo"
-            rules={[{ required: true, message: "Please enter geo location" }]}>
-            <Input placeholder="Enter Geo (e.g., US, IN, UK)" />
-          </Form.Item>
-
-          <Form.Item
-            label="PID"
-            name="pid"
-            rules={[
-              { required: true, message: "Please enter or select a PID" },
-            ]}>
-            <AutoComplete
-              options={dropdownOptions.pid?.map((pid) => ({ value: pid }))}
-              placeholder="Enter or select PID"
-              filterOption={(inputValue, option) =>
-                option.value.toLowerCase().includes(inputValue.toLowerCase())
-              }
-              onChange={(value) => {
-                if (blacklistPIDs.includes(value)) {
-                  Swal.fire({
-                    icon: "warning",
-                    title: "Blacklisted PID",
-                    text: `The PID "${value}" is blacklisted.`,
+          {/* 📥 Download Excel */}
+          <Tooltip title="Download Excel" placement="top">
+            <Button
+              type="primary"
+              onClick={() => {
+                const tableDataToExport = filteredRequests.map((item) => {
+                  const filteredItem = {};
+                  Object.keys(columnHeadingsMap).forEach((key) => {
+                    filteredItem[columnHeadingsMap[key]] = item[key];
                   });
-                }
+                  return filteredItem;
+                });
+                exportToExcel(tableDataToExport, "advertiser-data.xlsx");
               }}
-            />
-          </Form.Item>
+              className="!bg-blue-600 hover:!bg-blue-700 !text-white !rounded-lg !px-2 !py-4 !shadow-md flex items-center justify-center">
+              <RiFileExcel2Line size={20} />
+            </Button>
+          </Tooltip>
 
-          <Form.Item
-            label="PUB ID"
-            name="pub_id"
-            rules={[
-              { required: true, message: "Please enter or select a PUB ID" },
-            ]}>
-            <AutoComplete
-              options={dropdownOptions.pub_id?.map((pubId) => ({
-                value: pubId,
-              }))}
-              placeholder="Enter or select PUB ID"
-              filterOption={(inputValue, option) =>
-                option.value.toLowerCase().includes(inputValue.toLowerCase())
-              }
-            />
-          </Form.Item>
+          {/* ❌ Remove Filters */}
+          <Tooltip title="Remove All Filters" placement="top">
+            <Button
+              onClick={clearAllFilters}
+              type="default"
+              className="!bg-red-600 hover:!bg-red-700 !border-gray-300 !rounded-lg !px-2 !py-4 shadow-sm hover:shadow-md transition-all duration-200">
+              <FaFilterCircleXmark size={20} color="white" />
+            </Button>
+          </Tooltip>
+        </div>
+      </div>
+
+      <Modal
+        title={
+          <div className="text-lg font-semibold text-[#2F5D99]">
+            Request New Link
+          </div>
+        }
+        open={isModalVisible}
+        onCancel={handleCancel}
+        footer={null}
+        centered
+        className="rounded-xl">
+        <Form
+          layout="vertical"
+          form={form}
+          onFinish={handleOk}
+          className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Advertiser Name */}
+            <Form.Item
+              label="Advertiser Name"
+              name="advertiserName"
+              rules={[
+                { required: true, message: "Please select an advertiser" },
+              ]}>
+              <Select placeholder="Select Advertiser" className="rounded-lg">
+                {advertisers.map((name, index) => (
+                  <Option key={index} value={name}>
+                    {name}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+
+            {/* Campaign Name */}
+            <Form.Item
+              label="Campaign Name"
+              name="campaignName"
+              rules={[
+                { required: true, message: "Please enter campaign name" },
+              ]}>
+              <Input placeholder="Enter campaign name" className="rounded-lg" />
+            </Form.Item>
+
+            {/* Payout */}
+            <Form.Item
+              label="Payout"
+              name="payout"
+              rules={[
+                { required: true, message: "Please enter payout amounts" },
+              ]}>
+              <Input
+                placeholder="Enter payout values (e.g., 100,200,300)"
+                className="rounded-lg"
+              />
+            </Form.Item>
+
+            {/* OS */}
+            <Form.Item
+              label="OS"
+              name="os"
+              rules={[{ required: true, message: "Please select an OS" }]}>
+              <Select placeholder="Select OS" className="rounded-lg">
+                <Option value="Android">Android</Option>
+                <Option value="iOS">iOS</Option>
+                <Option value="apk">apk</Option>
+                <Option value="both">Both</Option>
+              </Select>
+            </Form.Item>
+
+            {/* Geo */}
+            <Form.Item
+              label="Geo"
+              name="geo"
+              rules={[
+                { required: true, message: "Please enter geo location" },
+              ]}>
+              <Input
+                placeholder="Enter Geo (e.g., US, IN, UK)"
+                className="rounded-lg"
+              />
+            </Form.Item>
+
+            {/* PID */}
+            <Form.Item
+              label="PID"
+              name="pid"
+              rules={[
+                { required: true, message: "Please enter or select a PID" },
+              ]}>
+              <AutoComplete
+                options={dropdownOptions.pid?.map((pid) => ({ value: pid }))}
+                placeholder="Enter or select PID"
+                filterOption={(inputValue, option) =>
+                  option.value.toLowerCase().includes(inputValue.toLowerCase())
+                }
+                onChange={(value) => {
+                  if (blacklistPIDs.includes(value)) {
+                    Swal.fire({
+                      icon: "warning",
+                      title: "Blacklisted PID",
+                      text: `The PID "${value}" is blacklisted.`,
+                    });
+                  }
+                }}
+                className="rounded-lg"
+              />
+            </Form.Item>
+
+            {/* PUB ID */}
+            <Form.Item
+              label="PUB ID"
+              name="pub_id"
+              rules={[
+                { required: true, message: "Please enter or select a PUB ID" },
+              ]}>
+              <AutoComplete
+                options={dropdownOptions.pub_id?.map((pubId) => ({
+                  value: pubId,
+                }))}
+                placeholder="Enter or select PUB ID"
+                filterOption={(inputValue, option) =>
+                  option.value.toLowerCase().includes(inputValue.toLowerCase())
+                }
+                className="rounded-lg"
+              />
+            </Form.Item>
+
+            {/* Note (Full width) */}
+            <Form.Item
+              label="Note"
+              name="note"
+              rules={[{ required: false }]}
+              className="md:col-span-2">
+              <Input.TextArea
+                placeholder="Enter note (optional)"
+                rows={3}
+                className="rounded-lg"
+              />
+            </Form.Item>
+          </div>
+
+          {/* Footer Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 pt-4">
+            <button
+              type="submit"
+              className="w-full sm:w-1/2 bg-[#2F5D99] hover:bg-[#24487A] text-white font-medium py-3 rounded-lg shadow-md transition-all">
+              {isSubmitting ? "Processing..." : "Submit"}
+            </button>
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="w-full sm:w-1/2 bg-gray-400 hover:bg-gray-500 text-white font-medium py-3 rounded-lg shadow-md transition-all">
+              Cancel
+            </button>
+          </div>
         </Form>
       </Modal>
-      <Table
-        rowKey="id"
-        className="mt-4"
-        dataSource={filteredRequests} // show latest data directly
-        columns={columns}
-        scroll={{ x: "max-content" }}
-        pagination={{
-          pageSizeOptions: ["10", "20", "50", "100", "200", "300", "500"],
-          showSizeChanger: true,
-          defaultPageSize: 10,
-          showTotal: (total, range) =>
-            `${range[0]}-${range[1]} of ${total} items`,
-        }}
-      />
+      <div className="overflow-auto border border-gray-300 rounded-lg shadow-sm">
+        <StyledTable
+          rowKey="id"
+          className=""
+          dataSource={filteredRequests} // show latest data directly
+          columns={columns}
+          scroll={{ x: "max-content" }}
+          pagination={{
+            pageSizeOptions: ["10", "20", "50", "100", "200", "300", "500"],
+            showSizeChanger: true,
+            defaultPageSize: 10,
+            showTotal: (total, range) =>
+              `${range[0]}-${range[1]} of ${total} items`,
+          }}
+        />
+      </div>
     </div>
   );
 };

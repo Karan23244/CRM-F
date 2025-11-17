@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Table, Input, Select, Button, Space } from "antd";
+import { Table, Input, Select, Button, Space, Tooltip } from "antd";
 import { useSelector } from "react-redux";
 import Swal from "sweetalert2"; // <-- Import SweetAlert2
 import geoData from "../../Data/geoData.json";
+import { EditOutlined } from "@ant-design/icons";
+import StyledTable from "../../Utils/StyledTable";
 
 const { Option } = Select;
 const apiUrl =
@@ -23,6 +25,10 @@ const AdvnameData = () => {
   const [note, setNote] = useState("");
   const [advUserId, setAdvUserId] = useState(null);
   const [target, setTarget] = useState("");
+  const [sortInfo, setSortInfo] = useState({
+    columnKey: null,
+    order: null,
+  });
   // **Fetch advertiser data**
   useEffect(() => {
     const fetchData = async () => {
@@ -213,6 +219,25 @@ const AdvnameData = () => {
       title: "UserName",
       dataIndex: "username",
       key: "username",
+      sorter: (a, b) => a.username.localeCompare(b.username),
+      sortOrder: sortInfo.columnKey === "username" ? sortInfo.order : null,
+      onHeaderCell: () => ({
+        onClick: () => {
+          let newOrder = "ascend";
+
+          if (sortInfo.columnKey === "username") {
+            if (sortInfo.order === "ascend") newOrder = "descend";
+            else if (sortInfo.order === "descend")
+              newOrder = null; // 🔹 third click removes sorting
+            else newOrder = "ascend";
+          }
+
+          setSortInfo({
+            columnKey: "username",
+            order: newOrder,
+          });
+        },
+      }),
       filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
         createFilterDropdown(
           filteredData,
@@ -227,6 +252,25 @@ const AdvnameData = () => {
       title: "Advertiser Name",
       dataIndex: "adv_name",
       key: "adv_name",
+      sorter: (a, b) => a.adv_name.localeCompare(b.adv_name),
+      sortOrder: sortInfo.columnKey === "adv_name" ? sortInfo.order : null,
+      onHeaderCell: () => ({
+        onClick: () => {
+          let newOrder = "ascend";
+
+          if (sortInfo.columnKey === "adv_name") {
+            if (sortInfo.order === "ascend") newOrder = "descend";
+            else if (sortInfo.order === "descend")
+              newOrder = null; // 🔹 third click removes sorting
+            else newOrder = "ascend";
+          }
+
+          setSortInfo({
+            columnKey: "adv_name",
+            order: newOrder,
+          });
+        },
+      }),
       filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
         createFilterDropdown(
           filteredData,
@@ -241,6 +285,25 @@ const AdvnameData = () => {
       title: "Advertiser ID",
       dataIndex: "adv_id",
       key: "adv_id",
+      sorter: (a, b) => a.adv_id.localeCompare(b.adv_id),
+      sortOrder: sortInfo.columnKey === "adv_id" ? sortInfo.order : null,
+      onHeaderCell: () => ({
+        onClick: () => {
+          let newOrder = "ascend";
+
+          if (sortInfo.columnKey === "adv_id") {
+            if (sortInfo.order === "ascend") newOrder = "descend";
+            else if (sortInfo.order === "descend")
+              newOrder = null; // 🔹 third click removes sorting
+            else newOrder = "ascend";
+          }
+
+          setSortInfo({
+            columnKey: "adv_id",
+            order: newOrder,
+          });
+        },
+      }),
       filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
         createFilterDropdown(
           filteredData,
@@ -255,6 +318,25 @@ const AdvnameData = () => {
       title: "Geo",
       dataIndex: "geo",
       key: "geo",
+      sorter: (a, b) => a.geo.localeCompare(b.geo),
+      sortOrder: sortInfo.columnKey === "geo" ? sortInfo.order : null,
+      onHeaderCell: () => ({
+        onClick: () => {
+          let newOrder = "ascend";
+
+          if (sortInfo.columnKey === "geo") {
+            if (sortInfo.order === "ascend") newOrder = "descend";
+            else if (sortInfo.order === "descend")
+              newOrder = null; // 🔹 third click removes sorting
+            else newOrder = "ascend";
+          }
+
+          setSortInfo({
+            columnKey: "geo",
+            order: newOrder,
+          });
+        },
+      }),
       filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
         createFilterDropdown(
           filteredData,
@@ -269,6 +351,25 @@ const AdvnameData = () => {
       title: "Note",
       dataIndex: "note",
       key: "note",
+      sorter: (a, b) => a.note.localeCompare(b.note),
+      sortOrder: sortInfo.columnKey === "note" ? sortInfo.order : null,
+      onHeaderCell: () => ({
+        onClick: () => {
+          let newOrder = "ascend";
+
+          if (sortInfo.columnKey === "note") {
+            if (sortInfo.order === "ascend") newOrder = "descend";
+            else if (sortInfo.order === "descend")
+              newOrder = null; // 🔹 third click removes sorting
+            else newOrder = "ascend";
+          }
+
+          setSortInfo({
+            columnKey: "note",
+            order: newOrder,
+          });
+        },
+      }),
       filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
         createFilterDropdown(
           filteredData,
@@ -283,6 +384,25 @@ const AdvnameData = () => {
       title: "Target",
       dataIndex: "target",
       key: "target",
+      sorter: (a, b) => a.target.localeCompare(b.target),
+      sortOrder: sortInfo.columnKey === "target" ? sortInfo.order : null,
+      onHeaderCell: () => ({
+        onClick: () => {
+          let newOrder = "ascend";
+
+          if (sortInfo.columnKey === "target") {
+            if (sortInfo.order === "ascend") newOrder = "descend";
+            else if (sortInfo.order === "descend")
+              newOrder = null; // 🔹 third click removes sorting
+            else newOrder = "ascend";
+          }
+
+          setSortInfo({
+            columnKey: "target",
+            order: newOrder,
+          });
+        },
+      }),
       filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
         createFilterDropdown(
           filteredData,
@@ -294,16 +414,101 @@ const AdvnameData = () => {
       onFilter: (value, record) => record.target === value,
     },
     {
+      title: "Acc Email",
+      dataIndex: "acc_email",
+      key: "acc_email",
+      sorter: (a, b) => a.acc_email.localeCompare(b.acc_email),
+      sortOrder: sortInfo.columnKey === "acc_email" ? sortInfo.order : null,
+      onHeaderCell: () => ({
+        onClick: () => {
+          let newOrder = "ascend";
+
+          if (sortInfo.columnKey === "acc_email") {
+            if (sortInfo.order === "ascend") newOrder = "descend";
+            else if (sortInfo.order === "descend")
+              newOrder = null; // 🔹 third click removes sorting
+            else newOrder = "ascend";
+          }
+
+          setSortInfo({
+            columnKey: "acc_email",
+            order: newOrder,
+          });
+        },
+      }),
+      render: (text) => (user?.role === "advertiser" ? "*****" : text),
+    },
+    {
+      title: "POC Email",
+      dataIndex: "poc_email",
+      key: "poc_email",
+      sorter: (a, b) => a.poc_email.localeCompare(b.poc_email),
+      sortOrder: sortInfo.columnKey === "poc_email" ? sortInfo.order : null,
+      onHeaderCell: () => ({
+        onClick: () => {
+          let newOrder = "ascend";
+
+          if (sortInfo.columnKey === "poc_email") {
+            if (sortInfo.order === "ascend") newOrder = "descend";
+            else if (sortInfo.order === "descend")
+              newOrder = null; // 🔹 third click removes sorting
+            else newOrder = "ascend";
+          }
+
+          setSortInfo({
+            columnKey: "poc_email",
+            order: newOrder,
+          });
+        },
+      }),
+      render: (text) => (user?.role === "advertiser" ? "*****" : text),
+    },
+    {
+      title: "Assign User",
+      dataIndex: "assign_user",
+      key: "assign_user",
+      sorter: (a, b) => a.assign_user.localeCompare(b.assign_user),
+      sortOrder: sortInfo.columnKey === "assign_user" ? sortInfo.order : null,
+      onHeaderCell: () => ({
+        onClick: () => {
+          let newOrder = "ascend";
+
+          if (sortInfo.columnKey === "assign_user") {
+            if (sortInfo.order === "ascend") newOrder = "descend";
+            else if (sortInfo.order === "descend")
+              newOrder = null; // 🔹 third click removes sorting
+            else newOrder = "ascend";
+          }
+
+          setSortInfo({
+            columnKey: "assign_user",
+            order: newOrder,
+          });
+        },
+      }),
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
+        createFilterDropdown(
+          filteredData,
+          "assign_user",
+          setSelectedKeys,
+          selectedKeys,
+          confirm
+        ),
+      onFilter: (value, record) => record.assign_user === value,
+    },
+    {
       title: "Actions",
       key: "actions",
       render: (_, record) => (
         <Space size="middle">
-          <Button
-            type="primary"
-            size="small"
-            onClick={() => handleEdit(record)}>
-            Edit
-          </Button>
+          <Tooltip title="Edit">
+            <Button
+              type="primary"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record)}
+            />
+          </Tooltip>
           <Button
             type="default"
             danger={record.pause !== "1"}
@@ -323,46 +528,50 @@ const AdvnameData = () => {
   ];
 
   return (
-    <div className="m-6 p-6 bg-white shadow-md rounded-lg">
-      <h2 className="text-2xl font-bold mb-4">Update Advertiser</h2>
-
+    <div className="p-4 bg-white shadow-md rounded-lg">
       {/* Show Form Only in Edit Mode */}
       {editingAdv && (
-        <form onSubmit={handleUpdate} className="space-y-4 mb-6">
+        <form
+          onSubmit={handleUpdate}
+          className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 bg-white p-6 rounded-2xl shadow-md">
           {/* Advertiser Name */}
           <div>
-            <label className="block text-lg font-medium">Advertiser Name</label>
+            <label className="block text-[#2F5D99] text-lg font-semibold mb-2">
+              Advertiser Name
+            </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-lg"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2F5D99] focus:border-[#2F5D99] transition-all"
               required
             />
           </div>
 
           {/* Advertiser ID (Disabled during edit) */}
           <div>
-            <label className="block text-lg font-medium">
+            <label className="block text-[#2F5D99] text-lg font-semibold mb-2">
               Advertiser ID (Cannot be modified)
             </label>
             <input
               type="text"
               value={selectedId}
-              className="w-full p-2 border border-gray-300 rounded-lg bg-gray-100"
+              className="w-full p-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
               disabled
             />
           </div>
 
-          {/* Select Geo with Search Feature */}
+          {/* Select Geo */}
           <div>
-            <label className="block text-lg font-medium">Select Geo</label>
+            <label className=" block text-[#2F5D99] text-lg font-semibold mb-2">
+              Select Geo
+            </label>
             <Select
               showSearch
               value={geo}
               onChange={(value) => setGeo(value)}
               placeholder="Select Geo"
-              className="w-full"
+              className="w-full !h-12"
               optionFilterProp="children"
               filterOption={(input, option) =>
                 option?.label?.toLowerCase().includes(input.toLowerCase())
@@ -376,67 +585,77 @@ const AdvnameData = () => {
             </Select>
           </div>
 
-          {/* Note (Optional) */}
-          <div>
-            <label className="block text-lg font-medium">Note (Optional)</label>
-            <textarea
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-lg"
-              rows="3"
-            />
-          </div>
           {/* Target Field */}
           <div>
-            <label className="block text-lg font-medium">Target</label>
+            <label className="block text-[#2F5D99] text-lg font-semibold mb-2">
+              Target
+            </label>
             <input
               type="text"
               value={target}
               onChange={(e) => setTarget(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-lg"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2F5D99] focus:border-[#2F5D99] transition-all"
             />
           </div>
 
-          {/* Submit Button */}
-          <button
-            type="submit"
-            className="w-full bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700">
-            Update Advertiser
-          </button>
+          {/* Note (Optional) */}
+          <div className="md:col-span-2">
+            <label className="block text-[#2F5D99] text-lg font-semibold mb-2">
+              Note (Optional)
+            </label>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2F5D99] focus:border-[#2F5D99] transition-all"
+              rows="3"
+            />
+          </div>
 
-          <button
-            type="button"
-            onClick={resetForm}
-            className="w-full mt-2 bg-gray-400 text-white p-2 rounded-lg hover:bg-gray-500">
-            Cancel
-          </button>
+          {/* Buttons */}
+          <div className="md:col-span-2 flex flex-wrap gap-4 justify-end mt-4">
+            <button
+              type="submit"
+              className="flex-1 md:flex-none bg-[#2F5D99] hover:bg-[#24487A] text-white px-8 py-3 rounded-lg font-medium shadow-md transition-all">
+              Update Advertiser
+            </button>
+
+            <button
+              type="button"
+              onClick={resetForm}
+              className="flex-1 md:flex-none bg-gray-400 hover:bg-gray-500 text-white px-8 py-3 rounded-lg font-medium shadow-md transition-all">
+              Cancel
+            </button>
+          </div>
         </form>
       )}
+      {!editingAdv && (
+        <>
+          {/* Search Input */}
+          <Input
+            placeholder="Search by Advertiser Name, Geo, or Note"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="mb-4 w-1/3 p-2 border rounded"
+          />
 
-      {/* Search Input */}
-      <Input
-        placeholder="Search by Advertiser Name, Geo, or Note"
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        className="mb-4 w-1/3 p-2 border rounded"
-      />
-
-      {/* Table Component */}
-      <Table
-        dataSource={filteredData}
-        columns={columns}
-        rowKey="adv_id"
-        pagination={{
-          pageSizeOptions: ["10", "20", "50", "100"],
-          showSizeChanger: true,
-          defaultPageSize: 10,
-          showTotal: (total, range) =>
-            `${range[0]}-${range[1]} of ${total} items`,
-        }}
-        bordered
-        className="mt-5"
-        scroll={{ x: "max-content" }}
-      />
+          {/* Table Component */}
+          <StyledTable
+            dataSource={filteredData}
+            columns={columns}
+            rowKey="adv_id"
+            pagination={{
+              pageSizeOptions: ["10", "20", "50", "100"],
+              showSizeChanger: true,
+              defaultPageSize: 10,
+              showTotal: (total, range) =>
+                `${range[0]}-${range[1]} of ${total} items`,
+            }}
+            bordered
+            className="mt-5"
+            scroll={{ x: "max-content" }}
+          />
+        </>
+      )}
     </div>
   );
 };

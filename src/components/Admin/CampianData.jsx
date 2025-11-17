@@ -10,14 +10,25 @@ import {
   Menu,
   message,
   Tooltip,
+  Card,
 } from "antd";
-import { FilterOutlined, EditOutlined, SaveOutlined } from "@ant-design/icons";
+import {
+  FilterOutlined,
+  EditOutlined,
+  SaveOutlined,
+  CloseCircleOutlined,
+} from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
 import "../../index.css";
 import geoData from "../../Data/geoData.json";
 import { exportToExcel } from "../exportExcel";
 import Validation from "../Validation";
+import { LuFileSpreadsheet } from "react-icons/lu";
+import { RiFileExcel2Line } from "react-icons/ri";
+import { FaFilterCircleXmark } from "react-icons/fa6";
+import StyledTable from "../../Utils/StyledTable";
+
 import Swal from "sweetalert2";
 import { PushpinOutlined, PushpinFilled } from "@ant-design/icons";
 const { Option } = Select;
@@ -105,7 +116,27 @@ const CampianData = () => {
   const [dropdownOptions, setDropdownOptions] = useState({
     os: ["Android", "APK", "iOS"],
   });
-  console.log(filteredData);
+  // 🔹 Manage hidden columns (saved per table type)
+  const [hiddenColumns, setHiddenColumns] = useState(() => {
+    const saved = localStorage.getItem("hiddenColumns");
+    return saved ? JSON.parse(saved) : { publisher: [], advertiser: [] };
+  });
+
+  useEffect(() => {
+    localStorage.setItem("hiddenColumns", JSON.stringify(hiddenColumns));
+  }, [hiddenColumns]);
+
+  const handleHiddenColumnsChange = (values) => {
+    setHiddenColumns((prev) => ({
+      ...prev,
+      [selectedType]: values,
+    }));
+  };
+  const getVisibleColumnKeys = (columnHeadings) => {
+    return Object.keys(columnHeadings).filter(
+      (key) => !hiddenColumns[selectedType]?.includes(key)
+    );
+  };
   const [sortInfo, setSortInfo] = useState({
     columnKey: null,
     order: null,
@@ -118,7 +149,23 @@ const CampianData = () => {
   const clearAllFilters = () => {
     setFilters({});
     setSortInfo({ columnKey: null, order: null }); // 🔁 reset sorting
+
+    // 🔹 Reset hidden columns for current table type
+    setHiddenColumns((prev) => ({
+      ...prev,
+      [selectedType]: [],
+    }));
+
+    // 🔹 Also remove from localStorage for persistence
+    localStorage.setItem(
+      "hiddenColumns",
+      JSON.stringify({
+        ...hiddenColumns,
+        [selectedType]: [],
+      })
+    );
   };
+
   // Fetch Publisher Data
   const fetchPubData = async () => {
     try {
@@ -277,16 +324,66 @@ const CampianData = () => {
         ...prev,
         adv_name:
           advmName.data?.data
-            ?.filter(
-              (item) => item.role === "manager" || item.role === "advertiser"
-            )
+            ?.filter((item) => {
+              let roles = [];
+
+              if (typeof item.role === "string") {
+                // Try to parse if it looks like a JSON array (starts with [)
+                if (item.role.trim().startsWith("[")) {
+                  try {
+                    roles = JSON.parse(item.role);
+                  } catch {
+                    roles = [];
+                  }
+                } else {
+                  // Otherwise, split by comma if it’s a comma-separated string
+                  roles = item.role
+                    .replace(/"/g, "") // remove quotes if present
+                    .split(",")
+                    .map((r) => r.trim());
+                }
+              } else if (Array.isArray(item.role)) {
+                roles = item.role;
+              } else {
+                roles = [item.role];
+              }
+
+              return roles.some((r) =>
+                ["advertiser_manager", "advertiser", "operations"].includes(r)
+              );
+            })
             .map((item) => item.username) || [],
+
         pub_name:
           advmName.data?.data
-            ?.filter(
-              (item) => item.role === "manager" || item.role === "publisher"
-            )
+            ?.filter((item) => {
+              let roles = [];
+
+              if (typeof item.role === "string") {
+                if (item.role.trim().startsWith("[")) {
+                  try {
+                    roles = JSON.parse(item.role);
+                  } catch {
+                    roles = [];
+                  }
+                } else {
+                  roles = item.role
+                    .replace(/"/g, "")
+                    .split(",")
+                    .map((r) => r.trim());
+                }
+              } else if (Array.isArray(item.role)) {
+                roles = item.role;
+              } else {
+                roles = [item.role];
+              }
+
+              return roles.some((r) =>
+                ["publisher_manager", "publisher"].includes(r)
+              );
+            })
             .map((item) => item.username) || [],
+
         payable_event:
           payableEvent.data?.data?.map((item) => item.payble_event) || [],
         mmp_tracker: mmpTracker.data?.data?.map((item) => item.mmptext) || [],
@@ -352,7 +449,6 @@ const CampianData = () => {
         : `${apiUrl}/advdata-update/${record.id}`;
 
     const updated = { ...record, [key]: newValue };
-    console.log(updated);
     // Auto-calculate adv_approved_no
     // if (key === "adv_total_no" || key === "adv_deductions") {
     //   const total = key === "adv_total_no" ? newValue : record.adv_total_no;
@@ -406,7 +502,6 @@ const CampianData = () => {
       console.error("❌ Error in pub_Apno calculation:", calcError.message);
       updated.pub_Apno = "";
     }
-    console.log(updateUrl);
     try {
       await axios.post(updateUrl, updated, {
         headers: { "Content-Type": "application/json" },
@@ -447,9 +542,9 @@ const CampianData = () => {
   });
   const getColumns = (columnHeadings) => {
     return [
-      ...Object.keys(columnHeadings).map((key) => ({
+      ...getVisibleColumnKeys(columnHeadings).map((key) => ({
         title: (
-          <div className="flex items-center justify-between">
+          <div className="flex">
             <span
               style={{
                 color: filters[key] ? "#1677ff" : "inherit",
@@ -458,20 +553,22 @@ const CampianData = () => {
               {columnHeadings[key] || key}
             </span>
             <Tooltip title={stickyColumns.includes(key) ? "Unpin" : "Pin"}>
-              <Button
-                size="small"
-                icon={
-                  stickyColumns.includes(key) ? (
-                    <PushpinFilled style={{ color: "#1677ff" }} />
-                  ) : (
-                    <PushpinOutlined />
-                  )
-                }
+              <span
                 onClick={(e) => {
-                  e.stopPropagation(); // 🛑 Prevent triggering sort
+                  e.stopPropagation(); // stop sort
                   toggleStickyColumn(key);
                 }}
-              />
+                style={{
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                }}>
+                {stickyColumns.includes(key) ? (
+                  <PushpinFilled style={{ color: "#1677ff" }} />
+                ) : (
+                  <PushpinOutlined />
+                )}
+              </span>
             </Tooltip>
             {uniqueValues[key]?.length > 0 && (
               <Dropdown
@@ -711,74 +808,111 @@ const CampianData = () => {
     <div className="p-5 min-h-screen">
       {/* Toggle Section */}
       <div className="">
-        <h2 className="text-xl font-bold mb-3 text-gray-700">Campian Data</h2>
+        <h2 className="text-xl font-bold mb-3 text-gray-700">PID Data</h2>
       </div>
       {/* Controls Section */}
       {!showValidation ? (
-        <div className="bg-white rounded-xl shadow-lg p-5 mb-6 flex items-end gap-4 md:gap-6 lg:gap-3">
-          {/* Download Button */}
-          <button
-            onClick={() => {
-              const columnHeadings =
-                selectedType === "publisher"
-                  ? columnHeadingsPub
-                  : columnHeadingsAdv;
-              const visibleKeys = Object.keys(columnHeadings);
-              const cleanedData = filteredData.map((row) => {
-                const cleanedRow = {};
-                visibleKeys.forEach((key) => {
-                  cleanedRow[columnHeadings[key]] = row[key];
-                });
-                return cleanedRow;
-              });
-              exportToExcel(cleanedData, `${selectedType}-data.xlsx`);
-            }}
-            className="bg-blue-600 hover:bg-blue-700 transition text-white px-4 py-2 rounded-lg font-medium shadow-sm whitespace-nowrap">
-            📥 Download Excel
-          </button>
-
-          {/* Date Picker */}
-          <div className="flex flex-col items-start gap-1">
-            <label className="font-medium text-gray-600">Date Range:</label>
-            <RangePicker
-              allowClear
-              value={selectedDateRange}
-              onChange={(dates) => {
-                if (!dates || dates.length === 0) {
-                  const start = dayjs().startOf("month");
-                  const end = dayjs().endOf("month");
-                  setSelectedDateRange([start, end]);
-                } else {
-                  setSelectedDateRange([dates[0].clone(), dates[1].clone()]);
-                }
-              }}
-              placeholder={["Start Date", "End Date"]}
-              className="w-full md:w-[220px] rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition"
+        <div className="bg-white rounded-xl shadow-lg p-5 mb-6 flex flex-wrap items-end justify-between gap-4 md:gap-6 lg:gap-4">
+          {/* Left Section - Validation Button */}
+          <div className="flex items-center gap-3">
+            {/* Search Input */}
+            <Input
+              placeholder="Search Username, Pub Name, or Campaign"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-[240px] px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              prefix={<span className="text-gray-400">🔍</span>}
             />
+
+            {/* Date Range Picker */}
+            <div className="flex flex-col items-start gap-1">
+              <RangePicker
+                allowClear
+                value={selectedDateRange}
+                onChange={(dates) => {
+                  if (!dates || dates.length === 0) {
+                    const start = dayjs().startOf("month");
+                    const end = dayjs().endOf("month");
+                    setSelectedDateRange([start, end]);
+                  } else {
+                    setSelectedDateRange([dates[0].clone(), dates[1].clone()]);
+                  }
+                }}
+                placeholder={["Start Date", "End Date"]}
+                className="w-[250px] rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition"
+              />
+            </div>
           </div>
 
-          {/* Start Validation */}
-          <Button
-            onClick={() => setShowValidation(true)}
-            type="primary"
-            className="bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2 rounded shadow-sm transition-all duration-200 whitespace-nowrap">
-            ✅ Start Validation
-          </Button>
+          {/* Right Section - Filters and Actions */}
+          <div className="flex flex-wrap items-end gap-2">
+            {/* Hide Columns Dropdown */}
+            <div className="flex flex-col items-start gap-1">
+              <Select
+                mode="multiple"
+                allowClear
+                placeholder="Select columns to hide"
+                style={{ minWidth: 220 }}
+                value={hiddenColumns[selectedType] || []}
+                onChange={handleHiddenColumnsChange}
+                maxTagCount="responsive">
+                {Object.keys(
+                  selectedType === "publisher"
+                    ? columnHeadingsPub
+                    : columnHeadingsAdv
+                ).map((key) => (
+                  <Option key={key} value={key}>
+                    {selectedType === "publisher"
+                      ? columnHeadingsPub[key]
+                      : columnHeadingsAdv[key]}
+                  </Option>
+                ))}
+              </Select>
+            </div>
 
-          {/* Clear Filters */}
-          <Button
-            onClick={clearAllFilters}
-            type="default"
-            className="border border-gray-300 rounded-lg px-5 py-2 shadow-sm hover:shadow-md transition whitespace-nowrap w-full sm:w-auto md:w-56">
-            🧹 Remove All Filters
-          </Button>
-          {/* Search Input */}
-          <Input
-            placeholder="🔍 Search Username, Pub Name, or Campaign"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-[250px] px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+            {/* Remove Filters Button */}
+            <Tooltip title="Remove Filters" placement="top">
+              <Button
+                onClick={clearAllFilters}
+                type="default"
+                className="!bg-red-600 hover:!bg-red-700 !border-gray-300 !rounded-lg !px-2 !py-4 shadow-sm hover:shadow-md transition-all duration-200">
+                <FaFilterCircleXmark size={20} color="white" />
+              </Button>
+            </Tooltip>
+            <Tooltip title="Start Validation" placement="top">
+              <Button
+                onClick={() => setShowValidation(true)}
+                type="primary"
+                className="!bg-green-600 hover:!bg-green-700 text-white !rounded-lg !px-2 !py-4 !shadow-md flex items-center justify-center"
+                title="Start Validation">
+                <LuFileSpreadsheet size={20} />
+              </Button>
+            </Tooltip>
+            {/* Download Excel Button */}
+            <Tooltip title="Download Excel" placement="top">
+              <Button
+                onClick={() => {
+                  const columnHeadings =
+                    selectedType === "publisher"
+                      ? columnHeadingsPub
+                      : columnHeadingsAdv;
+                  const visibleKeys = Object.keys(columnHeadings);
+                  const cleanedData = filteredData.map((row) => {
+                    const cleanedRow = {};
+                    visibleKeys.forEach((key) => {
+                      cleanedRow[columnHeadings[key]] = row[key];
+                    });
+                    return cleanedRow;
+                  });
+                  exportToExcel(cleanedData, `${selectedType}-data.xlsx`);
+                }}
+                type="primary"
+                className="!bg-blue-600 hover:!bg-blue-700 !text-white !rounded-lg !px-2 !py-4 shadow-md flex items-center justify-center"
+                title="Download Excel">
+                <RiFileExcel2Line size={20} />
+              </Button>
+            </Tooltip>
+          </div>
         </div>
       ) : (
         <Button
@@ -788,6 +922,7 @@ const CampianData = () => {
           ← Back to Table
         </Button>
       )}
+
       {/* Table Section */}
 
       <div className="bg-white shadow-xl rounded-xl p-6">
@@ -798,86 +933,90 @@ const CampianData = () => {
           </div>
         ) : (
           <>
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">
-              {selectedType === "publisher" ? "Publisher" : "Advertiser"} Report
-              Table
-            </h2>
-            <Table
-              dataSource={processedData}
-              columns={
-                selectedType === "publisher"
-                  ? getColumns(columnHeadingsPub)
-                  : getColumns(columnHeadingsAdv)
-              }
-              rowKey="id"
-              bordered
-              pagination={{
-                pageSizeOptions: ["10", "20", "50", "100", "200", "500"],
-                showSizeChanger: true,
-                defaultPageSize: 10,
-                showTotal: (total, range) =>
-                  `${range[0]}-${range[1]} of ${total} items`,
-              }}
-              scroll={{ x: "max-content" }}
-              // Dynamically apply row class based on `flag` and `shared_date` month
-              rowClassName={(record) => {
-                return record.flag === "1" ? "light-yellow-row" : "";
-              }}
-              summary={(pageData) => {
-                let totalAdvTotalNo = 0;
-                let totalAdvDeductions = 0;
-                let totalAdvApprovedNo = 0;
-                let totalpubApprovedNo = 0;
+            <Card className="shadow-md rounded-2xl border border-gray-100 bg-white mt-6 p-4 md:p-6">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                {selectedType === "publisher"
+                  ? "Publisher Data"
+                  : "Advertiser Data"}
+              </h2>
 
-                pageData.forEach(
-                  ({
-                    adv_total_no,
-                    adv_deductions,
-                    adv_approved_no,
-                    pub_Apno,
-                  }) => {
-                    totalAdvTotalNo += Number(adv_total_no) || 0;
-                    totalAdvDeductions += Number(adv_deductions) || 0;
-                    totalAdvApprovedNo += Number(adv_approved_no) || 0;
-                    totalpubApprovedNo += Number(pub_Apno) || 0;
-                  }
-                );
+              <StyledTable
+                className="custom-table shadow-sm rounded-lg overflow-hidden"
+                dataSource={processedData}
+                columns={
+                  selectedType === "publisher"
+                    ? getColumns(columnHeadingsPub)
+                    : getColumns(columnHeadingsAdv)
+                }
+                rowKey="id"
+                bordered={false}
+                pagination={{
+                  pageSizeOptions: ["10", "20", "50", "100", "200", "500"],
+                  showSizeChanger: true,
+                  defaultPageSize: 10,
+                  showTotal: (total, range) =>
+                    `${range[0]}-${range[1]} of ${total} items`,
+                }}
+                scroll={{ x: "max-content" }}
+                rowClassName={(record) =>
+                  record.flag === "1" ? "light-yellow-row" : ""
+                }
+                summary={(pageData) => {
+                  let totalAdvTotalNo = 0;
+                  let totalAdvDeductions = 0;
+                  let totalAdvApprovedNo = 0;
+                  let totalpubApprovedNo = 0;
 
-                return (
-                  <Table.Summary.Row>
-                    {Object.keys(columnHeadingsAdv).map((key) => {
-                      if (key === "adv_total_no") {
-                        return (
-                          <Table.Summary.Cell key={key}>
-                            <b>{totalAdvTotalNo}</b>
-                          </Table.Summary.Cell>
-                        );
-                      } else if (key === "adv_deductions") {
-                        return (
-                          <Table.Summary.Cell key={key}>
-                            <b>{totalAdvDeductions}</b>
-                          </Table.Summary.Cell>
-                        );
-                      } else if (key === "adv_approved_no") {
-                        return (
-                          <Table.Summary.Cell key={key}>
-                            <b>{totalAdvApprovedNo}</b>
-                          </Table.Summary.Cell>
-                        );
-                      } else if (key === "pub_Apno") {
-                        return (
-                          <Table.Summary.Cell key={key}>
-                            <b>{totalpubApprovedNo}</b>
-                          </Table.Summary.Cell>
-                        );
-                      } else {
-                        return <Table.Summary.Cell key={key} />;
-                      }
-                    })}
-                  </Table.Summary.Row>
-                );
-              }}
-            />
+                  pageData.forEach(
+                    ({
+                      adv_total_no,
+                      adv_deductions,
+                      adv_approved_no,
+                      pub_Apno,
+                    }) => {
+                      totalAdvTotalNo += Number(adv_total_no) || 0;
+                      totalAdvDeductions += Number(adv_deductions) || 0;
+                      totalAdvApprovedNo += Number(adv_approved_no) || 0;
+                      totalpubApprovedNo += Number(pub_Apno) || 0;
+                    }
+                  );
+
+                  return (
+                    <Table.Summary.Row>
+                      {Object.keys(columnHeadingsAdv).map((key) => {
+                        if (key === "adv_total_no") {
+                          return (
+                            <Table.Summary.Cell key={key}>
+                              <b>{totalAdvTotalNo}</b>
+                            </Table.Summary.Cell>
+                          );
+                        } else if (key === "adv_deductions") {
+                          return (
+                            <Table.Summary.Cell key={key}>
+                              <b>{totalAdvDeductions}</b>
+                            </Table.Summary.Cell>
+                          );
+                        } else if (key === "adv_approved_no") {
+                          return (
+                            <Table.Summary.Cell key={key}>
+                              <b>{totalAdvApprovedNo}</b>
+                            </Table.Summary.Cell>
+                          );
+                        } else if (key === "pub_Apno") {
+                          return (
+                            <Table.Summary.Cell key={key}>
+                              <b>{totalpubApprovedNo}</b>
+                            </Table.Summary.Cell>
+                          );
+                        } else {
+                          return <Table.Summary.Cell key={key} />;
+                        }
+                      })}
+                    </Table.Summary.Row>
+                  );
+                }}
+              />
+            </Card>
           </>
         )}
       </div>

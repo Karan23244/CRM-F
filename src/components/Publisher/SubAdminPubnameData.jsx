@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { Table, Input, Select, Button, Space } from "antd";
+import { Table, Input, Select, Button, Space, Tooltip } from "antd";
 import geoData from "../../Data/geoData.json";
 import { useSelector } from "react-redux";
 import Swal from "sweetalert2";
-
+import StyledTable from "../../Utils/StyledTable";
+import { EditOutlined } from "@ant-design/icons";
 const { Option } = Select;
 const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
@@ -23,7 +24,6 @@ const SubAdminPubnameData = () => {
   const [note, setNote] = useState("");
   const [pubUserId, setPubUserId] = useState(null);
   const [target, setTarget] = useState("");
-  const [level, setLevel] = useState("");
   // Fetch publisher data
   useEffect(() => {
     const fetchData = async () => {
@@ -77,8 +77,7 @@ const SubAdminPubnameData = () => {
       geo: geo,
       note: note || "",
       target: target || "",
-      user_id: pubUserId, // Use the original creator's user_id
-      level: level || "",
+      user_id: pubUserId,
     };
 
     try {
@@ -118,8 +117,7 @@ const SubAdminPubnameData = () => {
     setGeo(record.geo);
     setNote(record.note);
     setTarget(record.target);
-    setPubUserId(record.user_id); // Set original creator's user_id for updating
-    setLevel(record.level || "");
+    setPubUserId(record.user_id);
   };
 
   // Reset Form
@@ -131,7 +129,6 @@ const SubAdminPubnameData = () => {
     setTarget("");
     setPubUserId(null);
     setEditingPub(null);
-    setLevel("");
   };
 
   // Helper: Get unique values for a column
@@ -278,118 +275,149 @@ const SubAdminPubnameData = () => {
           confirm
         ),
       onFilter: (value, record) => record.level === value,
+      render: (text) => {
+        if (!text) return "-";
+
+        // Format each numeric part to 2 decimals
+        return text
+          .split(",")
+          .map((part) => {
+            const match = part.match(/-?\d+(\.\d+)?/);
+            if (match) {
+              const num = parseFloat(match[0]).toFixed(2);
+              return part.replace(match[0], num);
+            }
+            return part;
+          })
+          .join(",");
+      },
     },
     {
       title: "Actions",
       key: "actions",
       render: (_, record) => (
         <Space size="middle">
-          <Button
-            type="primary"
-            size="small"
-            onClick={() => handleEdit(record)}>
-            Edit
-          </Button>
+          <Tooltip title="Edit">
+            <Button
+              type="primary"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record)}
+            />
+          </Tooltip>
         </Space>
       ),
     },
   ];
 
   return (
-    <div className="m-6 p-6 bg-white shadow-md rounded-lg">
+    <div className="">
       {editingPub && (
-        <form onSubmit={handleUpdate} className="space-y-4 mb-6">
-          {/* Publisher Name */}
-          <div>
-            <label className="block text-lg font-medium">Publisher Name</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-lg"
-              required
-            />
+        <form
+          onSubmit={handleUpdate}
+          className="bg-white p-8 rounded-2xl shadow-lg space-y-6 mb-8 border border-gray-100">
+          <h2 className="text-2xl font-semibold text-gray-800 border-b border-gray-200 pb-3 mb-4">
+            Update Publisher Details
+          </h2>
+
+          {/* Two-Column Grid Layout */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Publisher Name */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Publisher Name
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter publisher name"
+                required
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5D99] transition-all"
+              />
+            </div>
+
+            {/* Publisher ID */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Publisher ID (Cannot be modified)
+              </label>
+              <input
+                type="text"
+                value={selectedId}
+                disabled
+                className="w-full p-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
+              />
+            </div>
+
+            {/* Select Geo */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Select Geo
+              </label>
+              <Select
+                showSearch
+                value={geo}
+                onChange={(value) => setGeo(value)}
+                placeholder="Select Geo"
+                className="w-full"
+                optionFilterProp="children"
+                filterOption={(input, option) =>
+                  option?.label?.toLowerCase().includes(input.toLowerCase())
+                }
+                required>
+                {geoData.geo?.map((geo) => (
+                  <Option key={geo.code} value={geo.code} label={geo.code}>
+                    {geo.code}
+                  </Option>
+                ))}
+              </Select>
+            </div>
+
+            {/* Target */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Target
+              </label>
+              <input
+                type="text"
+                value={target}
+                onChange={(e) => setTarget(e.target.value)}
+                placeholder="Enter target value"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5D99] transition-all"
+              />
+            </div>
+
+            {/* Note - Full Width */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Note (Optional)
+              </label>
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                rows="3"
+                placeholder="Add a note..."
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5D99] transition-all"
+              />
+            </div>
           </div>
 
-          {/* Publisher ID (Disabled during edit) */}
-          <div>
-            <label className="block text-lg font-medium">
-              Publisher ID (Cannot be modified)
-            </label>
-            <input
-              type="text"
-              value={selectedId}
-              className="w-full p-2 border border-gray-300 rounded-lg bg-gray-100"
-              disabled
-            />
-          </div>
+          {/* Buttons */}
+          <div className="flex flex-col md:flex-row gap-4 pt-4">
+            <button
+              type="submit"
+              className="flex-1 bg-[#2F5D99] hover:bg-[#24487A] text-white py-3 rounded-lg font-medium shadow-md transition-all duration-300">
+              Update Publisher
+            </button>
 
-          {/* Select Geo with Search Feature */}
-          <div>
-            <label className="block text-lg font-medium">Select Geo</label>
-            <Select
-              showSearch
-              value={geo}
-              onChange={(value) => setGeo(value)}
-              placeholder="Select Geo"
-              className="w-full"
-              optionFilterProp="children"
-              filterOption={(input, option) =>
-                option?.label?.toLowerCase().includes(input.toLowerCase())
-              }
-              required>
-              {geoData.geo?.map((geo) => (
-                <Option key={geo.code} value={geo.code} label={`${geo.code}`}>
-                  {geo.code}
-                </Option>
-              ))}
-            </Select>
+            <button
+              type="button"
+              onClick={resetForm}
+              className="flex-1 bg-gray-400 hover:bg-gray-500 text-white py-3 rounded-lg font-medium shadow-md transition-all duration-300">
+              Cancel
+            </button>
           </div>
-
-          {/* Note (Optional) */}
-          <div>
-            <label className="block text-lg font-medium">Note (Optional)</label>
-            <textarea
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-lg"
-              rows="3"
-            />
-          </div>
-          {/* Target Field */}
-          <div>
-            <label className="block text-lg font-medium">Target</label>
-            <input
-              type="text"
-              value={target}
-              onChange={(e) => setTarget(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-lg"
-            />
-          </div>
-          {/* Level Field */}
-          <div>
-            <label className="block text-lg font-medium">Rating</label>
-            <input
-              type="text"
-              value={level}
-              onChange={(e) => setLevel(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-lg"
-            />
-          </div>
-
-          {/* Submit Button */}
-          <button
-            type="submit"
-            className="w-full bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700">
-            Update Publisher
-          </button>
-
-          <button
-            type="button"
-            onClick={resetForm}
-            className="w-full mt-2 bg-gray-400 text-white p-2 rounded-lg hover:bg-gray-500">
-            Cancel
-          </button>
         </form>
       )}
       {/* Search Input */}
@@ -401,7 +429,7 @@ const SubAdminPubnameData = () => {
       />
 
       {/* Table Component */}
-      <Table
+      <StyledTable
         dataSource={filteredData}
         columns={columns}
         rowKey="pub_id"
@@ -412,8 +440,8 @@ const SubAdminPubnameData = () => {
           showTotal: (total, range) =>
             `${range[0]}-${range[1]} of ${total} items`,
         }}
-        bordered
         className="mt-5"
+        bordered
         scroll={{ x: "max-content" }}
       />
     </div>

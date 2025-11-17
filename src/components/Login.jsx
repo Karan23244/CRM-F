@@ -20,17 +20,13 @@ const LoginForm = () => {
     e.preventDefault();
     setLoading(true);
 
-    const trimmedUsername = username.trim();
-    const trimmedPassword = password.trim();
-
-    if (!trimmedUsername || !trimmedPassword) {
+    if (!username.trim() || !password.trim()) {
       setLoading(false);
-      Swal.fire({
+      return Swal.fire({
         icon: "error",
         title: "Oops...",
         text: "Both username and password are required.",
       });
-      return;
     }
 
     try {
@@ -38,48 +34,40 @@ const LoginForm = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          username: trimmedUsername,
-          password: trimmedPassword,
+          username: username.trim(),
+          password: password.trim(),
         }),
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Login failed");
+      if (data.success) {
+        dispatch(
+          setUser({
+            ...data.subAdmin,
+            role: Array.isArray(data.subAdmin.role)
+              ? data.subAdmin.role
+              : typeof data.subAdmin.role === "string"
+              ? data.subAdmin.role.split(",").map((r) => r.trim())
+              : [],
+          })
+        );
 
-      dispatch(setUser(data.subAdmin));
+        Swal.fire({
+          icon: "success",
+          title: "Logged in!",
+          text: `Welcome back, ${data.subAdmin.username || "User"}!`,
+          timer: 1500,
+          showConfirmButton: false,
+        });
 
-      Swal.fire({
-        icon: "success",
-        title: "Logged in!",
-        text: `Welcome back, ${data.subAdmin.username || "User"}!`,
-        timer: 1500,
-        showConfirmButton: false,
-      });
-
-      setTimeout(() => {
-        switch (data.subAdmin.role) {
-          case "admin":
-            navigate("/admin-home");
-            break;
-          case "advertiser":
-            navigate("/advertiser-home");
-            break;
-          case "publisher":
-            navigate("/publisher-home");
-            break;
-          case "advertiser_manager":
-            navigate("/advertiser-manager-home");
-            break;
-          case "publisher_manager":
-            navigate("/publisher-manager-home");
-            break;
-          case "manager":
-            navigate("/manager-home");
-            break;
-          default:
-            navigate("/");
-        }
-      }, 1500);
+        setTimeout(() => navigate("/dashboard"), 1500);
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Login failed",
+          text: data.message || "Invalid credentials",
+        });
+      }
     } catch (error) {
       Swal.fire({
         icon: "error",
@@ -92,77 +80,108 @@ const LoginForm = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900">
-      <div className="backdrop-blur-lg shadow-2xl rounded-2xl p-10 max-w-md w-full  bg-white">
-        {/* Logo + Brand */}
-        <div className="flex flex-col items-center mb-8">
-          <img
-            src="/crm.png" // <- Replace with your actual logo path
-            alt="Logo"
-            className="w-20 h-20 mb-3"
-          />
-          <h2 className="text-3xl text-blue-600 font-bold">ClickOrbits</h2>
+    <div className="bg-[#496e93] min-h-screen flex items-center justify-center p-4 md:p-10">
+      <div className="relative flex flex-col md:flex-row w-full max-w-7xl h-auto md:h-[80vh] rounded-2xl overflow-hidden shadow-2xl">
+        {/* Left Side */}
+        <div className="w-full md:w-2/5 bg-[#01509D] text-white flex flex-col justify-center px-8 py-10 md:px-14 relative">
+          <h1 className="text-3xl md:text-5xl font-bold mb-6 leading-snug text-center md:text-left">
+            Welcome to ClickOrbits
+          </h1>
+          <p className="text-base md:text-lg leading-relaxed opacity-90 text-center md:text-left">
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque
+            pharetra, nulla at cursus pretium, sem urna vulputate nisi, sed
+            vestibulum neque justo et metus. Duis a libero at ligula ultrices
+            imperdiet.
+          </p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-6 text-black">
-          {/* Username */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Username</label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
-                <FaUser />
-              </span>
-              <input
-                type="text"
-                className="block w-full pl-10 pr-3 py-2 text-black rounded-md bg-white/20 border border-gray-400 placeholder-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                placeholder="Enter your username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                autoComplete="username"
-              />
-            </div>
-          </div>
+        {/* Center Logo Box */}
+        <div
+          className="absolute md:top-1/2 md:left-2/5 top-[38%] left-1/2 transform 
+                 -translate-x-1/2 -translate-y-1/2 z-10 
+                 bg-white rounded-full shadow-2xl border border-gray-200 
+                 flex items-center justify-center w-12 h-12 md:w-20 md:h-20">
+          <img
+            src="/logo.png"
+            alt="Logo"
+            className="w-15 h-15 md:w-20 md:h-20 object-contain"
+          />
+        </div>
 
-          {/* Password */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Password</label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
-                <FaLock />
-              </span>
-              <input
-                type={showPassword ? "text" : "password"}
-                className="block w-full pl-10 pr-10 py-2 rounded-md text-black bg-white/20 border border-gray-400 placeholder-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-              />
+        {/* Right Side */}
+        <div className="w-full md:w-3/5 flex items-center justify-center bg-white px-6 py-10 md:px-16">
+          <div className="w-full max-w-md">
+            <h2 className="text-3xl md:text-4xl font-semibold text-[#01509D] mb-8 text-center">
+              Login to Your Account
+            </h2>
+
+            <form onSubmit={handleLogin} className="space-y-6">
+              {/* Username */}
+              <div>
+                <label className="block text-gray-700 text-sm font-medium mb-1">
+                  Username
+                </label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                    <FaUser />
+                  </span>
+                  <input
+                    type="text"
+                    className="block w-full pl-10 pr-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-[#2F5D99] focus:outline-none"
+                    placeholder="Enter your username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    autoComplete="username"
+                  />
+                </div>
+              </div>
+
+              {/* Password */}
+              <div>
+                <label className="block text-gray-700 text-sm font-medium mb-1">
+                  Password
+                </label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                    <FaLock />
+                  </span>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    className="block w-full pl-10 pr-10 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-[#2F5D99] focus:outline-none"
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400"
+                    onClick={() => setShowPassword(!showPassword)}>
+                    {showPassword ? <FaEyeSlash /> : <FaEye />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Login Button */}
               <button
-                type="button"
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400"
-                onClick={() => setShowPassword(!showPassword)}>
-                {showPassword ? <FaEyeSlash /> : <FaEye />}
+                type="submit"
+                className="w-full py-2 bg-[#2F5D99] text-white rounded-md font-semibold text-lg shadow-md hover:opacity-90 transition disabled:opacity-50"
+                disabled={loading}>
+                {loading ? "Logging in..." : "Login"}
               </button>
-            </div>
+              {/* Forgot Password Link */}
+              <div className="flex justify-center -mt-2">
+                <button
+                  type="button"
+                  onClick={() => navigate("/forgot-password")}
+                  className="flex items-center gap-1 text-sm text-[#2F5D99] font-medium hover:text-[#01509D] transition-all hover:underline">
+                  <FaLock className="text-xs opacity-70" />
+                  Forgot Password?
+                </button>
+              </div>
+            </form>
           </div>
-
-          {/* Button */}
-          <button
-            type="submit"
-            className="w-full py-2 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-md font-semibold text-lg shadow-lg hover:opacity-90 transition disabled:opacity-50"
-            disabled={loading}>
-            {loading ? "Logging in..." : "Login"}
-          </button>
-        </form>
-
-        {/* Extra Links */}
-        {/* <p className="text-center mt-6 text-sm text-gray-300">
-          Forgot your password?{" "}
-          <a href="#" className="underline hover:text-white">
-            Reset here
-          </a>
-        </p> */}
+        </div>
       </div>
     </div>
   );

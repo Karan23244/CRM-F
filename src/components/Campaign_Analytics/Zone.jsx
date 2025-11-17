@@ -1,7 +1,9 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useSelector } from "react-redux";
 import { FilterOutlined } from "@ant-design/icons";
+import StyledTable from "../../Utils/StyledTable";
+import { exportToExcel } from "../exportExcel";
 import {
   calculateCTI,
   calculateITE,
@@ -36,6 +38,9 @@ import {
   Col,
   Tooltip as AntTooltip,
 } from "antd";
+import { RiFileExcel2Line } from "react-icons/ri";
+import { FaFilterCircleXmark, FaDownload } from "react-icons/fa6";
+
 const { Title: AntTitle } = Typography;
 // Chart.js setup
 ChartJS.register(
@@ -50,7 +55,7 @@ ChartJS.register(
 );
 import { InfoCircleOutlined } from "@ant-design/icons";
 const { Panel } = Collapse;
-const apiUrl = "https://gapi.clickorbits.in"; // Update with your actual API URL
+const apiUrl = "http://localhost:2001"; // Update with your actual API URL
 const apiUrl1 = "https://apii.clickorbits.in/api";
 
 export default function OptimizationCampaignAnalysis({
@@ -90,6 +95,11 @@ export default function OptimizationCampaignAnalysis({
     ite: false,
     etc: false,
   });
+  const [sorter, setSorter] = useState(null);
+  const clearAllFilters = useCallback(() => {
+    setSelectedFilters({});
+    setSorter(null);
+  }, []);
   // whenever selectedDateRange changes → reset modalData
   useEffect(() => {
     setModalData({ open: false, rows: [], color: "" });
@@ -603,7 +613,7 @@ export default function OptimizationCampaignAnalysis({
   // });
 
   const getColumnWithFilter = (title, dataIndex) => {
-    const isFiltered = selectedFilters[dataIndex]?.length > 0; // 🔹 check if filter applied
+    const isFiltered = selectedFilters[dataIndex]?.length > 0;
 
     return {
       title: (
@@ -615,6 +625,31 @@ export default function OptimizationCampaignAnalysis({
       ),
       dataIndex,
       key: dataIndex,
+
+      // ✅ SORTING ADDED HERE
+      sorter: (a, b) => {
+        const valA = a[dataIndex] ?? "";
+        const valB = b[dataIndex] ?? "";
+
+        // If numeric
+        if (!isNaN(valA) && !isNaN(valB)) {
+          return Number(valA) - Number(valB);
+        }
+
+        // If date
+        if (
+          String(valA).match(/\d{4}-\d{2}-\d{2}/) ||
+          String(valB).match(/\d{4}-\d{2}-\d{2}/)
+        ) {
+          return new Date(valA) - new Date(valB);
+        }
+
+        // Default text sorting
+        return String(valA).localeCompare(String(valB));
+      },
+      sortDirections: ["ascend", "descend"],
+
+      // ✅ FILTER DROPDOWN
       filterDropdown: () => (
         <div style={{ padding: 8 }}>
           <Select
@@ -634,6 +669,7 @@ export default function OptimizationCampaignAnalysis({
           </Select>
         </div>
       ),
+
       filterIcon: () => (
         <FilterOutlined style={{ color: isFiltered ? "#1890ff" : "#aaa" }} />
       ),
@@ -767,7 +803,8 @@ export default function OptimizationCampaignAnalysis({
             onClick={() => {
               setEditValues([...conditions]);
               setShowModal(true);
-            }}>
+            }}
+            className="!bg-[#2F5D99] !border-none !text-white !rounded-lg !px-5 !py-2.5 font-medium shadow-sm hover:!bg-blue-700 hover:shadow-md transition-all duration-200">
             Edit Conditions
           </Button>
         )}
@@ -781,7 +818,7 @@ export default function OptimizationCampaignAnalysis({
             <AntTitle level={4} className="mb-4 text-gray-800">
               Campaign Analysis
             </AntTitle>
-            <Table
+            <StyledTable
               columns={columns}
               dataSource={grouped}
               rowKey={(record) => record.pubam}
@@ -867,7 +904,7 @@ export default function OptimizationCampaignAnalysis({
             </Card>
             <Card className="shadow-lg rounded-2xl">
               <AntTitle level={5}>Inactive PIDs</AntTitle>
-              <Table
+              <StyledTable
                 columns={[
                   { title: "PUB AM", dataIndex: "pubam", key: "pubam" },
                   { title: "PUBID", dataIndex: "pubid", key: "pubid" },
@@ -899,14 +936,62 @@ export default function OptimizationCampaignAnalysis({
             </Button>
 
             <AntTitle level={4}>{modalData.color} Zone Details</AntTitle>
+
+            {/* ⭐ Add Buttons Here */}
+            <div className="flex items-center gap-3">
+              {/* Clear Filters */}
+              <AntTooltip title="Remove All Filters" placement="top">
+                <Button
+                  onClick={clearAllFilters}
+                  type="default"
+                  className="!bg-red-600 hover:!bg-red-700 !text-white !rounded-xl !px-2 !py-[10px] shadow-md flex items-center justify-center transition-all duration-200">
+                  <FaFilterCircleXmark size={20} />
+                </Button>
+              </AntTooltip>
+
+              {/* Excel Download */}
+              <AntTooltip title="Download Excel" placement="top">
+                <Button
+                  onClick={() => {
+                    const EXPORT_COLUMNS = [
+                      "pubam",
+                      "pubid",
+                      "pid",
+                      "noi",
+                      "rti",
+                      "pi",
+                      "noe",
+                      "pe",
+                      "nocrm",
+                      "clicks",
+                    ];
+
+                    const tableDataToExport = filteredDataModal.map((row) => {
+                      const filteredRow = {};
+
+                      EXPORT_COLUMNS.forEach((col) => {
+                        filteredRow[col] = row[col];
+                      });
+
+                      return filteredRow;
+                    });
+
+                    exportToExcel(tableDataToExport, "advertiser-data.xlsx");
+                  }}
+                  type="primary"
+                  className="!bg-blue-600 hover:!bg-blue-700 !text-white !rounded-xl !px-2 !py-[10px] shadow-md flex items-center justify-center transition-all duration-200">
+                  <RiFileExcel2Line size={20} />
+                </Button>
+              </AntTooltip>
+            </div>
           </div>
 
-          {/* ✅ Only the table will scroll, not the page */}
-          <Table
+          <StyledTable
             columns={modalColumns}
             dataSource={filteredDataModal}
             rowKey={(record) => record.pid}
             bordered
+            onChange={(pagination, filters, sorter) => setSorter(sorter)}
             pagination={{
               showSizeChanger: true,
               pageSizeOptions: ["10", "20", "50", "100"],
@@ -926,52 +1011,76 @@ export default function OptimizationCampaignAnalysis({
 
       {/* Edit Conditions Modal */}
       <Modal
-        title="Edit Conditions"
+        title={
+          <div className="text-lg font-semibold text-gray-800">
+            Edit Conditions
+          </div>
+        }
         open={showModal}
         onCancel={() => setShowModal(false)}
         onOk={handleSave}
-        width={750}>
-        <div className="max-h-[60vh] overflow-y-auto pr-2">
-          <div className="mb-4">
-            <strong>Global Ignore:</strong>
-            {["fraud", "cti", "ite", "etc"].map((metric) => (
-              <label key={metric} className="ml-4 text-sm">
-                <input
-                  type="checkbox"
-                  checked={globalIgnores[metric]}
-                  onChange={async (e) => {
-                    const newValue = e.target.checked;
-                    const updated = { ...globalIgnores, [metric]: newValue };
-                    setGlobalIgnores(updated);
+        width={750}
+        className=" max-h-[60vh] custom-modal bg-gradient-to-br from-[#EAF1FA] via-[#F6F9FC] to-[#FFFFFF]"
+        bodyStyle={{
+          backgroundColor: "#f9fafb",
+          borderRadius: "0.75rem",
+          padding: "1.5rem",
+        }}>
+        {/* Scrollable Body */}
+        <div className="max-h-[60vh] overflow-y-auto pr-2 space-y-6 ">
+          {/* Global Ignore Section */}
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <p className="text-base font-semibold text-gray-800 mb-3">
+              Global Ignore
+            </p>
+            <div className="flex flex-wrap gap-4">
+              {["fraud", "cti", "ite", "etc"].map((metric) => (
+                <label
+                  key={metric}
+                  className="flex items-center gap-2 text-gray-700 text-sm font-medium">
+                  <input
+                    type="checkbox"
+                    checked={globalIgnores[metric]}
+                    onChange={async (e) => {
+                      const newValue = e.target.checked;
+                      const updated = { ...globalIgnores, [metric]: newValue };
+                      setGlobalIgnores(updated);
 
-                    await fetch(
-                      `${apiUrl}/api/zone-conditions/${encodeURIComponent(
-                        campaignName
-                      )}/set-ignores`,
-                      {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                          fraud_ignore: updated.fraud ? 1 : 0,
-                          cti_ignore: updated.cti ? 1 : 0,
-                          ite_ignore: updated.ite ? 1 : 0,
-                          etc_ignore: updated.etc ? 1 : 0,
-                        }),
-                      }
-                    );
-                  }}
-                />
-
-                {" Ignore "}
-                {metric.toUpperCase()}
-              </label>
-            ))}
+                      await fetch(
+                        `${apiUrl}/api/zone-conditions/${encodeURIComponent(
+                          campaignName
+                        )}/set-ignores`,
+                        {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            fraud_ignore: updated.fraud ? 1 : 0,
+                            cti_ignore: updated.cti ? 1 : 0,
+                            ite_ignore: updated.ite ? 1 : 0,
+                            etc_ignore: updated.etc ? 1 : 0,
+                          }),
+                        }
+                      );
+                    }}
+                    className="w-4 h-4 accent-blue-600"
+                  />
+                  <span className="capitalize">{metric}</span>
+                </label>
+              ))}
+            </div>
           </div>
-          <Collapse accordion defaultActiveKey={["1"]} bordered={false}>
+
+          {/* Editable Zones */}
+          <Collapse
+            accordion
+            defaultActiveKey={["1"]}
+            bordered={false}
+            className="bg-transparent">
             {editValues.map((cond, idx) => (
-              <Panel
+              <Collapse.Panel
+                key={cond.id}
                 header={
-                  <div className="flex items-center gap-2 font-semibold">
+                  <div className="flex items-center gap-2 font-semibold text-gray-800">
                     <span
                       className={`w-3 h-3 rounded-full ${
                         cond.zone_color === "Green"
@@ -985,11 +1094,11 @@ export default function OptimizationCampaignAnalysis({
                     {cond.zone_color} Zone
                   </div>
                 }
-                key={cond.id}>
-                <Row gutter={16}>
+                className="bg-white rounded-lg shadow-sm border border-gray-100">
+                <Row gutter={[16, 16]}>
                   {fields.map((field) => (
-                    <Col span={12} key={field} className="mb-3">
-                      <label className="block text-xs font-medium mb-1 uppercase text-gray-600">
+                    <Col span={12} key={field}>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase">
                         {field.replace("_", " ")}
                         <AntTooltip
                           title={`Enter value for ${field.replace("_", " ")}`}>
@@ -1005,11 +1114,12 @@ export default function OptimizationCampaignAnalysis({
                           updated[idx][field] = e.target.value;
                           setEditValues(updated);
                         }}
+                        className="!rounded-lg !border-gray-300 hover:!border-blue-400 focus:!border-blue-500 focus:!ring-1 focus:!ring-blue-300 transition-all"
                       />
                     </Col>
                   ))}
                 </Row>
-              </Panel>
+              </Collapse.Panel>
             ))}
           </Collapse>
         </div>

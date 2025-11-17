@@ -1,3 +1,416 @@
+// import React, { useState, useEffect } from "react";
+// import {
+//   Table,
+//   Input,
+//   Select,
+//   Button,
+//   Form,
+//   message,
+//   Spin,
+//   Card,
+//   Checkbox,
+// } from "antd";
+// import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
+// import Swal from "sweetalert2";
+// const { Option } = Select;
+// const apiUrl =
+//   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
+
+// const SubAdminForm = () => {
+//   const [subAdmins, setSubAdmins] = useState([]);
+//   const [username, setUsername] = useState("");
+//   const [selectedSubAdmin, setSelectedSubAdmin] = useState(null);
+//   const [password, setPassword] = useState("");
+//   const [role, setRole] = useState("publisher");
+//   const [ranges, setRanges] = useState([{ start: "", end: "" }]);
+//   const [assignedSubAdmins, setAssignedSubAdmins] = useState([]);
+//   const [loading, setLoading] = useState(false);
+//   const [error, setError] = useState(null);
+//   const [subAdminOptions, setSubAdminOptions] = useState([]);
+//   const [permissionEditCondition, setPermissionEditCondition] = useState(false);
+//   const [permissionUploadFiles, setPermissionUploadFiles] = useState(false);
+//   console.log(subAdminOptions.username);
+//   useEffect(() => {
+//     fetchSubAdmins();
+//   }, []);
+//   // Fetch Sub-Admins
+//   const fetchSubAdmins = async () => {
+//     setLoading(true);
+//     try {
+//       const response = await fetch(`${apiUrl}/get-subadmin`);
+//       const data = await response.json();
+//       if (response.ok) {
+//         // Store all eligible sub-admins
+//         setSubAdmins(
+//           data.data.filter((subAdmin) =>
+//             [
+//               "advertiser",
+//               "publisher",
+//               "advertiser_manager",
+//               "publisher_manager",
+//               "manager",
+//             ].includes(subAdmin.role)
+//           )
+//         );
+//       } else {
+//         setError(data.message || "Failed to fetch sub-admins.");
+//       }
+//     } catch (err) {
+//       setError("An error occurred while fetching sub-admins.");
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   // Filter sub-admins for assignment dropdown, excluding current username
+//   useEffect(() => {
+//     console.log(subAdmins);
+//     if (subAdmins.length > 0) {
+//       setSubAdminOptions(
+//         subAdmins
+//           .filter((subAdmin) =>
+//             [
+//               "advertiser",
+//               "publisher",
+//               "publisher_manager",
+//               "advertiser_manager",
+//             ].includes(subAdmin.role)
+//           )
+//           .filter((subAdmin) => subAdmin.username !== username) // exclude current username
+//       );
+//     }
+//   }, [username, subAdmins]);
+
+//   // Handle Add New Range
+//   const addRange = () => {
+//     setRanges([...ranges, { start: "", end: "" }]);
+//   };
+//   const removeRange = (index) => {
+//     if (ranges.length > 1) {
+//       setRanges(ranges.filter((_, i) => i !== index));
+//     } else {
+//       message.warning("At least one range is required!");
+//     }
+//   };
+//   // Handle Change in Ranges
+//   const handleRangeChange = (index, field, value) => {
+//     const updatedRanges = [...ranges];
+//     updatedRanges[index][field] = value;
+//     setRanges(updatedRanges);
+//   };
+//   const handleSaveSubAdmin = async () => {
+//     if (!username || (!selectedSubAdmin && !password)) {
+//       Swal.fire({
+//         icon: "warning",
+//         title: "Oops...",
+//         text: "Please fill all fields!",
+//       });
+//       return;
+//     }
+
+//     const payload = {
+//       username,
+//       password: selectedSubAdmin ? password || "" : password, // Ensure password is empty when not updated
+//       role,
+//       ranges: ranges.map(({ start, end }) => ({
+//         start: `${String(start)}`,
+//         end: `${String(end)}`,
+//       })),
+//       assigned_subadmins:
+//         role === "publisher_manager" || role === "advertiser_manager"
+//           ? assignedSubAdmins
+//           : [],
+//       can_see_button1: permissionEditCondition ? 1 : 0,
+//       can_see_input1: permissionUploadFiles ? 1 : 0,
+//     };
+//     console.log("Payload to save:", payload); // Debugging payload
+
+//     if (selectedSubAdmin) {
+//       payload.id = selectedSubAdmin; // Include ID only for update
+//     }
+//     try {
+//       const response = await fetch(
+//         `${apiUrl}/${
+//           selectedSubAdmin ? "update-sub-admin" : "create-subadmin"
+//         }`,
+//         {
+//           method: selectedSubAdmin ? "PUT" : "POST",
+//           headers: { "Content-Type": "application/json" },
+//           body: JSON.stringify(payload),
+//         }
+//       );
+//       const data = await response.json();
+//       if (response.ok) {
+//         Swal.fire({
+//           icon: "success",
+//           title: "Success!",
+//           text: `Sub-Admin ${
+//             selectedSubAdmin ? "updated" : "created"
+//           } successfully!`,
+//         });
+//         resetForm();
+//         fetchSubAdmins();
+//       } else {
+//         Swal.fire({
+//           icon: "error",
+//           title: "Error!",
+//           text:
+//             data.message ||
+//             `Failed to ${selectedSubAdmin ? "update" : "create"} sub-admin`,
+//         });
+//       }
+//     } catch (error) {
+//       Swal.fire({
+//         icon: "error",
+//         title: "Error!",
+//         text: `An error occurred while ${
+//           selectedSubAdmin ? "updating" : "creating"
+//         } the sub-admin.`,
+//       });
+//     }
+//   };
+
+//   // Reset Form
+//   const resetForm = () => {
+//     setUsername("");
+//     setPassword("");
+//     setRole("publisher");
+//     setRanges([{ start: "", end: "" }]);
+//     setAssignedSubAdmins([]);
+//     setSelectedSubAdmin(null);
+//     setPermissionEditCondition(false);
+//     setPermissionUploadFiles(false);
+//   };
+
+//   const handleEdit = (subAdmin) => {
+//     setSelectedSubAdmin(subAdmin.id);
+//     setUsername(subAdmin.username);
+//     setRole(subAdmin.role);
+//     setRanges(subAdmin.ranges);
+//     setAssignedSubAdmins(subAdmin.assigned_subadmins.map((a) => a.id));
+//     setPermissionEditCondition(subAdmin.permissions.can_see_button1 === 1);
+//     setPermissionUploadFiles(subAdmin.permissions.can_see_input1 === 1);
+//   };
+//   const handleDeleteSubAdmin = async (id) => {
+//     const result = await Swal.fire({
+//       title: "Are you sure?",
+//       text: "Do you want to delete this sub-admin?",
+//       icon: "warning",
+//       showCancelButton: true,
+//       confirmButtonColor: "#d33",
+//       cancelButtonColor: "#3085d6",
+//       confirmButtonText: "Yes, delete it!",
+//       cancelButtonText: "Cancel",
+//     });
+
+//     if (!result.isConfirmed) return;
+
+//     try {
+//       const response = await fetch(`${apiUrl}/delete-sub-admin`, {
+//         method: "DELETE",
+//         headers: { "Content-Type": "application/json" },
+//         body: JSON.stringify({ id }),
+//       });
+
+//       if (!response.ok) {
+//         throw new Error("Failed to delete sub-admin");
+//       }
+
+//       await response.json();
+
+//       Swal.fire({
+//         icon: "success",
+//         title: "Deleted!",
+//         text: "Sub-admin deleted successfully.",
+//       });
+
+//       fetchSubAdmins(); // Refresh the list
+//     } catch (error) {
+//       Swal.fire({
+//         icon: "error",
+//         title: "Error!",
+//         text: "Error deleting sub-admin.",
+//       });
+//       console.error("Error deleting sub-admin:", error);
+//     }
+//   };
+//   const columns = [
+//     { title: "Username", dataIndex: "username", key: "username" },
+//     { title: "Role", dataIndex: "role", key: "role" },
+//     {
+//       title: "Ranges",
+//       key: "ranges",
+//       render: (record) =>
+//         record.ranges.map((range, i) => (
+//           <div key={i}>
+//             {range.start} - {range.end}
+//           </div>
+//         )),
+//     },
+//     {
+//       title: "Edit Permission",
+//       key: "can_see_button1",
+//       render: (record) =>
+//         record.permissions?.can_see_button1 === 1 ? "Yes" : "No",
+//     },
+//     {
+//       title: "Upload Permission",
+//       key: "can_see_input1",
+
+//       render: (record) =>
+//         record.permissions?.can_see_input1 === 1 ? "Yes" : "No",
+//     },
+//     {
+//       title: "Actions",
+//       key: "actions",
+//       render: (record) => (
+//         <>
+//           <Button type="link" onClick={() => handleEdit(record)}>
+//             Edit
+//           </Button>
+//           <Button
+//             type="link"
+//             danger
+//             onClick={() => handleDeleteSubAdmin(record.id)} // Use record.id instead of subAdminId
+//           >
+//             Delete Sub-Admin
+//           </Button>
+//         </>
+//       ),
+//     },
+//   ];
+
+//   return (
+//     <div className="min-h-screen bg-gray-50 flex flex-col items-center p-6">
+//       <Card className="w-full" title="Create Sub-Admin">
+//         <Form layout="vertical" onFinish={handleSaveSubAdmin}>
+//           <Form.Item label="Username" required>
+//             <Input
+//               value={username}
+//               onChange={(e) => setUsername(e.target.value)}
+//               placeholder="Enter username"
+//             />
+//           </Form.Item>
+
+//           <Form.Item label="Password" required>
+//             <Input.Password
+//               value={password}
+//               onChange={(e) => setPassword(e.target.value)}
+//               placeholder="Enter password"
+//             />
+//           </Form.Item>
+
+//           <Form.Item label="Role" required>
+//             <Select value={role} onChange={(value) => setRole(value)}>
+//               <Option value="publisher">Publisher</Option>
+//               <Option value="advertiser">Advertiser</Option>
+//               <Option value="advertiser_manager">Advertiser Manager</Option>
+//               <Option value="publisher_manager">Publisher Manager</Option>
+//             </Select>
+//           </Form.Item>
+//           <Form.Item>
+//             <Checkbox
+//               checked={permissionEditCondition}
+//               onChange={(e) => setPermissionEditCondition(e.target.checked)}>
+//               Permission for Edit Condition
+//             </Checkbox>
+//             <Checkbox
+//               checked={permissionUploadFiles}
+//               onChange={(e) => setPermissionUploadFiles(e.target.checked)}>
+//               Permission for Uploading Files
+//             </Checkbox>
+//           </Form.Item>
+//           {(role === "advertiser_manager" || role === "publisher_manager") && (
+//             <Form.Item label="Assign Sub-Admins">
+//               <Select
+//                 mode="multiple"
+//                 showSearch
+//                 value={assignedSubAdmins}
+//                 onChange={setAssignedSubAdmins}
+//                 placeholder="Select sub-admins"
+//                 filterOption={(input, option) =>
+//                   option.children.toLowerCase().includes(input.toLowerCase())
+//                 }>
+//                 {subAdminOptions
+//                   .filter((subAdmin) =>
+//                     role === "advertiser_manager"
+//                       ? ["advertiser_manager", "advertiser"].includes(
+//                           subAdmin.role
+//                         )
+//                       : ["publisher_manager", "publisher"].includes(
+//                           subAdmin.role
+//                         )
+//                   )
+//                   .map((subAdmin) => (
+//                     <Option key={subAdmin.id} value={subAdmin.id}>
+//                       {subAdmin.username}
+//                     </Option>
+//                   ))}
+//               </Select>
+//             </Form.Item>
+//           )}
+
+//           <Form.Item label="Ranges">
+//             {ranges.map((range, index) => (
+//               <div key={index} className="flex space-x-2 items-center mb-2">
+//                 <Input
+//                   type="number"
+//                   value={range.start}
+//                   onChange={(e) =>
+//                     handleRangeChange(index, "start", e.target.value)
+//                   }
+//                   placeholder="Start"
+//                 />
+//                 <span>-</span>
+//                 <Input
+//                   type="number"
+//                   value={range.end}
+//                   onChange={(e) =>
+//                     handleRangeChange(index, "end", e.target.value)
+//                   }
+//                   placeholder="End"
+//                 />
+//                 {ranges.length > 1 && (
+//                   <MinusCircleOutlined
+//                     className="text-red-500 cursor-pointer"
+//                     onClick={() => removeRange(index)}
+//                   />
+//                 )}
+//               </div>
+//             ))}
+//             <Button type="dashed" onClick={addRange} icon={<PlusOutlined />}>
+//               Add More Ranges
+//             </Button>
+//           </Form.Item>
+
+//           <Button type="primary" htmlType="submit" className="w-full">
+//             {selectedSubAdmin ? "Update Sub-Admin" : "Create Sub-Admin"}
+//           </Button>
+//         </Form>
+//       </Card>
+
+//       <div className="mt-8 w-full">
+//         <Card title="Sub-Admins List">
+//           {loading ? (
+//             <Spin />
+//           ) : error ? (
+//             <p className="text-red-500">{error}</p>
+//           ) : (
+//             <Table
+//               columns={columns}
+//               dataSource={subAdmins}
+//               rowKey="id"
+//               pagination={{ pageSize: 5 }}
+//             />
+//           )}
+//         </Card>
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default SubAdminForm;
+
 import React, { useState, useEffect } from "react";
 import {
   Table,
@@ -9,50 +422,72 @@ import {
   Spin,
   Card,
   Checkbox,
+  Modal,
+  Tag,
+  Tooltip,
 } from "antd";
-import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
+import {
+  MinusCircleOutlined,
+  PlusOutlined,
+  EditOutlined,
+  UploadOutlined,
+  EyeOutlined,
+  CloseCircleOutlined,
+  CheckCircleOutlined,
+  DeleteOutlined,
+} from "@ant-design/icons";
 import Swal from "sweetalert2";
-const { Option } = Select;
-const apiUrl =
-  import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
+import { createNotification } from "../../Utils/Notification";
+import { useSelector } from "react-redux";
+import StyledTable from "../../Utils/StyledTable";
 
-const SubAdminForm = () => {
+const { Option } = Select;
+const apiUrl = import.meta.env.VITE_API_URL;
+
+const SubAdminEdit = () => {
+  const senderData = useSelector((state) => state.auth?.user);
   const [subAdmins, setSubAdmins] = useState([]);
-  const [username, setUsername] = useState("");
   const [selectedSubAdmin, setSelectedSubAdmin] = useState(null);
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("publisher");
+  const [role, setRole] = useState([]);
   const [ranges, setRanges] = useState([{ start: "", end: "" }]);
   const [assignedSubAdmins, setAssignedSubAdmins] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [subAdminOptions, setSubAdminOptions] = useState([]);
   const [permissionEditCondition, setPermissionEditCondition] = useState(false);
   const [permissionUploadFiles, setPermissionUploadFiles] = useState(false);
-  console.log(subAdminOptions.username);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedRanges, setSelectedRanges] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
+  console.log(subAdmins);
+  const handleView = (record) => {
+    setSelectedUser(record.username);
+    setSelectedRanges(record.ranges || []);
+    setIsModalOpen(true);
+  };
+
+  const handleClose = () => {
+    setIsModalOpen(false);
+    setSelectedRanges([]);
+    setSelectedUser(null);
+  };
   useEffect(() => {
     fetchSubAdmins();
   }, []);
-  // Fetch Sub-Admins
+
   // Fetch Sub-Admins
   const fetchSubAdmins = async () => {
     setLoading(true);
     try {
       const response = await fetch(`${apiUrl}/get-subadmin`);
       const data = await response.json();
+
       if (response.ok) {
-        // Store all eligible sub-admins
-        setSubAdmins(
-          data.data.filter((subAdmin) =>
-            [
-              "advertiser",
-              "publisher",
-              "advertiser_manager",
-              "publisher_manager",
-              "manager",
-            ].includes(subAdmin.role)
-          )
-        );
+        // Exclude only those with role "admin"
+        setSubAdmins(data.data.filter((subAdmin) => subAdmin.role !== "admin"));
       } else {
         setError(data.message || "Failed to fetch sub-admins.");
       }
@@ -63,135 +498,156 @@ const SubAdminForm = () => {
     }
   };
 
-  // Filter sub-admins for assignment dropdown, excluding current username
+  // Fetch filtered options for manager assignment
   useEffect(() => {
-    console.log(subAdmins);
     if (subAdmins.length > 0) {
       setSubAdminOptions(
-        subAdmins
-          .filter((subAdmin) =>
-            [
-              "advertiser",
-              "publisher",
-              "publisher_manager",
-              "advertiser_manager",
-            ].includes(subAdmin.role)
-          )
-          .filter((subAdmin) => subAdmin.username !== username) // exclude current username
+        subAdmins.filter((subAdmin) =>
+          [
+            "advertiser",
+            "publisher",
+            "publisher_manager",
+            "advertiser_manager",
+          ].includes(subAdmin.role)
+        )
       );
     }
-  }, [username, subAdmins]);
+  }, [subAdmins]);
 
-  // Handle Add New Range
-  const addRange = () => {
-    setRanges([...ranges, { start: "", end: "" }]);
-  };
-  const removeRange = (index) => {
-    if (ranges.length > 1) {
-      setRanges(ranges.filter((_, i) => i !== index));
-    } else {
-      message.warning("At least one range is required!");
+  const handleEdit = (subAdmin) => {
+    setSelectedSubAdmin(subAdmin.id);
+    setUsername(subAdmin.username);
+
+    // ✅ Handle both stringified array and normal array cases
+    let parsedRole = [];
+
+    if (Array.isArray(subAdmin.role)) {
+      parsedRole = subAdmin.role;
+    } else if (typeof subAdmin.role === "string") {
+      // Clean up extra quotes and split by comma
+      const cleaned = subAdmin.role.replace(/^"|"$/g, "").trim();
+      parsedRole = cleaned.split(",").map((r) => r.trim());
     }
+
+    setRole(parsedRole);
+
+    setRanges(subAdmin.ranges || [{ start: "", end: "" }]);
+    setAssignedSubAdmins(subAdmin.assigned_subadmins?.map((a) => a.id) || []);
+    setPermissionEditCondition(subAdmin.permissions?.can_see_button1 === 1);
+    setPermissionUploadFiles(subAdmin.permissions?.can_see_input1 === 1);
+    setShowForm(true);
   };
-  // Handle Change in Ranges
-  const handleRangeChange = (index, field, value) => {
-    const updatedRanges = [...ranges];
-    updatedRanges[index][field] = value;
-    setRanges(updatedRanges);
+
+  const handleCancel = () => {
+    setShowForm(false);
+    resetForm();
   };
-  const handleSaveSubAdmin = async () => {
-    if (!username || (!selectedSubAdmin && !password)) {
+
+  // Update Sub-Admin
+  const handleUpdateSubAdmin = async () => {
+    if (!selectedSubAdmin || !username) {
       Swal.fire({
         icon: "warning",
         title: "Oops...",
-        text: "Please fill all fields!",
+        text: "Please fill all required fields!",
       });
       return;
     }
 
     const payload = {
+      id: selectedSubAdmin,
       username,
-      password: selectedSubAdmin ? password || "" : password, // Ensure password is empty when not updated
-      role,
+      password,
+      // ✅ Convert array back to comma-separated string
+      role: Array.isArray(role) ? role.join(", ") : role,
       ranges: ranges.map(({ start, end }) => ({
-        start: `${String(start)}`,
-        end: `${String(end)}`,
+        start: String(start),
+        end: String(end),
       })),
       assigned_subadmins:
-        role === "publisher_manager" || role === "advertiser_manager"
+        role.includes("publisher_manager") ||
+        role.includes("advertiser_manager")
           ? assignedSubAdmins
           : [],
       can_see_button1: permissionEditCondition ? 1 : 0,
       can_see_input1: permissionUploadFiles ? 1 : 0,
     };
-    console.log("Payload to save:", payload); // Debugging payload
 
-    if (selectedSubAdmin) {
-      payload.id = selectedSubAdmin; // Include ID only for update
-    }
     try {
-      const response = await fetch(
-        `${apiUrl}/${
-          selectedSubAdmin ? "update-sub-admin" : "create-subadmin"
-        }`,
-        {
-          method: selectedSubAdmin ? "PUT" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        }
-      );
+      // ✅ Get old sub-admin data from your existing state
+      const oldSubAdmin = subAdmins.find((u) => u.id === selectedSubAdmin);
+      const response = await fetch(`${apiUrl}/update-sub-admin`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
       const data = await response.json();
+
       if (response.ok) {
         Swal.fire({
           icon: "success",
-          title: "Success!",
-          text: `Sub-Admin ${
-            selectedSubAdmin ? "updated" : "created"
-          } successfully!`,
+          title: "Updated!",
+          text: "Sub-admin updated successfully.",
         });
-        resetForm();
+
+        // ✅ Detect which fields changed
+        const changedFields = [];
+
+        if (oldSubAdmin.username !== username) changedFields.push("username");
+        if (oldSubAdmin.role !== role) changedFields.push("role");
+
+        const oldRangeStr = JSON.stringify(oldSubAdmin.ranges || []);
+        const newRangeStr = JSON.stringify(payload.ranges);
+        if (oldRangeStr !== newRangeStr) changedFields.push("ranges");
+
+        const oldAssignedStr = JSON.stringify(
+          oldSubAdmin.assigned_subadmins || []
+        );
+        const newAssignedStr = JSON.stringify(payload.assigned_subadmins || []);
+        if (oldAssignedStr !== newAssignedStr)
+          changedFields.push("assigned users");
+
+        if (oldSubAdmin.can_see_button1 !== payload.can_see_button1)
+          changedFields.push("edit condition permission");
+        if (oldSubAdmin.can_see_input1 !== payload.can_see_input1)
+          changedFields.push("upload files permission");
+
+        const detailsChanged =
+          changedFields.length > 0
+            ? changedFields.join(", ")
+            : "general details";
+
+        // ✅ Build notification message
+        const message = `⚙️ Your ${detailsChanged} were updated by ${
+          senderData?.username || "Admin"
+        }.`;
+
+        // ✅ Send notification to updated sub-admin
+        await createNotification({
+          sender: senderData?.id,
+          receiver: selectedSubAdmin,
+          type: "subadmin_update",
+          message,
+          url: "/dashboard/myaccount",
+        });
         fetchSubAdmins();
+        handleCancel();
       } else {
         Swal.fire({
           icon: "error",
           title: "Error!",
-          text:
-            data.message ||
-            `Failed to ${selectedSubAdmin ? "update" : "create"} sub-admin`,
+          text: data.message || "Failed to update sub-admin.",
         });
       }
     } catch (error) {
       Swal.fire({
         icon: "error",
         title: "Error!",
-        text: `An error occurred while ${
-          selectedSubAdmin ? "updating" : "creating"
-        } the sub-admin.`,
+        text: "An error occurred while updating the sub-admin.",
       });
     }
   };
 
-  // Reset Form
-  const resetForm = () => {
-    setUsername("");
-    setPassword("");
-    setRole("publisher");
-    setRanges([{ start: "", end: "" }]);
-    setAssignedSubAdmins([]);
-    setSelectedSubAdmin(null);
-    setPermissionEditCondition(false);
-    setPermissionUploadFiles(false);
-  };
-
-  const handleEdit = (subAdmin) => {
-    setSelectedSubAdmin(subAdmin.id);
-    setUsername(subAdmin.username);
-    setRole(subAdmin.role);
-    setRanges(subAdmin.ranges);
-    setAssignedSubAdmins(subAdmin.assigned_subadmins.map((a) => a.id));
-    setPermissionEditCondition(subAdmin.permissions.can_see_button1 === 1);
-    setPermissionUploadFiles(subAdmin.permissions.can_see_input1 === 1);
-  };
   const handleDeleteSubAdmin = async (id) => {
     const result = await Swal.fire({
       title: "Are you sure?",
@@ -218,98 +674,333 @@ const SubAdminForm = () => {
       }
 
       await response.json();
-
       Swal.fire({
         icon: "success",
         title: "Deleted!",
         text: "Sub-admin deleted successfully.",
       });
 
-      fetchSubAdmins(); // Refresh the list
+      fetchSubAdmins();
     } catch (error) {
       Swal.fire({
         icon: "error",
         title: "Error!",
         text: "Error deleting sub-admin.",
       });
-      console.error("Error deleting sub-admin:", error);
     }
   };
+
+  const addRange = () => setRanges([...ranges, { start: "", end: "" }]);
+  const removeRange = (index) => {
+    if (ranges.length > 1) {
+      setRanges(ranges.filter((_, i) => i !== index));
+    } else {
+      message.warning("At least one range is required!");
+    }
+  };
+  const handleRangeChange = (index, field, value) => {
+    const updatedRanges = [...ranges];
+    updatedRanges[index][field] = value;
+    setRanges(updatedRanges);
+  };
+
+  const resetForm = () => {
+    setSelectedSubAdmin(null);
+    setUsername("");
+    setPassword("");
+    setRole("");
+    setRanges([{ start: "", end: "" }]);
+    setAssignedSubAdmins([]);
+    setPermissionEditCondition(false);
+    setPermissionUploadFiles(false);
+  };
+
+  // const columns = [
+  //   { title: "Username", dataIndex: "username", key: "username" },
+  //   {
+  //     title: "Role",
+  //     dataIndex: "role",
+  //     key: "role",
+  //     render: (role) => {
+  //       try {
+  //         const parsed = typeof role === "string" ? JSON.parse(role) : role;
+  //         return Array.isArray(parsed) ? parsed.join(", ") : parsed;
+  //       } catch {
+  //         return role;
+  //       }
+  //     },
+  //   },
+
+  //   {
+  //     title: "Ranges",
+  //     key: "ranges",
+  //     render: (record) =>
+  //       record.ranges.map((range, i) => (
+  //         <div key={i}>
+  //           {range.start} - {range.end}
+  //         </div>
+  //       )),
+  //   },
+  //   {
+  //     title: "Edit Permission",
+  //     key: "can_see_button1",
+  //     render: (record) =>
+  //       record.permissions?.can_see_button1 === 1 ? "Yes" : "No",
+  //   },
+  //   {
+  //     title: "Upload Permission",
+  //     key: "can_see_input1",
+  //     render: (record) =>
+  //       record.permissions?.can_see_input1 === 1 ? "Yes" : "No",
+  //   },
+  //   {
+  //     title: "Actions",
+  //     key: "actions",
+  //     render: (record) => (
+  //       <>
+  //         <Button type="link" onClick={() => handleEdit(record)}>
+  //           Edit
+  //         </Button>
+  //         <Button
+  //           type="link"
+  //           danger
+  //           onClick={() => handleDeleteSubAdmin(record.id)}>
+  //           Delete
+  //         </Button>
+  //       </>
+  //     ),
+  //   },
+  // ];
   const columns = [
-    { title: "Username", dataIndex: "username", key: "username" },
-    { title: "Role", dataIndex: "role", key: "role" },
+    {
+      title: "ID",
+      dataIndex: "id",
+      key: "id",
+      align: "center",
+    },
+    {
+      title: "Username",
+      dataIndex: "username",
+      key: "username",
+      align: "center",
+    },
+    {
+      title: "Role",
+      dataIndex: "role",
+      key: "role",
+      align: "center",
+      render: (role) => (
+        <span className="text-gray-800 font-medium">{role}</span>
+      ),
+    },
     {
       title: "Ranges",
       key: "ranges",
-      render: (record) =>
-        record.ranges.map((range, i) => (
-          <div key={i}>
-            {range.start} - {range.end}
-          </div>
-        )),
+      align: "center",
+      render: (_, record) => (
+        <Button
+          type="primary"
+          ghost
+          icon={<EyeOutlined />}
+          onClick={() => handleView(record)}
+          style={{
+            borderColor: "#2F5D99",
+            color: "#2F5D99",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = "#2F5D99";
+            e.currentTarget.style.color = "white";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "transparent";
+            e.currentTarget.style.color = "#2F5D99";
+          }}>
+          View
+        </Button>
+      ),
     },
     {
       title: "Edit Permission",
-      key: "can_see_button1",
-      render: (record) =>
-        record.permissions?.can_see_button1 === 1 ? "Yes" : "No",
+      key: "editPermission",
+      align: "center",
+      render: (_, record) =>
+        record.permissions?.can_see_button1 ? (
+          <Tooltip title="Has Edit Permission">
+            <CheckCircleOutlined style={{ color: "#2F5D99", fontSize: 18 }} />
+          </Tooltip>
+        ) : (
+          <Tooltip title="No Edit Permission">
+            <CloseCircleOutlined style={{ color: "red", fontSize: 18 }} />
+          </Tooltip>
+        ),
     },
     {
       title: "Upload Permission",
-      key: "can_see_input1",
-
-      render: (record) =>
-        record.permissions?.can_see_input1 === 1 ? "Yes" : "No",
+      key: "uploadPermission",
+      align: "center",
+      render: (_, record) =>
+        record.permissions?.can_see_input1 ? (
+          <Tooltip title="Has Upload Permission">
+            <CheckCircleOutlined style={{ color: "#2F5D99", fontSize: 18 }} />
+          </Tooltip>
+        ) : (
+          <Tooltip title="No Upload Permission">
+            <CloseCircleOutlined style={{ color: "red", fontSize: 18 }} />
+          </Tooltip>
+        ),
     },
     {
       title: "Actions",
       key: "actions",
+      align: "center",
       render: (record) => (
-        <>
-          <Button type="link" onClick={() => handleEdit(record)}>
-            Edit
-          </Button>
-          <Button
-            type="link"
-            danger
-            onClick={() => handleDeleteSubAdmin(record.id)} // Use record.id instead of subAdminId
-          >
-            Delete Sub-Admin
-          </Button>
-        </>
+        <div className="flex justify-center gap-3">
+          <Tooltip title="Edit User">
+            <Button
+              type="text"
+              icon={<EditOutlined style={{ color: "#2F5D99", fontSize: 18 }} />}
+              onClick={() => handleEdit(record)}
+            />
+          </Tooltip>
+
+          <Tooltip title="Delete User">
+            <Button
+              type="text"
+              icon={<DeleteOutlined style={{ color: "red", fontSize: 18 }} />}
+              onClick={() => handleDeleteSubAdmin(record.id)}
+            />
+          </Tooltip>
+        </div>
       ),
     },
   ];
-
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center p-6">
-      <Card className="w-full" title="Create Sub-Admin">
-        <Form layout="vertical" onFinish={handleSaveSubAdmin}>
-          <Form.Item label="Username" required>
-            <Input
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter username"
-            />
-          </Form.Item>
+    <div className="min-h-screen flex flex-col items-center">
+      {!showForm ? (
+        <Card className="w-full" title="Existing Users">
+          {loading ? (
+            <Spin />
+          ) : error ? (
+            <p className="text-red-500">{error}</p>
+          ) : (
+            <>
+              <StyledTable
+                columns={columns}
+                dataSource={subAdmins}
+                rowKey="id"
+                pagination={{
+                  pageSizeOptions: ["10", "20", "50"],
+                  showSizeChanger: true,
+                  defaultPageSize: 10,
+                  showTotal: (total, range) =>
+                    `${range[0]}-${range[1]} of ${total} items`,
+                }}
+                className="shadow-md rounded-lg"
+              />
+              <Modal
+                title={
+                  <div
+                    style={{
+                      background: "#2F5D99",
+                      color: "white",
+                      padding: "12px 0",
+                      borderRadius: "8px 8px 0 0",
+                      textAlign: "center",
+                      fontSize: "18px",
+                      fontWeight: "600",
+                    }}>
+                    Ranges for {selectedUser}
+                  </div>
+                }
+                open={isModalOpen}
+                onCancel={handleClose}
+                footer={[
+                  <Button key="close" onClick={handleClose} type="primary">
+                    Close
+                  </Button>,
+                ]}
+                centered
+                bodyStyle={{
+                  maxHeight: "60vh",
+                  overflowY: "auto",
+                  backgroundColor: "#f9fafb",
+                  padding: "20px",
+                  borderRadius: "0 0 10px 10px",
+                }}
+                closable={false} // optional: removes default X to keep header clean
+              >
+                {selectedRanges.length > 0 ? (
+                  <div className="flex flex-wrap gap-3 justify-start">
+                    {selectedRanges.map((r, i) => (
+                      <div
+                        key={i}
+                        className="bg-white border border-gray-200 rounded-lg shadow-sm px-4 py-2 text-gray-800 font-medium"
+                        style={{
+                          flex: "1 0 calc(20% - 12px)", // ensures 5 boxes per row (with gap)
+                          textAlign: "center",
+                          minWidth: "100px",
+                        }}>
+                        {r.start} - {r.end}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center text-gray-500 text-base py-6">
+                    No ranges found for this user.
+                  </div>
+                )}
+              </Modal>
+            </>
+          )}
+        </Card>
+      ) : (
+        <Card className="w-full max-w-6xl rounded-2xl shadow-md border border-gray-100">
+          <h2 className="text-2xl font-bold mb-6 text-gray-800">Edit User</h2>
 
-          <Form.Item label="Password" required>
-            <Input.Password
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter password"
-            />
-          </Form.Item>
+          {/* Username & Password */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
+            <div>
+              <label className="block font-semibold mb-2">Username</label>
+              <Input
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Enter username"
+                className="h-11 rounded-lg border-gray-200 bg-gray-50"
+              />
+            </div>
 
-          <Form.Item label="Role" required>
-            <Select value={role} onChange={(value) => setRole(value)}>
+            <div>
+              <label className="block font-semibold mb-2">
+                Password (optional)
+              </label>
+              <Input.Password
+                value={password}
+                placeholder="Password is hidden"
+                disabled
+                className="h-11 rounded-lg border-gray-200 bg-gray-100"
+              />
+            </div>
+          </div>
+
+          {/* Roles */}
+          <div className="mb-6">
+            <label className="block font-semibold mb-2">Role</label>
+            <Select
+              mode="multiple"
+              value={role}
+              onChange={(value) => setRole(value)}
+              placeholder="Select Role(s)"
+              className="w-full h-11 rounded-lg border-gray-200 bg-gray-50">
               <Option value="publisher">Publisher</Option>
               <Option value="advertiser">Advertiser</Option>
+              <Option value="operations">Operations</Option>
               <Option value="advertiser_manager">Advertiser Manager</Option>
               <Option value="publisher_manager">Publisher Manager</Option>
             </Select>
-          </Form.Item>
-          <Form.Item>
+          </div>
+
+          {/* Permissions */}
+          <div className="flex flex-wrap gap-6 mb-6">
             <Checkbox
               checked={permissionEditCondition}
               onChange={(e) => setPermissionEditCondition(e.target.checked)}>
@@ -320,56 +1011,70 @@ const SubAdminForm = () => {
               onChange={(e) => setPermissionUploadFiles(e.target.checked)}>
               Permission for Uploading Files
             </Checkbox>
-          </Form.Item>
-          {(role === "advertiser_manager" || role === "publisher_manager") && (
-            <Form.Item label="Assign Sub-Admins">
+          </div>
+
+          {/* Assign Sub-Admins */}
+          {(role.includes("publisher_manager") ||
+            role.includes("advertiser_manager")) && (
+            <div className="mb-6">
+              <label className="block font-semibold mb-2">
+                Assign Sub-Admins
+              </label>
               <Select
                 mode="multiple"
                 showSearch
                 value={assignedSubAdmins}
                 onChange={setAssignedSubAdmins}
                 placeholder="Select sub-admins"
+                className="w-full rounded-lg border-gray-200 bg-gray-50"
                 filterOption={(input, option) =>
                   option.children.toLowerCase().includes(input.toLowerCase())
                 }>
                 {subAdminOptions
-                  .filter((subAdmin) =>
-                    role === "advertiser_manager"
-                      ? ["advertiser_manager", "advertiser"].includes(
-                          subAdmin.role
-                        )
-                      : ["publisher_manager", "publisher"].includes(
-                          subAdmin.role
-                        )
-                  )
+                  .filter((s) => {
+                    if (
+                      role.includes("advertiser_manager") &&
+                      role.includes("publisher_manager")
+                    ) {
+                      return ["advertiser", "publisher"].includes(s.role);
+                    } else if (role.includes("advertiser_manager")) {
+                      return s.role === "advertiser";
+                    } else if (role.includes("publisher_manager")) {
+                      return s.role === "publisher";
+                    }
+                    return false;
+                  })
                   .map((subAdmin) => (
                     <Option key={subAdmin.id} value={subAdmin.id}>
-                      {subAdmin.username}
+                      {subAdmin.username} ({subAdmin.role})
                     </Option>
                   ))}
               </Select>
-            </Form.Item>
+            </div>
           )}
 
-          <Form.Item label="Ranges">
+          {/* Ranges */}
+          <div className="mb-6">
+            <label className="block font-semibold mb-2">Ranges</label>
             {ranges.map((range, index) => (
-              <div key={index} className="flex space-x-2 items-center mb-2">
+              <div key={index} className="flex items-center gap-8 mb-3">
                 <Input
                   type="number"
                   value={range.start}
                   onChange={(e) =>
                     handleRangeChange(index, "start", e.target.value)
                   }
-                  placeholder="Start"
+                  placeholder="Starting Range"
+                  className="h-11 rounded-lg border-gray-200 bg-gray-50"
                 />
-                <span>-</span>
                 <Input
                   type="number"
                   value={range.end}
                   onChange={(e) =>
                     handleRangeChange(index, "end", e.target.value)
                   }
-                  placeholder="End"
+                  placeholder="Ending Range"
+                  className="h-11 rounded-lg border-gray-200 bg-gray-50"
                 />
                 {ranges.length > 1 && (
                   <MinusCircleOutlined
@@ -379,221 +1084,33 @@ const SubAdminForm = () => {
                 )}
               </div>
             ))}
-            <Button type="dashed" onClick={addRange} icon={<PlusOutlined />}>
+            <Button
+              onClick={addRange}
+              icon={<PlusOutlined />}
+              className="border-[#2F5D99] text-[#2F5D99] rounded-lg">
               Add More Ranges
             </Button>
-          </Form.Item>
+          </div>
 
-          <Button type="primary" htmlType="submit" className="w-full">
-            {selectedSubAdmin ? "Update Sub-Admin" : "Create Sub-Admin"}
-          </Button>
-        </Form>
-      </Card>
-
-      <div className="mt-8 w-full">
-        <Card title="Sub-Admins List">
-          {loading ? (
-            <Spin />
-          ) : error ? (
-            <p className="text-red-500">{error}</p>
-          ) : (
-            <Table
-              columns={columns}
-              dataSource={subAdmins}
-              rowKey="id"
-              pagination={{ pageSize: 5 }}
-            />
-          )}
+          {/* Action Buttons */}
+          <div className="flex justify-center gap-6">
+            <Button
+              onClick={handleCancel}
+              className="!bg-gray-300 hover:!bg-gray-400 !text-gray-800 !rounded-lg !px-10 !py-5 !h-12 !text-lg !border-none">
+              Cancel
+            </Button>
+            <Button
+              type="default"
+              onClick={handleUpdateSubAdmin}
+              loading={loading}
+              className="!bg-[#2F5D99] hover:!bg-[#24487A] !text-white !rounded-lg !px-10 !py-5 !h-12 !text-lg !border-none !shadow-md">
+              Update Sub-Admin
+            </Button>
+          </div>
         </Card>
-      </div>
+      )}
     </div>
   );
 };
 
-export default SubAdminForm;
-
-// import React, { useState, useEffect } from "react";
-// import { Table, Input, Select, Button, Form, message, Spin, Card } from "antd";
-// import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
-
-// const { Option } = Select;
-// const apiUrl = import.meta.env.VITE_API_URL || "http://160.153.172.237:5200/api";
-
-// const SubAdminForm = () => {
-//   const [subAdmins, setSubAdmins] = useState([]);
-//   const [selectedSubAdmin, setSelectedSubAdmin] = useState(null);
-//   const [username, setUsername] = useState("");
-//   const [password, setPassword] = useState("");
-//   const [role, setRole] = useState("publisher");
-//   const [ranges, setRanges] = useState([{ start: "", end: "" }]);
-//   const [assignedSubAdmins, setAssignedSubAdmins] = useState([]);
-//   const [loading, setLoading] = useState(false);
-//   const [error, setError] = useState(null);
-//   const [subAdminOptions, setSubAdminOptions] = useState([]);
-
-//   useEffect(() => {
-//     fetchSubAdmins();
-//   }, []);
-
-//   const fetchSubAdmins = async () => {
-//     setLoading(true);
-//     try {
-//       const response = await fetch(`${apiUrl}/get-subadmin`);
-//       const data = await response.json();
-//       if (response.ok) {
-//         setSubAdmins(data.data);
-//         setSubAdminOptions(
-//           data.data.filter((subAdmin) => ["advertiser", "publisher"].includes(subAdmin.role))
-//         );
-//       } else {
-//         setError(data.message || "Failed to fetch sub-admins.");
-//       }
-//     } catch (err) {
-//       setError("An error occurred while fetching sub-admins.");
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   const handleEdit = (subAdmin) => {
-//     setSelectedSubAdmin(subAdmin.id);
-//     setUsername(subAdmin.username);
-//     setRole(subAdmin.role);
-//     setRanges(subAdmin.ranges);
-//     setAssignedSubAdmins(subAdmin.assigned_subadmins || []);
-//   };
-
-//   const handleSubmit = async () => {
-//     const payload = {
-//       id: selectedSubAdmin,
-//       username,
-//       password: password || undefined, // Only send if changed
-//       role,
-//       ranges,
-//       assigned_subadmins: role === "manager" ? assignedSubAdmins : [],
-//     };
-//     try {
-//       const response = await fetch(`${apiUrl}/update-sub-admin`, {
-//         method: "POST",
-//         headers: { "Content-Type": "application/json" },
-//         body: JSON.stringify(payload),
-//       });
-//       const data = await response.json();
-//       if (response.ok) {
-//         message.success("Sub-Admin updated successfully!");
-//         resetForm();
-//         fetchSubAdmins();
-//       } else {
-//         message.error(`Error: ${data.message}`);
-//       }
-//     } catch (error) {
-//       message.error("An error occurred while updating the sub-admin.");
-//     }
-//   };
-
-//   const resetForm = () => {
-//     setSelectedSubAdmin(null);
-//     setUsername("");
-//     setPassword("");
-//     setRole("publisher");
-//     setRanges([{ start: "", end: "" }]);
-//     setAssignedSubAdmins([]);
-//   };
-
-//   const columns = [
-//     { title: "Username", dataIndex: "username", key: "username" },
-//     { title: "Role", dataIndex: "role", key: "role" },
-//     {
-//       title: "Ranges",
-//       key: "ranges",
-//       render: (record) => record.ranges.map((range, i) => (
-//         <div key={i}>{range.start} - {range.end}</div>
-//       )),
-//     },
-//     {
-//       title: "Actions",
-//       key: "actions",
-//       render: (record) => (
-//         <Button type="link" onClick={() => handleEdit(record)}>
-//           Edit
-//         </Button>
-//       ),
-//     },
-//   ];
-
-//   return (
-//     <div className="min-h-screen bg-gray-50 flex flex-col items-center p-6">
-//       <Card className="w-full" title={selectedSubAdmin ? "Edit Sub-Admin" : "Create Sub-Admin"}>
-//         <Form layout="vertical" onFinish={handleSubmit}>
-//           <Form.Item label="Username" required>
-//             <Input value={username} onChange={(e) => setUsername(e.target.value)} />
-//           </Form.Item>
-
-//           <Form.Item label="Password">
-//             <Input.Password value={password} onChange={(e) => setPassword(e.target.value)} />
-//           </Form.Item>
-
-//           <Form.Item label="Role" required>
-//             <Select value={role} onChange={(value) => setRole(value)}>
-//               <Option value="publisher">Publisher</Option>
-//               <Option value="advertiser">Advertiser</Option>
-//               <Option value="manager">Manager</Option>
-//             </Select>
-//           </Form.Item>
-
-//           {role === "manager" && (
-//             <Form.Item label="Assign Sub-Admins">
-//               <Select
-//                 mode="multiple"
-//                 value={assignedSubAdmins}
-//                 onChange={setAssignedSubAdmins}
-//               >
-//                 {subAdminOptions.map((subAdmin) => (
-//                   <Option key={subAdmin.id} value={subAdmin.id}>
-//                     {subAdmin.username} ({subAdmin.role})
-//                   </Option>
-//                 ))}
-//               </Select>
-//             </Form.Item>
-//           )}
-
-//           <Form.Item label="Ranges" required>
-//             {ranges.map((range, index) => (
-//               <div key={index} className="flex space-x-2 items-center mb-2">
-//                 <Input type="number" value={range.start} onChange={(e) => {
-//                   const updatedRanges = [...ranges];
-//                   updatedRanges[index].start = e.target.value;
-//                   setRanges(updatedRanges);
-//                 }} />
-//                 <span>-</span>
-//                 <Input type="number" value={range.end} onChange={(e) => {
-//                   const updatedRanges = [...ranges];
-//                   updatedRanges[index].end = e.target.value;
-//                   setRanges(updatedRanges);
-//                 }} />
-//                 <MinusCircleOutlined
-//                   className="text-red-500 cursor-pointer"
-//                   onClick={() => setRanges(ranges.filter((_, i) => i !== index))}
-//                 />
-//               </div>
-//             ))}
-//             <Button type="dashed" onClick={() => setRanges([...ranges, { start: "", end: "" }])}>
-//               <PlusOutlined /> Add More Ranges
-//             </Button>
-//           </Form.Item>
-
-//           <Button type="primary" htmlType="submit" className="w-full">
-//             {selectedSubAdmin ? "Update Sub-Admin" : "Create Sub-Admin"}
-//           </Button>
-//         </Form>
-//       </Card>
-//       <div className="mt-8 w-full">
-//         <Card title="Sub-Admins List">
-//           {loading ? <Spin /> : error ? <p className="text-red-500">{error}</p> : <Table columns={columns} dataSource={subAdmins} rowKey="id" pagination={{ pageSize: 5 }} />}
-//         </Card>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default SubAdminForm;
+export default SubAdminEdit;

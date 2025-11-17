@@ -12,13 +12,16 @@ import { UploadOutlined } from "@ant-design/icons";
 import axios from "axios";
 import Swal from "sweetalert2";
 import { socket, joinRoom } from "../Socket/Socket";
+import { useSelector } from "react-redux";
+import { createNotification, notifyAllUsers } from "../../Utils/Notification";
 
-const apiUrl = "https://gapi.clickorbits.in/";
+const apiUrl = "http://localhost:2001/";
 
 const { RangePicker } = DatePicker;
 const { Title, Text } = Typography;
 
 export default function UploadForm({ onUploadSuccess }) {
+  const user = useSelector((state) => state.auth?.user);
   const [form] = Form.useForm();
   const [msg, setMsg] = useState(null);
   const [fileList, setFileList] = useState([]);
@@ -38,9 +41,36 @@ export default function UploadForm({ onUploadSuccess }) {
     }
   }, []);
   // 🔹 Register socket listener once
+  // useEffect(() => {
+  //   const handler = (data) => {
+  //     Swal.close(); // 🔹 close processing modal
+
+  //     if (data.status === "success") {
+  //       Swal.fire({
+  //         title: "✅ Upload Completed!",
+  //         text: `${data.message} for ${data.campaignName}`,
+  //         icon: "success",
+  //       });
+  //       if (onUploadSuccess) onUploadSuccess();
+  //     } else {
+  //       Swal.fire({
+  //         title: "❌ Upload Failed",
+  //         text: `${data.message} for ${data.campaignName}`,
+  //         icon: "error",
+  //       });
+  //     }
+  //     setSubmitted(false);
+  //     setLoading(false);
+  //   };
+
+  //   socket.on("uploadComplete", handler);
+
+  //   return () => socket.off("uploadComplete", handler);
+  // }, []);
+
   useEffect(() => {
-    const handler = (data) => {
-      Swal.close(); // 🔹 close processing modal
+    const handler = async (data) => {
+      Swal.close();
 
       if (data.status === "success") {
         Swal.fire({
@@ -48,6 +78,37 @@ export default function UploadForm({ onUploadSuccess }) {
           text: `${data.message} for ${data.campaignName}`,
           icon: "success",
         });
+
+        try {
+          // ✅ Get user info from Redux
+          const senderId = user?.id; // sender = uploader
+          const senderName = user?.username || user?.name || "Unknown User";
+
+          const dateRange = data.dateRange || "N/A";
+
+          // ✅ Fetch all users (from your Notification.js helper)
+          const users = await fetchAllUsers();
+
+          // ✅ Loop through each user and send notification
+          await Promise.all(
+            users.map(async (u) => {
+              if (u.id !== senderId) {
+                await createNotification({
+                  sender: senderName,
+                  receiver: u.id, // receiver user id
+                  type: "file_upload",
+                  message: `📁 ${data.campaignName} file uploaded for ${dateRange}`,
+                  url: "/dashboard/analytics",
+                });
+              }
+            })
+          );
+
+          console.log("✅ Notifications sent to all users!");
+        } catch (err) {
+          console.error("❌ Error sending notifications:", err);
+        }
+
         if (onUploadSuccess) onUploadSuccess();
       } else {
         Swal.fire({
@@ -56,14 +117,14 @@ export default function UploadForm({ onUploadSuccess }) {
           icon: "error",
         });
       }
+
       setSubmitted(false);
       setLoading(false);
     };
 
     socket.on("uploadComplete", handler);
-
     return () => socket.off("uploadComplete", handler);
-  }, []);
+  }, [user]);
 
   const handleFinish = async (values) => {
     if (submitted) return; // prevent double submit
@@ -125,18 +186,18 @@ export default function UploadForm({ onUploadSuccess }) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 p-6">
+    <div className=" flex items-center justify-center bg-gradient-to-br from-[#EAF1FA] via-[#F6F9FC] to-[#FFFFFF] p-8">
       <Card
-        className="w-full rounded-2xl shadow-lg border border-gray-200"
-        bodyStyle={{ padding: "2rem" }}>
+        className="w-full max-w-6xl rounded-2xl shadow-2xl border border-gray-100 bg-white/90 backdrop-blur-sm"
+        bodyStyle={{ padding: "2.5rem" }}>
         {/* Header */}
-        <div className="text-center mb-6">
-          <Title level={3} className="!mb-2">
-            📊 Campaign Metrics Upload
-          </Title>
-          <Text type="secondary">
-            Fill in campaign details and upload your files to process metrics.
-          </Text>
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold text-[#2F5D99] mb-2">
+            Campaign Metrics Upload
+          </h2>
+          <p className="text-gray-500">
+            Fill in the campaign details and upload your metric files below.
+          </p>
         </div>
 
         {/* Form */}
@@ -144,37 +205,68 @@ export default function UploadForm({ onUploadSuccess }) {
           form={form}
           layout="vertical"
           onFinish={handleFinish}
-          className="space-y-4">
+          className="space-y-5">
+          {/* Campaign Name */}
           <Form.Item
             name="campaignName"
-            label="Campaign Name"
+            label={
+              <span className="font-medium text-[#2F5D99]">Campaign Name</span>
+            }
             rules={[{ required: true, message: "Please enter campaign name" }]}>
-            <Input size="large" placeholder="Enter campaign name" />
+            <Input
+              size="large"
+              placeholder="Enter campaign name"
+              className="rounded-lg border-gray-300 focus:border-[#2F5D99] focus:ring-[#2F5D99]/40 transition-all"
+            />
           </Form.Item>
 
+          {/* Operating System */}
           <Form.Item
             name="os"
-            label="Operating System"
+            label={
+              <span className="font-medium text-[#2F5D99]">
+                Operating System
+              </span>
+            }
             rules={[{ required: true, message: "Please enter OS" }]}>
-            <Input size="large" placeholder="e.g. iOS, Android" />
+            <Input
+              size="large"
+              placeholder="e.g. iOS, Android"
+              className="rounded-lg border-gray-300 focus:border-[#2F5D99] focus:ring-[#2F5D99]/40 transition-all"
+            />
           </Form.Item>
 
+          {/* Geo */}
           <Form.Item
             name="geo"
-            label="Geo (comma-separated or JSON array)"
+            label={<span className="font-medium text-[#2F5D99]">Geo</span>}
+            tooltip="Comma-separated list or JSON array"
             rules={[{ required: true, message: "Please enter geo" }]}>
-            <Input size="large" placeholder="e.g. US, UK, IN" />
+            <Input
+              size="large"
+              placeholder="e.g. US, UK, IN"
+              className="rounded-lg border-gray-300 focus:border-[#2F5D99] focus:ring-[#2F5D99]/40 transition-all"
+            />
           </Form.Item>
 
+          {/* Date Range */}
           <Form.Item
             name="dateRange"
-            label="Date Range"
+            label={
+              <span className="font-medium text-[#2F5D99]">Date Range</span>
+            }
             rules={[{ required: true, message: "Please select date range" }]}>
-            <RangePicker className="w-full" size="large" />
+            <RangePicker
+              className="w-full rounded-lg border-gray-300 hover:border-[#2F5D99] focus:border-[#2F5D99] focus:ring-[#2F5D99]/40 transition-all"
+              size="large"
+            />
           </Form.Item>
 
+          {/* File Upload */}
           <Form.Item
-            label="Upload Files"
+            label={
+              <span className="font-medium text-[#2F5D99]">Upload Files</span>
+            }
             rules={[{ required: true, message: "Please upload files" }]}>
             <Upload
               beforeUpload={() => false}
@@ -185,27 +277,28 @@ export default function UploadForm({ onUploadSuccess }) {
               className="w-full">
               <Button
                 icon={<UploadOutlined />}
-                className="w-full flex items-center justify-center"
-                size="large">
+                size="large"
+                className="w-full flex items-center justify-center rounded-lg !bg-[#2F5D99] hover:!bg-[#24487A] !text-white !border-none !shadow-md transition-transform hover:scale-[1.02]">
                 Select Files
               </Button>
             </Upload>
           </Form.Item>
 
+          {/* Submit */}
           <Button
-            type="primary"
+            type="default"
             htmlType="submit"
             size="large"
-            className="w-full rounded-lg shadow-md hover:scale-[1.01] transition-transform"
-            loading={loading} // 🔥 spinner
-            disabled={submitted} // 🔥 disable after submit
-          >
-            🚀 Upload & Process
+            loading={loading}
+            disabled={submitted}
+            className="w-full !bg-[#2F5D99] hover:!bg-[#24487A] !text-white !rounded-lg !py-6 !h-12 !text-lg !border-none !shadow-lg hover:scale-[1.02] transition-transform">
+            Upload & Process
           </Button>
         </Form>
 
+        {/* Result / Message */}
         {msg && (
-          <pre className="mt-6 bg-gray-50 p-4 rounded-lg border text-sm whitespace-pre-wrap">
+          <pre className="mt-8 bg-[#F4F7FB] text-gray-700 border border-gray-200 p-4 rounded-xl text-sm font-mono overflow-auto">
             {msg}
           </pre>
         )}

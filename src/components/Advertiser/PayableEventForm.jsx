@@ -2,7 +2,12 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useSelector } from "react-redux";
 import { Table, Button, Input } from "antd";
-import { EditOutlined, SearchOutlined } from "@ant-design/icons";
+import {
+  EditOutlined,
+  SearchOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+} from "@ant-design/icons";
 import Swal from "sweetalert2";
 
 const apiUrl =
@@ -12,20 +17,22 @@ const PayableEventForm = () => {
   const user = useSelector((state) => state.auth.user);
   const [event, setEvent] = useState("");
   const [events, setEvents] = useState([]);
-  const [editIndex, setEditIndex] = useState(null);
   const [editId, setEditId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  // Fetch all payable events
   const fetchEvents = async () => {
+    setLoading(true);
     try {
       const response = await fetch(`${apiUrl}/get-paybleevernt`);
       if (!response.ok)
         throw new Error(`HTTP error! Status: ${response.status}`);
       const data = await response.json();
-      if (data && data.success) setEvents(data.data);
+      if (data?.success) setEvents(data.data);
     } catch (error) {
       console.error("Error fetching events:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -38,26 +45,24 @@ const PayableEventForm = () => {
     if (!trimmedEvent) return;
 
     try {
-      if (editId !== null) {
-        const response = await axios.post(`${apiUrl}/update-event/${editId}`, {
+      let response;
+      if (editId) {
+        response = await axios.post(`${apiUrl}/update-event/${editId}`, {
           user_id: user?.id,
           payble_event: trimmedEvent,
         });
 
-        if (response.data.success === true) {
+        if (response.data.success) {
           Swal.fire(
             "Updated!",
             "Payable Event updated successfully",
             "success"
           );
-          fetchEvents();
-          setEditIndex(null);
-          setEditId(null);
         } else {
           Swal.fire("Error", "Failed to update Payable Event", "error");
         }
       } else {
-        const response = await axios.post(`${apiUrl}/add-paybleevernt`, {
+        response = await axios.post(`${apiUrl}/add-paybleevernt`, {
           user_id: user?.id,
           payble_event: trimmedEvent,
         });
@@ -66,11 +71,14 @@ const PayableEventForm = () => {
           Swal.fire("Duplicate", "Payable Event already exists!", "warning");
         } else if (response.data.success) {
           Swal.fire("Added!", "Payable Event added successfully", "success");
-          fetchEvents();
         } else {
           Swal.fire("Error", "Failed to add Payable Event", "error");
         }
       }
+
+      fetchEvents();
+      setEvent("");
+      setEditId(null);
     } catch (error) {
       Swal.fire(
         "Error",
@@ -78,8 +86,6 @@ const PayableEventForm = () => {
         "error"
       );
     }
-
-    setEvent("");
   };
 
   const handleEdit = (record) => {
@@ -93,19 +99,23 @@ const PayableEventForm = () => {
       dataIndex: "index",
       key: "index",
       render: (_, __, index) => index + 1,
+      width: 70,
     },
     {
-      title: "Event",
+      title: "Payable Event",
       dataIndex: "payble_event",
       key: "payble_event",
     },
     {
       title: "Actions",
       key: "actions",
-      render: (text, record) => (
-        <Button type="primary" onClick={() => handleEdit(record)}>
-          Edit
-        </Button>
+      render: (_, record) => (
+        <Button
+          icon={<EditOutlined />}
+          className="!bg-[#2F5D99] hover:!bg-[#24487A] !text-white !rounded-md !border-none"
+          size="small"
+          onClick={() => handleEdit(record)}
+        />
       ),
     },
   ];
@@ -116,55 +126,65 @@ const PayableEventForm = () => {
 
   return (
     <div className="m-6 p-6 bg-white shadow-lg rounded-xl">
-      <h2 className="text-lg font-bold mb-3 text-gray-800">
-        Add Payable Event
+      <h2 className="text-xl font-semibold mb-6 text-gray-800">
+        Payable Events
       </h2>
 
-      {/* Floating label style input */}
-      <div className="relative w-full sm:w-96 mb-4">
-        <Input
-          id="event"
-          value={event}
-          onChange={(e) => setEvent(e.target.value)}
-          className="pt-4 pb-1 !rounded-lg shadow-sm focus:!border-blue-500 focus:!ring-1 focus:!ring-blue-500"
-          placeholder="Add Payable Event"
-        />
-        <Button type="primary" className="mt-3" onClick={handleSubmit}>
-          {editIndex !== null ? "Update" : "Submit"}
-        </Button>
-      </div>
-
-      {/* Event Table with Search */}
-      {events.length > 0 && (
-        <div className="mt-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
-            <h3 className="text-md font-semibold text-gray-700">Event List</h3>
-            <div className="relative mt-4 sm:mt-0 w-full sm:w-72">
-              <Input
-                placeholder="Search Event..."
-                prefix={<SearchOutlined className="text-gray-400" />}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="py-2 !rounded-lg shadow-sm focus:!border-blue-500 focus:!ring-1 focus:!ring-blue-500"
-              />
-            </div>
-          </div>
-
-          <Table
-            columns={columns}
-            dataSource={filteredEvents}
-            rowKey="id"
-            pagination={{
-              pageSizeOptions: ["10", "20", "50", "100", "200", "500"],
-              showSizeChanger: true,
-              defaultPageSize: 10,
-              showTotal: (total, range) =>
-                `${range[0]}-${range[1]} of ${total} items`,
-            }}
-            className="rounded-lg shadow-sm"
+      {/* Control Bar */}
+      <div className="bg-white rounded-xl shadow-md p-4 mb-6 flex flex-col md:flex-row items-end gap-4 md:gap-6 lg:gap-4">
+        {/* Input */}
+        <div className="flex flex-col flex-grow w-full md:w-1/3">
+          <Input
+            placeholder="Enter Payable Event"
+            value={event}
+            onChange={(e) => setEvent(e.target.value)}
+            className="!rounded-lg !h-11 shadow-sm focus:!border-[#2F5D99] focus:!ring-1 focus:!ring-[#2F5D99]"
           />
         </div>
-      )}
+
+        {/* Buttons */}
+        <div className="flex gap-3">
+          <Button
+            type="default"
+            icon={editId ? <EditOutlined /> : <PlusOutlined />}
+            onClick={handleSubmit}
+            className="!bg-[#2F5D99] hover:!bg-[#24487A] !text-white !rounded-lg !px-8 !h-11 !border-none !shadow-md">
+            {editId ? "Update" : "Add"}
+          </Button>
+        </div>
+      </div>
+
+      {/* Search Bar */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4">
+        <h3 className="text-md font-semibold text-gray-700 mb-2 sm:mb-0">
+          Event List
+        </h3>
+        <div className="relative w-full sm:w-72">
+          <Input
+            placeholder="Search Event..."
+            prefix={<SearchOutlined className="text-gray-400" />}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="!rounded-lg !h-10 shadow-sm focus:!border-[#2F5D99] focus:!ring-1 focus:!ring-[#2F5D99]"
+          />
+        </div>
+      </div>
+
+      {/* Table */}
+      <Table
+        columns={columns}
+        dataSource={filteredEvents}
+        rowKey="id"
+        loading={loading}
+        pagination={{
+          pageSizeOptions: ["10", "20", "50", "100", "200", "500"],
+          showSizeChanger: true,
+          defaultPageSize: 10,
+          showTotal: (total, range) =>
+            `${range[0]}-${range[1]} of ${total} items`,
+        }}
+        className="rounded-lg shadow-sm"
+      />
     </div>
   );
 };

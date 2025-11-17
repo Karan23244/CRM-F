@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Card, Table, Tag, Spin, Empty, Typography } from "antd";
+import StyledTable from "../../Utils/StyledTable";
 
 const { Title } = Typography;
 const apiUrl = "https://gapi.clickorbits.in";
@@ -76,7 +77,7 @@ export default function PidsOnAlert() {
       <Title level={4} style={{ marginBottom: 16 }}>
         PID’s on Alert
       </Title>
-      <Table
+      <StyledTable
         columns={columns}
         dataSource={tableData}
         pagination={{
