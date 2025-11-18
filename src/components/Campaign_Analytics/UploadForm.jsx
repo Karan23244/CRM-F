@@ -15,7 +15,7 @@ import { socket, joinRoom } from "../Socket/Socket";
 import { useSelector } from "react-redux";
 import { createNotification, notifyAllUsers } from "../../Utils/Notification";
 
-const apiUrl = "http://localhost:2001/";
+const apiUrl = "https://gapi.clickorbits.in/";
 
 const { RangePicker } = DatePicker;
 const { Title, Text } = Typography;
