@@ -137,11 +137,12 @@ const NewRequest = () => {
       );
 
       // Role-based filtering
-      if (user?.role === "advertiser") {
+      if (Array.isArray(user?.role) && user.role.includes("advertiser")) {
         sortedData = sortedData.filter(
           (item) => item.adv_name === user.username
         );
       }
+
       // if role is advertiser_manager -> no filtering needed
 
       setRequests(sortedData);
@@ -480,7 +481,6 @@ const NewRequest = () => {
 
       // Find record to get receiver info
       const updatedRecord = requests.find((r) => r.id === id);
-      console.log("🚀 Updated Record:", updatedRecord);
       const receiverName = updatedRecord?.pub_name;
       const campaignName = updatedRecord?.campaign_name;
 
@@ -518,19 +518,19 @@ const NewRequest = () => {
       message.warning("Please select a campaign first");
       return;
     }
-
+    const sharedRecord = requests.find((r) => r.id === selectedRequestId);
     try {
       const res = await axios.post(
         `${apiUrl}/api/campaigns/copy/${selectedCampaignId}`,
-        { user_id: userId }
+        { user_id: userId, pid: sharedRecord?.pid }
       );
       // ✅ Dynamic sender (logged-in user)
       const senderName = username; // from Redux
-      const sharedCampaign = res.data?.campaignName || "Unknown Campaign";
+      const sharedCampaign = res.data?.campaignName;
       // ✅ Find receiver (advertiser name)
       // you already have `selectedRequestId` — use it to find the record
-      const sharedRecord = requests.find((r) => r.id === selectedRequestId);
-      const receiverName = sharedRecord?.adv_name || "Unknown Advertiser";
+
+      const receiverName = sharedRecord?.adv_name;
 
       // 📨 Send notification dynamically
       await createNotification({

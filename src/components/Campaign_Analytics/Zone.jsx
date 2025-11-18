@@ -55,7 +55,7 @@ ChartJS.register(
 );
 import { InfoCircleOutlined } from "@ant-design/icons";
 const { Panel } = Collapse;
-const apiUrl = "https://gapi.clickorbits.in"; // Update with your actual API URL
+const apiUrl = "http://localhost:2001"; // Update with your actual API URL
 const apiUrl1 = "https://apii.clickorbits.in/api";
 
 export default function OptimizationCampaignAnalysis({
@@ -133,10 +133,13 @@ export default function OptimizationCampaignAnalysis({
 
   // 🔥 Role-based filtering
   let filteredData = [];
-  if (user?.role === "publisher") {
+  if (Array.isArray(user?.role) && user.role.includes("publisher")) {
     // Publisher → only own username
     filteredData = processed.filter((row) => row.pubam === user.username);
-  } else if (user?.role === "publisher_manager") {
+  } else if (
+    Array.isArray(user?.role) &&
+    user.role.includes("publisher_manager")
+  ) {
     // Publisher Manager → own + assigned subadmins
     const allowedNames = [user.username, ...subAdmins.map((sa) => sa.label)];
     filteredData = processed.filter((row) => allowedNames.includes(row.pubam));

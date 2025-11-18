@@ -217,6 +217,7 @@ const CreateCampaignForm = () => {
             name="geo"
             rules={[{ required: true, message: "Please select geo" }]}>
             <Select
+              showSearch
               placeholder="Select Geo"
               className="rounded-lg !h-11 border-gray-200 bg-gray-50">
               {dropdownOptions.geo.map((g) => (
@@ -256,6 +257,7 @@ const CreateCampaignForm = () => {
               { required: true, message: "Please select payable event" },
             ]}>
             <Select
+              showSearch
               placeholder="Select Payable Event"
               className="rounded-lg !h-11 border-gray-200 bg-gray-50">
               {dropdownOptions.payable_event.map((e) => (
@@ -271,6 +273,7 @@ const CreateCampaignForm = () => {
             name="mmp_tracker"
             rules={[{ required: true, message: "Please select MMP tracker" }]}>
             <Select
+              showSearch
               placeholder="Select MMP Tracker"
               className="rounded-lg !h-11 border-gray-200 bg-gray-50">
               {dropdownOptions.mmp_tracker.map((e) => (
@@ -302,11 +305,17 @@ const CreateCampaignForm = () => {
             />
           </Form.Item>
           <Form.Item
-            label="LINK"
-            name="link"
-            rules={[{ required: true, message: "Please add Link" }]}>
+            label="Preview Link"
+            name="preview_url"
+            rules={[{ required: true, message: "Please enter KPI" }]}>
             <Input
-              placeholder="Enter Link"
+              placeholder="Enter KPI"
+              className="h-11 rounded-lg border-gray-200 bg-gray-50"
+            />
+          </Form.Item>
+          <Form.Item label="Tracking Link" name="tracking_url">
+            <Input
+              placeholder="Enter Tracking Link"
               className="h-11 rounded-lg border-gray-200 bg-gray-50"
             />
           </Form.Item>

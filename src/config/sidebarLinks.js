@@ -204,12 +204,12 @@ export const sidebarLinks = [
       {
         to: "reportform",
         label: "Reports",
-        roles: ["operations", "advertiser_manager", "admin"],
+        roles: ["operations", "advertiser_manager","advertiser", "admin"],
       },
       {
         to: "genrategraph",
         label: "Graph",
-        roles: ["operations", "advertiser_manager", "admin"],
+        roles: ["operations", "advertiser_manager","advertiser", "admin"],
       },
       {
         to: "analytics",

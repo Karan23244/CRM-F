@@ -42,87 +42,6 @@ const DashboardLayout = () => {
     dispatch(logout());
     navigate("/");
   };
-
-  // 🔔 Fetch unread notifications
-  // const fetchUnreadCount = async () => {
-  //   try {
-  //     const res = await axios.get(
-  //       `https://apii.clickorbits.in/getNotifications/${userId}`
-  //     );
-  //     const unread = res.data.filter((n) => n.is_read === 0).length;
-  //     setNotificationCount(unread);
-  //   } catch (err) {
-  //     console.error("❌ Error fetching unread count:", err);
-  //   }
-  // };
-
-  // 🧩 Real-time + BroadcastChannel logic
-  // useEffect(() => {
-  //   console.log("🧩 Registering socket for user:", userId);
-  //   if (!userId) return;
-
-  //   const socket = io("https://https://apii.clickorbits.in", {
-  //     query: { userId },
-  //     transports: ["websocket"],
-  //   });
-
-  //   // ✅ Fetch existing notifications
-  //   axios
-  //     .get(`https://apii.clickorbits.in/getNotifications/${userId}`)
-  //     .then((res) => setNotificationCount(res.data));
-
-  //     setNotificationCount(notificationCount.filter((n) => n.is_read === 0).length)
-
-  //   // ✅ Helper: safely post message
-  //   const safePost = (data) => {
-  //     try {
-  //       if (bc) bc.postMessage(data);
-  //     } catch (err) {
-  //       console.warn("⚠️ BroadcastChannel closed, skipping:", err.message);
-  //     }
-  //   };
-
-  //   // ✅ Receive new notification (from socket)
-  //   socket.on("new_notification", (notif) => {
-  //     setNotificationCount((prev) => [notif, ...prev]);
-  //     safePost({ type: "new_notification", notif });
-  //   });
-
-  //   // ✅ Handle socket notifications
-  //   socket.on("new_notification", (notif) => {
-  //     if (notif.receiver_id === userId) {
-  //       setNotificationCount((prev) => prev + 1);
-  //       bc.postMessage({ type: "new_notification" });
-  //     }
-  //   });
-
-  //   // socket.on("notification_read", ({ receiver_id }) => {
-  //   //   if (receiver_id === userId) {
-  //   //     fetchUnreadCount();
-  //   //     bc.postMessage({ type: "notification_read" });
-  //   //   }
-  //   // });
-
-  //   // ✅ Listen for updates from other tabs
-  //   bc.onmessage = (event) => {
-  //     const { type, notif, notificationId } = event.data;
-  //     if (type === "new_notification") {
-  //       setNotificationCount((prev) => [notif, ...prev]);
-  //     } else if (type === "notification_read") {
-  //       setNotificationCount((prev) =>
-  //         prev.map((n) =>
-  //           n.id === notificationId ? { ...n, is_read: true } : n
-  //         )
-  //       );
-  //     }
-  //   };
-
-  //   // ✅ Only disconnect socket on cleanup
-  //   return () => {
-  //     socket.disconnect();
-  //   };
-  // }, [userId]);
-
   useEffect(() => {
     if (!userId) return;
 
@@ -244,11 +163,11 @@ const DashboardLayout = () => {
 
       return (
         <div key={link.label} className={`mt-1 ${level > 0 ? "ml-4" : ""}`}>
-          <div
-            onClick={() => {
-              if (hasChildren) toggleMenu(link.label);
-              else if (link.to) window.open(`/dashboard/${link.to}`, "_self");
-            }}
+          <a
+            href={`/dashboard/${link.to}`}
+            onClick={(e) =>
+              hasChildren && (e.preventDefault(), toggleMenu(link.label))
+            }
             className={`flex justify-between items-center px-3 py-2 rounded-md cursor-pointer transition-all ${
               isActive
                 ? "bg-[#79A2CE] text-white"
@@ -261,7 +180,7 @@ const DashboardLayout = () => {
               ) : (
                 <FaChevronDown className="text-xs" />
               ))}
-          </div>
+          </a>
 
           {hasChildren && isOpen && (
             <div className="mt-1 ml-3 border-l border-blue-300 pl-2">
