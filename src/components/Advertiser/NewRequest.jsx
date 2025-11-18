@@ -522,7 +522,7 @@ const NewRequest = () => {
     try {
       const res = await axios.post(
         `${apiUrl}/api/campaigns/copy/${selectedCampaignId}`,
-        { user_id: userId, pid: sharedRecord?.pid }
+        { user_id: userId, pid: sharedRecord?.pid, pub_id: sharedRecord?.pub_id , pub_name: sharedRecord?.pub_name }
       );
       // ✅ Dynamic sender (logged-in user)
       const senderName = username; // from Redux

@@ -356,7 +356,7 @@ const PublisherPayoutData = () => {
     });
 
     setFilteredData(filtered);
-    generateUniqueValues(filtered); // normalized values are included
+    generateUniqueValues(advData); // normalized values are included
   }, [
     advData,
     filters,

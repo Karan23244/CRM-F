@@ -56,7 +56,6 @@ const AdvertiserData = () => {
       return [];
     }
   });
-  console.log(data);
   // When hiddenColumns changes, save to localStorage
   useEffect(() => {
     localStorage.setItem("hiddenColumns", JSON.stringify(hiddenColumns));
@@ -360,8 +359,8 @@ const AdvertiserData = () => {
   // }, [data, selectedDateRange, filters, searchTerm, selectedSubAdmins]);
   // regenerate unique values when filtered data changes
   useEffect(() => {
-    generateUniqueValues(finalFilteredData);
-  }, [finalFilteredData, generateUniqueValues]);
+    generateUniqueValues(data);
+  }, [data, generateUniqueValues]);
 
   const clearAllFilters = useCallback(() => {
     setFilters({});

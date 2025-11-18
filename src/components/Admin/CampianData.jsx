@@ -273,8 +273,8 @@ const CampianData = () => {
   }, [pubData, advData, selectedType, filters, searchTerm, selectedDateRange]);
 
   useEffect(() => {
-    generateUniqueValues(filteredData);
-  }, [filteredData]);
+    generateUniqueValues(advData);
+  }, [advData]);
   // Generate unique values for filtering
   const generateUniqueValues = (data) => {
     const uniqueVals = {};

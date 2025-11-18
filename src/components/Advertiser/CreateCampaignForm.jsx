@@ -209,6 +209,8 @@ const CreateCampaignForm = () => {
               <Option value="E-commerce">E-commerce</Option>
               <Option value="Health">Utility</Option>
               <Option value="Health">Health</Option>
+              <Option value="betting sports">Betting Sports</Option>
+              <Option value="betting casino">Betting Casino</Option>
             </Select>
           </Form.Item>
 
