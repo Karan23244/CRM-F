@@ -493,14 +493,14 @@ const NewRequest = () => {
         url: "/dashboard/makerequest",
       });
 
-      // ✅ Replace message.success with Swal
-      Swal.fire({
-        icon: "success",
-        title: "Status Updated!",
-        text: `✅ Status changed to "${status.toUpperCase()}" successfully.`,
-        showConfirmButton: false,
-        timer: 2000,
-      });
+      // // ✅ Replace message.success with Swal
+      // Swal.fire({
+      //   icon: "success",
+      //   title: "Status Updated!",
+      //   text: `✅ Status changed to "${status.toUpperCase()}" successfully.`,
+      //   showConfirmButton: false,
+      //   timer: 2000,
+      // });
 
       fetchRequests();
     } catch (error) {
@@ -542,13 +542,13 @@ const NewRequest = () => {
       });
       if (res.data?.success) {
         // ✅ Show success alert
-        Swal.fire({
-          icon: "success",
-          title: "Success!",
-          text: res.data.message || "✅ Campaign shared successfully!",
-          showConfirmButton: false,
-          timer: 2000,
-        });
+        // Swal.fire({
+        //   icon: "success",
+        //   title: "Success!",
+        //   text: res.data.message || "✅ Campaign shared successfully!",
+        //   showConfirmButton: false,
+        //   timer: 2000,
+        // });
 
         // Update status to shared after success
         await axios.put(`${apiUrl}/updateAdvRes`, {
@@ -573,7 +573,7 @@ const NewRequest = () => {
   const visibleColumns = getColumns(columnHeadings).filter(
     (col) => !hiddenColumns.includes(col.key)
   );
-
+  console.log(campaignList)
   return (
     <div className="p-6 max-w-full bg-gray-50 rounded-lg shadow-lg">
       <h2 className="text-2xl font-bold mb-6 text-gray-900">
@@ -605,8 +605,8 @@ const NewRequest = () => {
             <Select.Option
               key={c.id}
               value={c.id}
-              label={`${c.id} / ${c.campaign_name}`}>
-              {`${c.id} / ${c.campaign_name}`}
+              label={`${c.id} / ${c.campaign_name} / ${c.os}`}>
+              {`${c.id} / ${c.campaign_name}  / ${c.os}`}
             </Select.Option>
           ))}
         </Select>
