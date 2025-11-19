@@ -1,38 +1,50 @@
+
 // src/Socket/Socket.js
 import { io } from "socket.io-client";
 
-// Connect to your Socket.IO server
-export const socket = io( "https://gapi.clickorbits.in/",
-  { autoConnect: true }
+//  ^|^e Initialize Socket.IO connection
+export const socket = io("https://gapi.clickorbits.in/",
+  {
+    transports: ["websocket"], // force websocket for better stability
+    reconnection: true,
+    reconnectionAttempts: 5,
+    reconnectionDelay: 2000,
+    autoConnect: true,
+  }
 );
 
-// 🔹 Join a specific room (use socketId or any unique ID)
+//  ^|^e Function to join a specific room
 export const joinRoom = (roomId) => {
+  if (!roomId) return console.warn("  ^z   ^o No roomId provided to joinRoom()");
   if (socket.connected) {
     socket.emit("joinRoom", roomId);
-    console.log("🟢 Joined room:", roomId);
+    console.log(" ^=^=  Joined room:", roomId);
   } else {
-    socket.on("connect", () => {
+    socket.once("connect", () => {
       socket.emit("joinRoom", roomId);
-      console.log("🟢 Joined room after connect:", roomId);
+      console.log(" ^=^=  Joined room after connect:", roomId);
     });
   }
 };
 
-// 🔹 Automatically join a room with socket.id if needed
+//  ^|^e Function to automatically join a self-room using socket.id
 export const joinSelfRoom = () => {
   if (socket.connected) {
     joinRoom(socket.id);
   } else {
-    socket.on("connect", () => joinRoom(socket.id));
+    socket.once("connect", () => joinRoom(socket.id));
   }
 };
 
-// 🔹 Listen to connection events
-socket.on("connect", () => {
-  console.log("🟢 Connected to WebSocket server:", socket.id);
-});
+//  ^|^e Socket connection event handlers
+socket.on("connect", () =>
+  console.log(" ^=^=  Socket connected:", socket.id)
+);
 
-socket.on("disconnect", (reason) => {
-  console.log("🔴 Disconnected. Reason:", reason);
-});
+socket.on("connect_error", (err) =>
+  console.error(" ^z   ^o Socket connect error:", err.message)
+);
+
+socket.on("disconnect", (reason) =>
+  console.warn(" ^=^t  Socket disconnected:", reason)
+);
