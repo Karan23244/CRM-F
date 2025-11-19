@@ -13,7 +13,7 @@ import StyledTable from "../../Utils/StyledTable";
 
 const { Option } = Select;
 const apiUrl =
-  import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
+  import.meta.env.VITE_API_URL;
 
 const PubnameData = () => {
   const [tableData, setTableData] = useState([]);
@@ -63,18 +63,21 @@ const PubnameData = () => {
       return filters[key].includes(item[key]);
     });
   });
-  const finalFilteredData = filteredTableData.filter((item) =>
-    [
+  const finalFilteredData = filteredTableData.filter((item) => {
+    const fieldsToSearch = [
       item.username,
-      item.adv_name,
-      item.adv_id,
+      item.pub_name,
+      item.pub_id,
       item.geo,
       item.note,
       item.target,
-    ].some((field) =>
+    ];
+
+    return fieldsToSearch.some((field) =>
       field?.toString().toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  );
+    );
+  });
+
   // ✅ Make fetchData reusable
   const fetchData = async () => {
     try {
@@ -115,19 +118,6 @@ const PubnameData = () => {
 
     fetchSubAdmins();
   }, []);
-  // **Filtered data for search**
-  const filteredData = tableData.filter((item) =>
-    [
-      item.username,
-      item.pub_name,
-      item.pub_id,
-      item.geo,
-      item.note,
-      item.target,
-    ].some((field) =>
-      field?.toString().toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  );
 
   // **Handle Form Submission for Updating**
   const handleUpdate = async (e) => {

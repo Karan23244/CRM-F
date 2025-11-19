@@ -1,12 +1,12 @@
 import axios from "axios";
-const BASE_URL = "https://apii.clickorbits.in"; // your API base URL
+const BASE_URL = import.meta.env.VITE_API_URL1; // your API base URL
 const API_URL = import.meta.env.VITE_API_URL; // your API base URL
 
 /**
  * Helper: Fetch all users from /get-subadmin
  * @returns {Promise<Array>} - List of user objects
  */
-const fetchAllUsers = async () => {
+export const fetchAllUsers = async () => {
   console.log("📡 Fetching all users from:", `${API_URL}/get-subadmin`);
   const { data } = await axios.get(`${API_URL}/get-subadmin`);
   console.log("✅ Users fetched successfully:", data);
@@ -110,7 +110,7 @@ export const createNotification = async ({
  * @param {string} message - notification message text
  * @param {string} url - redirect path when clicked
  */
-export const notifyAllUsers = async (sender, message, url = "/uploads") => {
+export const notifyAllUsers = async (sender, message, url) => {
   try {
     const users = await fetchAllUsers();
     console.log("📢 Sending broadcast to:", users.length, "users");

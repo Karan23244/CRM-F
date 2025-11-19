@@ -8,7 +8,7 @@ import StyledTable from "../../Utils/StyledTable";
 import { EditOutlined } from "@ant-design/icons";
 const { Option } = Select;
 const apiUrl =
-  import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
+  import.meta.env.VITE_API_URL;
 
 const SubAdminPubnameData = () => {
   const user = useSelector((state) => state.auth.user);

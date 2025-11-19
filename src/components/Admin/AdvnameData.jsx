@@ -14,7 +14,7 @@ import geoData from "../../Data/geoData.json";
 
 const { Option } = Select;
 const apiUrl =
-  import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
+  import.meta.env.VITE_API_URL;
 
 const AdvnameData = () => {
   const user = useSelector((state) => state.auth.user);

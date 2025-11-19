@@ -330,13 +330,6 @@ export default function NotificationList() {
             Notifications
           </h2>
         </div>
-        {notifications.length > 0 && (
-          <button
-            onClick={() => setNotifications([])}
-            className="text-sm text-[#2F5D99] hover:underline">
-            Clear All
-          </button>
-        )}
       </div>
 
       {/* Empty State */}

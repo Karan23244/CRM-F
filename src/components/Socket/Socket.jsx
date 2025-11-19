@@ -2,8 +2,7 @@
 import { io } from "socket.io-client";
 
 // Connect to your Socket.IO server
-export const socket = io(
-  import.meta.env.VITE_API_URL || "https://gapi.clickorbits.in/",
+export const socket = io( "https://gapi.clickorbits.in/",
   { autoConnect: true }
 );
 

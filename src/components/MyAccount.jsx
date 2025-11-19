@@ -4,7 +4,7 @@ import Swal from "sweetalert2";
 import { FaEye, FaEyeSlash, FaUserCircle } from "react-icons/fa";
 
 const apiUrl =
-  import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
+  import.meta.env.VITE_API_URL;
 
 const MyAccount = () => {
   const user = useSelector((state) => state.auth.user);

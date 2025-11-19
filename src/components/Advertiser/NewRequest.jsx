@@ -22,7 +22,7 @@ import { RiFileExcel2Line } from "react-icons/ri";
 import { FaFilterCircleXmark } from "react-icons/fa6";
 const { Option } = Select;
 
-const apiUrl = "https://apii.clickorbits.in";
+const apiUrl = import.meta.env.VITE_API_URL1;
 
 const statuses = [
   "waiting",
@@ -522,7 +522,12 @@ const NewRequest = () => {
     try {
       const res = await axios.post(
         `${apiUrl}/api/campaigns/copy/${selectedCampaignId}`,
-        { user_id: userId, pid: sharedRecord?.pid, pub_id: sharedRecord?.pub_id , pub_name: sharedRecord?.pub_name }
+        {
+          user_id: userId,
+          pid: sharedRecord?.pid,
+          pub_id: sharedRecord?.pub_id,
+          pub_name: sharedRecord?.pub_name,
+        }
       );
       // ✅ Dynamic sender (logged-in user)
       const senderName = username; // from Redux
@@ -573,7 +578,7 @@ const NewRequest = () => {
   const visibleColumns = getColumns(columnHeadings).filter(
     (col) => !hiddenColumns.includes(col.key)
   );
-  console.log(campaignList)
+  console.log(campaignList);
   return (
     <div className="p-6 max-w-full bg-gray-50 rounded-lg shadow-lg">
       <h2 className="text-2xl font-bold mb-6 text-gray-900">

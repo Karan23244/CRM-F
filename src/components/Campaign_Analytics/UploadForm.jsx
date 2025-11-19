@@ -13,9 +13,12 @@ import axios from "axios";
 import Swal from "sweetalert2";
 import { socket, joinRoom } from "../Socket/Socket";
 import { useSelector } from "react-redux";
-import { createNotification, notifyAllUsers } from "../../Utils/Notification";
-
-const apiUrl = "https://gapi.clickorbits.in/";
+import {
+  createNotification,
+  notifyAllUsers,
+  fetchAllUsers,
+} from "../../Utils/Notification";
+const apiUrl = import.meta.env.VITE_API_URL2;
 
 const { RangePicker } = DatePicker;
 const { Title, Text } = Typography;
@@ -41,36 +44,9 @@ export default function UploadForm({ onUploadSuccess }) {
     }
   }, []);
   // 🔹 Register socket listener once
-  useEffect(() => {
-    const handler = (data) => {
-      Swal.close(); // 🔹 close processing modal
-
-      if (data.status === "success") {
-        Swal.fire({
-          title: "✅ Upload Completed!",
-          text: `${data.message} for ${data.campaignName}`,
-          icon: "success",
-        });
-        if (onUploadSuccess) onUploadSuccess();
-      } else {
-        Swal.fire({
-          title: "❌ Upload Failed",
-          text: `${data.message} for ${data.campaignName}`,
-          icon: "error",
-        });
-      }
-      setSubmitted(false);
-      setLoading(false);
-    };
-
-    socket.on("uploadComplete", handler);
-
-    return () => socket.off("uploadComplete", handler);
-  }, []);
-
   // useEffect(() => {
-  //   const handler = async (data) => {
-  //     Swal.close();
+  //   const handler = (data) => {
+  //     Swal.close(); // 🔹 close processing modal
 
   //     if (data.status === "success") {
   //       Swal.fire({
@@ -78,37 +54,6 @@ export default function UploadForm({ onUploadSuccess }) {
   //         text: `${data.message} for ${data.campaignName}`,
   //         icon: "success",
   //       });
-
-  //       try {
-  //         // ✅ Get user info from Redux
-  //         const senderId = user?.id; // sender = uploader
-  //         const senderName = user?.username;
-
-  //         const dateRange = data.dateRange || "N/A";
-
-  //         // ✅ Fetch all users (from your Notification.js helper)
-  //         const users = await fetchAllUsers();
-
-  //         // ✅ Loop through each user and send notification
-  //         await Promise.all(
-  //           users.map(async (u) => {
-  //             if (u.id !== senderId) {
-  //               await createNotification({
-  //                 sender: senderName,
-  //                 receiver: u.id, // receiver user id
-  //                 type: "file_upload",
-  //                 message: `📁 ${data.campaignName} file uploaded for ${dateRange}`,
-  //                 url: "/dashboard/analytics",
-  //               });
-  //             }
-  //           })
-  //         );
-
-  //         console.log("✅ Notifications sent to all users!");
-  //       } catch (err) {
-  //         console.error("❌ Error sending notifications:", err);
-  //       }
-
   //       if (onUploadSuccess) onUploadSuccess();
   //     } else {
   //       Swal.fire({
@@ -117,14 +62,14 @@ export default function UploadForm({ onUploadSuccess }) {
   //         icon: "error",
   //       });
   //     }
-
   //     setSubmitted(false);
   //     setLoading(false);
   //   };
 
   //   socket.on("uploadComplete", handler);
+
   //   return () => socket.off("uploadComplete", handler);
-  // }, [user]);
+  // }, []);
 
   const handleFinish = async (values) => {
     if (submitted) return; // prevent double submit
@@ -153,7 +98,7 @@ export default function UploadForm({ onUploadSuccess }) {
     fileList.forEach((file) => {
       data.append("files", file.originFileObj);
     });
-
+    console.log("📤 Submitting upload with data:",data)
     // 🔹 Show processing Swal immediately BEFORE axios call
     Swal.fire({
       title: "⏳ Processing...",
@@ -168,7 +113,7 @@ export default function UploadForm({ onUploadSuccess }) {
     });
 
     try {
-      await axios.post(`${apiUrl}api/metrics`, data);
+      await axios.post(`${apiUrl}/api/metrics`, data);
 
       // 🔹 Clear form immediately after request is sent
       form.resetFields();
@@ -184,7 +129,68 @@ export default function UploadForm({ onUploadSuccess }) {
       setLoading(false);
     }
   };
+  useEffect(() => {
+    const handler = async (data) => {
+      Swal.close();
+      console.log("📨 Received uploadComplete event:", data);
+      if (data.status === "success") {
+        Swal.fire({
+          title: "✅ Upload Completed!",
+          text: `${data.message} for ${data.campaignName}`,
+          icon: "success",
+        });
 
+        try {
+          // ✅ Get user info from Redux
+          const senderId = user?.id; // sender = uploader
+          const senderName = user?.username;
+
+          const dateRange = data?.dateRange;
+          console.log("📆 Date Range for notification:", dateRange);
+          // ✅ Fetch all users (from your Notification.js helper)
+          const users = await fetchAllUsers();
+
+          // ✅ Loop through each user and send notification
+          // await Promise.all(
+          //   users.map(async (u) => {
+          //     if (u.id !== senderId) {
+          //       await createNotification({
+          //         sender: senderName,
+          //         receiver: u.id, // receiver user id
+          //         type: "file_upload",
+          //         message: `📁 ${data.campaignName} file uploaded for ${dateRange}`,
+          //         url: "/dashboard/analytics",
+          //       });
+          //     }
+          //   })
+          // );
+          await notifyAllUsers(
+            senderName,
+            `📁 ${data.campaignName} file uploaded for ${dateRange}`,
+            "/dashboard/analytics"
+          );
+
+          console.log("✅ Notifications sent to all users!");
+        } catch (err) {
+          console.error("❌ Error sending notifications:", err);
+        }
+
+        if (onUploadSuccess) onUploadSuccess();
+      } else {
+        Swal.fire({
+          title: "❌ Upload Failed",
+          text: `${data.message} for ${data.campaignName}`,
+          icon: "error",
+        });
+      }
+
+      setSubmitted(false);
+      setLoading(false);
+    };
+
+    socket.on("uploadComplete", handler);
+    return () => socket.off("uploadComplete", handler);
+  }, [user]);
   return (
     <div className=" flex items-center justify-center bg-gradient-to-br from-[#EAF1FA] via-[#F6F9FC] to-[#FFFFFF] p-8">
       <Card

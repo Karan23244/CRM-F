@@ -6,7 +6,7 @@ import { EditOutlined, SearchOutlined } from "@ant-design/icons";
 import Swal from "sweetalert2";
 
 const apiUrl =
-  import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
+  import.meta.env.VITE_API_URL;
 
 const PIDForm = () => {
   const user = useSelector((state) => state.auth.user);

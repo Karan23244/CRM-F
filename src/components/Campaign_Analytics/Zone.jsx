@@ -55,8 +55,8 @@ ChartJS.register(
 );
 import { InfoCircleOutlined } from "@ant-design/icons";
 const { Panel } = Collapse;
-const apiUrl = "https://gapi.clickorbits.in"; // Update with your actual API URL
-const apiUrl1 = "https://apii.clickorbits.in/api";
+const apiUrl = import.meta.env.VITE_API_URL2; // Update with your actual API URL
+const apiUrl1 = import.meta.env.VITE_API_URL;
 
 export default function OptimizationCampaignAnalysis({
   data = {},

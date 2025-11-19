@@ -5,11 +5,14 @@ import axios from "axios";
 import { useSelector } from "react-redux";
 import Swal from "sweetalert2";
 import geoData from "../../Data/geoData.json";
+import { useLocation } from "react-router-dom";
 
 const apiUrl = import.meta.env.VITE_API_URL;
 const { Option } = Select;
 
 const CreateCampaignForm = () => {
+  const location = useLocation();
+  const editRecord = location.state?.record || null;
   const user = useSelector((state) => state.auth.user);
   const userId = user?.id || null;
   const [form] = Form.useForm();
@@ -111,7 +114,7 @@ const CreateCampaignForm = () => {
 
   const columns = [
     {
-      title: "Campaign Name",
+      title: "PID",
       dataIndex: "campaign_name",
       key: "campaign_name",
       align: "center",
@@ -131,18 +134,61 @@ const CreateCampaignForm = () => {
       ),
     },
   ];
+  useEffect(() => {
+    if (editRecord) {
+      form.setFieldsValue({
+        advertiser: editRecord.adv_d, // FIXED!!
+        adv_d: editRecord.adv_d,
+        Adv_name: editRecord.Adv_name,
+        campaign_name: editRecord.campaign_name,
+        Vertical: editRecord.Vertical,
+        geo: editRecord.geo,
+        state_city: editRecord.state_city,
+        os: editRecord.os,
+        payable_event: editRecord.payable_event,
+        mmp_tracker: editRecord.mmp_tracker,
+        pub_name: editRecord.pub_name,
+        adv_payout: editRecord.adv_payout,
+        kpi: editRecord.kpi,
+        category: editRecord.category,
+        Target: editRecord.Target,
+        achieve_number: editRecord.achieve_number,
+        preview_url: editRecord.preview_url,
+        tracking_url: editRecord.tracking_url,
+        status: editRecord.status,
+      });
+    }
+  }, [editRecord, form]);
+  useEffect(() => {
+    if (editRecord && dropdownOptions.adv_list.length > 0) {
+      const match = dropdownOptions.adv_list.find(
+        (i) => Number(i.adv_id) === Number(editRecord.adv_d)
+      );
+
+      form.setFieldsValue({
+        advertiser: Number(editRecord.adv_d),
+        adv_d: match?.adv_id || "",
+        Adv_name: match?.adv_name || "",
+      });
+    }
+  }, [dropdownOptions.adv_list, editRecord, form]);
 
   return (
     <div className="min-h-screen flex flex-col items-center p-6">
       {/* ====== FORM CARD ====== */}
       <Card className="w-full max-w-8xl rounded-2xl shadow-md border border-gray-100">
         <h2 className="text-2xl font-bold mb-6 text-gray-800">
-          Create New Campaign
+          {editRecord ? "Edit Campaign" : "Create New Campaign"}
         </h2>
 
         <Form
           form={form}
           layout="vertical"
+          initialValues={{
+            advertiser: editRecord?.adv_d || "",
+            adv_d: editRecord?.adv_d || "",
+            Adv_name: editRecord?.Adv_name || "",
+          }}
           onFinish={onFinish}
           className="grid grid-cols-1 md:grid-cols-2 gap-x-5">
           <Form.Item
@@ -152,8 +198,9 @@ const CreateCampaignForm = () => {
             <Select
               showSearch
               placeholder="Select Advertiser"
-              className="!h-11 rounded-lg border-gray-200 bg-gray-50"
               optionFilterProp="label"
+              optionLabelProp="label"
+              className="!h-11"
               filterOption={(input, option) =>
                 option?.label?.toLowerCase().includes(input.toLowerCase())
               }
@@ -162,17 +209,18 @@ const CreateCampaignForm = () => {
                   (i) => i.adv_id === val
                 );
 
+                // 🔥 Set fields when dropdown is changed
                 form.setFieldsValue({
-                  adv_d: selected?.adv_id, // 👈 will now work
-                  Adv_name: selected?.adv_name,
+                  adv_d: selected?.adv_id, // Set adv_d
+                  Adv_name: selected?.adv_name, // Set Adv_name
                 });
               }}>
               {dropdownOptions.adv_list.map((item) => (
                 <Option
                   key={item.adv_id}
                   value={item.adv_id}
-                  label={`${item.adv_name} / ${item.adv_id}`}>
-                  {item.adv_name} / {item.adv_id}
+                  label={`${item.adv_name}(${item.adv_id})`}>
+                  {item.adv_name} ({item.adv_id})
                 </Option>
               ))}
             </Select>
@@ -341,7 +389,7 @@ const CreateCampaignForm = () => {
               htmlType="submit"
               loading={loading}
               className="!bg-[#2F5D99] hover:!bg-[#24487A] !text-white !rounded-lg !px-10 !py-5 !h-12 !text-lg !border-none !shadow-md">
-              Create Campaign
+              {editRecord ? "Edit Campaign" : "Create Campaign"}
             </Button>
           </Form.Item>
         </Form>
@@ -350,7 +398,7 @@ const CreateCampaignForm = () => {
       {/* ====== LIVE / PAUSED CAMPAIGNS ====== */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8 w-full max-w-8xl">
         <Card
-          title="Live Campaigns"
+          title="Live PID's"
           className="shadow-md border border-gray-100 rounded-2xl">
           {loading ? (
             <Spin />
@@ -366,7 +414,7 @@ const CreateCampaignForm = () => {
         </Card>
 
         <Card
-          title="Paused Campaigns"
+          title="Paused PID's"
           className="shadow-md border border-gray-100 rounded-2xl">
           {loading ? (
             <Spin />

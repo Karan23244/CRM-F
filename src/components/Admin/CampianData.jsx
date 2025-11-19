@@ -35,7 +35,7 @@ const { Option } = Select;
 const { RangePicker } = DatePicker;
 
 const apiUrl =
-  import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
+  import.meta.env.VITE_API_URL;
 
 // Publisher Column Headings
 const columnHeadingsPub = {

@@ -31,9 +31,9 @@ import { RiFileExcel2Line } from "react-icons/ri";
 import { FaFilterCircleXmark } from "react-icons/fa6";
 
 const { Option } = Select;
-const apiUrl = "https://apii.clickorbits.in";
+const apiUrl = import.meta.env.VITE_API_URL1;
 const apiUrl1 =
-  import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
+  import.meta.env.VITE_API_URL;
 const columnHeadingsMap = {
   pub_name: "Publisher",
   adv_name: "Advertiser",

@@ -7,7 +7,7 @@ import Swal from "sweetalert2";
 import StyledTable from "../../Utils/StyledTable";
 
 const apiUrl =
-  import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
+  import.meta.env.VITE_API_URL;
 
 const ReviewForm = () => {
   const user = useSelector((state) => state.auth.user);

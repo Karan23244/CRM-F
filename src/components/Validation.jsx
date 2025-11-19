@@ -9,7 +9,7 @@ import html2canvas from "html2canvas";
 import ReactDOMServer from "react-dom/server";
 const { Option } = Select;
 const apiUrl =
-  import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
+  import.meta.env.VITE_API_URL;
 
 function Validation() {
   const [advData, setAdvData] = useState([]);

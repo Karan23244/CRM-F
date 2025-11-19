@@ -6,7 +6,7 @@ import Swal from "sweetalert2";
 import { FaEye, FaEyeSlash, FaUser, FaLock } from "react-icons/fa";
 
 const apiUrl =
-  import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
+  import.meta.env.VITE_API_URL;
 
 const LoginForm = () => {
   const [username, setUsername] = useState("");

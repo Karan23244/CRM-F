@@ -3,7 +3,7 @@ import axios from "axios";
 import Swal from "sweetalert2";
 
 const ExcelUploader = () => {
-  const apiUrl =  "https://apii.clickorbits.in";
+  const apiUrl =  import.meta.env.VITE_API_URL1;
   const [files, setFiles] = useState([]);
   const [inputText, setInputText] = useState("");
   const [campaignName, setCampaignName] = useState("");

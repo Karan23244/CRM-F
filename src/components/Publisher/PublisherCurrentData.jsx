@@ -24,7 +24,7 @@ dayjs.extend(isBetween);
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 const apiUrl =
-  import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
+  import.meta.env.VITE_API_URL;
 
 const PublisherPayoutData = () => {
   const monthClasses = [
@@ -251,7 +251,7 @@ const PublisherPayoutData = () => {
   useEffect(() => {
     // Fetch initially
     fetchAdvData();
-
+    
     // Set interval to fetch every 10 seconds
     const intervalId = setInterval(() => {
       fetchAdvData();

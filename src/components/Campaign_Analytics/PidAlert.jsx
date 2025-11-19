@@ -3,7 +3,7 @@ import { Card, Table, Tag, Spin, Empty, Typography } from "antd";
 import StyledTable from "../../Utils/StyledTable";
 
 const { Title } = Typography;
-const apiUrl = "https://gapi.clickorbits.in";
+const apiUrl = import.meta.env.VITE_API_URL2;
 
 export default function PidsOnAlert() {
   const [alertData, setAlertData] = useState([]);

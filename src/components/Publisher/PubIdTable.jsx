@@ -381,7 +381,7 @@ const PubIdTable = () => {
               filters["adv_AM"] || filters["adv_id"] ? "#1677ff" : "inherit",
             gap: 6,
           }}>
-          <span>ADV AM/ADV ID</span>
+          <span>ADV AM(ADV ID)</span>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             {/* Filter Dropdown */}
             <Dropdown
@@ -459,7 +459,7 @@ const PubIdTable = () => {
       render: (_, record) => (
         <div>
           <p>
-            {record.adv_AM || "-"} / {record.adv_id || "-"}
+            {record.adv_AM || "-"}({record.adv_id || "-"})
           </p>
         </div>
       ),
@@ -476,7 +476,7 @@ const PubIdTable = () => {
               filters["pub_name"] || filters["pub_id"] ? "#1677ff" : "inherit",
             gap: 6,
           }}>
-          <span>PUB AM/PUB ID</span>
+          <span>PUB AM(PUB ID)</span>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             {/* Filter Dropdown */}
             <Dropdown
@@ -554,7 +554,7 @@ const PubIdTable = () => {
       render: (_, record) => (
         <div>
           <p>
-            {record.pub_name || "-"} / {record.pub_id || "-"}
+            {record.pub_name || "-"}({record.pub_id || "-"})
           </p>
         </div>
       ),

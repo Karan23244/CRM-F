@@ -20,11 +20,13 @@ import axios from "axios";
 import dayjs from "dayjs";
 import Swal from "sweetalert2";
 import StyledTable from "../../Utils/StyledTable";
+import { useNavigate } from "react-router-dom";
 
 const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
 
 const CampaignList = () => {
+  const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
   const role = user?.role;
   const [campaigns, setCampaigns] = useState([]);
@@ -421,7 +423,7 @@ const CampaignList = () => {
               filters["Adv_name"] || filters["adv_d"] ? "#1677ff" : "inherit",
             gap: 6,
           }}>
-          <span>Adv AM/Adv ID</span>
+          <span>Adv AM (Adv ID)</span>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             {/* Filter Dropdown */}
             <Dropdown
@@ -452,11 +454,11 @@ const CampaignList = () => {
             </Dropdown>
 
             {/* Pin Icon */}
-            {pinnedColumns["Adv AM/Adv ID"] ? (
+            {pinnedColumns["Adv AM (Adv ID)"] ? (
               <PushpinFilled
                 onClick={(e) => {
                   e.stopPropagation(); // ✅ prevent header sort
-                  togglePin("Adv AM/Adv ID");
+                  togglePin("Adv AM (Adv ID)");
                 }}
                 style={{ color: "#1677ff", cursor: "pointer" }}
               />
@@ -464,7 +466,7 @@ const CampaignList = () => {
               <PushpinOutlined
                 onClick={(e) => {
                   e.stopPropagation(); // ✅ prevent header sort
-                  togglePin("Adv AM/Adv ID");
+                  togglePin("Adv AM (Adv ID)");
                 }}
                 style={{ color: "#888", cursor: "pointer" }}
               />
@@ -473,9 +475,9 @@ const CampaignList = () => {
         </div>
       ),
 
-      key: "Adv AM/Adv ID",
-      dataIndex: "Adv AM/Adv ID",
-      fixed: pinnedColumns["Adv AM/Adv ID"] ? "left" : false,
+      key: "Adv AM (Adv ID)",
+      dataIndex: "Adv AM (Adv ID)",
+      fixed: pinnedColumns["Adv AM (Adv ID)"] ? "left" : false,
 
       sorter: (a, b) => {
         const advA = `${a.Adv_name || ""} ${a.adv_d || ""}`.toLowerCase();
@@ -493,7 +495,7 @@ const CampaignList = () => {
             else newOrder = "ascend";
           }
           setSortInfo({
-            columnKey: "Adv AM/Adv ID",
+            columnKey: "Adv AM (Adv ID)",
             order: newOrder,
           });
         },
@@ -502,12 +504,24 @@ const CampaignList = () => {
       render: (_, record) => (
         <div>
           <p>
-            {record.Adv_name || "-"} / {record.adv_d || "-"}
+            {record.Adv_name || "-"} ({record.adv_d || "-"})
           </p>
         </div>
       ),
     },
-    getColumnWithFilterAndPin("campaign_name", "Campaign Name"),
+    getColumnWithFilterAndPin(
+      "campaign_name",
+      "Campaign Name",
+      (text, record) => (
+        <span
+          style={{ cursor: "pointer", }}
+          onClick={() =>
+            navigate("/dashboard/createcampaign", { state: { record } })
+          }>
+          {text}
+        </span>
+      )
+    ),
     getColumnWithFilterAndPin("id", "Campaign ID"),
     getColumnWithFilterAndPin("geo", "Geo"),
     getColumnWithFilterAndPin("os", "OS"),
