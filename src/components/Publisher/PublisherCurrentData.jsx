@@ -23,8 +23,7 @@ import { FaFilterCircleXmark } from "react-icons/fa6";
 dayjs.extend(isBetween);
 const { RangePicker } = DatePicker;
 const { Option } = Select;
-const apiUrl =
-  import.meta.env.VITE_API_URL;
+const apiUrl = import.meta.env.VITE_API_URL;
 
 const PublisherPayoutData = () => {
   const monthClasses = [
@@ -251,7 +250,7 @@ const PublisherPayoutData = () => {
   useEffect(() => {
     // Fetch initially
     fetchAdvData();
-    
+
     // Set interval to fetch every 10 seconds
     const intervalId = setInterval(() => {
       fetchAdvData();
@@ -356,7 +355,6 @@ const PublisherPayoutData = () => {
     });
 
     setFilteredData(filtered);
-    generateUniqueValues(advData); // normalized values are included
   }, [
     advData,
     filters,
@@ -365,7 +363,24 @@ const PublisherPayoutData = () => {
     selectedSubAdmins,
     user,
   ]);
+  useEffect(() => {
+    if (
+      selectedDateRange &&
+      selectedDateRange.length === 2 &&
+      selectedDateRange[0] &&
+      selectedDateRange[1] &&
+      advData &&
+      advData.length > 0 // <--- important
+    ) {
+      const [start, end] = selectedDateRange;
 
+      const dateFiltered = advData.filter((item) =>
+        dayjs(item.shared_date).isBetween(start, end, null, "[]")
+      );
+
+      generateUniqueValues(dateFiltered);
+    }
+  }, [selectedDateRange, advData]);
   const processedData = filteredData.map((item) => {
     const missingLabels = [];
 

@@ -295,7 +295,6 @@ export default function UploadForm({ onUploadSuccess }) {
             type="default"
             htmlType="submit"
             size="large"
-            loading={loading}
             disabled={submitted}
             className="w-full !bg-[#2F5D99] hover:!bg-[#24487A] !text-white !rounded-lg !py-6 !h-12 !text-lg !border-none !shadow-lg hover:scale-[1.02] transition-transform">
             Upload & Process

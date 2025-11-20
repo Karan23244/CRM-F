@@ -8,6 +8,7 @@ import {
   Card,
   message,
   Button,
+  Checkbox,
 } from "antd";
 import {
   FilterOutlined,
@@ -264,22 +265,70 @@ const CampaignList = () => {
             <Dropdown
               trigger={["click"]}
               dropdownRender={() => (
-                <div style={{ padding: 8, width: 180 }}>
+                <div
+                  style={{
+                    padding: 8,
+                    backgroundColor: "white",
+                    borderRadius: 4,
+                  }}>
+                  {/* Select All */}
+                  <div style={{ marginBottom: 8 }}>
+                    <Checkbox
+                      indeterminate={
+                        filters[dataIndex]?.length > 0 &&
+                        filters[dataIndex]?.length <
+                          getUniqueOptions(dataIndex).length
+                      }
+                      checked={
+                        filters[dataIndex]?.length ===
+                        getUniqueOptions(dataIndex).length
+                      }
+                      onChange={(e) =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          [dataIndex]: e.target.checked
+                            ? [...getUniqueOptions(dataIndex)]
+                            : [],
+                        }))
+                      }>
+                      Select All
+                    </Checkbox>
+                  </div>
+
+                  {/* Multiselect */}
                   <Select
-                    onClick={(e) => e.stopPropagation()}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    showSearch
+                    mode="multiple"
                     allowClear
-                    placeholder={`Filter ${title}`}
-                    value={filters[dataIndex]}
-                    onChange={(val) => handleDropdownFilter(val, dataIndex)}
-                    style={{ width: "100%" }}
-                    options={getUniqueOptions(dataIndex).map((opt) => ({
-                      label: opt,
-                      value: opt,
-                    }))}
-                  />
+                    showSearch
+                    placeholder={`Select ${title}`}
+                    style={{ width: 250 }}
+                    value={filters[dataIndex] || []}
+                    onChange={(val) =>
+                      setFilters((prev) => ({ ...prev, [dataIndex]: val }))
+                    }
+                    optionLabelProp="label"
+                    maxTagCount="responsive"
+                    filterOption={(input, option) =>
+                      (option?.label ?? "")
+                        .toString()
+                        .toLowerCase()
+                        .includes(input.toLowerCase())
+                    }>
+                    {getUniqueOptions(dataIndex)
+                      .filter((v) => v !== "" && v !== null && v !== undefined)
+                      .sort((a, b) =>
+                        !isNaN(a) && !isNaN(b)
+                          ? a - b
+                          : a.toString().localeCompare(b.toString())
+                      )
+                      .map((val) => (
+                        <Select.Option key={val} value={val} label={val}>
+                          <Checkbox checked={filters[dataIndex]?.includes(val)}>
+                            {val}
+                          </Checkbox>
+                        </Select.Option>
+                      ))}
+                  </Select>
                 </div>
               )}>
               <FilterOutlined
@@ -351,8 +400,9 @@ const CampaignList = () => {
 
       // FILTERS
       const matchesFilters = Object.keys(filters).every((key) => {
-        if (!filters[key]) return true;
-        return (row[key] || "").toString() === filters[key];
+        if (!filters[key] || filters[key].length === 0) return true;
+
+        return filters[key].includes(row[key]);
       });
 
       return matchesSearch && matchesFilters;
@@ -429,19 +479,78 @@ const CampaignList = () => {
             <Dropdown
               trigger={["click"]}
               dropdownRender={() => (
-                <div style={{ padding: 8, width: 180 }}>
+                <div
+                  style={{
+                    padding: 8,
+                    backgroundColor: "white",
+                    borderRadius: 4,
+                    width: 260,
+                  }}>
+                  {/* Select All */}
+                  <div style={{ marginBottom: 8 }}>
+                    <Checkbox
+                      indeterminate={
+                        filters["Adv_name"]?.length > 0 &&
+                        filters["Adv_name"]?.length <
+                          getUniqueOptions("Adv_name").filter(
+                            (v) => v !== "" && v !== null && v !== undefined
+                          ).length
+                      }
+                      checked={
+                        filters["Adv_name"]?.length ===
+                        getUniqueOptions("Adv_name").filter(
+                          (v) => v !== "" && v !== null && v !== undefined
+                        ).length
+                      }
+                      onChange={(e) =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          Adv_name: e.target.checked
+                            ? getUniqueOptions("Adv_name").filter(
+                                (v) => v !== "" && v !== null && v !== undefined
+                              )
+                            : [],
+                        }))
+                      }>
+                      Select All
+                    </Checkbox>
+                  </div>
+
+                  {/* Multiselect Advertiser Filter */}
                   <Select
-                    showSearch
+                    mode="multiple"
                     allowClear
+                    showSearch
                     placeholder="Filter Advertiser"
-                    value={filters["Adv_name"]}
-                    onChange={(val) => handleDropdownFilter(val, "Adv_name")}
                     style={{ width: "100%" }}
-                    options={getUniqueOptions("Adv_name").map((opt) => ({
-                      label: opt,
-                      value: opt,
-                    }))}
-                  />
+                    value={filters["Adv_name"] || []}
+                    onChange={(val) =>
+                      setFilters((prev) => ({ ...prev, Adv_name: val }))
+                    }
+                    optionLabelProp="label"
+                    maxTagCount="responsive"
+                    filterOption={(input, option) =>
+                      (option?.label ?? "")
+                        .toString()
+                        .toLowerCase()
+                        .includes(input.toLowerCase())
+                    }>
+                    {getUniqueOptions("Adv_name")
+                      .filter((v) => v !== "" && v !== null && v !== undefined)
+                      .sort((a, b) =>
+                        !isNaN(a) && !isNaN(b)
+                          ? a - b
+                          : a.toString().localeCompare(b.toString())
+                      )
+                      .map((val) => (
+                        <Select.Option key={val} value={val} label={val}>
+                          <Checkbox
+                            checked={filters["Adv_name"]?.includes(val)}>
+                            {val}
+                          </Checkbox>
+                        </Select.Option>
+                      ))}
+                  </Select>
                 </div>
               )}>
               <FilterOutlined
@@ -514,7 +623,7 @@ const CampaignList = () => {
       "Campaign Name",
       (text, record) => (
         <span
-          style={{ cursor: "pointer", }}
+          style={{ cursor: "pointer" }}
           onClick={() =>
             navigate("/dashboard/createcampaign", { state: { record } })
           }>
@@ -523,7 +632,28 @@ const CampaignList = () => {
       )
     ),
     getColumnWithFilterAndPin("id", "Campaign ID"),
-    getColumnWithFilterAndPin("geo", "Geo"),
+    getColumnWithFilterAndPin("geo", "Geo", (geo) => {
+      if (!geo) return "-";
+
+      try {
+        // If geo is a string, try to parse it (backend might send JSON string)
+        if (typeof geo === "string") {
+          geo = JSON.parse(geo);
+        }
+      } catch {
+        // If parse fails, keep original string
+        return geo;
+      }
+
+      // If geo is array of arrays → flatten
+      if (Array.isArray(geo)) {
+        return geo.flat ? geo.flat().join(", ") : [].concat(...geo).join(", ");
+      }
+
+      // Fallback — return as string
+      return String(geo);
+    }),
+
     getColumnWithFilterAndPin("os", "OS"),
     getColumnWithFilterAndPin(
       "category",

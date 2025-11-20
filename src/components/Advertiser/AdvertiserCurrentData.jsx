@@ -35,8 +35,7 @@ import StyledTable from "../../Utils/StyledTable";
 dayjs.extend(isBetween);
 const { RangePicker } = DatePicker;
 const { Option } = Select;
-const apiUrl =
-  import.meta.env.VITE_API_URL;
+const apiUrl = import.meta.env.VITE_API_URL;
 
 const AdvertiserData = () => {
   const user = useSelector((state) => state.auth?.user);
@@ -101,6 +100,9 @@ const AdvertiserData = () => {
         const formatted = [...(response.data || [])].reverse().map((item) => ({
           ...item,
           key: item.id,
+          adv_payout_total:
+            (Number(item.adv_payout) || 0) *
+            (Number(item.adv_approved_no) || 0),
         }));
         setData(formatted);
       } else {
@@ -359,8 +361,23 @@ const AdvertiserData = () => {
   // }, [data, selectedDateRange, filters, searchTerm, selectedSubAdmins]);
   // regenerate unique values when filtered data changes
   useEffect(() => {
-    generateUniqueValues(data);
-  }, [data, generateUniqueValues]);
+    if (
+      selectedDateRange &&
+      selectedDateRange.length === 2 &&
+      selectedDateRange[0] &&
+      selectedDateRange[1] &&
+      data &&
+      data.length > 0 // <--- important
+    ) {
+      const [start, end] = selectedDateRange;
+
+      const dateFiltered = data.filter((item) =>
+        dayjs(item.shared_date).isBetween(start, end, null, "[]")
+      );
+
+      generateUniqueValues(dateFiltered);
+    }
+  }, [selectedDateRange, data]);
 
   const clearAllFilters = useCallback(() => {
     setFilters({});
@@ -452,6 +469,7 @@ const AdvertiserData = () => {
     adv_total_no: "ADV Total Numbers",
     adv_deductions: "ADV Deductions",
     adv_approved_no: "ADV Approved Numbers",
+    adv_payout_total: "ADV Payout Total ($)",
   };
 
   const desiredOrder = [
@@ -477,6 +495,7 @@ const AdvertiserData = () => {
     "adv_total_no",
     "adv_deductions",
     "adv_approved_no",
+    "adv_payout_total",
   ];
 
   const checkEditableAndAlert = useCallback((editable) => {
@@ -737,7 +756,16 @@ const AdvertiserData = () => {
                 </div>
               );
             }
-
+            if (key === "adv_payout_total") {
+              const total =
+                (Number(record.adv_payout) || 0) *
+                (Number(record.adv_approved_no) || 0);
+              return (
+                <span>
+                  <p>{isNaN(total) ? "-" : total}</p>
+                </span>
+              );
+            }
             // Editor UI
             if (isEditing) {
               // Select from dropdownOptions
@@ -970,12 +998,21 @@ const AdvertiserData = () => {
       let totalAdvTotalNo = 0;
       let totalAdvDeductions = 0;
       let totalAdvApprovedNo = 0;
+      let totalAdvPayoutTotal = 0;
 
-      pageData.forEach(({ adv_total_no, adv_deductions, adv_approved_no }) => {
-        totalAdvTotalNo += Number(adv_total_no) || 0;
-        totalAdvDeductions += Number(adv_deductions) || 0;
-        totalAdvApprovedNo += Number(adv_approved_no) || 0;
-      });
+      pageData.forEach(
+        ({
+          adv_total_no,
+          adv_deductions,
+          adv_approved_no,
+          adv_payout_total,
+        }) => {
+          totalAdvTotalNo += Number(adv_total_no) || 0;
+          totalAdvDeductions += Number(adv_deductions) || 0;
+          totalAdvApprovedNo += Number(adv_approved_no) || 0;
+          totalAdvPayoutTotal += Number(adv_payout_total) || 0;
+        }
+      );
 
       return (
         <Table.Summary.Row>
@@ -998,6 +1035,12 @@ const AdvertiserData = () => {
               return (
                 <Table.Summary.Cell key={`approved-${index}`}>
                   <b>{totalAdvApprovedNo}</b>
+                </Table.Summary.Cell>
+              );
+            } else if (col.dataIndex === "adv_payout_total") {
+              return (
+                <Table.Summary.Cell key={`total-${index}`}>
+                  <b>{totalAdvPayoutTotal}</b>
                 </Table.Summary.Cell>
               );
             } else {

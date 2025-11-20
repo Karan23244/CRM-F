@@ -29,11 +29,11 @@ import { AutoComplete } from "antd";
 import StyledTable from "../../Utils/StyledTable";
 import { RiFileExcel2Line } from "react-icons/ri";
 import { FaFilterCircleXmark } from "react-icons/fa6";
+import geoData from "../../Data/geoData.json";
 
 const { Option } = Select;
 const apiUrl = import.meta.env.VITE_API_URL1;
-const apiUrl1 =
-  import.meta.env.VITE_API_URL;
+const apiUrl1 = import.meta.env.VITE_API_URL;
 const columnHeadingsMap = {
   pub_name: "Publisher",
   adv_name: "Advertiser",
@@ -57,7 +57,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
 
   const [requests, setRequests] = useState([]);
   const [advertisers, setAdvertisers] = useState([]);
-  const [dropdownOptions, setDropdownOptions] = useState({});
+  const [dropdownOptions, setDropdownOptions] = useState({ geo: [] });
   const [searchText, setSearchText] = useState("");
   const [blacklistPIDs, setBlacklistPIDs] = useState([]);
   const [filters, setFilters] = useState({});
@@ -66,11 +66,16 @@ const PublisherRequest = ({ senderId, receiverId }) => {
     const saved = localStorage.getItem("hiddenCampaignColumns");
     return saved ? JSON.parse(saved) : [];
   });
+  const [geoRows, setGeoRows] = useState([
+    { geo: undefined, payout: "", os: "" },
+  ]);
+
   // Default: start = first day of current month, end = today
   const [dateRange, setDateRange] = useState([
     dayjs().startOf("month"),
     dayjs(),
   ]);
+  console.log(requests);
   // persist hidden columns
   useEffect(() => {
     localStorage.setItem(
@@ -122,6 +127,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
       setDropdownOptions({
         pid: pidRes.data?.data?.map((item) => item.pid) || [],
         pub_id: pubRes.data?.data?.map((item) => item.pub_id) || [],
+        geo: [...new Set(geoData.geo?.map((i) => i.code) || [])],
       });
     } catch {
       message.error("Failed to fetch dropdown options");
@@ -240,6 +246,16 @@ const PublisherRequest = ({ senderId, receiverId }) => {
     setIsModalVisible(false);
     form.resetFields();
   };
+  const addGeoRow = () => {
+    setGeoRows([...geoRows, { geo: "", payout: "", os: "" }]);
+  };
+
+  const removeGeoRow = (index) => {
+    const updated = [...geoRows];
+    updated.splice(index, 1);
+    setGeoRows(updated);
+  };
+
   const handleOk = async () => {
     try {
       setIsSubmitting(true);
@@ -252,33 +268,33 @@ const PublisherRequest = ({ senderId, receiverId }) => {
           title: "Submission Blocked",
           text: `The selected PID "${values.pid}" is blacklisted and cannot be submitted.`,
         });
-        return; // prevent submission
+        return;
       }
 
+      // ✅ Convert geoRows → Separate Arrays
+      const geoArray = geoRows.map((row) => row.geo);
+      const payoutArray = geoRows.map((r) => r.payout);
+      const osArray = geoRows.map((r) => r.os.toLowerCase());
+
+      // ✅ Prepare Correct Backend Format
       const requestData = {
         adv_name: values.advertiserName,
-        pub_name: username,
         campaign_name: values.campaignName,
-        payout: values.payout,
-        os: values.os,
-        pid: values.pid,
+        payout: payoutArray,
+        os: osArray,
+        pub_name: username,
         pub_id: values.pub_id,
-        geo: values.geo,
+        pid: values.pid,
+        geo: geoArray,
         note: values.note,
       };
-
-      const response = await axios.post(`${apiUrl}/addPubRequest`, requestData);
+      console.log("Submitting Request Data:", requestData);
+      const response = await axios.post(
+        `${apiUrl}/addPubRequestnew`,
+        requestData
+      );
 
       if (response.status === 201) {
-        const newRequest = {
-          key: Date.now(),
-          advertiserName: values.advertiserName,
-          campaignName: values.campaignName,
-          payout: values.payout,
-          os: values.os,
-          link: "Pending",
-        };
-        setRequests([...requests, newRequest]);
         Swal.fire({
           icon: "success",
           title: "Success",
@@ -294,6 +310,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
 
       setIsModalVisible(false);
       form.resetFields();
+      setGeoRows([{ geo: "", payout: "", os: "" }]); // Reset rows
     } catch (error) {
       Swal.fire({
         icon: "error",
@@ -302,7 +319,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
       });
       console.error(error);
     } finally {
-      setIsSubmitting(false); // re-enable button
+      setIsSubmitting(false);
     }
   };
 
@@ -426,8 +443,30 @@ const PublisherRequest = ({ senderId, receiverId }) => {
 
       dataIndex: key,
       fixed: pinnedColumns[key] || undefined,
-      render: (value) =>
-        key === "created_at" ? new Date(value).toLocaleString("en-IN") : value,
+      render: (value) => {
+        if (key === "created_at") {
+          return new Date(value).toLocaleString("en-IN");
+        }
+
+        if (key === "geo") {
+          try {
+            // Case 1: Already an array
+            if (Array.isArray(value)) return value.join(", ");
+
+            // Case 2: Value is a JSON string like "[\"IN\",\"PK\"]"
+            if (typeof value === "string" && value.startsWith("[")) {
+              return JSON.parse(value).join(", ");
+            }
+
+            return value || "";
+          } catch {
+            return value || "";
+          }
+        }
+
+        return value;
+      },
+
       filterDropdown:
         uniqueValues[key]?.length > 0
           ? () => (
@@ -692,10 +731,10 @@ const PublisherRequest = ({ senderId, receiverId }) => {
           form={form}
           onFinish={handleOk}
           className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5">
             {/* Advertiser Name */}
             <Form.Item
-              label="Advertiser Name"
+              label="Adv AM"
               name="advertiserName"
               rules={[
                 { required: true, message: "Please select an advertiser" },
@@ -718,46 +757,6 @@ const PublisherRequest = ({ senderId, receiverId }) => {
               ]}>
               <Input placeholder="Enter campaign name" className="rounded-lg" />
             </Form.Item>
-
-            {/* Payout */}
-            <Form.Item
-              label="Payout"
-              name="payout"
-              rules={[
-                { required: true, message: "Please enter payout amounts" },
-              ]}>
-              <Input
-                placeholder="Enter payout values (e.g., 100,200,300)"
-                className="rounded-lg"
-              />
-            </Form.Item>
-
-            {/* OS */}
-            <Form.Item
-              label="OS"
-              name="os"
-              rules={[{ required: true, message: "Please select an OS" }]}>
-              <Select placeholder="Select OS" className="rounded-lg">
-                <Option value="Android">Android</Option>
-                <Option value="iOS">iOS</Option>
-                <Option value="apk">apk</Option>
-                <Option value="both">Both</Option>
-              </Select>
-            </Form.Item>
-
-            {/* Geo */}
-            <Form.Item
-              label="Geo"
-              name="geo"
-              rules={[
-                { required: true, message: "Please enter geo location" },
-              ]}>
-              <Input
-                placeholder="Enter Geo (e.g., US, IN, UK)"
-                className="rounded-lg"
-              />
-            </Form.Item>
-
             {/* PID */}
             <Form.Item
               label="PID"
@@ -802,13 +801,85 @@ const PublisherRequest = ({ senderId, receiverId }) => {
                 className="rounded-lg"
               />
             </Form.Item>
+            {/* Multi Row Geo + Payout + OS */}
+            <div className="md:col-span-2">
+              {geoRows.map((row, index) => (
+                <div
+                  key={index}
+                  className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                  {/* GEO */}
+                  <div className="md:col-span-4">
+                    <Form.Item label="Geo" required>
+                      <Select
+                        mode="multiple"
+                        placeholder="Select Geo"
+                        className="rounded-lg border-gray-300 bg-white"
+                        value={row.geo} // <-- store value per row
+                        onChange={(value) => {
+                          const updated = [...geoRows];
+                          updated[index].geo = value; // <-- update state
+                          setGeoRows(updated);
+                        }}
+                        showSearch>
+                        {dropdownOptions.geo.map((g) => (
+                          <Option key={g} value={g}>
+                            {g}
+                          </Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
+                  </div>
+
+                  {/* PAYOUT */}
+                  <div className="md:col-span-4">
+                    <Form.Item label="Payout" required>
+                      <Input
+                        placeholder="Enter payout"
+                        value={row.payout}
+                        onChange={(e) => {
+                          const updated = [...geoRows];
+                          updated[index].payout = e.target.value;
+                          setGeoRows(updated);
+                        }}
+                      />
+                    </Form.Item>
+                  </div>
+                  {/* OS */}
+                  <div className="md:col-span-3">
+                    <Form.Item label="OS" required>
+                      <Select
+                        placeholder="Select OS"
+                        value={row.os}
+                        onChange={(value) => {
+                          const updated = [...geoRows];
+                          updated[index].os = value;
+                          setGeoRows(updated);
+                        }}>
+                        <Option value="Android">Android</Option>
+                        <Option value="iOS">iOS</Option>
+                        <Option value="both">Both</Option>
+                      </Select>
+                    </Form.Item>
+                  </div>
+                  {/* DELETE BUTTON */}
+                  <div className="md:col-span-1">
+                    <Button onClick={() => removeGeoRow(index)}>🗑</Button>
+                  </div>
+                </div>
+              ))}
+
+              {/* ADD MORE BUTTON */}
+              <Button type="dashed" onClick={addGeoRow} block className="">
+                ➕ Add More
+              </Button>
+            </div>
 
             {/* Note (Full width) */}
             <Form.Item
               label="Note"
               name="note"
               rules={[{ required: false }]}
-              className="md:col-span-2">
+              className="md:col-span-2 !pt-4">
               <Input.TextArea
                 placeholder="Enter note (optional)"
                 rows={3}
@@ -818,7 +889,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
           </div>
 
           {/* Footer Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 pt-4">
+          <div className="flex flex-col sm:flex-row gap-4">
             <button
               type="submit"
               className="w-full sm:w-1/2 bg-[#2F5D99] hover:bg-[#24487A] text-white font-medium py-3 rounded-lg shadow-md transition-all">

@@ -7,6 +7,7 @@ import {
   message,
   InputNumber,
   Button,
+  Checkbox,
 } from "antd";
 import {
   PushpinOutlined,
@@ -190,19 +191,71 @@ const PubIdTable = () => {
             <Dropdown
               trigger={["click"]}
               dropdownRender={() => (
-                <div style={{ padding: 8, width: 180 }}>
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  style={{
+                    padding: 8,
+                    backgroundColor: "white",
+                    borderRadius: 4,
+                  }}>
+                  {/* Select All */}
+                  <div style={{ marginBottom: 8 }}>
+                    <Checkbox
+                      indeterminate={
+                        filters[dataIndex]?.length > 0 &&
+                        filters[dataIndex]?.length <
+                          getUniqueOptions(dataIndex).length
+                      }
+                      checked={
+                        filters[dataIndex]?.length ===
+                        getUniqueOptions(dataIndex).length
+                      }
+                      onChange={(e) =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          [dataIndex]: e.target.checked
+                            ? [...getUniqueOptions(dataIndex)]
+                            : [],
+                        }))
+                      }>
+                      Select All
+                    </Checkbox>
+                  </div>
+
+                  {/* Multiselect */}
                   <Select
-                    showSearch
+                    mode="multiple"
                     allowClear
-                    placeholder={`Filter ${title}`}
-                    value={filters[dataIndex]}
-                    onChange={(val) => handleDropdownFilter(val, dataIndex)}
-                    style={{ width: "100%" }}
-                    options={getUniqueOptions(dataIndex).map((opt) => ({
-                      label: opt,
-                      value: opt,
-                    }))}
-                  />
+                    showSearch
+                    placeholder={`Select ${title}`}
+                    style={{ width: 250 }}
+                    value={filters[dataIndex] || []}
+                    onChange={(val) =>
+                      setFilters((prev) => ({ ...prev, [dataIndex]: val }))
+                    }
+                    optionLabelProp="label"
+                    maxTagCount="responsive"
+                    filterOption={(input, option) =>
+                      (option?.label ?? "")
+                        .toString()
+                        .toLowerCase()
+                        .includes(input.toLowerCase())
+                    }>
+                    {getUniqueOptions(dataIndex)
+                      .filter((v) => v !== "" && v !== null && v !== undefined)
+                      .sort((a, b) =>
+                        !isNaN(a) && !isNaN(b)
+                          ? a - b
+                          : a.toString().localeCompare(b.toString())
+                      )
+                      .map((val) => (
+                        <Select.Option key={val} value={val} label={val}>
+                          <Checkbox checked={filters[dataIndex]?.includes(val)}>
+                            {val}
+                          </Checkbox>
+                        </Select.Option>
+                      ))}
+                  </Select>
                 </div>
               )}>
               <FilterOutlined
@@ -270,11 +323,11 @@ const PubIdTable = () => {
     // 🔍 Search
     const rowString = Object.values(row).join(" ").toLowerCase();
     const matchesSearch = rowString.includes(searchText.toLowerCase());
-
-    // 🏷️ Filters
+    // FILTERS
     const matchesFilters = Object.keys(filters).every((key) => {
-      if (!filters[key]) return true;
-      return (row[key] || "").toString() === filters[key];
+      if (!filters[key] || filters[key].length === 0) return true;
+
+      return filters[key].includes(row[key]);
     });
 
     return matchesSearch && matchesFilters;
@@ -387,19 +440,82 @@ const PubIdTable = () => {
             <Dropdown
               trigger={["click"]}
               dropdownRender={() => (
-                <div style={{ padding: 8, width: 180 }}>
+                <div
+                  style={{
+                    padding: 8,
+                    backgroundColor: "white",
+                    borderRadius: 4,
+                    width: 260,
+                  }}
+                  onClick={(e) => e.stopPropagation()}>
+                  {/* Select All */}
+                  <div style={{ marginBottom: 8 }}>
+                    <Checkbox
+                      indeterminate={
+                        filters["pub_name"]?.length > 0 &&
+                        filters["pub_name"]?.length <
+                          getUniqueOptions("pub_name").filter(
+                            (v) => v !== "" && v !== null && v !== undefined
+                          ).length
+                      }
+                      checked={
+                        filters["pub_name"]?.length ===
+                        getUniqueOptions("pub_name").filter(
+                          (v) => v !== "" && v !== null && v !== undefined
+                        ).length
+                      }
+                      onChange={(e) =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          pub_name: e.target.checked
+                            ? [
+                                ...getUniqueOptions("pub_name").filter(
+                                  (v) =>
+                                    v !== "" && v !== null && v !== undefined
+                                ),
+                              ]
+                            : [],
+                        }))
+                      }>
+                      Select All
+                    </Checkbox>
+                  </div>
+
+                  {/* Multiselect Dropdown */}
                   <Select
-                    showSearch
+                    mode="multiple"
                     allowClear
-                    placeholder="Filter Advertiser"
-                    value={filters["adv_AM"]}
-                    onChange={(val) => handleDropdownFilter(val, "adv_AM")}
+                    showSearch
+                    placeholder="Filter Publisher"
                     style={{ width: "100%" }}
-                    options={getUniqueOptions("adv_AM").map((opt) => ({
-                      label: opt,
-                      value: opt,
-                    }))}
-                  />
+                    value={filters["pub_name"] || []}
+                    onChange={(val) =>
+                      setFilters((prev) => ({ ...prev, pub_name: val }))
+                    }
+                    optionLabelProp="label"
+                    maxTagCount="responsive"
+                    filterOption={(input, option) =>
+                      (option?.label ?? "")
+                        .toString()
+                        .toLowerCase()
+                        .includes(input.toLowerCase())
+                    }>
+                    {getUniqueOptions("pub_name")
+                      .filter((v) => v !== "" && v !== null && v !== undefined)
+                      .sort((a, b) =>
+                        !isNaN(a) && !isNaN(b)
+                          ? a - b
+                          : a.toString().localeCompare(b.toString())
+                      )
+                      .map((val) => (
+                        <Select.Option key={val} value={val} label={val}>
+                          <Checkbox
+                            checked={filters["pub_name"]?.includes(val)}>
+                            {val}
+                          </Checkbox>
+                        </Select.Option>
+                      ))}
+                  </Select>
                 </div>
               )}>
               <FilterOutlined
@@ -482,20 +598,85 @@ const PubIdTable = () => {
             <Dropdown
               trigger={["click"]}
               dropdownRender={() => (
-                <div style={{ padding: 8, width: 180 }}>
-                  <Select
-                    showSearch
-                    allowClear
-                    placeholder="Filter Publisher"
-                    value={filters["pub_name"]}
-                    onChange={(val) => handleDropdownFilter(val, "pub_name")}
-                    style={{ width: "100%" }}
-                    options={getUniqueOptions("pub_name").map((opt) => ({
-                      label: opt,
-                      value: opt,
-                    }))}
-                  />
-                </div>
+                <>
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      padding: 8,
+                      backgroundColor: "white",
+                      borderRadius: 4,
+                      width: 260,
+                    }}>
+                    {/* Select All */}
+                    <div style={{ marginBottom: 8 }}>
+                      <Checkbox
+                        indeterminate={
+                          filters["pub_name"]?.length > 0 &&
+                          filters["pub_name"]?.length <
+                            getUniqueOptions("pub_name").filter(
+                              (v) => v !== "" && v !== null && v !== undefined
+                            ).length
+                        }
+                        checked={
+                          filters["pub_name"]?.length ===
+                          getUniqueOptions("pub_name").filter(
+                            (v) => v !== "" && v !== null && v !== undefined
+                          ).length
+                        }
+                        onChange={(e) =>
+                          setFilters((prev) => ({
+                            ...prev,
+                            pub_name: e.target.checked
+                              ? getUniqueOptions("pub_name").filter(
+                                  (v) =>
+                                    v !== "" && v !== null && v !== undefined
+                                )
+                              : [],
+                          }))
+                        }>
+                        Select All
+                      </Checkbox>
+                    </div>
+
+                    {/* Multiselect Publisher Filter */}
+                    <Select
+                      mode="multiple"
+                      allowClear
+                      showSearch
+                      placeholder="Filter Publisher"
+                      style={{ width: "100%" }}
+                      value={filters["pub_name"] || []}
+                      onChange={(val) =>
+                        setFilters((prev) => ({ ...prev, pub_name: val }))
+                      }
+                      optionLabelProp="label"
+                      maxTagCount="responsive"
+                      filterOption={(input, option) =>
+                        (option?.label ?? "")
+                          .toString()
+                          .toLowerCase()
+                          .includes(input.toLowerCase())
+                      }>
+                      {getUniqueOptions("pub_name")
+                        .filter(
+                          (v) => v !== "" && v !== null && v !== undefined
+                        )
+                        .sort((a, b) =>
+                          !isNaN(a) && !isNaN(b)
+                            ? a - b
+                            : a.toString().localeCompare(b.toString())
+                        )
+                        .map((val) => (
+                          <Select.Option key={val} value={val} label={val}>
+                            <Checkbox
+                              checked={filters["pub_name"]?.includes(val)}>
+                              {val}
+                            </Checkbox>
+                          </Select.Option>
+                        ))}
+                    </Select>
+                  </div>
+                </>
               )}>
               <FilterOutlined
                 onClick={(e) => e.stopPropagation()} // 🛑 prevent header click

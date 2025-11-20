@@ -34,8 +34,7 @@ import { PushpinOutlined, PushpinFilled } from "@ant-design/icons";
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 
-const apiUrl =
-  import.meta.env.VITE_API_URL;
+const apiUrl = import.meta.env.VITE_API_URL;
 
 // Publisher Column Headings
 const columnHeadingsPub = {
@@ -87,6 +86,7 @@ const columnHeadingsAdv = {
   adv_deductions: "ADV Deductions",
   adv_approved_no: "ADV Approved Numbers",
   pub_Apno: "PUB Approved Numbers",
+  adv_payout_total: "ADV Payout Total ($)",
 };
 
 const monthClasses = [
@@ -271,10 +271,27 @@ const CampianData = () => {
 
     setFilteredData(filtered.filter((row) => !isRowEmpty(row)));
   }, [pubData, advData, selectedType, filters, searchTerm, selectedDateRange]);
-
   useEffect(() => {
-    generateUniqueValues(advData);
-  }, [advData]);
+    if (
+      selectedDateRange &&
+      selectedDateRange.length === 2 &&
+      selectedDateRange[0] &&
+      selectedDateRange[1] &&
+      advData &&
+      advData.length > 0 // <--- important
+    ) {
+      const [start, end] = selectedDateRange;
+
+      const dateFiltered = advData.filter((item) =>
+        dayjs(item.shared_date).isBetween(start, end, null, "[]")
+      );
+
+      generateUniqueValues(dateFiltered);
+    }
+  }, [selectedDateRange, advData]);
+  // useEffect(() => {
+  //   generateUniqueValues(advData);
+  // }, [advData]);
   // Generate unique values for filtering
   const generateUniqueValues = (data) => {
     const uniqueVals = {};
@@ -670,6 +687,16 @@ const CampianData = () => {
               </div>
             );
           }
+          if (key === "adv_payout_total") {
+            const total =
+              (Number(record.adv_payout) || 0) *
+              (Number(record.adv_approved_no) || 0);
+            return (
+              <span>
+                <p>{isNaN(total) ? "-" : total}</p>
+              </span>
+            );
+          }
           if (isEditing) {
             if (dropdownOptions[key]) {
               return (
@@ -966,6 +993,7 @@ const CampianData = () => {
                   let totalAdvDeductions = 0;
                   let totalAdvApprovedNo = 0;
                   let totalpubApprovedNo = 0;
+                  let totalAdvPayoutTotal = 0;
 
                   pageData.forEach(
                     ({
@@ -973,11 +1001,13 @@ const CampianData = () => {
                       adv_deductions,
                       adv_approved_no,
                       pub_Apno,
+                      adv_payout_total,
                     }) => {
                       totalAdvTotalNo += Number(adv_total_no) || 0;
                       totalAdvDeductions += Number(adv_deductions) || 0;
                       totalAdvApprovedNo += Number(adv_approved_no) || 0;
                       totalpubApprovedNo += Number(pub_Apno) || 0;
+                      totalAdvPayoutTotal += Number(adv_payout_total) || 0;
                     }
                   );
 
@@ -1006,6 +1036,12 @@ const CampianData = () => {
                           return (
                             <Table.Summary.Cell key={key}>
                               <b>{totalpubApprovedNo}</b>
+                            </Table.Summary.Cell>
+                          );
+                        } else if (key === "adv_payout_total") {
+                          return (
+                            <Table.Summary.Cell key={key}>
+                              <b>{totalAdvPayoutTotal}</b>
                             </Table.Summary.Cell>
                           );
                         } else {
