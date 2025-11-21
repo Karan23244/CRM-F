@@ -10,6 +10,7 @@ import {
   message,
   Checkbox,
   Tooltip,
+  Modal,
 } from "antd";
 import {
   PlusOutlined,
@@ -84,6 +85,12 @@ const AdvertiserData = () => {
   const [selectedSubAdmins, setSelectedSubAdmins] = useState([]);
   const [roleData, setRoleData] = useState([]);
   const [subAdmins, setSubAdmins] = useState([]);
+  const [campaignList, setCampaignList] = useState([]);
+  // --- NEW STATES FOR SHARE MODAL ---
+  const [shareModalVisible, setShareModalVisible] = useState(false);
+  const [selectedPauseRecord, setSelectedPauseRecord] = useState(null);
+  const [selectedPauseDate, setSelectedPauseDate] = useState(null);
+  const [selectedCampaignId, setSelectedCampaignId] = useState(null);
   useEffect(() => {
     if (user?.id) {
       fetchData();
@@ -112,6 +119,27 @@ const AdvertiserData = () => {
       message.error("Failed to fetch data");
     }
   }, [userId]);
+  const fetchCampaignList = async () => {
+    try {
+      const res = await axios.get(`${apiUrl}/campaigns_list`);
+
+      if (res.data && Array.isArray(res.data)) {
+        const validCampaigns = res.data.filter(
+          (c) => c.campaign_name && c.campaign_name.trim() !== ""
+        );
+        setCampaignList(validCampaigns);
+      } else {
+        setCampaignList([]);
+      }
+    } catch (err) {
+      console.error(err);
+      message.error("Failed to fetch campaign list");
+    }
+  };
+  useEffect(() => {
+    fetchCampaignList();
+  }, []);
+
   // 🔹 Fetch and merge subadmin data dynamically
   const fetchSubAdminData = async (selectedAdmins) => {
     try {
@@ -359,25 +387,41 @@ const AdvertiserData = () => {
   }, [data, selectedDateRange, filters, searchTerm]);
   // }, [data, selectedDateRange, filters, searchTerm, selectedSubAdmins]);
   // regenerate unique values when filtered data changes
+  // useEffect(() => {
+  //   if (
+  //     selectedDateRange &&
+  //     selectedDateRange.length === 2 &&
+  //     selectedDateRange[0] &&
+  //     selectedDateRange[1] &&
+  //     data &&
+  //     data.length > 0 // <--- important
+  //   ) {
+  //     const [start, end] = selectedDateRange;
+
+  //     const dateFiltered = data.filter((item) =>
+  //       dayjs(item.shared_date).isBetween(start, end, null, "[]")
+  //     );
+
+  //     generateUniqueValues(dateFiltered);
+  //   }
+  // }, [selectedDateRange, data]);
   useEffect(() => {
-    if (
-      selectedDateRange &&
-      selectedDateRange.length === 2 &&
-      selectedDateRange[0] &&
-      selectedDateRange[1] &&
-      data &&
-      data.length > 0 // <--- important
-    ) {
-      const [start, end] = selectedDateRange;
+    // if (
+    //   selectedDateRange &&
+    //   selectedDateRange.length === 2 &&
+    //   selectedDateRange[0] &&
+    //   selectedDateRange[1] &&
+    //   data &&
+    //   data.length > 0 // <--- important
+    // ) {
+    //   const [start, end] = selectedDateRange;
 
-      const dateFiltered = data.filter((item) =>
-        dayjs(item.shared_date).isBetween(start, end, null, "[]")
-      );
+    //   const dateFiltered = data.filter((item) =>
+    //     dayjs(item.shared_date).isBetween(start, end, null, "[]")
+    //   );
 
-      generateUniqueValues(dateFiltered);
-    }
-  }, [selectedDateRange, data]);
-
+    generateUniqueValues(finalFilteredData);
+  }, [finalFilteredData, generateUniqueValues]);
   const clearAllFilters = useCallback(() => {
     setFilters({});
     setHiddenColumns([]);
@@ -692,6 +736,53 @@ const AdvertiserData = () => {
       Swal.fire("Error", "Failed to delete data", "error");
     }
   }, []);
+  const handleSharePauseDateSave = async () => {
+    if (!selectedCampaignId) {
+      message.warning("Please select a campaign");
+      return;
+    }
+
+    if (!selectedPauseRecord?.id) {
+      message.warning("Invalid record – no ID found");
+      return;
+    }
+
+    try {
+      // 🔥 Build FULL PAYLOAD like AutoSave
+      const payload = {
+        ...selectedPauseRecord, // send all existing fields
+        paused_date: selectedPauseDate,
+        campaign_id: selectedCampaignId,
+      };
+
+      const res = await axios.post(
+        `${apiUrl}/advdata-update/${selectedPauseRecord.id}`,
+        payload,
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      message.success("Pause date linked successfully");
+
+      setShareModalVisible(false);
+      setSelectedCampaignId(null);
+      setSelectedPauseRecord(null);
+      setSelectedPauseDate(null);
+
+      const updatedRow = res?.data?.data || payload;
+
+      // 🔥 merge updated row into table
+      if (updatedRow) {
+        setData((prev) =>
+          prev.map((r) =>
+            r.id === updatedRow.id ? { ...r, ...updatedRow } : r
+          )
+        );
+      }
+    } catch (err) {
+      console.error(err);
+      message.error("Failed to update pause date");
+    }
+  };
 
   // Columns memoized
   const columns = useMemo(() => {
@@ -880,7 +971,6 @@ const AdvertiserData = () => {
                 };
 
                 const rowDate = normalize(record.created_at);
-                console.log("rowDate:", rowDate);
                 // Find all rows created before TODAY
                 const pastDates = finalFilteredData
                   .map((r) => normalize(r.created_at))
@@ -914,14 +1004,29 @@ const AdvertiserData = () => {
                       allowClear
                       value={value ? dayjs(value) : null}
                       format="YYYY-MM-DD"
+                      // onChange={(date) => {
+                      //   handleAutoSave(
+                      //     record,
+                      //     key,
+                      //     date ? date.format("YYYY-MM-DD") : null
+                      //   ).finally(() =>
+                      //     setEditingCell({ key: null, field: null })
+                      //   );
+                      // }}
                       onChange={(date) => {
-                        handleAutoSave(
-                          record,
-                          key,
-                          date ? date.format("YYYY-MM-DD") : null
-                        ).finally(() =>
-                          setEditingCell({ key: null, field: null })
-                        );
+                        const finalDate = date
+                          ? date.format("YYYY-MM-DD")
+                          : null;
+
+                        // 1️⃣ Save paused date normally using auto-save
+                        // handleAutoSave(record, key, finalDate).finally(() => {
+                        //   setEditingCell({ key: null, field: null });
+                        // });
+
+                        // 2️⃣ Open modal for campaign selection
+                        setSelectedPauseDate(finalDate);
+                        setSelectedPauseRecord(record);
+                        setShareModalVisible(true);
                       }}
                       onOpenChange={(open) => {
                         if (!open) {
@@ -1126,7 +1231,6 @@ const AdvertiserData = () => {
     },
     [columns]
   );
-  console.log(finalFilteredData);
   return (
     <div className="p-4 bg-gray-100 min-h-screen flex flex-col items-center">
       <div className="w-full bg-white p-6 rounded shadow-md relative">
@@ -1300,6 +1404,35 @@ const AdvertiserData = () => {
           )}
         </div>
       </div>
+      <Modal
+        title="Select Campaign"
+        open={shareModalVisible}
+        onOk={handleSharePauseDateSave}
+        onCancel={() => {
+          setShareModalVisible(false);
+          setSelectedCampaignId(null);
+          setSelectedPauseRecord(null);
+        }}>
+        <Select
+          showSearch
+          placeholder="Select a Campaign"
+          style={{ width: "100%" }}
+          value={selectedCampaignId}
+          onChange={(val) => setSelectedCampaignId(val)}
+          filterOption={(input, option) =>
+            option?.label.toLowerCase().includes(input.toLowerCase())
+          }
+          optionLabelProp="label">
+          {campaignList.map((c) => (
+            <Select.Option
+              key={c.id}
+              value={c.id}
+              label={`${c.id} / ${c.campaign_name} / ${c.os}`}>
+              {`${c.id} / ${c.campaign_name}  / ${c.os}`}
+            </Select.Option>
+          ))}
+        </Select>
+      </Modal>
     </div>
   );
 };
