@@ -95,7 +95,6 @@ const AdvertiserData = () => {
   const fetchData = useCallback(async () => {
     try {
       const response = await axios.get(`${apiUrl}/advdata-byuser/${userId}`);
-      console.log("fetchData response:", response);
       if (response?.data) {
         const formatted = [...(response.data || [])].reverse().map((item) => ({
           ...item,
@@ -444,7 +443,18 @@ const AdvertiserData = () => {
     ],
     []
   );
-
+  const fieldonlyeditable = useMemo(
+    () => [
+      "paused_date",
+      "pay_out",
+      "fa",
+      "fa1",
+      "adv_total_no",
+      "adv_deductions",
+      "adv_approved_no",
+    ],
+    []
+  );
   // Columns and renderers memoized
   const columnHeadings = {
     pub_name: "PUBM Name",
@@ -513,7 +523,7 @@ const AdvertiserData = () => {
       try {
         const createdAt = dayjs(record.created_at);
         const isWithin3Days = dayjs().diff(createdAt, "day") <= 3;
-        const editable = isWithin3Days || allowedFieldsAfter3Days.includes(key);
+        const editable = fieldonlyeditable.includes(key);
 
         if (!checkEditableAndAlert(editable)) {
           setSavingTable(false);
@@ -744,8 +754,7 @@ const AdvertiserData = () => {
             const value = record[key];
             const createdAt = dayjs(record.created_at);
             const isWithin3Days = dayjs().diff(createdAt, "day") <= 3;
-            const editable =
-              isWithin3Days || allowedFieldsAfter3Days.includes(key);
+            const editable = fieldonlyeditable.includes(key);
             const isEditing =
               editingCell.key === record.id && editingCell.field === key;
 
@@ -841,24 +850,89 @@ const AdvertiserData = () => {
                 );
               }
 
-              if (["shared_date", "paused_date"].includes(key)) {
-                return (
-                  <DatePicker
-                    allowClear
-                    defaultValue={value ? dayjs(value) : null}
-                    format="YYYY-MM-DD"
-                    onChange={(date) => {
-                      handleAutoSave(
-                        record,
-                        key,
-                        date ? date.format("YYYY-MM-DD") : null
-                      ).finally(() =>
-                        setEditingCell({ key: null, field: null })
-                      );
-                    }}
-                    autoFocus
-                  />
-                );
+              // if (["shared_date", "paused_date"].includes(key)) {
+              //   return (
+              //     <DatePicker
+              //       allowClear
+              //       defaultValue={value ? dayjs(value) : null}
+              //       format="YYYY-MM-DD"
+              //       onChange={(date) => {
+              //         handleAutoSave(
+              //           record,
+              //           key,
+              //           date ? date.format("YYYY-MM-DD") : null
+              //         ).finally(() =>
+              //           setEditingCell({ key: null, field: null })
+              //         );
+              //       }}
+              //       autoFocus
+              //     />
+              //   );
+              // }
+              if (["paused_date"].includes(key)) {
+                const TODAY = "2025-11-20"; // HARD CODED DATE
+
+                // Normalize date -> yyyy-mm-dd
+                const normalize = (d) => {
+                  const dt = new Date(d);
+                  dt.setHours(0, 0, 0, 0);
+                  return dt.toISOString().slice(0, 10);
+                };
+
+                const rowDate = normalize(record.created_at);
+                console.log("rowDate:", rowDate);
+                // Find all rows created before TODAY
+                const pastDates = finalFilteredData
+                  .map((r) => normalize(r.created_at))
+                  .filter((d) => d < TODAY);
+
+                // FIX: Sort dates numerically (not alphabetically)
+                const latestPrevDate =
+                  pastDates.length === 0
+                    ? null
+                    : pastDates.sort((a, b) => new Date(a) - new Date(b)).pop();
+
+                // Editable only for rows <= latest previous day & before today
+                const pausedEditable =
+                  rowDate < TODAY &&
+                  latestPrevDate !== null &&
+                  rowDate <= latestPrevDate;
+
+                // ❌ Not editable
+                if (!pausedEditable) {
+                  return (
+                    <div style={{ color: "gray", cursor: "not-allowed" }}>
+                      {value ? dayjs(value).format("YYYY-MM-DD") : "-"}
+                    </div>
+                  );
+                }
+
+                // ✔ Editable mode
+                if (isEditing) {
+                  return (
+                    <DatePicker
+                      allowClear
+                      value={value ? dayjs(value) : null}
+                      format="YYYY-MM-DD"
+                      onChange={(date) => {
+                        handleAutoSave(
+                          record,
+                          key,
+                          date ? date.format("YYYY-MM-DD") : null
+                        ).finally(() =>
+                          setEditingCell({ key: null, field: null })
+                        );
+                      }}
+                      onOpenChange={(open) => {
+                        if (!open) {
+                          // popup closed → click outside
+                          setEditingCell({ key: null, field: null });
+                        }
+                      }}
+                      autoFocus
+                    />
+                  );
+                }
               }
 
               return (
@@ -1052,7 +1126,7 @@ const AdvertiserData = () => {
     },
     [columns]
   );
-
+  console.log(finalFilteredData);
   return (
     <div className="p-4 bg-gray-100 min-h-screen flex flex-col items-center">
       <div className="w-full bg-white p-6 rounded shadow-md relative">

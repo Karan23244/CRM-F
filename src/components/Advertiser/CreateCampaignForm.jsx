@@ -102,15 +102,14 @@ const CreateCampaignForm = () => {
     // Extract ONLY the IDs
     const adv_id = values.advertiser?.value || values.advertiser;
     const adv_d = values.adv_d?.value || values.adv_d;
-
     // GEO must be array of arrays
     const geoArray = values.geo_details.map((item) => [item.geo]);
 
     // Payout must be single value, not array
-    const payoutValue = values.geo_details[0]?.payout;
+    const payoutValue = values.geo_details.map((item) => [item.payout]);
 
     // OS must be single value, not array
-    const osValue = values.geo_details[0]?.os;
+    const osValue = values.geo_details.map((item) => [item.os]);
 
     const finalPayload = {
       Adv_name: values.Adv_name,
@@ -128,7 +127,6 @@ const CreateCampaignForm = () => {
       preview_url: values.preview_url || "",
       status: values.status,
     };
-
     // remove nested structure (optional but recommended)
     delete finalPayload.geo_details;
 
@@ -160,10 +158,10 @@ const CreateCampaignForm = () => {
     const geoArray = values.geo_details.map((item) => [item.geo]);
 
     // Payout must be single value, not array
-    const payoutValue = values.geo_details[0]?.payout;
+    const payoutValue = values.geo_details.map((item) => [item.payout]);
 
     // OS must be single value, not array
-    const osValue = values.geo_details[0]?.os;
+    const osValue = values.geo_details.map((item) => [item.os]);
 
     const finalPayload = {
       id: editRecord.id, // required name
@@ -230,26 +228,29 @@ const CreateCampaignForm = () => {
 
   useEffect(() => {
     if (!editRecord) return;
-
+    console.log("Editing Record:", editRecord);
     // --- SAFE GEO PARSING ---
     let parsedGeo = [];
 
     if (Array.isArray(editRecord.geo)) {
-      // Already array in DB
-      parsedGeo = editRecord.geo;
+      // Flatten any depth to get simple ["BS"]
+      parsedGeo = editRecord.geo.flat(Infinity);
     } else if (typeof editRecord.geo === "string") {
       try {
         const json = JSON.parse(editRecord.geo);
 
-        parsedGeo = Array.isArray(json)
-          ? json
-          : json
-          ? [json] // If string like "ZA"
-          : [];
+        if (Array.isArray(json)) {
+          parsedGeo = json.flat(Infinity);
+        } else if (json) {
+          parsedGeo = [json];
+        } else {
+          parsedGeo = [];
+        }
       } catch {
-        // If NOT JSON (e.g. "ZA"), convert directly to array
         parsedGeo = editRecord.geo ? [editRecord.geo] : [];
       }
+    } else {
+      parsedGeo = [];
     }
 
     // --- OS NORMALIZATION ---

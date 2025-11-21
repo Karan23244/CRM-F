@@ -65,7 +65,6 @@ const NewRequest = () => {
   });
   const [pinnedColumns, setPinnedColumns] = useState({});
   const [sortInfo, setSortInfo] = useState({});
-  console.log("🚀 sortInfo:", requests);
   const handlePinColumn = (key) => {
     setPinnedColumns((prev) => {
       const current = prev[key];
@@ -447,6 +446,7 @@ const NewRequest = () => {
           pid: sharedRecord?.pid,
           pub_id: sharedRecord?.pub_id,
           pub_name: sharedRecord?.pub_name,
+          payout: sharedRecord?.payout,
         }
       );
       // ✅ Dynamic sender (logged-in user)
