@@ -446,7 +446,7 @@ const NewRequest = () => {
           pid: sharedRecord?.pid,
           pub_id: sharedRecord?.pub_id,
           pub_name: sharedRecord?.pub_name,
-          payout: sharedRecord?.payout,
+          pay_out: sharedRecord?.payout,
         }
       );
       // ✅ Dynamic sender (logged-in user)
