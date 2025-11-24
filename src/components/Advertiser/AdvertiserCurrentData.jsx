@@ -102,14 +102,17 @@ const AdvertiserData = () => {
   const fetchData = useCallback(async () => {
     try {
       const response = await axios.get(`${apiUrl}/advdata-byuser/${userId}`);
-      if (response?.data) {
-        const formatted = [...(response.data || [])].reverse().map((item) => ({
-          ...item,
-          key: item.id,
-          adv_payout_total:
-            (Number(item.adv_payout) || 0) *
-            (Number(item.adv_approved_no) || 0),
-        }));
+      console.log("fetchData response:", response);
+      if (response?.data.data && Array.isArray(response.data.data)) {
+        const formatted = [...(response?.data?.data || [])]
+          .reverse()
+          .map((item) => ({
+            ...item,
+            key: item.id,
+            adv_payout_total:
+              (Number(item.adv_payout) || 0) *
+              (Number(item.adv_approved_no) || 0),
+          }));
         setData(formatted);
       } else {
         setData([]);
@@ -509,11 +512,12 @@ const AdvertiserData = () => {
     os: "OS",
     payable_event: "Payable Event",
     mmp_tracker: "MMP Tracker",
-    adv_id: "ADV ID",
+    adv_display: "ADV ID",
     adv_payout: "ADV Payout $",
     pub_am: "Pub AM",
-    pub_id: "PubID",
+    pub_display: "PubID",
     pid: "PID",
+    da: "DA",
     pay_out: "PUB Payout $",
     shared_date: "Shared Date",
     paused_date: "Paused Date",
@@ -527,7 +531,7 @@ const AdvertiserData = () => {
   };
 
   const desiredOrder = [
-    "adv_id",
+    "adv_display",
     "campaign_name",
     "vertical",
     "geo",
@@ -537,9 +541,10 @@ const AdvertiserData = () => {
     "mmp_tracker",
     "adv_payout",
     "pub_name",
-    "pub_id",
+    "pub_display",
     "pub_am",
     "pid",
+    "da",
     "pay_out",
     "shared_date",
     "paused_date",

@@ -153,14 +153,40 @@ const PubIdTable = () => {
     setFilters((prev) => ({ ...prev, [dataIndex]: value }));
   };
 
-  // 🔹 Get unique dropdown options
-  const getUniqueOptions = (key) => {
-    const values = data
-      .map((item) => item[key])
-      .filter((v) => v !== undefined && v !== null);
-    return [...new Set(values)];
-  };
+  // // 🔹 Get unique dropdown options
+  // const getUniqueOptions = (key) => {
+  //   const values = data
+  //     .map((item) => item[key])
+  //     .filter((v) => v !== undefined && v !== null);
+  //   return [...new Set(values)];
+  // };
+  const getUniqueOptions = (columnKey) => {
+    // If THIS column already has a filter applied → it should always show full data
+    const hasSelfFilter = filters[columnKey] && filters[columnKey].length > 0;
 
+    // If NO filters applied anywhere → show full data for all columns
+    const noFiltersApplied = Object.keys(filters).length === 0;
+
+    // If this column is being opened → type === "full-data"
+    // If other columns → type === "filtered-data"
+
+    // Determine whether to use full dataset or filtered dataset
+    let source = data; // full dataset
+
+    if (!hasSelfFilter && !noFiltersApplied) {
+      // Other columns should show only filtered options
+      source = filteredData;
+    }
+
+    // Extract unique values
+    return [
+      ...new Set(
+        source
+          .map((c) => c[columnKey])
+          .filter((v) => v !== "" && v !== null && v !== undefined)
+      ),
+    ];
+  };
   // 🔹 Pin/unpin column
   const togglePin = (key) => {
     setPinnedColumns((prev) => ({
@@ -200,26 +226,19 @@ const PubIdTable = () => {
                   }}>
                   {/* Select All */}
                   <div style={{ marginBottom: 8 }}>
-                    <Checkbox
-                      indeterminate={
-                        filters[dataIndex]?.length > 0 &&
-                        filters[dataIndex]?.length <
-                          getUniqueOptions(dataIndex).length
-                      }
-                      checked={
-                        filters[dataIndex]?.length ===
-                        getUniqueOptions(dataIndex).length
-                      }
-                      onChange={(e) =>
-                        setFilters((prev) => ({
-                          ...prev,
-                          [dataIndex]: e.target.checked
-                            ? [...getUniqueOptions(dataIndex)]
-                            : [],
-                        }))
-                      }>
-                      Select All
-                    </Checkbox>
+                    {getUniqueOptions(dataIndex)
+                      .sort((a, b) =>
+                        !isNaN(a) && !isNaN(b)
+                          ? a - b
+                          : a.toString().localeCompare(b.toString())
+                      )
+                      .map((val) => (
+                        <Select.Option key={val} value={val} label={val}>
+                          <Checkbox checked={filters[dataIndex]?.includes(val)}>
+                            {val}
+                          </Checkbox>
+                        </Select.Option>
+                      ))}
                   </div>
 
                   {/* Multiselect */}
@@ -423,324 +442,327 @@ const PubIdTable = () => {
 
   // 🔹 Define columns
   const allColumns = [
-    {
-      title: (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            color:
-              filters["adv_AM"] || filters["adv_id"] ? "#1677ff" : "inherit",
-            gap: 6,
-          }}>
-          <span>ADV AM(ADV ID)</span>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            {/* Filter Dropdown */}
-            <Dropdown
-              trigger={["click"]}
-              dropdownRender={() => (
-                <div
-                  style={{
-                    padding: 8,
-                    backgroundColor: "white",
-                    borderRadius: 4,
-                    width: 260,
-                  }}
-                  onClick={(e) => e.stopPropagation()}>
-                  {/* Select All */}
-                  <div style={{ marginBottom: 8 }}>
-                    <Checkbox
-                      indeterminate={
-                        filters["pub_name"]?.length > 0 &&
-                        filters["pub_name"]?.length <
-                          getUniqueOptions("pub_name").filter(
-                            (v) => v !== "" && v !== null && v !== undefined
-                          ).length
-                      }
-                      checked={
-                        filters["pub_name"]?.length ===
-                        getUniqueOptions("pub_name").filter(
-                          (v) => v !== "" && v !== null && v !== undefined
-                        ).length
-                      }
-                      onChange={(e) =>
-                        setFilters((prev) => ({
-                          ...prev,
-                          pub_name: e.target.checked
-                            ? [
-                                ...getUniqueOptions("pub_name").filter(
-                                  (v) =>
-                                    v !== "" && v !== null && v !== undefined
-                                ),
-                              ]
-                            : [],
-                        }))
-                      }>
-                      Select All
-                    </Checkbox>
-                  </div>
+    // {
+    //   title: (
+    //     <div
+    //       style={{
+    //         display: "flex",
+    //         justifyContent: "space-between",
+    //         alignItems: "center",
+    //         color:
+    //           filters["adv_AM"] || filters["adv_id"] ? "#1677ff" : "inherit",
+    //         gap: 6,
+    //       }}>
+    //       <span>ADV AM(ADV ID)</span>
+    //       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+    //         {/* Filter Dropdown */}
+    //         <Dropdown
+    //           trigger={["click"]}
+    //           dropdownRender={() => (
+    //             <div
+    //               style={{
+    //                 padding: 8,
+    //                 backgroundColor: "white",
+    //                 borderRadius: 4,
+    //                 width: 260,
+    //               }}
+    //               onClick={(e) => e.stopPropagation()}>
+    //               {/* Select All */}
+    //               <div style={{ marginBottom: 8 }}>
+    //                 <Checkbox
+    //                   indeterminate={
+    //                     filters["pub_name"]?.length > 0 &&
+    //                     filters["pub_name"]?.length <
+    //                       getUniqueOptions("pub_name").filter(
+    //                         (v) => v !== "" && v !== null && v !== undefined
+    //                       ).length
+    //                   }
+    //                   checked={
+    //                     filters["pub_name"]?.length ===
+    //                     getUniqueOptions("pub_name").filter(
+    //                       (v) => v !== "" && v !== null && v !== undefined
+    //                     ).length
+    //                   }
+    //                   onChange={(e) =>
+    //                     setFilters((prev) => ({
+    //                       ...prev,
+    //                       pub_name: e.target.checked
+    //                         ? [
+    //                             ...getUniqueOptions("pub_name").filter(
+    //                               (v) =>
+    //                                 v !== "" && v !== null && v !== undefined
+    //                             ),
+    //                           ]
+    //                         : [],
+    //                     }))
+    //                   }>
+    //                   Select All
+    //                 </Checkbox>
+    //               </div>
 
-                  {/* Multiselect Dropdown */}
-                  <Select
-                    mode="multiple"
-                    allowClear
-                    showSearch
-                    placeholder="Filter Publisher"
-                    style={{ width: "100%" }}
-                    value={filters["pub_name"] || []}
-                    onChange={(val) =>
-                      setFilters((prev) => ({ ...prev, pub_name: val }))
-                    }
-                    optionLabelProp="label"
-                    maxTagCount="responsive"
-                    filterOption={(input, option) =>
-                      (option?.label ?? "")
-                        .toString()
-                        .toLowerCase()
-                        .includes(input.toLowerCase())
-                    }>
-                    {getUniqueOptions("pub_name")
-                      .filter((v) => v !== "" && v !== null && v !== undefined)
-                      .sort((a, b) =>
-                        !isNaN(a) && !isNaN(b)
-                          ? a - b
-                          : a.toString().localeCompare(b.toString())
-                      )
-                      .map((val) => (
-                        <Select.Option key={val} value={val} label={val}>
-                          <Checkbox
-                            checked={filters["pub_name"]?.includes(val)}>
-                            {val}
-                          </Checkbox>
-                        </Select.Option>
-                      ))}
-                  </Select>
-                </div>
-              )}>
-              <FilterOutlined
-                onClick={(e) => e.stopPropagation()} // 🛑 prevent sort when clicking filter
-                style={{
-                  color: filters["adv_AM"] ? "#1677ff" : "#888",
-                  cursor: "pointer",
-                }}
-              />
-            </Dropdown>
+    //               {/* Multiselect Dropdown */}
+    //               <Select
+    //                 mode="multiple"
+    //                 allowClear
+    //                 showSearch
+    //                 placeholder="Filter Publisher"
+    //                 style={{ width: "100%" }}
+    //                 value={filters["pub_name"] || []}
+    //                 onChange={(val) =>
+    //                   setFilters((prev) => ({ ...prev, pub_name: val }))
+    //                 }
+    //                 optionLabelProp="label"
+    //                 maxTagCount="responsive"
+    //                 filterOption={(input, option) =>
+    //                   (option?.label ?? "")
+    //                     .toString()
+    //                     .toLowerCase()
+    //                     .includes(input.toLowerCase())
+    //                 }>
+    //                 {getUniqueOptions("pub_name")
+    //                   .filter((v) => v !== "" && v !== null && v !== undefined)
+    //                   .sort((a, b) =>
+    //                     !isNaN(a) && !isNaN(b)
+    //                       ? a - b
+    //                       : a.toString().localeCompare(b.toString())
+    //                   )
+    //                   .map((val) => (
+    //                     <Select.Option key={val} value={val} label={val}>
+    //                       <Checkbox
+    //                         checked={filters["pub_name"]?.includes(val)}>
+    //                         {val}
+    //                       </Checkbox>
+    //                     </Select.Option>
+    //                   ))}
+    //               </Select>
+    //             </div>
+    //           )}>
+    //           <FilterOutlined
+    //             onClick={(e) => e.stopPropagation()} // 🛑 prevent sort when clicking filter
+    //             style={{
+    //               color: filters["adv_AM"] ? "#1677ff" : "#888",
+    //               cursor: "pointer",
+    //             }}
+    //           />
+    //         </Dropdown>
 
-            {/* Pin Icon */}
-            {pinnedColumns["advertiser_details"] ? (
-              <PushpinFilled
-                onClick={(e) => {
-                  e.stopPropagation(); // 🛑 prevent sort when pin clicked
-                  togglePin("advertiser_details");
-                }}
-                style={{ color: "#1677ff", cursor: "pointer" }}
-              />
-            ) : (
-              <PushpinOutlined
-                onClick={(e) => {
-                  e.stopPropagation(); // 🛑 prevent sort when pin clicked
-                  togglePin("advertiser_details");
-                }}
-                style={{ color: "#888", cursor: "pointer" }}
-              />
-            )}
-          </div>
-        </div>
-      ),
-      key: "advertiser_details",
-      dataIndex: "advertiser_details",
-      sorter: (a, b) => {
-        const advA = `${a.adv_AM || ""} ${a.adv_id || ""}`.toLowerCase();
-        const advB = `${b.adv_AM || ""} ${b.adv_id || ""}`.toLowerCase();
-        return advA.localeCompare(advB);
-      },
-      sortOrder:
-        sortInfo.columnKey === "advertiser_details" ? sortInfo.order : null,
-      fixed: pinnedColumns["advertiser_details"] ? "left" : false,
-      onHeaderCell: () => ({
-        onClick: () => {
-          let newOrder = "ascend";
-          if (sortInfo.columnKey === "advertiser_details") {
-            if (sortInfo.order === "ascend") newOrder = "descend";
-            else if (sortInfo.order === "descend") newOrder = null;
-            else newOrder = "ascend";
-          }
-          setSortInfo({
-            columnKey: "advertiser_details",
-            order: newOrder,
-          });
-        },
-      }),
-      render: (_, record) => (
-        <div>
-          <p>
-            {record.adv_AM || "-"}({record.adv_id || "-"})
-          </p>
-        </div>
-      ),
-    },
+    //         {/* Pin Icon */}
+    //         {pinnedColumns["advertiser_details"] ? (
+    //           <PushpinFilled
+    //             onClick={(e) => {
+    //               e.stopPropagation(); // 🛑 prevent sort when pin clicked
+    //               togglePin("advertiser_details");
+    //             }}
+    //             style={{ color: "#1677ff", cursor: "pointer" }}
+    //           />
+    //         ) : (
+    //           <PushpinOutlined
+    //             onClick={(e) => {
+    //               e.stopPropagation(); // 🛑 prevent sort when pin clicked
+    //               togglePin("advertiser_details");
+    //             }}
+    //             style={{ color: "#888", cursor: "pointer" }}
+    //           />
+    //         )}
+    //       </div>
+    //     </div>
+    //   ),
+    //   key: "advertiser_details",
+    //   dataIndex: "advertiser_details",
+    //   sorter: (a, b) => {
+    //     const advA = `${a.adv_AM || ""} ${a.adv_id || ""}`.toLowerCase();
+    //     const advB = `${b.adv_AM || ""} ${b.adv_id || ""}`.toLowerCase();
+    //     return advA.localeCompare(advB);
+    //   },
+    //   sortOrder:
+    //     sortInfo.columnKey === "advertiser_details" ? sortInfo.order : null,
+    //   fixed: pinnedColumns["advertiser_details"] ? "left" : false,
+    //   onHeaderCell: () => ({
+    //     onClick: () => {
+    //       let newOrder = "ascend";
+    //       if (sortInfo.columnKey === "advertiser_details") {
+    //         if (sortInfo.order === "ascend") newOrder = "descend";
+    //         else if (sortInfo.order === "descend") newOrder = null;
+    //         else newOrder = "ascend";
+    //       }
+    //       setSortInfo({
+    //         columnKey: "advertiser_details",
+    //         order: newOrder,
+    //       });
+    //     },
+    //   }),
+    //   render: (_, record) => (
+    //     <div>
+    //       <p>
+    //         {record.adv_AM || "-"}({record.adv_id || "-"})
+    //       </p>
+    //     </div>
+    //   ),
+    // },
 
-    {
-      title: (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            color:
-              filters["pub_name"] || filters["pub_id"] ? "#1677ff" : "inherit",
-            gap: 6,
-          }}>
-          <span>PUB AM(PUB ID)</span>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {/* Filter Dropdown */}
-            <Dropdown
-              trigger={["click"]}
-              dropdownRender={() => (
-                <>
-                  <div
-                    onClick={(e) => e.stopPropagation()}
-                    style={{
-                      padding: 8,
-                      backgroundColor: "white",
-                      borderRadius: 4,
-                      width: 260,
-                    }}>
-                    {/* Select All */}
-                    <div style={{ marginBottom: 8 }}>
-                      <Checkbox
-                        indeterminate={
-                          filters["pub_name"]?.length > 0 &&
-                          filters["pub_name"]?.length <
-                            getUniqueOptions("pub_name").filter(
-                              (v) => v !== "" && v !== null && v !== undefined
-                            ).length
-                        }
-                        checked={
-                          filters["pub_name"]?.length ===
-                          getUniqueOptions("pub_name").filter(
-                            (v) => v !== "" && v !== null && v !== undefined
-                          ).length
-                        }
-                        onChange={(e) =>
-                          setFilters((prev) => ({
-                            ...prev,
-                            pub_name: e.target.checked
-                              ? getUniqueOptions("pub_name").filter(
-                                  (v) =>
-                                    v !== "" && v !== null && v !== undefined
-                                )
-                              : [],
-                          }))
-                        }>
-                        Select All
-                      </Checkbox>
-                    </div>
+    // {
+    //   title: (
+    //     <div
+    //       style={{
+    //         display: "flex",
+    //         justifyContent: "space-between",
+    //         alignItems: "center",
+    //         color:
+    //           filters["pub_name"] || filters["pub_id"] ? "#1677ff" : "inherit",
+    //         gap: 6,
+    //       }}>
+    //       <span>PUB AM(PUB ID)</span>
+    //       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+    //         {/* Filter Dropdown */}
+    //         <Dropdown
+    //           trigger={["click"]}
+    //           dropdownRender={() => (
+    //             <>
+    //               <div
+    //                 onClick={(e) => e.stopPropagation()}
+    //                 style={{
+    //                   padding: 8,
+    //                   backgroundColor: "white",
+    //                   borderRadius: 4,
+    //                   width: 260,
+    //                 }}>
+    //                 {/* Select All */}
+    //                 <div style={{ marginBottom: 8 }}>
+    //                   <Checkbox
+    //                     indeterminate={
+    //                       filters["pub_name"]?.length > 0 &&
+    //                       filters["pub_name"]?.length <
+    //                         getUniqueOptions("pub_name").filter(
+    //                           (v) => v !== "" && v !== null && v !== undefined
+    //                         ).length
+    //                     }
+    //                     checked={
+    //                       filters["pub_name"]?.length ===
+    //                       getUniqueOptions("pub_name").filter(
+    //                         (v) => v !== "" && v !== null && v !== undefined
+    //                       ).length
+    //                     }
+    //                     onChange={(e) =>
+    //                       setFilters((prev) => ({
+    //                         ...prev,
+    //                         pub_name: e.target.checked
+    //                           ? getUniqueOptions("pub_name").filter(
+    //                               (v) =>
+    //                                 v !== "" && v !== null && v !== undefined
+    //                             )
+    //                           : [],
+    //                       }))
+    //                     }>
+    //                     Select All
+    //                   </Checkbox>
+    //                 </div>
 
-                    {/* Multiselect Publisher Filter */}
-                    <Select
-                      mode="multiple"
-                      allowClear
-                      showSearch
-                      placeholder="Filter Publisher"
-                      style={{ width: "100%" }}
-                      value={filters["pub_name"] || []}
-                      onChange={(val) =>
-                        setFilters((prev) => ({ ...prev, pub_name: val }))
-                      }
-                      optionLabelProp="label"
-                      maxTagCount="responsive"
-                      filterOption={(input, option) =>
-                        (option?.label ?? "")
-                          .toString()
-                          .toLowerCase()
-                          .includes(input.toLowerCase())
-                      }>
-                      {getUniqueOptions("pub_name")
-                        .filter(
-                          (v) => v !== "" && v !== null && v !== undefined
-                        )
-                        .sort((a, b) =>
-                          !isNaN(a) && !isNaN(b)
-                            ? a - b
-                            : a.toString().localeCompare(b.toString())
-                        )
-                        .map((val) => (
-                          <Select.Option key={val} value={val} label={val}>
-                            <Checkbox
-                              checked={filters["pub_name"]?.includes(val)}>
-                              {val}
-                            </Checkbox>
-                          </Select.Option>
-                        ))}
-                    </Select>
-                  </div>
-                </>
-              )}>
-              <FilterOutlined
-                onClick={(e) => e.stopPropagation()} // 🛑 prevent header click
-                style={{
-                  color: filters["pub_name"] ? "#1677ff" : "#888",
-                  cursor: "pointer",
-                }}
-              />
-            </Dropdown>
+    //                 {/* Multiselect Publisher Filter */}
+    //                 <Select
+    //                   mode="multiple"
+    //                   allowClear
+    //                   showSearch
+    //                   placeholder="Filter Publisher"
+    //                   style={{ width: "100%" }}
+    //                   value={filters["pub_name"] || []}
+    //                   onChange={(val) =>
+    //                     setFilters((prev) => ({ ...prev, pub_name: val }))
+    //                   }
+    //                   optionLabelProp="label"
+    //                   maxTagCount="responsive"
+    //                   filterOption={(input, option) =>
+    //                     (option?.label ?? "")
+    //                       .toString()
+    //                       .toLowerCase()
+    //                       .includes(input.toLowerCase())
+    //                   }>
+    //                   {getUniqueOptions("pub_name")
+    //                     .filter(
+    //                       (v) => v !== "" && v !== null && v !== undefined
+    //                     )
+    //                     .sort((a, b) =>
+    //                       !isNaN(a) && !isNaN(b)
+    //                         ? a - b
+    //                         : a.toString().localeCompare(b.toString())
+    //                     )
+    //                     .map((val) => (
+    //                       <Select.Option key={val} value={val} label={val}>
+    //                         <Checkbox
+    //                           checked={filters["pub_name"]?.includes(val)}>
+    //                           {val}
+    //                         </Checkbox>
+    //                       </Select.Option>
+    //                     ))}
+    //                 </Select>
+    //               </div>
+    //             </>
+    //           )}>
+    //           <FilterOutlined
+    //             onClick={(e) => e.stopPropagation()} // 🛑 prevent header click
+    //             style={{
+    //               color: filters["pub_name"] ? "#1677ff" : "#888",
+    //               cursor: "pointer",
+    //             }}
+    //           />
+    //         </Dropdown>
 
-            {/* Pin Icon */}
-            {pinnedColumns["publisher_details"] ? (
-              <PushpinFilled
-                onClick={(e) => {
-                  e.stopPropagation(); // 🛑 prevent sort
-                  togglePin("publisher_details");
-                }}
-                style={{ color: "#1677ff", cursor: "pointer" }}
-              />
-            ) : (
-              <PushpinOutlined
-                onClick={(e) => {
-                  e.stopPropagation(); // 🛑 prevent sort
-                  togglePin("publisher_details");
-                }}
-                style={{ color: "#888", cursor: "pointer" }}
-              />
-            )}
-          </div>
-        </div>
-      ),
-      key: "publisher_details",
-      dataIndex: "publisher_details",
-      fixed: pinnedColumns["publisher_details"] ? "left" : false,
-      sorter: (a, b) => {
-        const pubA = `${a.pub_name || ""} ${a.pub_id || ""}`.toLowerCase();
-        const pubB = `${b.pub_name || ""} ${b.pub_id || ""}`.toLowerCase();
-        return pubA.localeCompare(pubB);
-      },
-      sortOrder:
-        sortInfo.columnKey === "publisher_details" ? sortInfo.order : null,
-      onHeaderCell: () => ({
-        onClick: () => {
-          let newOrder = "ascend";
-          if (sortInfo.columnKey === "publisher_details") {
-            if (sortInfo.order === "ascend") newOrder = "descend";
-            else if (sortInfo.order === "descend") newOrder = null;
-            else newOrder = "ascend";
-          }
-          setSortInfo({
-            columnKey: "publisher_details",
-            order: newOrder,
-          });
-        },
-      }),
-      render: (_, record) => (
-        <div>
-          <p>
-            {record.pub_name || "-"}({record.pub_id || "-"})
-          </p>
-        </div>
-      ),
-    },
-
+    //         {/* Pin Icon */}
+    //         {pinnedColumns["publisher_details"] ? (
+    //           <PushpinFilled
+    //             onClick={(e) => {
+    //               e.stopPropagation(); // 🛑 prevent sort
+    //               togglePin("publisher_details");
+    //             }}
+    //             style={{ color: "#1677ff", cursor: "pointer" }}
+    //           />
+    //         ) : (
+    //           <PushpinOutlined
+    //             onClick={(e) => {
+    //               e.stopPropagation(); // 🛑 prevent sort
+    //               togglePin("publisher_details");
+    //             }}
+    //             style={{ color: "#888", cursor: "pointer" }}
+    //           />
+    //         )}
+    //       </div>
+    //     </div>
+    //   ),
+    //   key: "publisher_details",
+    //   dataIndex: "publisher_details",
+    //   fixed: pinnedColumns["publisher_details"] ? "left" : false,
+    //   sorter: (a, b) => {
+    //     const pubA = `${a.pub_name || ""} ${a.pub_id || ""}`.toLowerCase();
+    //     const pubB = `${b.pub_name || ""} ${b.pub_id || ""}`.toLowerCase();
+    //     return pubA.localeCompare(pubB);
+    //   },
+    //   sortOrder:
+    //     sortInfo.columnKey === "publisher_details" ? sortInfo.order : null,
+    //   onHeaderCell: () => ({
+    //     onClick: () => {
+    //       let newOrder = "ascend";
+    //       if (sortInfo.columnKey === "publisher_details") {
+    //         if (sortInfo.order === "ascend") newOrder = "descend";
+    //         else if (sortInfo.order === "descend") newOrder = null;
+    //         else newOrder = "ascend";
+    //       }
+    //       setSortInfo({
+    //         columnKey: "publisher_details",
+    //         order: newOrder,
+    //       });
+    //     },
+    //   }),
+    //   render: (_, record) => (
+    //     <div>
+    //       <p>
+    //         {record.pub_name || "-"}({record.pub_id || "-"})
+    //       </p>
+    //     </div>
+    //   ),
+    // },
+    getColumnWithFilterAndPin("adv_AM", "ADV AM"),
+    getColumnWithFilterAndPin("adv_display", "ADV ID"),
+    getColumnWithFilterAndPin("pub_name", "PUB AM"),
+    getColumnWithFilterAndPin("pub_display", "PUB ID"),
     getColumnWithFilterAndPin("campaign_name", "Campaign Name"),
     getColumnWithFilterAndPin("campaign_id", "Campaign ID"),
     getColumnWithFilterAndPin("geo", "Geo"),
