@@ -102,14 +102,15 @@ const CreateCampaignForm = () => {
     // Extract ONLY the IDs
     const adv_id = values.advertiser?.value || values.advertiser;
     const adv_d = values.adv_d?.value || values.adv_d;
+    console.log(values.geo_details);
     // GEO must be array of arrays
-    const geoArray = values.geo_details.map((item) => [item.geo]);
+    const geoArray = values.geo_details.map((item) => item.geo);
 
     // Payout must be single value, not array
     const payoutValue = values.geo_details.map((item) => [item.payout]);
 
     // OS must be single value, not array
-    const osValue = values.geo_details.map((item) => [item.os]);
+    const osValue = values.geo_details.map((item) => item.os);
 
     const finalPayload = {
       Adv_name: values.Adv_name,
@@ -127,6 +128,7 @@ const CreateCampaignForm = () => {
       preview_url: values.preview_url || "",
       status: values.status,
     };
+    console.log(finalPayload);
     // remove nested structure (optional but recommended)
     delete finalPayload.geo_details;
 
