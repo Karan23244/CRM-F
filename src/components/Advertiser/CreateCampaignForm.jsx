@@ -15,6 +15,7 @@ const { Option } = Select;
 const CreateCampaignForm = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const editRecord = location.state?.record || null;
   const user = useSelector((state) => state.auth.user);
   const userId = user?.id || null;
@@ -95,8 +96,12 @@ const CreateCampaignForm = () => {
   }, [fetchDropdowns]);
 
   const onFinish = async (values) => {
+    if (isSubmitting) return; // ⛔ Prevent double click
+    setIsSubmitting(true); // 🔒 Lock submit
     if (editRecord) {
-      return handleEditCampaign(values); // 🔥 EDIT
+      await handleEditCampaign(values);
+      setIsSubmitting(false);
+      return;
     }
 
     // Extract ONLY the IDs
@@ -149,6 +154,7 @@ const CreateCampaignForm = () => {
       console.error(error);
       Swal.fire("Error", "Error creating campaign", "error");
     }
+    setIsSubmitting(false);
   };
   const handleEditCampaign = async (values) => {
     // Extract ONLY the IDs
@@ -559,7 +565,8 @@ const CreateCampaignForm = () => {
                           ]}>
                           <Select
                             placeholder="Select Payable Event"
-                            className="!h-11 rounded-lg border-gray-300 bg-white">
+                            className="!h-11 rounded-lg border-gray-300 bg-white"
+                            showSearch>
                             {dropdownOptions.payable_event.map((event) => (
                               <Option key={event} value={event}>
                                 {event}
@@ -683,7 +690,7 @@ const CreateCampaignForm = () => {
             <Button
               type="default"
               htmlType="submit"
-              loading={loading}
+              loading={loading || isSubmitting}
               className="!bg-[#2F5D99] hover:!bg-[#24487A] !text-white !rounded-lg !px-10 !py-5 !h-12 !text-lg !border-none !shadow-md">
               {editRecord ? "Edit Campaign" : "Create Campaign"}
             </Button>
