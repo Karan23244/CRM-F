@@ -145,9 +145,37 @@ const CampaignList = () => {
   const togglePin = (key) =>
     setPinnedColumns((prev) => ({ ...prev, [key]: !prev[key] }));
 
-  const getUniqueOptions = (key) => [
-    ...new Set(campaigns.map((c) => c[key]).filter(Boolean)),
-  ];
+  // const getUniqueOptions = (key) => [
+  //   ...new Set(campaigns.map((c) => c[key]).filter(Boolean)),
+  // ];
+  // 🔥 Dynamic filter option generator
+  const getUniqueOptions = (columnKey) => {
+    // If THIS column already has a filter applied → it should always show full data
+    const hasSelfFilter = filters[columnKey] && filters[columnKey].length > 0;
+
+    // If NO filters applied anywhere → show full data for all columns
+    const noFiltersApplied = Object.keys(filters).length === 0;
+
+    // If this column is being opened → type === "full-data"
+    // If other columns → type === "filtered-data"
+
+    // Determine whether to use full dataset or filtered dataset
+    let source = campaigns; // full dataset
+
+    if (!hasSelfFilter && !noFiltersApplied) {
+      // Other columns should show only filtered options
+      source = filteredCampaigns;
+    }
+
+    // Extract unique values
+    return [
+      ...new Set(
+        source
+          .map((c) => c[columnKey])
+          .filter((v) => v !== "" && v !== null && v !== undefined)
+      ),
+    ];
+  };
 
   // Editable cell factory
   const getEditableCell = (field, type = "text") => ({
@@ -273,26 +301,19 @@ const CampaignList = () => {
                   }}>
                   {/* Select All */}
                   <div style={{ marginBottom: 8 }}>
-                    <Checkbox
-                      indeterminate={
-                        filters[dataIndex]?.length > 0 &&
-                        filters[dataIndex]?.length <
-                          getUniqueOptions(dataIndex).length
-                      }
-                      checked={
-                        filters[dataIndex]?.length ===
-                        getUniqueOptions(dataIndex).length
-                      }
-                      onChange={(e) =>
-                        setFilters((prev) => ({
-                          ...prev,
-                          [dataIndex]: e.target.checked
-                            ? [...getUniqueOptions(dataIndex)]
-                            : [],
-                        }))
-                      }>
-                      Select All
-                    </Checkbox>
+                    {getUniqueOptions(dataIndex)
+                      .sort((a, b) =>
+                        !isNaN(a) && !isNaN(b)
+                          ? a - b
+                          : a.toString().localeCompare(b.toString())
+                      )
+                      .map((val) => (
+                        <Select.Option key={val} value={val} label={val}>
+                          <Checkbox checked={filters[dataIndex]?.includes(val)}>
+                            {val}
+                          </Checkbox>
+                        </Select.Option>
+                      ))}
                   </div>
 
                   {/* Multiselect */}
@@ -680,6 +701,7 @@ const CampaignList = () => {
       "Status",
       getEditableCell("status").render
     ),
+    getColumnWithFilterAndPin("da", "DA"),
     {
       title: "Last Updated",
       dataIndex: "updated_at",

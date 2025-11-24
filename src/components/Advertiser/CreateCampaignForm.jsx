@@ -102,15 +102,12 @@ const CreateCampaignForm = () => {
     // Extract ONLY the IDs
     const adv_id = values.advertiser?.value || values.advertiser;
     const adv_d = values.adv_d?.value || values.adv_d;
-    console.log(values.geo_details);
-    // GEO must be array of arrays
     const geoArray = values.geo_details.map((item) => item.geo);
-
-    // Payout must be single value, not array
     const payoutValue = values.geo_details.map((item) => [item.payout]);
-
-    // OS must be single value, not array
     const osValue = values.geo_details.map((item) => item.os);
+    const payableEvents = values.geo_details.map((item) => [
+      item.payable_event,
+    ]);
 
     const finalPayload = {
       Adv_name: values.Adv_name,
@@ -120,13 +117,15 @@ const CreateCampaignForm = () => {
       adv_payout: payoutValue, // FIXED
       os: osValue, // FIXED (no array)
       state_city: values.state_city,
-      payable_event: values.payable_event,
+      payable_event: payableEvents,
       mmp_tracker: values.mmp_tracker,
       adv_d: adv_d,
       kpi: values.kpi || "",
       tracking_url: values.tracking_url || "",
       preview_url: values.preview_url || "",
+      da: values.da,
       status: values.status,
+      user_id: userId,
     };
     console.log(finalPayload);
     // remove nested structure (optional but recommended)
@@ -164,7 +163,7 @@ const CreateCampaignForm = () => {
 
     // OS must be single value, not array
     const osValue = values.geo_details.map((item) => [item.os]);
-
+    const payableEvents = values.geo_details.map((item) => item.payable_event);
     const finalPayload = {
       id: editRecord.id, // required name
       Adv_name: values.Adv_name,
@@ -174,12 +173,13 @@ const CreateCampaignForm = () => {
       adv_payout: payoutValue, // FIXED
       os: osValue, // FIXED (no array)
       state_city: values.state_city,
-      payable_event: values.payable_event,
+      payable_event: payableEvents,
       mmp_tracker: values.mmp_tracker,
       adv_d: adv_d,
       kpi: values.kpi || "",
       tracking_url: values.tracking_url || "",
       preview_url: values.preview_url || "",
+      da: values.da,
       status: values.status,
     };
 
@@ -269,6 +269,7 @@ const CreateCampaignForm = () => {
         geo: parsedGeo,
         payout: editRecord.adv_payout || "",
         os: normalizedOS || "",
+        payable_event: editRecord.payable_event || "",
       },
     ];
 
@@ -295,6 +296,7 @@ const CreateCampaignForm = () => {
 
       preview_url: editRecord.preview_url,
       tracking_url: editRecord.tracking_url,
+      da: editRecord.da,
       status: editRecord.status,
     });
   }, [editRecord, form]);
@@ -506,9 +508,9 @@ const CreateCampaignForm = () => {
                   {fields.map(({ key, name }, index) => (
                     <div
                       key={key}
-                      className="grid grid-cols-1 md:grid-cols-12 gap-4 p-3 rounded-xl border border-gray-200 bg-gray-50 shadow-sm">
+                      className="grid grid-cols-1 md:grid-cols-12 gap-x-5 p-3 rounded-xl border border-gray-200 bg-gray-50 shadow-sm">
                       {/* GEO */}
-                      <div className="md:col-span-4">
+                      <div className="md:col-span-6">
                         <Form.Item
                           label={<span className="">Geo</span>}
                           name={[name, "geo"]}
@@ -530,7 +532,7 @@ const CreateCampaignForm = () => {
                       </div>
 
                       {/* PAYOUT */}
-                      <div className="md:col-span-4">
+                      <div className="md:col-span-6">
                         <Form.Item
                           label={<span className="">Payout</span>}
                           name={[name, "payout"]}
@@ -544,9 +546,31 @@ const CreateCampaignForm = () => {
                           />
                         </Form.Item>
                       </div>
+                      {/* PAYABLE EVENT */}
+                      <div className="md:col-span-6">
+                        <Form.Item
+                          label="Payable Event"
+                          name={[name, "payable_event"]}
+                          rules={[
+                            {
+                              required: true,
+                              message: "Please select payable event",
+                            },
+                          ]}>
+                          <Select
+                            placeholder="Select Payable Event"
+                            className="!h-11 rounded-lg border-gray-300 bg-white">
+                            {dropdownOptions.payable_event.map((event) => (
+                              <Option key={event} value={event}>
+                                {event}
+                              </Option>
+                            ))}
+                          </Select>
+                        </Form.Item>
+                      </div>
 
                       {/* OS */}
-                      <div className="md:col-span-4">
+                      <div className="md:col-span-6">
                         <Form.Item
                           label={<span className="">OS</span>}
                           name={[name, "os"]}
@@ -590,24 +614,6 @@ const CreateCampaignForm = () => {
           </Form.List>
 
           <Form.Item
-            label="Payable Event"
-            name="payable_event"
-            rules={[
-              { required: true, message: "Please select payable event" },
-            ]}>
-            <Select
-              showSearch
-              placeholder="Select Payable Event"
-              className="rounded-lg !h-11 border-gray-200 bg-gray-50">
-              {dropdownOptions.payable_event.map((e) => (
-                <Option key={e} value={e}>
-                  {e}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-
-          <Form.Item
             label="MMP Tracker"
             name="mmp_tracker"
             rules={[{ required: true, message: "Please select MMP tracker" }]}>
@@ -647,6 +653,18 @@ const CreateCampaignForm = () => {
               className="h-11 rounded-lg border-gray-200 bg-gray-50"
             />
           </Form.Item>
+          <Form.Item
+            label="DA"
+            name="da"
+            rules={[{ required: true, message: "Please select DA type" }]}>
+            <Select
+              placeholder="Select DA"
+              className="rounded-lg !h-11 border-gray-200 bg-gray-50">
+              <Option value="Direct">Direct</Option>
+              <Option value="Agency">Agency</Option>
+            </Select>
+          </Form.Item>
+
           <Form.Item
             label="Status"
             name="status"
