@@ -514,7 +514,7 @@ const AdvertiserData = () => {
     mmp_tracker: "MMP Tracker",
     adv_display: "ADV ID",
     adv_payout: "ADV Payout $",
-    pub_am: "Pub AM",
+    pub_am: "PUB AM",
     pub_display: "PubID",
     pid: "PID",
     da: "DA",
