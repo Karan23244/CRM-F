@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   FaBullhorn,
   FaPauseCircle,
@@ -6,11 +6,71 @@ import {
   FaLink,
 } from "react-icons/fa";
 import { FaUsers } from "react-icons/fa";
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector } from "react-redux";
 import StyledTable from "../Utils/StyledTable";
-
+import axios from "axios";
+import { Switch, message } from "antd";
+import Swal from "sweetalert2";
+const apiUrl = import.meta.env.VITE_API_URL;
 export default function Dashboard() {
   const { user } = useSelector((state) => state.auth);
+  const [toggleValue, setToggleValue] = useState(0);
+  const [loadingToggle, setLoadingToggle] = useState(false);
+
+  // 🔹 Fetch Hierarchy Toggle on Load
+  const fetchToggle = async () => {
+    try {
+      const res = await axios.get(`${apiUrl}/getHierarchyToggle`);
+      if (res.data?.success) {
+        setToggleValue(res.data.value);
+      }
+    } catch (err) {
+      console.log(err);
+      Swal.fire({
+        icon: "error",
+        title: "Failed to load toggle",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    }
+  };
+
+  // 🔹 Update Toggle
+  const updateToggle = async (checked) => {
+    setLoadingToggle(true);
+    try {
+      const res = await axios.put(`${apiUrl}/updateHierarchyToggle`, {
+        value: checked ? 1 : 0,
+      });
+
+      if (res.data?.success) {
+        setToggleValue(res.data.new_value);
+
+        Swal.fire({
+          icon: "success",
+          title: "Permission Updated",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      }
+    } catch (err) {
+      console.log(err);
+
+      Swal.fire({
+        icon: "error",
+        title: "Failed to update permission",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    } finally {
+      setLoadingToggle(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchToggle();
+  }, []);
+
   const dataSource = [
     {
       key: "1",
@@ -39,22 +99,11 @@ export default function Dashboard() {
   ];
 
   const columns = [
-    {
-      title: "Date",
-      dataIndex: "date",
-      key: "date",
-    },
-    {
-      title: "Campaign Name",
-      dataIndex: "name",
-      key: "name",
-    },
-    {
-      title: "PIDs Name",
-      dataIndex: "pid",
-      key: "pid",
-    },
+    { title: "Date", dataIndex: "date", key: "date" },
+    { title: "Campaign Name", dataIndex: "name", key: "name" },
+    { title: "PIDs Name", dataIndex: "pid", key: "pid" },
   ];
+
   return (
     <div className="p-6 bg-[#e5ecf7] min-h-screen">
       {/* Header */}
@@ -125,6 +174,21 @@ export default function Dashboard() {
               <span className="text-3xl font-bold">2</span>
             </div>
           </div>
+
+          {/* 🔹 NEW TOGGLE UNDER TODAY'S DATA */}
+          {user?.role?.includes("admin") && (
+            <div className="mt-6 flex items-center justify-between p-4 bg-gray-50 rounded-xl border">
+              <span className="text-gray-700 font-medium text-lg">
+                View Request Permission
+              </span>
+
+              <Switch
+                loading={loadingToggle}
+                checked={toggleValue === 1}
+                onChange={updateToggle}
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -136,6 +200,7 @@ export default function Dashboard() {
             View All
           </button>
         </div>
+
         <StyledTable
           bordered
           dataSource={dataSource}

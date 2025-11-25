@@ -35,10 +35,12 @@ const CampaignList = () => {
   const [pinnedColumns, setPinnedColumns] = useState({});
   const [searchText, setSearchText] = useState("");
   const [editingCell, setEditingCell] = useState({ id: null, key: null });
+  const [firstFilterColumn, setFirstFilterColumn] = useState(null);
   const [hiddenColumns, setHiddenColumns] = useState(() => {
     const saved = localStorage.getItem("hiddenCampaignColumns");
     return saved ? JSON.parse(saved) : [];
   });
+  console.log("Hidden Columns:", campaigns);
   const [sortInfo, setSortInfo] = useState({
     columnKey: null,
     order: null,
@@ -125,31 +127,22 @@ const CampaignList = () => {
   // ];
   // 🔥 Dynamic filter option generator
   const getUniqueOptions = (columnKey) => {
-    // If THIS column already has a filter applied → it should always show full data
-    const hasSelfFilter = filters[columnKey] && filters[columnKey].length > 0;
-
-    // If NO filters applied anywhere → show full data for all columns
     const noFiltersApplied = Object.keys(filters).length === 0;
 
-    // If this column is being opened → type === "full-data"
-    // If other columns → type === "filtered-data"
-
-    // Determine whether to use full dataset or filtered dataset
-    let source = campaigns; // full dataset
-
-    if (!hasSelfFilter && !noFiltersApplied) {
-      // Other columns should show only filtered options
-      source = filteredCampaigns;
+    // If NO filters applied → show full options
+    if (noFiltersApplied) {
+      return [...new Set(campaigns.map((r) => r[columnKey]))].filter(Boolean);
     }
 
-    // Extract unique values
-    return [
-      ...new Set(
-        source
-          .map((c) => c[columnKey])
-          .filter((v) => v !== "" && v !== null && v !== undefined)
-      ),
-    ];
+    // If THIS is the first filtered column → show full options
+    if (firstFilterColumn === columnKey) {
+      return [...new Set(campaigns.map((r) => r[columnKey]))].filter(Boolean);
+    }
+
+    // Otherwise → show options based on already filtered rows
+    return [...new Set(filteredCampaigns.map((r) => r[columnKey]))].filter(
+      Boolean
+    );
   };
 
   // Editable cell factory
@@ -299,9 +292,26 @@ const CampaignList = () => {
                     placeholder={`Select ${title}`}
                     style={{ width: 250 }}
                     value={filters[dataIndex] || []}
-                    onChange={(val) =>
-                      setFilters((prev) => ({ ...prev, [dataIndex]: val }))
-                    }
+                    onChange={(val) => {
+                      setFilters((prev) => {
+                        const newFilters = { ...prev, [dataIndex]: val };
+
+                        // If no first filter is selected, set this column as first
+                        if (!firstFilterColumn && val.length > 0) {
+                          setFirstFilterColumn(dataIndex);
+                        }
+
+                        // If this column is cleared and it was the first filter → reset first filter
+                        if (
+                          firstFilterColumn === dataIndex &&
+                          val.length === 0
+                        ) {
+                          setFirstFilterColumn(null);
+                        }
+
+                        return newFilters;
+                      });
+                    }}
                     optionLabelProp="label"
                     maxTagCount="responsive"
                     filterOption={(input, option) =>

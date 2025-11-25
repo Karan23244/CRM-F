@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Table,
   Checkbox,
@@ -63,6 +63,7 @@ const columnHeadingsPub = {
 
 // Advertiser Column Headings
 const columnHeadingsAdv = {
+  da: "DA",
   username: "Input UserName",
   pub_am: "PUB AM",
   campaign_name: "Campaign Name",
@@ -77,7 +78,6 @@ const columnHeadingsAdv = {
   pub_display: "PUB ID",
   pay_out: "Pub Payout $",
   pid: "PID",
-  da: "DA",
   shared_date: "Shared Date",
   paused_date: "Paused Date",
   fp: "FP", // ✅ Added after paused_date
@@ -117,6 +117,7 @@ const CampianData = () => {
   const [dropdownOptions, setDropdownOptions] = useState({
     os: ["Android", "APK", "iOS"],
   });
+  const [firstFilteredColumn, setFirstFilteredColumn] = useState(null);
   // 🔹 Manage hidden columns (saved per table type)
   const [hiddenColumns, setHiddenColumns] = useState(() => {
     const saved = localStorage.getItem("hiddenColumns");
@@ -286,13 +287,57 @@ const CampianData = () => {
     //   const dateFiltered = filteredData.filter((item) =>
     //     dayjs(item.shared_date).isBetween(start, end, null, "[]")
     //   );
+    // Build unique dropdown values dynamically based on selection rules
+    const valuesObj = {};
 
-      generateUniqueValues(filteredData);
+    // For each column:
+    Object.keys(columnHeadingsAdv).forEach((col) => {
+      const source = getDataForDropdown(col); // 🔥 critical
+      valuesObj[col] = Array.from(
+        new Set(
+          source.map((row) => {
+            const v = row[col];
+            return v === null || v === undefined || v === ""
+              ? "-"
+              : v.toString().trim();
+          })
+        )
+      );
+    });
+
+    setUniqueValues(valuesObj);
+
     // }
   }, [selectedDateRange, filteredData]);
   // useEffect(() => {
   //   generateUniqueValues(advData);
   // }, [advData]);
+  const getDataForDropdown = (columnKey) => {
+    // 🔹 Case 1: No filter applied yet → always use full data of current month/date range
+    if (!firstFilteredColumn) {
+      return filteredData;
+    }
+
+    // 🔹 Case 2: This is the FIRST filtered column → use full data of month/range (NOT filtered)
+    if (columnKey === firstFilteredColumn) {
+      return fullMonthOrRangeData;
+    }
+
+    // 🔹 Case 3: Other columns → use filtered data
+    return filteredData;
+  };
+  const fullMonthOrRangeData = useMemo(() => {
+    const data = selectedType === "publisher" ? pubData : advData;
+
+    // Keep only rows inside date range / current month
+    return data.filter((item) => {
+      const shared = dayjs(item.shared_date);
+      const start = dayjs(selectedDateRange[0]).startOf("day");
+      const end = dayjs(selectedDateRange[1]).endOf("day");
+      return shared.isBetween(start, end, null, "[]");
+    });
+  }, [pubData, advData, selectedType, selectedDateRange]);
+
   // Generate unique values for filtering
   const generateUniqueValues = (data) => {
     const uniqueVals = {};
@@ -424,9 +469,30 @@ const CampianData = () => {
     }
   };
   // Handle Filter Change
+  // const handleFilterChange = (value, key) => {
+  //   setFilters((prev) => ({ ...prev, [key]: value }));
+  // };
   const handleFilterChange = (value, key) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
+    setFilters((prev) => {
+      // If no filter applied yet → mark this as first filtered column
+      if (!firstFilteredColumn && value.length > 0) {
+        setFirstFilteredColumn(key);
+      }
+
+      // If filter cleared completely → reset first filter logic
+      const isAllFiltersEmpty = Object.values({
+        ...prev,
+        [key]: value,
+      }).every((arr) => !arr || arr.length === 0);
+
+      if (isAllFiltersEmpty) {
+        setFirstFilteredColumn(null);
+      }
+
+      return { ...prev, [key]: value };
+    });
   };
+
   function isEmpty(value) {
     return value === null || value === undefined || value === "";
   }

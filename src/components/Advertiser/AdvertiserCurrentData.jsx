@@ -91,6 +91,7 @@ const AdvertiserData = () => {
   const [selectedPauseRecord, setSelectedPauseRecord] = useState(null);
   const [selectedPauseDate, setSelectedPauseDate] = useState(null);
   const [selectedCampaignId, setSelectedCampaignId] = useState(null);
+  const [firstFilteredColumn, setFirstFilteredColumn] = useState(null);
   useEffect(() => {
     if (user?.id) {
       fetchData();
@@ -290,39 +291,29 @@ const AdvertiserData = () => {
       message.error("Failed to fetch dropdown options");
     }
   }, [userId]);
+  const handleFilterChange = (value, key) => {
+    setFilters((prev) => {
+      // If no filter applied yet → mark this as first filtered column
+      if (!firstFilteredColumn && value.length > 0) {
+        setFirstFilteredColumn(key);
+      }
 
-  // Unique values generator for filters
-  const generateUniqueValues = useCallback((dataset) => {
-    const uniqueVals = {};
-    dataset.forEach((item) => {
-      Object.keys(item).forEach((k) => {
-        if (!uniqueVals[k]) uniqueVals[k] = new Set();
-        const rawVal = item[k];
-        const norm =
-          rawVal === null ||
-          rawVal === undefined ||
-          rawVal.toString().trim() === ""
-            ? "-"
-            : rawVal.toString().trim();
-        uniqueVals[k].add(norm);
-      });
+      // If filter cleared completely → reset first filter logic
+      const isAllFiltersEmpty = Object.values({
+        ...prev,
+        [key]: value,
+      }).every((arr) => !arr || arr.length === 0);
+
+      if (isAllFiltersEmpty) {
+        setFirstFilteredColumn(null);
+      }
+
+      return { ...prev, [key]: value };
     });
-    const out = {};
-    Object.keys(uniqueVals).forEach(
-      (k) => (out[k] = Array.from(uniqueVals[k]))
-    );
-    setUniqueValues(out);
-  }, []);
-
+  };
   // Filters / search / date range memoized
   const finalFilteredData = useMemo(() => {
     let filtered = [...data];
-    // // 🔹 Filter by selected Subadmin user_id
-    // if (selectedSubAdmins.length > 0) {
-    //   filtered = filtered.filter((item) =>
-    //     selectedSubAdmins.includes(item.user_id)
-    //   );
-    // }
     // Date range filter for shared_date
     if (
       selectedDateRange &&
@@ -388,43 +379,52 @@ const AdvertiserData = () => {
 
     return filtered;
   }, [data, selectedDateRange, filters, searchTerm]);
-  // }, [data, selectedDateRange, filters, searchTerm, selectedSubAdmins]);
+  const getDataForDropdown = (columnKey) => {
+    // 🔹 Case 1: No filter applied yet → always use full data of current month/date range
+    if (!firstFilteredColumn) {
+      return finalFilteredData;
+    }
+
+    // 🔹 Case 2: This is the FIRST filtered column → use full data of month/range (NOT filtered)
+    if (columnKey === firstFilteredColumn) {
+      return fullMonthOrRangeData;
+    }
+
+    // 🔹 Case 3: Other columns → use filtered data
+    return finalFilteredData;
+  };
+  const fullMonthOrRangeData = useMemo(() => {
+    const advdata = data;
+
+    // Keep only rows inside date range / current month
+    return advdata.filter((item) => {
+      const shared = dayjs(item.shared_date);
+      const start = dayjs(selectedDateRange[0]).startOf("day");
+      const end = dayjs(selectedDateRange[1]).endOf("day");
+      return shared.isBetween(start, end, null, "[]");
+    });
+  }, [data, selectedDateRange]);
   // regenerate unique values when filtered data changes
-  // useEffect(() => {
-  //   if (
-  //     selectedDateRange &&
-  //     selectedDateRange.length === 2 &&
-  //     selectedDateRange[0] &&
-  //     selectedDateRange[1] &&
-  //     data &&
-  //     data.length > 0 // <--- important
-  //   ) {
-  //     const [start, end] = selectedDateRange;
-
-  //     const dateFiltered = data.filter((item) =>
-  //       dayjs(item.shared_date).isBetween(start, end, null, "[]")
-  //     );
-
-  //     generateUniqueValues(dateFiltered);
-  //   }
-  // }, [selectedDateRange, data]);
   useEffect(() => {
-    // if (
-    //   selectedDateRange &&
-    //   selectedDateRange.length === 2 &&
-    //   selectedDateRange[0] &&
-    //   selectedDateRange[1] &&
-    //   data &&
-    //   data.length > 0 // <--- important
-    // ) {
-    //   const [start, end] = selectedDateRange;
+    const valuesObj = {};
 
-    //   const dateFiltered = data.filter((item) =>
-    //     dayjs(item.shared_date).isBetween(start, end, null, "[]")
-    //   );
+    // For each column:
+    Object.keys(columnHeadings).forEach((col) => {
+      const source = getDataForDropdown(col); // 🔥 critical
+      valuesObj[col] = Array.from(
+        new Set(
+          source.map((row) => {
+            const v = row[col];
+            return v === null || v === undefined || v === ""
+              ? "-"
+              : v.toString().trim();
+          })
+        )
+      );
+    });
 
-    generateUniqueValues(finalFilteredData);
-  }, [finalFilteredData, generateUniqueValues]);
+    setUniqueValues(valuesObj);
+  }, [selectedDateRange, finalFilteredData]);
   const clearAllFilters = useCallback(() => {
     setFilters({});
     setHiddenColumns([]);
@@ -531,6 +531,7 @@ const AdvertiserData = () => {
   };
 
   const desiredOrder = [
+    "da",
     "adv_display",
     "campaign_name",
     "vertical",
@@ -544,7 +545,6 @@ const AdvertiserData = () => {
     "pub_display",
     "pub_am",
     "pid",
-    "da",
     "pay_out",
     "shared_date",
     "paused_date",
@@ -1060,7 +1060,6 @@ const AdvertiserData = () => {
                 />
               );
             }
-
             if (key === "fp") return <span>{value}</span>;
 
             return (
@@ -1085,12 +1084,13 @@ const AdvertiserData = () => {
                       filters[key]?.length < uniqueValues[key]?.length
                     }
                     checked={filters[key]?.length === uniqueValues[key]?.length}
-                    onChange={(e) =>
-                      setFilters((prev) => ({
-                        ...prev,
-                        [key]: e.target.checked ? [...uniqueValues[key]] : [],
-                      }))
-                    }>
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      handleFilterChange(
+                        checked ? [...uniqueValues[key]] : [],
+                        key
+                      );
+                    }}>
                     Select All
                   </Checkbox>
                 </div>
@@ -1101,9 +1101,7 @@ const AdvertiserData = () => {
                   placeholder={`Select ${columnHeadings[key]}`}
                   style={{ width: 250 }}
                   value={filters[key] || []}
-                  onChange={(val) =>
-                    setFilters((prev) => ({ ...prev, [key]: val }))
-                  }
+                  onChange={(value) => handleFilterChange(value, key)}
                   optionLabelProp="label"
                   maxTagCount="responsive"
                   filterOption={(input, option) =>

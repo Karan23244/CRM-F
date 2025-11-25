@@ -23,6 +23,7 @@ import { FaFilterCircleXmark } from "react-icons/fa6";
 const { Option } = Select;
 
 const apiUrl = import.meta.env.VITE_API_URL1;
+const apiUrl1 = import.meta.env.VITE_API_URL;
 
 const statuses = [
   "waiting",
@@ -82,6 +83,7 @@ const NewRequest = () => {
   const handleTableChange = (pagination, filters, sorter) => {
     setSortInfo(sorter);
   };
+  console.log(campaignList);
   // persist hidden columns
   useEffect(() => {
     localStorage.setItem(
@@ -127,10 +129,39 @@ const NewRequest = () => {
     });
   }, []);
 
+  // const fetchRequests = async () => {
+  //   try {
+  //     const res = await axios.get(`${apiUrl}/PrmadvRequests`);
+  //     const result = res.data?.data;
+  //     // Sort by id DESC (newest first)
+  //     let sortedData = (Array.isArray(result) ? result : []).sort(
+  //       (a, b) => b.id - a.id
+  //     );
+
+  //     // Role-based filtering
+  //     if (Array.isArray(user?.role) && user.role.includes("advertiser")) {
+  //       sortedData = sortedData.filter(
+  //         (item) => item.adv_name === user.username
+  //       );
+  //     }
+
+  //     // if role is advertiser_manager -> no filtering needed
+
+  //     setRequests(sortedData);
+  //   } catch (error) {
+  //     message.error("Failed to fetch requests");
+  //     setRequests([]); // fallback on error
+  //   }
+  // };
+
   const fetchRequests = async () => {
     try {
-      const res = await axios.get(`${apiUrl}/PrmadvRequests`);
+      const res = await axios.get(`${apiUrl1}/newPrmadvRequests`, {
+        params: { id: userId }, // <-- userId sent in params
+      });
+      console.log(res);
       const result = res.data?.data;
+
       // Sort by id DESC (newest first)
       let sortedData = (Array.isArray(result) ? result : []).sort(
         (a, b) => b.id - a.id
@@ -143,7 +174,7 @@ const NewRequest = () => {
         );
       }
 
-      // if role is advertiser_manager -> no filtering needed
+      // advertiser_manager → no filter
 
       setRequests(sortedData);
     } catch (error) {
@@ -222,7 +253,7 @@ const NewRequest = () => {
     return Object.fromEntries(
       Object.entries(values).map(([k, v]) => [k, [...v]])
     );
-  }, [filteredRequests,columnHeadings]);
+  }, [filteredRequests, columnHeadings]);
   // Compose columns with filterDropdown, filter icon state, sorting & column pinning
   const getColumns = (columnHeadings) => {
     return Object.keys(columnHeadings).map((key) => {
@@ -579,8 +610,8 @@ const NewRequest = () => {
             <Select.Option
               key={c.id}
               value={c.id}
-              label={`${c.id} / ${c.campaign_name} / ${c.os}`}>
-              {`${c.id} / ${c.campaign_name}  / ${c.os}`}
+              label={`${c.id} / ${c.campaign_name} / ${c.os} / ${c.Adv_name}`}>
+              {`${c.id} / ${c.campaign_name}  / ${c.os} / ${c.Adv_name}`} 
             </Select.Option>
           ))}
         </Select>

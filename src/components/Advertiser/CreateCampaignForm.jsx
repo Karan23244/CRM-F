@@ -160,38 +160,34 @@ const CreateCampaignForm = () => {
     // Extract ONLY the IDs
     const adv_id = values.advertiser?.value || values.advertiser;
     const adv_d = values.adv_d?.value || values.adv_d;
-
-    // GEO must be array of arrays
-    const geoArray = values.geo_details.map((item) => [item.geo]);
-
-    // Payout must be single value, not array
-    const payoutValue = values.geo_details.map((item) => [item.payout]);
-
-    // OS must be single value, not array
-    const osValue = values.geo_details.map((item) => [item.os]);
-    const payableEvents = values.geo_details.map((item) => item.payable_event);
     const finalPayload = {
-      id: editRecord.id, // required name
-      Adv_name: values.Adv_name,
-      campaign_name: values.campaign_name,
-      Vertical: values.Vertical,
-      geo: geoArray,
-      adv_payout: payoutValue, // FIXED
-      os: osValue, // FIXED (no array)
-      state_city: values.state_city,
-      payable_event: payableEvents,
-      mmp_tracker: values.mmp_tracker,
-      adv_d: adv_d,
-      kpi: values.kpi || "",
-      tracking_url: values.tracking_url || "",
-      preview_url: values.preview_url || "",
-      da: values.da,
-      status: values.status,
-    };
+    id: editRecord.id,
 
+    Adv_name: values.Adv_name,
+    campaign_name: values.campaign_name,
+    Vertical: values.Vertical,
+
+    // 🔥 Only one row, only one geo array
+    geo: values.geo_details[0].geo,        
+
+    adv_payout: values.geo_details[0].payout,
+    os: values.geo_details[0].os,
+    state_city: values.state_city,
+
+    payable_event: values.geo_details[0].payable_event,
+    mmp_tracker: values.mmp_tracker,
+    adv_d: adv_d,
+
+    kpi: values.kpi || "",
+    tracking_url: values.tracking_url || "",
+    preview_url: values.preview_url || "",
+    da: values.da,
+    status: values.status,
+  };
+  console.log(finalPayload)
     try {
       const res = await axios.post(`${apiUrl}/campaign-update`, finalPayload);
-
+      console.log(res)
       const msg = res?.data?.message;
       if (msg && msg.includes("updated")) {
         Swal.fire({
@@ -200,8 +196,6 @@ const CreateCampaignForm = () => {
           text: msg,
           timer: 1000,
           showConfirmButton: false,
-        }).then(() => {
-          navigate("/dashboard/campaignlist");
         });
       }
     } catch (error) {
@@ -609,12 +603,14 @@ const CreateCampaignForm = () => {
                   ))}
 
                   {/* ADD MORE BUTTON */}
-                  <Button
-                    type="dashed"
-                    className="w-full !h-12 border-[#2F5D99] text-[#2F5D99] font-medium rounded-lg"
-                    onClick={() => add()}>
-                    + Add More Row
-                  </Button>
+                  {!editRecord && (
+                    <Button
+                      type="dashed"
+                      className="w-full !h-12 border-[#2F5D99] text-[#2F5D99] font-medium rounded-lg"
+                      onClick={() => add()}>
+                      + Add More Row
+                    </Button>
+                  )}
                 </div>
               </div>
             )}

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Table,
   Select,
@@ -49,6 +49,7 @@ const PublisherPayoutData = () => {
     dayjs().startOf("month"),
     dayjs().endOf("month"),
   ]);
+  const [firstFilteredColumn, setFirstFilteredColumn] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSubAdmins, setSelectedSubAdmins] = useState([]);
   const [subAdmins, setSubAdmins] = useState([]);
@@ -61,7 +62,6 @@ const PublisherPayoutData = () => {
     const saved = localStorage.getItem("hiddenPublisherColumns");
     return saved ? JSON.parse(saved) : [];
   });
-  console.log(advData);
   useEffect(() => {
     localStorage.setItem(
       "hiddenPublisherColumns",
@@ -82,7 +82,6 @@ const PublisherPayoutData = () => {
       });
 
       const data = await resp.json();
-      console.log("saveNote data:", data);
 
       if (data.success && data.data) {
         // ✅ Replace the row with fresh data from backend
@@ -171,7 +170,6 @@ const PublisherPayoutData = () => {
   };
 
   const user = useSelector((state) => state.auth.user);
-  console.log("Current User:", user);
   const handleDateRangeChange = (dates) => {
     if (!dates || dates.length === 0) {
       // Reset to current month
@@ -187,6 +185,7 @@ const PublisherPayoutData = () => {
   };
   const columnHeadingsAdv = {
     ...(selectedSubAdmins?.length > 0 && { pub_am: "PUBM Name" }),
+    da: "DA",
     pub_am: "PUB AM",
     username: "Adv AM",
     campaign_name: "Campaign Name",
@@ -198,7 +197,6 @@ const PublisherPayoutData = () => {
     mmp_tracker: "MMP Tracker",
     pub_display: "PubID",
     pid: "PID",
-    da: "DA",
     pay_out: "PUB Payout $",
     shared_date: "Shared Date",
     fa: "FA (Advertiser Side)",
@@ -216,7 +214,6 @@ const PublisherPayoutData = () => {
   const fetchAdvData = async () => {
     try {
       const response = await axios.get(`${apiUrl}/get-advdata`);
-      console.log("Fetched advertiser data:", response);
       setAdvData([...response.data.data].reverse());
     } catch (error) {
       console.error("Error fetching advertiser data:", error);
@@ -259,38 +256,26 @@ const PublisherPayoutData = () => {
     // Cleanup on unmount
     return () => clearInterval(intervalId);
   }, []);
-  const generateUniqueValues = (data) => {
-    const uniqueVals = {};
-
-    data.forEach((item) => {
-      Object.keys(item).forEach((key) => {
-        if (!uniqueVals[key]) uniqueVals[key] = new Set();
-
-        const rawVal = item[key];
-        const normalizedValue =
-          rawVal === null ||
-          rawVal === undefined ||
-          rawVal.toString().trim() === ""
-            ? "-"
-            : rawVal.toString().trim();
-
-        uniqueVals[key].add(normalizedValue);
-      });
-    });
-
-    const formattedValues = {};
-    Object.keys(uniqueVals).forEach((key) => {
-      formattedValues[key] = Array.from(uniqueVals[key]);
-    });
-
-    setUniqueValues(formattedValues);
-  };
 
   const handleFilterChange = (value, key) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: value?.length ? value : undefined,
-    }));
+    setFilters((prev) => {
+      // If no filter applied yet → mark this as first filtered column
+      if (!firstFilteredColumn && value.length > 0) {
+        setFirstFilteredColumn(key);
+      }
+
+      // If filter cleared completely → reset first filter logic
+      const isAllFiltersEmpty = Object.values({
+        ...prev,
+        [key]: value,
+      }).every((arr) => !arr || arr.length === 0);
+
+      if (isAllFiltersEmpty) {
+        setFirstFilteredColumn(null);
+      }
+
+      return { ...prev, [key]: value };
+    });
   };
 
   useEffect(() => {
@@ -363,23 +348,75 @@ const PublisherPayoutData = () => {
     selectedSubAdmins,
     user,
   ]);
+  const baseAccessibleData = useMemo(() => {
+    const normalize = (val) =>
+      val === null || val === undefined || val.toString().trim() === ""
+        ? "-"
+        : val.toString().trim().toLowerCase();
+
+    return advData.filter((item) => {
+      const sharedDate = dayjs(item.shared_date);
+
+      // match publisher/subadmin allowed data
+      const normalizedPubName = normalize(item.pub_am);
+      const matchesPub = [
+        user?.username?.toLowerCase(),
+        ...selectedSubAdmins.map((x) => x.toLowerCase()),
+      ].includes(normalizedPubName);
+
+      // match date range
+      const matchesDate = sharedDate.isBetween(
+        selectedDateRange[0],
+        selectedDateRange[1],
+        null,
+        "[]"
+      );
+
+      // match search
+      const matchesSearch = !searchTerm
+        ? true
+        : Object.values(item).some((val) =>
+            val?.toString().toLowerCase().includes(searchTerm.toLowerCase())
+          );
+
+      return matchesPub && matchesDate && matchesSearch;
+    });
+  }, [advData, selectedSubAdmins, selectedDateRange, user, searchTerm]);
+
+  const getDataForDropdown = (columnKey) => {
+    // 🔹 Case 1: No filter applied yet → always use full data of current month/date range
+    if (!firstFilteredColumn) {
+      return baseAccessibleData;
+    }
+
+    // 🔹 Case 2: This is the FIRST filtered column → use full data of month/range (NOT filtered)
+    if (columnKey === firstFilteredColumn) {
+      return baseAccessibleData;
+    }
+
+    // 🔹 Case 3: Other columns → use filtered data
+    return filteredData;
+  };
+  // regenerate unique values when filtered data changes
   useEffect(() => {
-    // if (
-    //   selectedDateRange &&
-    //   selectedDateRange.length === 2 &&
-    //   selectedDateRange[0] &&
-    //   selectedDateRange[1] &&
-    //   advData &&
-    //   advData.length > 0 // <--- important
-    // ) {
-    //   const [start, end] = selectedDateRange;
+    const valuesObj = {};
 
-    //   const dateFiltered = filteredData.filter((item) =>
-    //     dayjs(item.shared_date).isBetween(start, end, null, "[]")
-    //   );
+    // For each column:
+    Object.keys(columnHeadingsAdv).forEach((col) => {
+      const source = getDataForDropdown(col); // 🔥 critical
+      valuesObj[col] = Array.from(
+        new Set(
+          source.map((row) => {
+            const v = row[col];
+            return v === null || v === undefined || v === ""
+              ? "-"
+              : v.toString().trim();
+          })
+        )
+      );
+    });
 
-      generateUniqueValues(filteredData);
-    // }
+    setUniqueValues(valuesObj);
   }, [selectedDateRange, filteredData]);
   const processedData = filteredData.map((item) => {
     const missingLabels = [];
@@ -617,9 +654,9 @@ const PublisherPayoutData = () => {
             style={{ width: 140 }}
             showSearch
             allowClear
-            bordered={false}
+            variant={false}
             optionFilterProp="children"
-            dropdownMatchSelectWidth={false}
+            popupMatchSelectWidth={false}
             placeholder="Select Status"
             onChange={(val) => saveFP(record, val)}>
             <Option value="Live">Live</Option>
