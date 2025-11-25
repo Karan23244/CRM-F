@@ -64,7 +64,7 @@ const columnHeadingsPub = {
 // Advertiser Column Headings
 const columnHeadingsAdv = {
   username: "Input UserName",
-  pub_name: "PUBM Name",
+  pub_am: "PUB AM",
   campaign_name: "Campaign Name",
   vertical: "Vertical", // ✅ Added here
   geo: "GEO",
@@ -269,27 +269,27 @@ const CampianData = () => {
         val?.toString().trim().toLowerCase().includes(lowerSearch)
       );
     });
-
     setFilteredData(filtered.filter((row) => !isRowEmpty(row)));
   }, [pubData, advData, selectedType, filters, searchTerm, selectedDateRange]);
   useEffect(() => {
-    if (
-      selectedDateRange &&
-      selectedDateRange.length === 2 &&
-      selectedDateRange[0] &&
-      selectedDateRange[1] &&
-      advData &&
-      advData.length > 0 // <--- important
-    ) {
-      const [start, end] = selectedDateRange;
+    // if (
+    //   selectedDateRange &&
+    //   selectedDateRange.length === 2 &&
+    //   selectedDateRange[0] &&
+    //   selectedDateRange[1] &&
+    //   advData &&
+    //   advData.length > 0 // <--- important
+    // ) {
+    //   console.log(selectedDateRange)
+    //   const [start, end] = selectedDateRange;
 
-      const dateFiltered = advData.filter((item) =>
-        dayjs(item.shared_date).isBetween(start, end, null, "[]")
-      );
+    //   const dateFiltered = filteredData.filter((item) =>
+    //     dayjs(item.shared_date).isBetween(start, end, null, "[]")
+    //   );
 
-      generateUniqueValues(dateFiltered);
-    }
-  }, [selectedDateRange, advData]);
+      generateUniqueValues(filteredData);
+    // }
+  }, [selectedDateRange, filteredData]);
   // useEffect(() => {
   //   generateUniqueValues(advData);
   // }, [advData]);

@@ -43,7 +43,6 @@ const CampaignList = () => {
     columnKey: null,
     order: null,
   });
-  console.log("Hidden Columns:", campaigns);
   // persist hidden columns
   useEffect(() => {
     localStorage.setItem(
@@ -66,30 +65,7 @@ const CampaignList = () => {
   useEffect(() => {
     fetchCampaigns();
   }, [fetchCampaigns]);
-
-  // Save changes
-  // const handleSave = async (record, updatedValues = {}) => {
-  //   try {
-  //     await axios.put(`${apiUrl}/campaigns/${record.id}`, {
-  //       ...record,
-  //       ...updatedValues,
-  //     });
-
-  //     Swal.fire({
-  //       title: "Updated!",
-  //       text: `${Object.keys(updatedValues)[0]} field updated successfully.`,
-  //       icon: "success",
-  //       timer: 1500,
-  //       showConfirmButton: false,
-  //     });
-
-  //     setEditingCell({ id: null, key: null });
-  //     fetchCampaigns();
-  //   } catch (err) {
-  //     console.error(err);
-  //     Swal.fire("Error", "Failed to update campaign", "error");
-  //   }
-  // };
+  // Handle cell save
   const handleSave = async (record, updatedValues = {}) => {
     try {
       // If user updates "status"
@@ -137,7 +113,6 @@ const CampaignList = () => {
       Swal.fire("Error", "Failed to update campaign", "error");
     }
   };
-
   // Helpers
   const handleDropdownFilter = (value, key) =>
     setFilters((prev) => ({ ...prev, [key]: value }));

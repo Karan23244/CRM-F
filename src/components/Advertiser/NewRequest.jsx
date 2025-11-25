@@ -65,6 +65,7 @@ const NewRequest = () => {
   });
   const [pinnedColumns, setPinnedColumns] = useState({});
   const [sortInfo, setSortInfo] = useState({});
+  const [firstFilteredColumn, setFirstFilteredColumn] = useState(null);
   const handlePinColumn = (key) => {
     setPinnedColumns((prev) => {
       const current = prev[key];
@@ -167,15 +168,25 @@ const NewRequest = () => {
     });
     return values;
   }, [requests]);
-
   // Handle filter change for a column
-  const handleFilterChange = (value, key) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-  };
+  // const handleFilterChange = (value, key) => {
+  //   setFilters((prev) => ({
+  //     ...prev,
+  //     [key]: value,
+  //   }));
+  // };
+  const handleFilterChange = useCallback((value, key) => {
+    // detect the first filter applied
+    setFilters((prev) => {
+      const isFirstFilter = Object.values(prev).every((arr) => !arr?.length);
 
+      if (isFirstFilter) {
+        setFirstFilteredColumn(key); // ⭐ store first filtered column
+      }
+
+      return { ...prev, [key]: value };
+    });
+  }, []);
   // Filter requests based on filters and search text
   const filteredRequests = useMemo(() => {
     return requests.filter((item) => {
@@ -194,7 +205,24 @@ const NewRequest = () => {
       return true;
     });
   }, [requests, filters, searchText]);
+  // Unique values based on filtered data (except first filtered column)
+  const uniqueValuesFiltered = useMemo(() => {
+    const values = {};
 
+    for (const item of filteredRequests) {
+      for (const key of Object.keys(columnHeadings)) {
+        if (!values[key]) values[key] = new Set();
+
+        if (item[key] !== null && item[key] !== undefined) {
+          values[key].add(item[key]);
+        }
+      }
+    }
+
+    return Object.fromEntries(
+      Object.entries(values).map(([k, v]) => [k, [...v]])
+    );
+  }, [filteredRequests,columnHeadings]);
   // Compose columns with filterDropdown, filter icon state, sorting & column pinning
   const getColumns = (columnHeadings) => {
     return Object.keys(columnHeadings).map((key) => {
@@ -298,50 +326,71 @@ const NewRequest = () => {
 
         // Filters: KEEP YOUR EXISTING CODE
         filterDropdown:
-          uniqueValues[key] && uniqueValues[key].length > 0 ? (
-            <div style={{ padding: 8 }}>
-              <div style={{ marginBottom: 8 }}>
-                <Checkbox
-                  indeterminate={
-                    filters[key]?.length > 0 &&
-                    filters[key]?.length < uniqueValues[key]?.length
-                  }
-                  checked={filters[key]?.length === uniqueValues[key]?.length}
-                  onChange={(e) => {
-                    handleFilterChange(
-                      e.target.checked ? [...uniqueValues[key]] : [],
-                      key
-                    );
-                  }}>
-                  Select All
-                </Checkbox>
-              </div>
+          uniqueValues[key]?.length > 0
+            ? () => {
+                const sourceList =
+                  firstFilteredColumn === key
+                    ? uniqueValues[key] // full data for first filtered column
+                    : uniqueValuesFiltered[key]; // filtered data for rest
 
-              <Select
-                mode="multiple"
-                allowClear
-                showSearch
-                placeholder={`Select ${columnHeadings[key]}`}
-                style={{ width: 250 }}
-                value={filters[key] || []}
-                onChange={(value) => handleFilterChange(value, key)}
-                optionLabelProp="label"
-                maxTagCount="responsive"
-                filterOption={(input, option) =>
-                  (option?.label ?? "")
-                    .toLowerCase()
-                    .includes(input.toLowerCase())
-                }>
-                {uniqueValues[key].map((val) => (
-                  <Option key={val} value={val} label={val}>
-                    <Checkbox checked={filters[key]?.includes(val)}>
-                      {val}
-                    </Checkbox>
-                  </Option>
-                ))}
-              </Select>
-            </div>
-          ) : null,
+                const allOptions = sourceList?.filter(
+                  (v) => v !== null && v !== ""
+                );
+
+                return (
+                  <div style={{ padding: 8 }}>
+                    <div style={{ marginBottom: 8 }}>
+                      <Checkbox
+                        indeterminate={
+                          filters[key]?.length > 0 &&
+                          filters[key]?.length < allOptions?.length
+                        }
+                        checked={filters[key]?.length === allOptions?.length}
+                        onChange={(e) =>
+                          setFilters((prev) => ({
+                            ...prev,
+                            [key]: e.target.checked ? [...allOptions] : [],
+                          }))
+                        }>
+                        Select All
+                      </Checkbox>
+                    </div>
+
+                    <Select
+                      mode="multiple"
+                      allowClear
+                      showSearch
+                      placeholder={`Select ${columnHeadings[key]}`}
+                      style={{ width: 250 }}
+                      value={filters[key] || []}
+                      onChange={(val) => handleFilterChange(val, key)}
+                      optionLabelProp="label"
+                      maxTagCount="responsive"
+                      filterOption={(input, option) =>
+                        (option?.label ?? "")
+                          .toString()
+                          .toLowerCase()
+                          .includes(input.toLowerCase())
+                      }>
+                      {allOptions
+                        ?.slice()
+                        .sort((a, b) =>
+                          !isNaN(a) && !isNaN(b)
+                            ? a - b
+                            : a.toString().localeCompare(b.toString())
+                        )
+                        .map((val) => (
+                          <Option key={val} value={val} label={val}>
+                            <Checkbox checked={filters[key]?.includes(val)}>
+                              {val}
+                            </Checkbox>
+                          </Option>
+                        ))}
+                    </Select>
+                  </div>
+                );
+              }
+            : null,
 
         filtered: filters[key]?.length > 0,
       };

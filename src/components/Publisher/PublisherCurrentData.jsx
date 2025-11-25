@@ -61,7 +61,7 @@ const PublisherPayoutData = () => {
     const saved = localStorage.getItem("hiddenPublisherColumns");
     return saved ? JSON.parse(saved) : [];
   });
-
+  console.log(advData);
   useEffect(() => {
     localStorage.setItem(
       "hiddenPublisherColumns",
@@ -186,8 +186,8 @@ const PublisherPayoutData = () => {
     setSortInfo({ columnKey: null, order: null }); // 🔁 reset sorting
   };
   const columnHeadingsAdv = {
-    ...(selectedSubAdmins?.length > 0 && { pub_name: "PUBM Name" }),
-    pub_name: "PUBM Name",
+    ...(selectedSubAdmins?.length > 0 && { pub_am: "PUBM Name" }),
+    pub_am: "PUB AM",
     username: "Adv AM",
     campaign_name: "Campaign Name",
     vertical: "Vertical",
@@ -216,9 +216,8 @@ const PublisherPayoutData = () => {
   const fetchAdvData = async () => {
     try {
       const response = await axios.get(`${apiUrl}/get-advdata`);
-      if (response.data.success) {
-        setAdvData([...response.data.data].reverse());
-      }
+      console.log("Fetched advertiser data:", response);
+      setAdvData([...response.data.data].reverse());
     } catch (error) {
       console.error("Error fetching advertiser data:", error);
     }
@@ -307,7 +306,7 @@ const PublisherPayoutData = () => {
       const sharedDate = dayjs(item.shared_date);
 
       // 🔹 Match by publisher
-      const normalizedPubName = normalize(item.pub_name);
+      const normalizedPubName = normalize(item.pub_am);
       const matchesPub = [
         user?.username?.toString().trim().toLowerCase(),
         ...(selectedSubAdmins || []).map((sub) =>
@@ -365,23 +364,23 @@ const PublisherPayoutData = () => {
     user,
   ]);
   useEffect(() => {
-    if (
-      selectedDateRange &&
-      selectedDateRange.length === 2 &&
-      selectedDateRange[0] &&
-      selectedDateRange[1] &&
-      advData &&
-      advData.length > 0 // <--- important
-    ) {
-      const [start, end] = selectedDateRange;
+    // if (
+    //   selectedDateRange &&
+    //   selectedDateRange.length === 2 &&
+    //   selectedDateRange[0] &&
+    //   selectedDateRange[1] &&
+    //   advData &&
+    //   advData.length > 0 // <--- important
+    // ) {
+    //   const [start, end] = selectedDateRange;
 
-      const dateFiltered = advData.filter((item) =>
-        dayjs(item.shared_date).isBetween(start, end, null, "[]")
-      );
+    //   const dateFiltered = filteredData.filter((item) =>
+    //     dayjs(item.shared_date).isBetween(start, end, null, "[]")
+    //   );
 
-      generateUniqueValues(dateFiltered);
-    }
-  }, [selectedDateRange, advData]);
+      generateUniqueValues(filteredData);
+    // }
+  }, [selectedDateRange, filteredData]);
   const processedData = filteredData.map((item) => {
     const missingLabels = [];
 
@@ -637,7 +636,7 @@ const PublisherPayoutData = () => {
       render: (text, record) => {
         const canEdit =
           user?.role === "publisher_manager" ||
-          record.pub_name?.toLowerCase() === user?.username?.toLowerCase();
+          record.pub_am?.toLowerCase() === user?.username?.toLowerCase();
 
         if (!canEdit) return <span>{text || "-"}</span>;
 
