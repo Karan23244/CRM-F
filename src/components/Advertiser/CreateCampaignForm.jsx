@@ -138,7 +138,7 @@ const CreateCampaignForm = () => {
 
     try {
       const res = await axios.post(`${apiUrl}/campaignsnew`, finalPayload);
-
+      console.log(res);
       if (res.data?.message === "Campaign(s) created successfully") {
         Swal.fire({
           icon: "success",
@@ -148,7 +148,6 @@ const CreateCampaignForm = () => {
           showConfirmButton: false,
         });
         form.resetFields();
-        fetchCampaigns();
       }
     } catch (error) {
       console.error(error);

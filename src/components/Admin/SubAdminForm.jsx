@@ -572,7 +572,9 @@ const SubAdminEdit = () => {
                 placeholder="Select sub-admins"
                 className="w-full rounded-lg border-gray-200 bg-gray-50"
                 filterOption={(input, option) =>
-                  option.children.toLowerCase().includes(input.toLowerCase())
+                  String(option?.label || option?.children || "")
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
                 }>
                 {/* {subAdminOptions
                   .filter((s) => {
@@ -608,9 +610,7 @@ const SubAdminEdit = () => {
 
                     // For advertiser manager → only advertiser + advertiser_manager (except him)
                     if (role.includes("advertiser_manager")) {
-                      return ["advertiser"].includes(
-                        s.role
-                      );
+                      return ["advertiser"].includes(s.role);
                     }
 
                     // For publisher manager → only publisher + publisher_manager (except him)
