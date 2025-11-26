@@ -167,13 +167,6 @@ const NewRequest = () => {
         (a, b) => b.id - a.id
       );
 
-      // Role-based filtering
-      if (Array.isArray(user?.role) && user.role.includes("advertiser")) {
-        sortedData = sortedData.filter(
-          (item) => item.adv_name === user.username
-        );
-      }
-
       // advertiser_manager → no filter
 
       setRequests(sortedData);

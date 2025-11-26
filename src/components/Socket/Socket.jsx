@@ -18,11 +18,9 @@ export const joinRoom = (roomId) => {
   if (!roomId) return console.warn("  ^z   ^o No roomId provided to joinRoom()");
   if (socket.connected) {
     socket.emit("joinRoom", roomId);
-    console.log(" ^=^=  Joined room:", roomId);
   } else {
     socket.once("connect", () => {
       socket.emit("joinRoom", roomId);
-      console.log(" ^=^=  Joined room after connect:", roomId);
     });
   }
 };

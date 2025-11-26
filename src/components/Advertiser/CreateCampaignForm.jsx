@@ -33,22 +33,22 @@ const CreateCampaignForm = () => {
   const [pausedPids, setPausedPids] = useState([]);
   const [geoRows, setGeoRows] = useState([{ geo: "", payout: "", os: "" }]);
   const [updatedStatus, setUpdatedStatus] = useState({});
-  const fetchCampaigns = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await axios.get(`${apiUrl}/campaigns`);
-      setCampaigns(res.data || []);
-    } catch (err) {
-      console.error(err);
-      Swal.fire("Error", "Failed to fetch campaigns", "error");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // const fetchCampaigns = useCallback(async () => {
+  //   try {
+  //     setLoading(true);
+  //     const res = await axios.get(`${apiUrl}/campaigns`);
+  //     setCampaigns(res.data || []);
+  //   } catch (err) {
+  //     console.error(err);
+  //     Swal.fire("Error", "Failed to fetch campaigns", "error");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // }, []);
 
-  useEffect(() => {
-    fetchCampaigns();
-  }, [fetchCampaigns]);
+  // useEffect(() => {
+  //   fetchCampaigns();
+  // }, [fetchCampaigns]);
 
   const fetchDropdowns = useCallback(async () => {
     try {

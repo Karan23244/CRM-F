@@ -40,7 +40,7 @@ export default function Dashboard() {
     setLoadingToggle(true);
     try {
       const res = await axios.put(`${apiUrl}/updateHierarchyToggle`, {
-        value: checked ? 1 : 0,
+        value: checked ? 0 : 1,
       });
 
       if (res.data?.success) {
@@ -184,7 +184,7 @@ export default function Dashboard() {
 
               <Switch
                 loading={loadingToggle}
-                checked={toggleValue === 1}
+                checked={toggleValue === 0}
                 onChange={updateToggle}
               />
             </div>

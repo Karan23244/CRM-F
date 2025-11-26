@@ -45,8 +45,6 @@ const DashboardLayout = () => {
   useEffect(() => {
     if (!userId) return;
 
-    console.log("🧩 Registering socket for user:", userId);
-
     const socket = io("https://apii.clickorbits.in", {
       query: { userId },
       transports: ["websocket"],
@@ -102,8 +100,6 @@ const DashboardLayout = () => {
       socket.disconnect();
     };
   }, [userId]);
-
-  console.log("Notification Count:", notificationCount);
 
   // Reset count when viewing notifications page
   useEffect(() => {

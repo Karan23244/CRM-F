@@ -60,7 +60,6 @@ const CampaignList = () => {
           user_id: user?.id || user?._id, // <-- sending user ID here
         },
       });
-      console.log(res);
       setCampaigns(res.data.data || []);
     } catch (err) {
       console.error(err);
@@ -628,7 +627,7 @@ const CampaignList = () => {
     //     </div>
     //   ),
     // },
-
+    getColumnWithFilterAndPin("da", "DA"),
     getColumnWithFilterAndPin("adv_full", "ADV ID"),
     getColumnWithFilterAndPin("adv_am", "ADV AM"),
     getColumnWithFilterAndPin(
@@ -668,6 +667,7 @@ const CampaignList = () => {
     }),
 
     getColumnWithFilterAndPin("os", "OS"),
+    getColumnWithFilterAndPin("payable_event", "Payable Event"),
     getColumnWithFilterAndPin(
       "category",
       "Category",
@@ -693,7 +693,6 @@ const CampaignList = () => {
       "Status",
       getEditableCell("status").render
     ),
-    getColumnWithFilterAndPin("da", "DA"),
     {
       title: "Last Updated",
       dataIndex: "updated_at",
