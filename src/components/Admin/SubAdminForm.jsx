@@ -49,7 +49,6 @@ const SubAdminEdit = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRanges, setSelectedRanges] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
-  console.log(subAdmins);
   const handleView = (record) => {
     setSelectedUser(record.username);
     setSelectedRanges(record.ranges || []);
@@ -88,16 +87,30 @@ const SubAdminEdit = () => {
   // Fetch filtered options for manager assignment
   useEffect(() => {
     if (subAdmins.length > 0) {
-      setSubAdminOptions(
-        subAdmins.filter((subAdmin) =>
+      const cleanedOptions = subAdmins
+        .map((u) => {
+          // Normalize role string
+          let cleanedRole = u.role;
+
+          if (typeof cleanedRole === "string") {
+            cleanedRole = cleanedRole.replace(/"/g, "").trim(); // remove extra quotes
+          }
+
+          return {
+            ...u,
+            role: cleanedRole,
+          };
+        })
+        .filter((user) =>
           [
             "advertiser",
             "publisher",
             "publisher_manager",
             "advertiser_manager",
-          ].includes(subAdmin.role)
-        )
-      );
+          ].includes(user.role)
+        );
+
+      setSubAdminOptions(cleanedOptions);
     }
   }, [subAdmins]);
 
@@ -561,7 +574,7 @@ const SubAdminEdit = () => {
                 filterOption={(input, option) =>
                   option.children.toLowerCase().includes(input.toLowerCase())
                 }>
-                {subAdminOptions
+                {/* {subAdminOptions
                   .filter((s) => {
                     if (
                       role.includes("advertiser_manager") &&
@@ -573,6 +586,40 @@ const SubAdminEdit = () => {
                     } else if (role.includes("publisher_manager")) {
                       return s.role === "publisher";
                     }
+                    return false;
+                  })
+                  .map((subAdmin) => (
+                    <Option key={subAdmin.id} value={subAdmin.id}>
+                      {subAdmin.username} ({subAdmin.role})
+                    </Option>
+                  ))} */}
+                {subAdminOptions
+                  .filter((s) => {
+                    // ❌ Remove current editing user
+                    if (s.id === selectedSubAdmin) return false;
+
+                    // If both manager roles selected → show both advertiser + publisher
+                    if (
+                      role.includes("advertiser_manager") &&
+                      role.includes("publisher_manager")
+                    ) {
+                      return ["advertiser", "publisher"].includes(s.role);
+                    }
+
+                    // For advertiser manager → only advertiser + advertiser_manager (except him)
+                    if (role.includes("advertiser_manager")) {
+                      return ["advertiser"].includes(
+                        s.role
+                      );
+                    }
+
+                    // For publisher manager → only publisher + publisher_manager (except him)
+                    if (role.includes("publisher_manager")) {
+                      return ["publisher", "publisher_manager"].includes(
+                        s.role
+                      );
+                    }
+
                     return false;
                   })
                   .map((subAdmin) => (
