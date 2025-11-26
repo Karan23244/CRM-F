@@ -160,34 +160,43 @@ const CreateCampaignForm = () => {
     // Extract ONLY the IDs
     const adv_id = values.advertiser?.value || values.advertiser;
     const adv_d = values.adv_d?.value || values.adv_d;
+    // current OS selected on form
+    const newOS = values.geo_details[0].os;
+
+    // original OS from record
+    const oldOS = editRecord.os;
+
+    // check if OS changed
+    const isOSChanged = newOS !== oldOS;
     const finalPayload = {
-    id: editRecord.id,
+      id: editRecord.id,
 
-    Adv_name: values.Adv_name,
-    campaign_name: values.campaign_name,
-    Vertical: values.Vertical,
+      Adv_name: values.Adv_name,
+      campaign_name: values.campaign_name,
+      Vertical: values.Vertical,
 
-    // 🔥 Only one row, only one geo array
-    geo: values.geo_details[0].geo,        
+      // 🔥 Only one row, only one geo array
+      geo: values.geo_details[0].geo,
 
-    adv_payout: values.geo_details[0].payout,
-    os: values.geo_details[0].os,
-    state_city: values.state_city,
+      adv_payout: values.geo_details[0].payout,
+      os_new: isOSChanged ? newOS : oldOS,
+      os_old: isOSChanged ? oldOS : oldOS,
+      state_city: values.state_city,
 
-    payable_event: values.geo_details[0].payable_event,
-    mmp_tracker: values.mmp_tracker,
-    adv_d: adv_d,
+      payable_event: values.geo_details[0].payable_event,
+      mmp_tracker: values.mmp_tracker,
+      adv_d: adv_d,
 
-    kpi: values.kpi || "",
-    tracking_url: values.tracking_url || "",
-    preview_url: values.preview_url || "",
-    da: values.da,
-    status: values.status,
-  };
-  console.log(finalPayload)
+      kpi: values.kpi || "",
+      tracking_url: values.tracking_url || "",
+      preview_url: values.preview_url || "",
+      da: values.da,
+      status: values.status,
+    };
+    console.log(finalPayload);
     try {
       const res = await axios.post(`${apiUrl}/campaign-update`, finalPayload);
-      console.log(res)
+      console.log(res);
       const msg = res?.data?.message;
       if (msg && msg.includes("updated")) {
         Swal.fire({
@@ -196,6 +205,8 @@ const CreateCampaignForm = () => {
           text: msg,
           timer: 1000,
           showConfirmButton: false,
+        }).then(() => {
+          navigate("/dashboard/campaignlist");
         });
       }
     } catch (error) {
