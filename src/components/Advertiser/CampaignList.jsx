@@ -40,7 +40,6 @@ const CampaignList = () => {
     const saved = localStorage.getItem("hiddenCampaignColumns");
     return saved ? JSON.parse(saved) : [];
   });
-  console.log("Hidden Columns:", campaigns);
   const [sortInfo, setSortInfo] = useState({
     columnKey: null,
     order: null,
@@ -56,13 +55,18 @@ const CampaignList = () => {
   // Fetch campaigns
   const fetchCampaigns = useCallback(async () => {
     try {
-      const res = await axios.get(`${apiUrl}/campaigns`);
-      setCampaigns(res.data || []);
+      const res = await axios.get(`${apiUrl}/campaigns`, {
+        params: {
+          user_id: user?.id || user?._id, // <-- sending user ID here
+        },
+      });
+      console.log(res);
+      setCampaigns(res.data.data || []);
     } catch (err) {
       console.error(err);
       Swal.fire("Error", "Failed to fetch campaigns", "error");
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     fetchCampaigns();
@@ -468,162 +472,165 @@ const CampaignList = () => {
   };
   // All Columns
   const allColumns = [
-    {
-      title: (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            color:
-              filters["Adv_name"] || filters["adv_d"] ? "#1677ff" : "inherit",
-            gap: 6,
-          }}>
-          <span>Adv AM (Adv ID)</span>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            {/* Filter Dropdown */}
-            <Dropdown
-              trigger={["click"]}
-              dropdownRender={() => (
-                <div
-                  style={{
-                    padding: 8,
-                    backgroundColor: "white",
-                    borderRadius: 4,
-                    width: 260,
-                  }}>
-                  {/* Select All */}
-                  <div style={{ marginBottom: 8 }}>
-                    <Checkbox
-                      indeterminate={
-                        filters["Adv_name"]?.length > 0 &&
-                        filters["Adv_name"]?.length <
-                          getUniqueOptions("Adv_name").filter(
-                            (v) => v !== "" && v !== null && v !== undefined
-                          ).length
-                      }
-                      checked={
-                        filters["Adv_name"]?.length ===
-                        getUniqueOptions("Adv_name").filter(
-                          (v) => v !== "" && v !== null && v !== undefined
-                        ).length
-                      }
-                      onChange={(e) =>
-                        setFilters((prev) => ({
-                          ...prev,
-                          Adv_name: e.target.checked
-                            ? getUniqueOptions("Adv_name").filter(
-                                (v) => v !== "" && v !== null && v !== undefined
-                              )
-                            : [],
-                        }))
-                      }>
-                      Select All
-                    </Checkbox>
-                  </div>
+    // {
+    //   title: (
+    //     <div
+    //       style={{
+    //         display: "flex",
+    //         justifyContent: "space-between",
+    //         alignItems: "center",
+    //         color:
+    //           filters["Adv_name"] || filters["adv_d"] ? "#1677ff" : "inherit",
+    //         gap: 6,
+    //       }}>
+    //       <span>Adv AM (Adv ID)</span>
+    //       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+    //         {/* Filter Dropdown */}
+    //         <Dropdown
+    //           trigger={["click"]}
+    //           dropdownRender={() => (
+    //             <div
+    //               style={{
+    //                 padding: 8,
+    //                 backgroundColor: "white",
+    //                 borderRadius: 4,
+    //                 width: 260,
+    //               }}>
+    //               {/* Select All */}
+    //               <div style={{ marginBottom: 8 }}>
+    //                 <Checkbox
+    //                   indeterminate={
+    //                     filters["Adv_name"]?.length > 0 &&
+    //                     filters["Adv_name"]?.length <
+    //                       getUniqueOptions("Adv_name").filter(
+    //                         (v) => v !== "" && v !== null && v !== undefined
+    //                       ).length
+    //                   }
+    //                   checked={
+    //                     filters["Adv_name"]?.length ===
+    //                     getUniqueOptions("Adv_name").filter(
+    //                       (v) => v !== "" && v !== null && v !== undefined
+    //                     ).length
+    //                   }
+    //                   onChange={(e) =>
+    //                     setFilters((prev) => ({
+    //                       ...prev,
+    //                       Adv_name: e.target.checked
+    //                         ? getUniqueOptions("Adv_name").filter(
+    //                             (v) => v !== "" && v !== null && v !== undefined
+    //                           )
+    //                         : [],
+    //                     }))
+    //                   }>
+    //                   Select All
+    //                 </Checkbox>
+    //               </div>
 
-                  {/* Multiselect Advertiser Filter */}
-                  <Select
-                    mode="multiple"
-                    allowClear
-                    showSearch
-                    placeholder="Filter Advertiser"
-                    style={{ width: "100%" }}
-                    value={filters["Adv_name"] || []}
-                    onChange={(val) =>
-                      setFilters((prev) => ({ ...prev, Adv_name: val }))
-                    }
-                    optionLabelProp="label"
-                    maxTagCount="responsive"
-                    filterOption={(input, option) =>
-                      (option?.label ?? "")
-                        .toString()
-                        .toLowerCase()
-                        .includes(input.toLowerCase())
-                    }>
-                    {getUniqueOptions("Adv_name")
-                      .filter((v) => v !== "" && v !== null && v !== undefined)
-                      .sort((a, b) =>
-                        !isNaN(a) && !isNaN(b)
-                          ? a - b
-                          : a.toString().localeCompare(b.toString())
-                      )
-                      .map((val) => (
-                        <Select.Option key={val} value={val} label={val}>
-                          <Checkbox
-                            checked={filters["Adv_name"]?.includes(val)}>
-                            {val}
-                          </Checkbox>
-                        </Select.Option>
-                      ))}
-                  </Select>
-                </div>
-              )}>
-              <FilterOutlined
-                onClick={(e) => e.stopPropagation()} // ✅ prevent sorting when clicking filter
-                style={{
-                  color: filters["Adv_name"] ? "#1677ff" : "#888",
-                  cursor: "pointer",
-                }}
-              />
-            </Dropdown>
+    //               {/* Multiselect Advertiser Filter */}
+    //               <Select
+    //                 mode="multiple"
+    //                 allowClear
+    //                 showSearch
+    //                 placeholder="Filter Advertiser"
+    //                 style={{ width: "100%" }}
+    //                 value={filters["Adv_name"] || []}
+    //                 onChange={(val) =>
+    //                   setFilters((prev) => ({ ...prev, Adv_name: val }))
+    //                 }
+    //                 optionLabelProp="label"
+    //                 maxTagCount="responsive"
+    //                 filterOption={(input, option) =>
+    //                   (option?.label ?? "")
+    //                     .toString()
+    //                     .toLowerCase()
+    //                     .includes(input.toLowerCase())
+    //                 }>
+    //                 {getUniqueOptions("Adv_name")
+    //                   .filter((v) => v !== "" && v !== null && v !== undefined)
+    //                   .sort((a, b) =>
+    //                     !isNaN(a) && !isNaN(b)
+    //                       ? a - b
+    //                       : a.toString().localeCompare(b.toString())
+    //                   )
+    //                   .map((val) => (
+    //                     <Select.Option key={val} value={val} label={val}>
+    //                       <Checkbox
+    //                         checked={filters["Adv_name"]?.includes(val)}>
+    //                         {val}
+    //                       </Checkbox>
+    //                     </Select.Option>
+    //                   ))}
+    //               </Select>
+    //             </div>
+    //           )}>
+    //           <FilterOutlined
+    //             onClick={(e) => e.stopPropagation()} // ✅ prevent sorting when clicking filter
+    //             style={{
+    //               color: filters["Adv_name"] ? "#1677ff" : "#888",
+    //               cursor: "pointer",
+    //             }}
+    //           />
+    //         </Dropdown>
 
-            {/* Pin Icon */}
-            {pinnedColumns["Adv AM (Adv ID)"] ? (
-              <PushpinFilled
-                onClick={(e) => {
-                  e.stopPropagation(); // ✅ prevent header sort
-                  togglePin("Adv AM (Adv ID)");
-                }}
-                style={{ color: "#1677ff", cursor: "pointer" }}
-              />
-            ) : (
-              <PushpinOutlined
-                onClick={(e) => {
-                  e.stopPropagation(); // ✅ prevent header sort
-                  togglePin("Adv AM (Adv ID)");
-                }}
-                style={{ color: "#888", cursor: "pointer" }}
-              />
-            )}
-          </div>
-        </div>
-      ),
+    //         {/* Pin Icon */}
+    //         {pinnedColumns["Adv AM (Adv ID)"] ? (
+    //           <PushpinFilled
+    //             onClick={(e) => {
+    //               e.stopPropagation(); // ✅ prevent header sort
+    //               togglePin("Adv AM (Adv ID)");
+    //             }}
+    //             style={{ color: "#1677ff", cursor: "pointer" }}
+    //           />
+    //         ) : (
+    //           <PushpinOutlined
+    //             onClick={(e) => {
+    //               e.stopPropagation(); // ✅ prevent header sort
+    //               togglePin("Adv AM (Adv ID)");
+    //             }}
+    //             style={{ color: "#888", cursor: "pointer" }}
+    //           />
+    //         )}
+    //       </div>
+    //     </div>
+    //   ),
 
-      key: "Adv AM (Adv ID)",
-      dataIndex: "Adv AM (Adv ID)",
-      fixed: pinnedColumns["Adv AM (Adv ID)"] ? "left" : false,
+    //   key: "Adv AM (Adv ID)",
+    //   dataIndex: "Adv AM (Adv ID)",
+    //   fixed: pinnedColumns["Adv AM (Adv ID)"] ? "left" : false,
 
-      sorter: (a, b) => {
-        const advA = `${a.Adv_name || ""} ${a.adv_d || ""}`.toLowerCase();
-        const advB = `${b.Adv_name || ""} ${b.adv_d || ""}`.toLowerCase();
-        return advA.localeCompare(advB);
-      },
-      sortOrder: sortInfo.columnKey === "Adv AM/Adv ID" ? sortInfo.order : null,
+    //   sorter: (a, b) => {
+    //     const advA = `${a.Adv_name || ""} ${a.adv_d || ""}`.toLowerCase();
+    //     const advB = `${b.Adv_name || ""} ${b.adv_d || ""}`.toLowerCase();
+    //     return advA.localeCompare(advB);
+    //   },
+    //   sortOrder: sortInfo.columnKey === "Adv AM/Adv ID" ? sortInfo.order : null,
 
-      onHeaderCell: () => ({
-        onClick: () => {
-          let newOrder = "ascend";
-          if (sortInfo.columnKey === "Adv AM/Adv ID") {
-            if (sortInfo.order === "ascend") newOrder = "descend";
-            else if (sortInfo.order === "descend") newOrder = null;
-            else newOrder = "ascend";
-          }
-          setSortInfo({
-            columnKey: "Adv AM (Adv ID)",
-            order: newOrder,
-          });
-        },
-      }),
+    //   onHeaderCell: () => ({
+    //     onClick: () => {
+    //       let newOrder = "ascend";
+    //       if (sortInfo.columnKey === "Adv AM/Adv ID") {
+    //         if (sortInfo.order === "ascend") newOrder = "descend";
+    //         else if (sortInfo.order === "descend") newOrder = null;
+    //         else newOrder = "ascend";
+    //       }
+    //       setSortInfo({
+    //         columnKey: "Adv AM (Adv ID)",
+    //         order: newOrder,
+    //       });
+    //     },
+    //   }),
 
-      render: (_, record) => (
-        <div>
-          <p>
-            {record.Adv_name || "-"} ({record.adv_d || "-"})
-          </p>
-        </div>
-      ),
-    },
+    //   render: (_, record) => (
+    //     <div>
+    //       <p>
+    //         {record.Adv_name || "-"} ({record.adv_d || "-"})
+    //       </p>
+    //     </div>
+    //   ),
+    // },
+
+    getColumnWithFilterAndPin("adv_full", "ADV ID"),
+    getColumnWithFilterAndPin("adv_am", "ADV AM"),
     getColumnWithFilterAndPin(
       "campaign_name",
       "Campaign Name",
