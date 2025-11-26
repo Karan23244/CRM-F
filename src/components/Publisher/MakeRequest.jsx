@@ -51,6 +51,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
   const user = useSelector((state) => state.auth.user);
   const username = user?.username || null;
   const userRole = user?.role || []; // array of roles
+  const userId = user?.id || null;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm();
@@ -190,6 +191,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
         params: {
           startDate: startDate.format("YYYY-MM-DD"),
           endDate: endDate.format("YYYY-MM-DD"),
+          id: userId,
         },
       });
 
