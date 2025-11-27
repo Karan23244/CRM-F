@@ -184,9 +184,9 @@ const PublisherPayoutData = () => {
     setSortInfo({ columnKey: null, order: null }); // 🔁 reset sorting
   };
   const columnHeadingsAdv = {
-    ...(selectedSubAdmins?.length > 0 && { pub_am: "PUBM Name" }),
+    ...(selectedSubAdmins?.length > 0 && { pub_name: "PUBM Name" }),
     da: "DA",
-    pub_am: "PUB AM",
+    pub_name: "PUB AM",
     username: "Adv AM",
     campaign_name: "Campaign Name",
     vertical: "Vertical",
@@ -291,7 +291,7 @@ const PublisherPayoutData = () => {
       const sharedDate = dayjs(item.shared_date);
 
       // 🔹 Match by publisher
-      const normalizedPubName = normalize(item.pub_am);
+      const normalizedPubName = normalize(item.pub_name);
       const matchesPub = [
         user?.username?.toString().trim().toLowerCase(),
         ...(selectedSubAdmins || []).map((sub) =>
@@ -358,7 +358,7 @@ const PublisherPayoutData = () => {
       const sharedDate = dayjs(item.shared_date);
 
       // match publisher/subadmin allowed data
-      const normalizedPubName = normalize(item.pub_am);
+      const normalizedPubName = normalize(item.pub_name);
       const matchesPub = [
         user?.username?.toLowerCase(),
         ...selectedSubAdmins.map((x) => x.toLowerCase()),
@@ -673,7 +673,7 @@ const PublisherPayoutData = () => {
       render: (text, record) => {
         const canEdit =
           user?.role === "publisher_manager" ||
-          record.pub_am?.toLowerCase() === user?.username?.toLowerCase();
+          record.pub_name?.toLowerCase() === user?.username?.toLowerCase();
 
         if (!canEdit) return <span>{text || "-"}</span>;
 

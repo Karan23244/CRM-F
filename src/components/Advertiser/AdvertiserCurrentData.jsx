@@ -477,7 +477,7 @@ const AdvertiserData = () => {
       "adv_payout",
       "pub_name",
       "pub_id",
-      "pub_am",
+      "pub_name",
       "pid",
       "pay_out",
       "shared_date",
@@ -504,7 +504,6 @@ const AdvertiserData = () => {
   );
   // Columns and renderers memoized
   const columnHeadings = {
-    pub_name: "PUBM Name",
     campaign_name: "Campaign Name",
     vertical: "Vertical",
     geo: "GEO",
@@ -514,8 +513,8 @@ const AdvertiserData = () => {
     mmp_tracker: "MMP Tracker",
     adv_display: "ADV ID",
     adv_payout: "ADV Payout $",
-    pub_am: "PUB AM",
-    pub_display: "PubID",
+    pub_name: "PUB AM",
+    pub_id: "PubID",
     pid: "PID",
     da: "DA",
     pay_out: "PUB Payout $",
@@ -542,8 +541,7 @@ const AdvertiserData = () => {
     "mmp_tracker",
     "adv_payout",
     "pub_name",
-    "pub_display",
-    "pub_am",
+    "pub_id",
     "pid",
     "pay_out",
     "shared_date",
@@ -623,29 +621,29 @@ const AdvertiserData = () => {
         } catch {
           updated.pub_Apno = "";
         }
+        console.log(updated);
+        // const res = await axios.post(
+        //   `${apiUrl}/advdata-update/${record.id}`,
+        //   updated,
+        //   {
+        //     headers: { "Content-Type": "application/json" },
+        //   }
+        // );
 
-        const res = await axios.post(
-          `${apiUrl}/advdata-update/${record.id}`,
-          updated,
-          {
-            headers: { "Content-Type": "application/json" },
-          }
-        );
+        // // log full response for debugging
+        // // console.log("advdata-update response:", res);
 
-        // log full response for debugging
-        // console.log("advdata-update response:", res);
+        // // Prefer server-returned updated row (res.data.data). If not present, fallback to our 'updated'.
+        // const updatedRow = res?.data?.data || updated;
 
-        // Prefer server-returned updated row (res.data.data). If not present, fallback to our 'updated'.
-        const updatedRow = res?.data?.data || updated;
+        // // update only that row in state
+        // setData((prev) =>
+        //   prev.map((r) =>
+        //     r.id === updatedRow.id ? { ...r, ...updatedRow } : r
+        //   )
+        // );
 
-        // update only that row in state
-        setData((prev) =>
-          prev.map((r) =>
-            r.id === updatedRow.id ? { ...r, ...updatedRow } : r
-          )
-        );
-
-        message.success("Auto-saved");
+        // message.success("Auto-saved");
       } catch (err) {
         console.error("Error while auto-saving:", err);
         message.error("Failed to auto-save");

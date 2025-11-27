@@ -14,61 +14,71 @@ import Swal from "sweetalert2";
 const apiUrl = import.meta.env.VITE_API_URL;
 export default function Dashboard() {
   const { user } = useSelector((state) => state.auth);
-  const [toggleValue, setToggleValue] = useState(0);
-  const [loadingToggle, setLoadingToggle] = useState(false);
 
-  // 🔹 Fetch Hierarchy Toggle on Load
-  const fetchToggle = async () => {
+  // 🔥 TWO SEPARATE TOGGLES
+  const [toggleRequest, setToggleRequest] = useState(0);
+  const [toggleCampaign, setToggleCampaign] = useState(0);
+
+  const [loadReq, setLoadReq] = useState(false);
+  const [loadCamp, setLoadCamp] = useState(false);
+
+  // 🟡 Fetch Request Toggle
+  const fetchRequestToggle = async () => {
     try {
       const res = await axios.get(`${apiUrl}/getHierarchyToggle`);
-      if (res.data?.success) {
-        setToggleValue(res.data.value);
-      }
-    } catch (err) {
-      console.log(err);
-      Swal.fire({
-        icon: "error",
-        title: "Failed to load toggle",
-        timer: 1500,
-        showConfirmButton: false,
-      });
+      if (res.data?.success) setToggleRequest(res.data.value);
+    } catch {
+      Swal.fire("Error", "Failed to load Request toggle", "error");
     }
   };
 
-  // 🔹 Update Toggle
-  const updateToggle = async (checked) => {
-    setLoadingToggle(true);
+  // 🟡 Fetch Campaign Toggle
+  const fetchCampaignToggle = async () => {
+    try {
+      const res = await axios.get(`${apiUrl}/getcamHierarchyToggle`);
+      if (res.data?.success) setToggleCampaign(res.data.value);
+    } catch {
+      Swal.fire("Error", "Failed to load Campaign toggle", "error");
+    }
+  };
+
+  // 🔄 Update Request Permission
+  const updateRequest = async (checked) => {
+    setLoadReq(true);
     try {
       const res = await axios.put(`${apiUrl}/updateHierarchyToggle`, {
         value: checked ? 0 : 1,
       });
-
       if (res.data?.success) {
-        setToggleValue(res.data.new_value);
-
-        Swal.fire({
-          icon: "success",
-          title: "Permission Updated",
-          timer: 1500,
-          showConfirmButton: false,
-        });
+        setToggleRequest(res.data.new_value);
+        Swal.fire("Updated!", "Request view permission changed", "success");
       }
-    } catch (err) {
-      console.log(err);
-
-      Swal.fire({
-        icon: "error",
-        title: "Failed to update permission",
-        timer: 1500,
-        showConfirmButton: false,
-      });
-    } finally {
-      setLoadingToggle(false);
+    } catch {
+      Swal.fire("Error", "Failed to update request permission", "error");
     }
+    setLoadReq(false);
+  };
+
+  // 🔄 Update Campaign Permission
+  const updateCampaign = async (checked) => {
+    setLoadCamp(true);
+    try {
+      const res = await axios.put(`${apiUrl}/updatecamHierarchyToggle`, {
+        value: checked ? 0 : 1,
+      });
+      if (res.data?.success) {
+        setToggleCampaign(res.data.new_value);
+        Swal.fire("Updated!", "Campaign view permission changed", "success");
+      }
+    } catch {
+      Swal.fire("Error", "Failed to update campaign permission", "error");
+    }
+    setLoadCamp(false);
   };
 
   useEffect(() => {
-    fetchToggle();
+    fetchRequestToggle();
+    fetchCampaignToggle();
   }, []);
 
   const dataSource = [
@@ -177,17 +187,33 @@ export default function Dashboard() {
 
           {/* 🔹 NEW TOGGLE UNDER TODAY'S DATA */}
           {user?.role?.includes("admin") && (
-            <div className="mt-6 flex items-center justify-between p-4 bg-gray-50 rounded-xl border">
-              <span className="text-gray-700 font-medium text-lg">
-                View Request Permission
-              </span>
+            <>
+              <div className="mt-6 flex flex-col gap-4">
+                {/* Request Toggle */}
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border">
+                  <span className="text-gray-700 font-medium text-lg">
+                    Request View Permission
+                  </span>
+                  <Switch
+                    loading={loadReq}
+                    checked={toggleRequest === 0}
+                    onChange={updateRequest}
+                  />
+                </div>
 
-              <Switch
-                loading={loadingToggle}
-                checked={toggleValue === 0}
-                onChange={updateToggle}
-              />
-            </div>
+                {/* Campaign Toggle */}
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border">
+                  <span className="text-gray-700 font-medium text-lg">
+                    Campaign View Permission
+                  </span>
+                  <Switch
+                    loading={loadCamp}
+                    checked={toggleCampaign === 0}
+                    onChange={updateCampaign}
+                  />
+                </div>
+              </div>
+            </>
           )}
         </div>
       </div>

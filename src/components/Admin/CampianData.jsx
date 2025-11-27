@@ -65,7 +65,7 @@ const columnHeadingsPub = {
 const columnHeadingsAdv = {
   da: "DA",
   username: "Input UserName",
-  pub_am: "PUB AM",
+  pub_name: "PUB AM",
   campaign_name: "Campaign Name",
   vertical: "Vertical", // ✅ Added here
   geo: "GEO",
