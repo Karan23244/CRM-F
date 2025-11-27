@@ -33,6 +33,8 @@ const CreateCampaignForm = () => {
   const [pausedPids, setPausedPids] = useState([]);
   const [geoRows, setGeoRows] = useState([{ geo: "", payout: "", os: "" }]);
   const [updatedStatus, setUpdatedStatus] = useState({});
+  const [searchText, setSearchText] = useState("");
+
   // const fetchCampaigns = useCallback(async () => {
   //   try {
   //     setLoading(true);
@@ -401,6 +403,17 @@ const CreateCampaignForm = () => {
       Swal.fire("Error", "Failed to update PID status", "error");
     }
   };
+  const filteredLivePids = livePids?.filter((item) =>
+    Object.values(item).some((val) =>
+      String(val).toLowerCase().includes(searchText.toLowerCase())
+    )
+  );
+
+  const filteredPausedPids = pausedPids?.filter((item) =>
+    Object.values(item).some((val) =>
+      String(val).toLowerCase().includes(searchText.toLowerCase())
+    )
+  );
 
   return (
     <div className="min-h-screen flex flex-col items-center p-6">
@@ -490,7 +503,7 @@ const CreateCampaignForm = () => {
               <Option value="Finance">Finance</Option>
               <Option value="Gaming">Gaming</Option>
               <Option value="E-commerce">E-commerce</Option>
-              <Option value="Utility">Utility</Option>
+              <Option value="Utilities">Utilities</Option>
               <Option value="Health">Health</Option>
               <Option value="Betting Sports">Betting Sports</Option>
               <Option value="Betting Casino">Betting Casino</Option>
@@ -714,13 +727,21 @@ const CreateCampaignForm = () => {
                 Edit PID Status
               </h2>
 
-              <Button
-                type="primary"
-                disabled={Object.keys(updatedStatus).length === 0}
-                onClick={handleSaveChanges}
-                className="px-6">
-                Save Changes
-              </Button>
+              <div className="flex items-center gap-4 w-full max-w-sm ml-4">
+                <Input
+                  placeholder="Search PID..."
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  allowClear
+                />
+                <Button
+                  type="primary"
+                  disabled={Object.keys(updatedStatus).length === 0}
+                  onClick={handleSaveChanges}
+                  className="px-6">
+                  Save Changes
+                </Button>
+              </div>
             </div>
 
             {/* PID Tables */}
@@ -733,7 +754,7 @@ const CreateCampaignForm = () => {
                 ) : (
                   <StyledTable
                     columns={columns}
-                    dataSource={livePids}
+                    dataSource={filteredLivePids}
                     rowKey="id"
                     pagination={{
                       pageSizeOptions: ["10", "20", "50"],
@@ -752,7 +773,7 @@ const CreateCampaignForm = () => {
                 ) : (
                   <StyledTable
                     columns={columns}
-                    dataSource={pausedPids}
+                    dataSource={filteredPausedPids}
                     rowKey="id"
                     pagination={{
                       pageSizeOptions: ["10", "20", "50"],

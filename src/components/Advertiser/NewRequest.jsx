@@ -511,6 +511,7 @@ const NewRequest = () => {
       return;
     }
     const sharedRecord = requests.find((r) => r.id === selectedRequestId);
+    console.log(sharedRecord)
     try {
       const res = await axios.post(
         `${apiUrl}/api/campaigns/copynew/${selectedCampaignId}`,
@@ -571,7 +572,6 @@ const NewRequest = () => {
   const visibleColumns = getColumns(columnHeadings).filter(
     (col) => !hiddenColumns.includes(col.key)
   );
-  console.log(campaignList);
   return (
     <div className="p-6 max-w-full bg-gray-50 rounded-lg shadow-lg">
       <h2 className="text-2xl font-bold mb-6 text-gray-900">

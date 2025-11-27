@@ -68,16 +68,13 @@ const PublisherRequest = ({ senderId, receiverId }) => {
     return saved ? JSON.parse(saved) : [];
   });
   const [firstFilteredColumn, setFirstFilteredColumn] = useState(null);
-  const [geoRows, setGeoRows] = useState([
-    { geo: undefined, payout: "", os: "" },
-  ]);
+  const [geoRows, setGeoRows] = useState([]);
 
   // Default: start = first day of current month, end = today
   const [dateRange, setDateRange] = useState([
     dayjs().startOf("month"),
     dayjs(),
   ]);
-  console.log(requests);
   // persist hidden columns
   useEffect(() => {
     localStorage.setItem(
@@ -85,6 +82,11 @@ const PublisherRequest = ({ senderId, receiverId }) => {
       JSON.stringify(hiddenColumns)
     );
   }, [hiddenColumns]);
+  useEffect(() => {
+    if (isModalVisible) {
+      setGeoRows([{ geo: [], payout: "", os: "" }]);
+    }
+  }, [isModalVisible]);
 
   // ✅ Callbacks to prevent re-creation on each render
   const clearAllFilters = useCallback(() => {
@@ -276,11 +278,13 @@ const PublisherRequest = ({ senderId, receiverId }) => {
   }, [filteredRequests]);
 
   const handleCancel = () => {
-    setIsModalVisible(false);
+    setGeoRows([]); // empty rows
     form.resetFields();
+    setIsModalVisible(false);
   };
+
   const addGeoRow = () => {
-    setGeoRows([...geoRows, { geo: "", payout: "", os: "" }]);
+    setGeoRows([...geoRows, { geo: [], payout: "", os: "" }]);
   };
 
   const removeGeoRow = (index) => {
@@ -322,28 +326,27 @@ const PublisherRequest = ({ senderId, receiverId }) => {
         note: values.note,
       };
       console.log("Submitting Request Data:", requestData);
-      const response = await axios.post(
-        `${apiUrl}/addPubRequestnew`,
-        requestData
-      );
+      // const response = await axios.post(
+      //   `${apiUrl}/addPubRequestnew`,
+      //   requestData
+      // );
 
-      if (response.status === 201) {
-        Swal.fire({
-          icon: "success",
-          title: "Success",
-          text: "Request submitted successfully!",
-        });
-      } else {
-        Swal.fire({
-          icon: "error",
-          title: "Oops...",
-          text: "Failed to submit request!",
-        });
-      }
-
-      setIsModalVisible(false);
-      form.resetFields();
-      setGeoRows([{ geo: "", payout: "", os: "" }]); // Reset rows
+      // if (response.status === 201) {
+      //   Swal.fire({
+      //     icon: "success",
+      //     title: "Success",
+      //     text: "Request submitted successfully!",
+      //   });
+      // } else {
+      //   Swal.fire({
+      //     icon: "error",
+      //     title: "Oops...",
+      //     text: "Failed to submit request!",
+      //   });
+      // }
+      // setGeoRows([]); // reset to zero
+      // form.resetFields();
+      // setIsModalVisible(false);
     } catch (error) {
       Swal.fire({
         icon: "error",
