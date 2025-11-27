@@ -326,27 +326,27 @@ const PublisherRequest = ({ senderId, receiverId }) => {
         note: values.note,
       };
       console.log("Submitting Request Data:", requestData);
-      // const response = await axios.post(
-      //   `${apiUrl}/addPubRequestnew`,
-      //   requestData
-      // );
+      const response = await axios.post(
+        `${apiUrl}/addPubRequestnew`,
+        requestData
+      );
 
-      // if (response.status === 201) {
-      //   Swal.fire({
-      //     icon: "success",
-      //     title: "Success",
-      //     text: "Request submitted successfully!",
-      //   });
-      // } else {
-      //   Swal.fire({
-      //     icon: "error",
-      //     title: "Oops...",
-      //     text: "Failed to submit request!",
-      //   });
-      // }
-      // setGeoRows([]); // reset to zero
-      // form.resetFields();
-      // setIsModalVisible(false);
+      if (response.status === 201) {
+        Swal.fire({
+          icon: "success",
+          title: "Success",
+          text: "Request submitted successfully!",
+        });
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Oops...",
+          text: "Failed to submit request!",
+        });
+      }
+      setGeoRows([]); // reset to zero
+      form.resetFields();
+      setIsModalVisible(false);
     } catch (error) {
       Swal.fire({
         icon: "error",
