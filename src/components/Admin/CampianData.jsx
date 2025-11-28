@@ -898,6 +898,7 @@ const CampianData = () => {
       })),
     ];
   };
+  console.log(processedData);
   return (
     <div className="p-5 min-h-screen">
       {/* Toggle Section */}

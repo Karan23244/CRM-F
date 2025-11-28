@@ -21,6 +21,42 @@ export default function Dashboard() {
 
   const [loadReq, setLoadReq] = useState(false);
   const [loadCamp, setLoadCamp] = useState(false);
+  const [totalCampaigns, setTotalCampaigns] = useState(0);
+  const [pausedCount, setPausedCount] = useState(0);
+  const [liveCount, setLiveCount] = useState(0);
+
+  const fetchCounts = async () => {
+    try {
+      console.log("Sending →", {
+        role: user?.role,
+        id: user?.id,
+      });
+
+      // 1️⃣ total campaigns
+      const total = await axios.post(`${apiUrl}/campaign-count`, {
+        role: user?.role,
+        id: user?.id,
+      });
+      setTotalCampaigns(total?.data?.campaign_count || 0);
+
+      // 2️⃣ paused PID count
+      const paused = await axios.post(`${apiUrl}/getPausedPidCount`, {
+        role: user?.role,
+        id: user?.id,
+      });
+      setPausedCount(paused?.data?.paused_pid_count || 0);
+
+      // 3️⃣ live PID count
+      const live = await axios.post(`${apiUrl}/getLivePidCount`, {
+        role: user?.role,
+        id: user?.id,
+      });
+      setLiveCount(live?.data?.live_pid_count || 0);
+    } catch (err) {
+      console.log(err);
+      message.error("Failed to load dashboard counts.");
+    }
+  };
 
   // 🟡 Fetch Request Toggle
   const fetchRequestToggle = async () => {
@@ -79,6 +115,7 @@ export default function Dashboard() {
   useEffect(() => {
     fetchRequestToggle();
     fetchCampaignToggle();
+    fetchCounts();
   }, []);
 
   const dataSource = [
@@ -126,18 +163,21 @@ export default function Dashboard() {
         <div className="p-5 bg-white rounded-2xl shadow flex flex-col border-2 border-blue-200">
           <FaBullhorn className="text-4xl text-blue-500 mb-2" />
           <span className="text-gray-600 font-medium">Total Campaigns</span>
-          <span className="text-3xl font-bold">40</span>
+          <span className="text-3xl font-bold">{totalCampaigns}</span>
         </div>
+
         <div className="p-5 bg-white rounded-2xl shadow flex flex-col border-2 border-red-200">
           <FaPauseCircle className="text-4xl text-red-500 mb-2" />
           <span className="text-gray-600 font-medium">Paused PIDs</span>
-          <span className="text-3xl font-bold">3</span>
+          <span className="text-3xl font-bold">{pausedCount}</span>
         </div>
+
         <div className="p-5 bg-white rounded-2xl shadow flex flex-col border-2 border-green-200">
           <FaPlayCircle className="text-4xl text-green-500 mb-2" />
           <span className="text-gray-600 font-medium">Live Campaigns</span>
-          <span className="text-3xl font-bold">37</span>
+          <span className="text-3xl font-bold">{liveCount}</span>
         </div>
+
         <div className="p-5 bg-white rounded-2xl shadow flex flex-col border-2 border-orange-200">
           <FaLink className="text-4xl text-orange-500 mb-2" />
           <span className="text-gray-600 font-medium">Requested Links</span>
