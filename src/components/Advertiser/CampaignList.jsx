@@ -483,7 +483,6 @@ const CampaignList = () => {
       : getColumnWithFilterAndPin("adv_full", "ADV ID"),
 
     getColumnWithFilterAndPin("adv_am", "ADV AM"),
-    getColumnWithFilterAndPin("adv_am", "ADV AM"),
     getColumnWithFilterAndPin(
       "campaign_name",
       "Campaign Name",

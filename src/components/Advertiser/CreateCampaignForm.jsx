@@ -51,6 +51,13 @@ const CreateCampaignForm = () => {
   // useEffect(() => {
   //   fetchCampaigns();
   // }, [fetchCampaigns]);
+  // Trim string values safely
+  const trimInput = (value) => {
+    if (typeof value === "string") {
+      return value.trim();
+    }
+    return value;
+  };
 
   const fetchDropdowns = useCallback(async () => {
     try {
@@ -111,7 +118,7 @@ const CreateCampaignForm = () => {
     const adv_d = values.adv_d?.value || values.adv_d;
     const geoArray = values.geo_details.map((item) => item.geo);
     const payoutValue = values.geo_details.map((item) => [item.payout]);
-    const osValue = values.geo_details.map((item) => item.os);
+    const osValue = values.geo_details.map((item) => [item.os]);
     const payableEvents = values.geo_details.map((item) => [
       item.payable_event,
     ]);
@@ -138,24 +145,24 @@ const CreateCampaignForm = () => {
     // remove nested structure (optional but recommended)
     delete finalPayload.geo_details;
 
-    try {
-      const res = await axios.post(`${apiUrl}/campaignsnew`, finalPayload);
-      console.log(res);
-      if (res.data?.message === "Campaign(s) created successfully") {
-        Swal.fire({
-          icon: "success",
-          title: "Created!",
-          text: res.data.message,
-          timer: 1200,
-          showConfirmButton: false,
-        });
-        form.resetFields();
-      }
-    } catch (error) {
-      console.error(error);
-      Swal.fire("Error", "Error creating campaign", "error");
-    }
-    setIsSubmitting(false);
+    // try {
+    //   const res = await axios.post(`${apiUrl}/campaignsnew`, finalPayload);
+    //   console.log(res);
+    //   if (res.data?.message === "Campaign(s) created successfully") {
+    //     Swal.fire({
+    //       icon: "success",
+    //       title: "Created!",
+    //       text: res.data.message,
+    //       timer: 1200,
+    //       showConfirmButton: false,
+    //     });
+    //     form.resetFields();
+    //   }
+    // } catch (error) {
+    //   console.error(error);
+    //   Swal.fire("Error", "Error creating campaign", "error");
+    // }
+    // setIsSubmitting(false);
   };
   const handleEditCampaign = async (values) => {
     // Extract ONLY the IDs
@@ -336,15 +343,15 @@ const CreateCampaignForm = () => {
   // Fetch PID info when editRecord changes
   useEffect(() => {
     if (!editRecord) return;
-
+    console.log(editRecord);
     // 🔥 SEND campaign_name & OS to backend to fetch PID info
     const fetchPidInfo = async () => {
       try {
         const res = await axios.post(`${apiUrl}/pid-update`, {
+          id: editRecord.id,
           campaign_name: editRecord.campaign_name,
           os: editRecord.os,
         });
-        console.log(res)
         setLivePids(
           (res.data.live_pids || []).map((item) => ({
             ...item,
@@ -486,6 +493,7 @@ const CreateCampaignForm = () => {
           <Form.Item
             label="Campaign Name"
             name="campaign_name"
+            normalize={trimInput}
             rules={[{ required: true, message: "Please enter campaign name" }]}>
             <Input
               placeholder="Enter Campaign Name"
@@ -513,6 +521,7 @@ const CreateCampaignForm = () => {
           <Form.Item
             label="State/City"
             name="state_city"
+            normalize={trimInput}
             rules={[{ required: true, message: "Please enter state or city" }]}>
             <Input
               placeholder="Enter State or City"
@@ -559,6 +568,7 @@ const CreateCampaignForm = () => {
                         <Form.Item
                           label={<span className="">Payout</span>}
                           name={[name, "payout"]}
+                          normalize={trimInput}
                           rules={[
                             { required: true, message: "Please enter payout" },
                           ]}>
@@ -658,6 +668,7 @@ const CreateCampaignForm = () => {
           <Form.Item
             label="KPI"
             name="kpi"
+            normalize={trimInput}
             rules={[{ required: true, message: "Please enter KPI" }]}>
             <Input
               placeholder="Enter KPI"
@@ -667,13 +678,17 @@ const CreateCampaignForm = () => {
           <Form.Item
             label="Preview Link"
             name="preview_url"
+            normalize={trimInput}
             rules={[{ required: true, message: "Please enter KPI" }]}>
             <Input
               placeholder="Enter KPI"
               className="h-11 rounded-lg border-gray-200 bg-gray-50"
             />
           </Form.Item>
-          <Form.Item label="Tracking Link" name="tracking_url">
+          <Form.Item
+            label="Tracking Link"
+            name="tracking_url"
+            normalize={trimInput}>
             <Input
               placeholder="Enter Tracking Link"
               className="h-11 rounded-lg border-gray-200 bg-gray-50"
