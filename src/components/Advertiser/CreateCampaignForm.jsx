@@ -348,7 +348,7 @@ const CreateCampaignForm = () => {
     const fetchPidInfo = async () => {
       try {
         const res = await axios.post(`${apiUrl}/pid-update`, {
-          id: editRecord.id,
+          campaign_id: editRecord.id,
           campaign_name: editRecord.campaign_name,
           os: editRecord.os,
         });
