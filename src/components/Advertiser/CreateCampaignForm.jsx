@@ -344,7 +344,7 @@ const CreateCampaignForm = () => {
           campaign_name: editRecord.campaign_name,
           os: editRecord.os,
         });
-
+        console.log(res)
         setLivePids(
           (res.data.live_pids || []).map((item) => ({
             ...item,

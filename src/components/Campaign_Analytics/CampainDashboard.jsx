@@ -15,6 +15,7 @@ import {
   DatePicker,
 } from "antd";
 import UploadForm from "./UploadForm";
+import AjustUploadForm from "./AdjustForm"
 import { useSelector } from "react-redux";
 import PerformanceComparison from "./PerformanceComparison";
 import dayjs from "dayjs";
@@ -217,7 +218,8 @@ export default function OptimizationPage() {
       {/* Upload Form */}
       {user?.permissions?.can_see_input1 === 1 && (
         <Card style={cardStyle} className="mb-6">
-          <UploadForm onUploadSuccess={fetchData} />
+          {/* <UploadForm onUploadSuccess={fetchData} /> */}
+          <AjustUploadForm onUploadSuccess={fetchData}/>
         </Card>
       )}
 

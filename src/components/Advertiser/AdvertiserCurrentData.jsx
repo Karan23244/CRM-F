@@ -622,26 +622,26 @@ const AdvertiserData = () => {
           updated.pub_Apno = "";
         }
         console.log(updated);
-        // const res = await axios.post(
-        //   `${apiUrl}/advdata-update/${record.id}`,
-        //   updated,
-        //   {
-        //     headers: { "Content-Type": "application/json" },
-        //   }
-        // );
+        const res = await axios.post(
+          `${apiUrl}/advdata-update/${record.id}`,
+          updated,
+          {
+            headers: { "Content-Type": "application/json" },
+          }
+        );
 
-        // // log full response for debugging
-        // // console.log("advdata-update response:", res);
+        // log full response for debugging
+        // console.log("advdata-update response:", res);
 
-        // // Prefer server-returned updated row (res.data.data). If not present, fallback to our 'updated'.
-        // const updatedRow = res?.data?.data || updated;
+        // Prefer server-returned updated row (res.data.data). If not present, fallback to our 'updated'.
+        const updatedRow = res?.data?.data || updated;
 
-        // // update only that row in state
-        // setData((prev) =>
-        //   prev.map((r) =>
-        //     r.id === updatedRow.id ? { ...r, ...updatedRow } : r
-        //   )
-        // );
+        // update only that row in state
+        setData((prev) =>
+          prev.map((r) =>
+            r.id === updatedRow.id ? { ...r, ...updatedRow } : r
+          )
+        );
 
         // message.success("Auto-saved");
       } catch (err) {

@@ -23,7 +23,7 @@ const apiUrl = import.meta.env.VITE_API_URL2;
 const { RangePicker } = DatePicker;
 const { Title, Text } = Typography;
 
-export default function UploadForm({ onUploadSuccess }) {
+export default function AjustUploadForm({ onUploadSuccess }) {
   const user = useSelector((state) => state.auth?.user);
   const [form] = Form.useForm();
   const [msg, setMsg] = useState(null);
@@ -44,64 +44,65 @@ export default function UploadForm({ onUploadSuccess }) {
     }
   }, []);
 
+  // ---- handleFinish ----
   const handleFinish = async (values) => {
-    if (submitted) return; // prevent double submit
+    if (submitted) return;
     setLoading(true);
     setSubmitted(true);
 
     const data = new FormData();
-    const formattedRange = `${values.dateRange[0].format(
-      "YYYY-MM-DD"
-    )} - ${values.dateRange[1].format("YYYY-MM-DD")}`;
 
-    const cleanedCampaignName = values.campaignName.trim().replace(/\s+/g, " ");
-    data.append("campaignName", cleanedCampaignName);
+    data.append("campaignName", values.campaignName.trim());
     data.append("os", values.os.trim());
+    data.append(
+      "geo",
+      values.geo.includes("[")
+        ? values.geo
+        : JSON.stringify(values.geo.split(",").map((g) => g.trim()))
+    );
+    data.append(
+      "dateRange",
+      `${values.dateRange[0].format(
+        "YYYY-MM-DD"
+      )} - ${values.dateRange[1].format("YYYY-MM-DD")}`
+    );
+    data.append("event_name", values.event_name.trim());
 
-    const geoInput = values.geo.includes("[")
-      ? values.geo
-      : JSON.stringify(values.geo.split(",").map((g) => g.trim()));
-    data.append("geo", geoInput);
-    data.append("dateRange", formattedRange);
+    if (socketId) data.append("socketId", socketId);
 
-    // 🔹 Append socketId to identify user
-    if (socketId) {
-      data.append("socketId", socketId);
+    //  🔥 Only ONE file upload
+    if (!fileList.length) {
+      Swal.fire("No File", "Please upload one file", "warning");
+      setSubmitted(false);
+      setLoading(false);
+      return;
     }
-    fileList.forEach((file) => {
-      data.append("files", file.originFileObj);
-    });
-    console.log("📤 Submitting upload with data:",data)
-    // 🔹 Show processing Swal immediately BEFORE axios call
+
+    data.append("adjustFiles", fileList[0].originFileObj); // ✔ only one file
+
+    // Debug check
+    for (let pair of data.entries()) console.log(pair[0], pair[1]);
+
     Swal.fire({
-      title: "⏳ Processing...",
-      text: "Your file is being processed. You'll be notified once it's done.",
+      title: "Uploading...",
       icon: "info",
-      allowOutsideClick: true, // 🔹 allow socket events to update Swal
-      allowEscapeKey: true,
       showConfirmButton: false,
-      didOpen: () => {
-        Swal.showLoading();
-      },
     });
 
     try {
-      await axios.post(`${apiUrl}/api/metrics`, data);
+      await axios.post(`${apiUrl}/api/adjust-metrics`, data, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
-      // 🔹 Clear form immediately after request is sent
       form.resetFields();
       setFileList([]);
     } catch (err) {
-      Swal.close(); // 🔹 close processing Swal if failed
-      Swal.fire({
-        title: "❌ Upload Failed",
-        text: err.response?.data?.msg || "Something went wrong.",
-        icon: "error",
-      });
+      Swal.fire("Upload Failed", err.response?.data?.msg || "Error", "error");
       setSubmitted(false);
       setLoading(false);
     }
   };
+
   useEffect(() => {
     const handler = async (data) => {
       Swal.close();
@@ -224,25 +225,32 @@ export default function UploadForm({ onUploadSuccess }) {
               size="large"
             />
           </Form.Item>
+          {/* Event Name */}
+          <Form.Item
+            name="event_name"
+            label={
+              <span className="font-medium text-[#2F5D99]">Event Name</span>
+            }
+            rules={[{ required: true, message: "Please enter event name" }]}>
+            <Input
+              size="large"
+              placeholder="Enter event name"
+              className="rounded-lg border-gray-300 focus:border-[#2F5D99] focus:ring-[#2F5D99]/40 transition-all"
+            />
+          </Form.Item>
 
           {/* File Upload */}
           <Form.Item
-            label={
-              <span className="font-medium text-[#2F5D99]">Upload Files</span>
-            }
-            rules={[{ required: true, message: "Please upload files" }]}>
+            label="Upload Adjust File"
+            rules={[{ required: true, message: "Please upload file" }]}>
             <Upload
               beforeUpload={() => false}
-              multiple
+              maxCount={1} // ⬅ only one file allowed
               fileList={fileList}
-              onChange={({ fileList }) => setFileList(fileList)}
-              accept=".xlsx,.xls,.csv"
-              className="w-full">
-              <Button
-                icon={<UploadOutlined />}
-                size="large"
-                className="w-full flex items-center justify-center rounded-lg !bg-[#2F5D99] hover:!bg-[#24487A] !text-white !border-none !shadow-md transition-transform hover:scale-[1.02]">
-                Select Files
+              onChange={({ fileList }) => setFileList([...fileList])}
+              accept=".xlsx,.xls,.csv">
+              <Button icon={<UploadOutlined />} size="large" className="w-full">
+                Select File
               </Button>
             </Upload>
           </Form.Item>
