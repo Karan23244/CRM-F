@@ -145,24 +145,24 @@ const CreateCampaignForm = () => {
     // remove nested structure (optional but recommended)
     delete finalPayload.geo_details;
 
-    // try {
-    //   const res = await axios.post(`${apiUrl}/campaignsnew`, finalPayload);
-    //   console.log(res);
-    //   if (res.data?.message === "Campaign(s) created successfully") {
-    //     Swal.fire({
-    //       icon: "success",
-    //       title: "Created!",
-    //       text: res.data.message,
-    //       timer: 1200,
-    //       showConfirmButton: false,
-    //     });
-    //     form.resetFields();
-    //   }
-    // } catch (error) {
-    //   console.error(error);
-    //   Swal.fire("Error", "Error creating campaign", "error");
-    // }
-    // setIsSubmitting(false);
+    try {
+      const res = await axios.post(`${apiUrl}/campaignsnew`, finalPayload);
+      console.log(res);
+      if (res.data?.message === "Campaign(s) created successfully") {
+        Swal.fire({
+          icon: "success",
+          title: "Created!",
+          text: res.data.message,
+          timer: 1200,
+          showConfirmButton: false,
+        });
+        form.resetFields();
+      }
+    } catch (error) {
+      console.error(error);
+      Swal.fire("Error", "Error creating campaign", "error");
+    }
+    setIsSubmitting(false);
   };
   const handleEditCampaign = async (values) => {
     // Extract ONLY the IDs
