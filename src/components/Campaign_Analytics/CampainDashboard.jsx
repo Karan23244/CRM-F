@@ -218,8 +218,8 @@ export default function OptimizationPage() {
       {/* Upload Form */}
       {user?.permissions?.can_see_input1 === 1 && (
         <Card style={cardStyle} className="mb-6">
-          {/* <UploadForm onUploadSuccess={fetchData} /> */}
-          <AjustUploadForm onUploadSuccess={fetchData}/>
+          <UploadForm onUploadSuccess={fetchData} />
+          {/* <AjustUploadForm onUploadSuccess={fetchData}/> */}
         </Card>
       )}
 
