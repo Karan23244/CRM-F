@@ -52,11 +52,14 @@ const CreateCampaignForm = () => {
   //   fetchCampaigns();
   // }, [fetchCampaigns]);
   // Trim string values safely
-  const trimInput = (value) => {
-    if (typeof value === "string") {
-      return value.trim();
-    }
-    return value;
+  const trimAll = (obj) => {
+    Object.keys(obj).forEach((key) => {
+      const val = obj[key];
+      if (typeof val === "string") {
+        obj[key] = val.trim(); // only removes start + end spaces
+      }
+    });
+    return obj;
   };
 
   const fetchDropdowns = useCallback(async () => {
@@ -105,6 +108,7 @@ const CreateCampaignForm = () => {
   }, [fetchDropdowns]);
 
   const onFinish = async (values) => {
+    trimAll(values);
     if (isSubmitting) return; // ⛔ Prevent double click
     setIsSubmitting(true); // 🔒 Lock submit
     if (editRecord) {
@@ -493,7 +497,6 @@ const CreateCampaignForm = () => {
           <Form.Item
             label="Campaign Name"
             name="campaign_name"
-            normalize={trimInput}
             rules={[{ required: true, message: "Please enter campaign name" }]}>
             <Input
               placeholder="Enter Campaign Name"
@@ -521,7 +524,6 @@ const CreateCampaignForm = () => {
           <Form.Item
             label="State/City"
             name="state_city"
-            normalize={trimInput}
             rules={[{ required: true, message: "Please enter state or city" }]}>
             <Input
               placeholder="Enter State or City"
@@ -568,7 +570,6 @@ const CreateCampaignForm = () => {
                         <Form.Item
                           label={<span className="">Payout</span>}
                           name={[name, "payout"]}
-                          normalize={trimInput}
                           rules={[
                             { required: true, message: "Please enter payout" },
                           ]}>
@@ -668,7 +669,6 @@ const CreateCampaignForm = () => {
           <Form.Item
             label="KPI"
             name="kpi"
-            normalize={trimInput}
             rules={[{ required: true, message: "Please enter KPI" }]}>
             <Input
               placeholder="Enter KPI"
@@ -678,7 +678,6 @@ const CreateCampaignForm = () => {
           <Form.Item
             label="Preview Link"
             name="preview_url"
-            normalize={trimInput}
             rules={[{ required: true, message: "Please enter KPI" }]}>
             <Input
               placeholder="Enter KPI"
@@ -687,8 +686,7 @@ const CreateCampaignForm = () => {
           </Form.Item>
           <Form.Item
             label="Tracking Link"
-            name="tracking_url"
-            normalize={trimInput}>
+            name="tracking_url">
             <Input
               placeholder="Enter Tracking Link"
               className="h-11 rounded-lg border-gray-200 bg-gray-50"
