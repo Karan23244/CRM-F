@@ -46,10 +46,6 @@ export default function AjustUploadForm({ onUploadSuccess }) {
 
   // ---- handleFinish ----
   const handleFinish = async (values) => {
-    if (submitted) return;
-    setLoading(true);
-    setSubmitted(true);
-
     const data = new FormData();
 
     data.append("campaignName", values.campaignName.trim());
@@ -80,20 +76,23 @@ export default function AjustUploadForm({ onUploadSuccess }) {
 
     data.append("adjustFiles", fileList[0].originFileObj); // ✔ only one file
 
-    // Debug check
-    for (let pair of data.entries()) console.log(pair[0], pair[1]);
-
+    // 🔹 Show processing Swal immediately BEFORE axios call
     Swal.fire({
-      title: "Uploading...",
+      title: "⏳ Processing...",
+      text: "Your file is being processed. You'll be notified once it's done.",
       icon: "info",
+      allowOutsideClick: true, // 🔹 allow socket events to update Swal
+      allowEscapeKey: true,
       showConfirmButton: false,
+      didOpen: () => {
+        Swal.showLoading();
+      },
     });
-
     try {
       await axios.post(`${apiUrl}/api/adjust-metrics`, data, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-
+      // 🔹 Clear form immediately after request is sent
       form.resetFields();
       setFileList([]);
     } catch (err) {
@@ -106,7 +105,6 @@ export default function AjustUploadForm({ onUploadSuccess }) {
   useEffect(() => {
     const handler = async (data) => {
       Swal.close();
-      console.log("📨 Received uploadComplete event:", data);
       if (data.status === "success") {
         Swal.fire({
           title: "✅ Upload Completed!",
@@ -120,7 +118,6 @@ export default function AjustUploadForm({ onUploadSuccess }) {
           const senderName = user?.username;
 
           const dateRange = data?.dateRange;
-          console.log("📆 Date Range for notification:", dateRange);
           // ✅ Fetch all users (from your Notification.js helper)
           await notifyAllUsers(
             senderName,
@@ -128,7 +125,6 @@ export default function AjustUploadForm({ onUploadSuccess }) {
             "/dashboard/analytics"
           );
 
-          console.log("✅ Notifications sent to all users!");
         } catch (err) {
           console.error("❌ Error sending notifications:", err);
         }
@@ -157,7 +153,7 @@ export default function AjustUploadForm({ onUploadSuccess }) {
         {/* Header */}
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-[#2F5D99] mb-2">
-            Campaign Metrics Upload
+            Adjust Files Upload Form
           </h2>
           <p className="text-gray-500">
             Fill in the campaign details and upload your metric files below.

@@ -577,44 +577,6 @@ export default function OptimizationCampaignAnalysis({
     );
   }, [enhancedRows, selectedFilters]);
 
-  // const getColumnWithFilter = (title, dataIndex) => ({
-  //   title: (
-  //     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-  //       {title}
-  //     </div>
-  //   ),
-  //   dataIndex,
-  //   key: dataIndex,
-  //   filterDropdown: () => (
-  //     <div style={{ padding: 8 }}>
-  //       <Select
-  //         mode="multiple"
-  //         showSearch
-  //         style={{ width: 180 }}
-  //         allowClear
-  //         placeholder={`Filter ${title}`}
-  //         value={selectedFilters[dataIndex] || []}
-  //         onChange={(value) => handleFilterChange(value, dataIndex)}
-  //         optionFilterProp="children" // enables search by label text
-  //       >
-  //         {getUniqueValues(dataIndex).map((val) => (
-  //           <Select.Option key={val} value={val}>
-  //             {val}
-  //           </Select.Option>
-  //         ))}
-  //       </Select>
-  //     </div>
-  //   ),
-  //   filterIcon: (filtered) => (
-  //     <FilterOutlined style={{ color: filtered ? "#1890ff" : "#aaa" }} />
-  //   ),
-  //   onFilterDropdownVisibleChange: (visible) => {
-  //     if (visible) {
-  //       // optional: do something when dropdown opens
-  //     }
-  //   },
-  // });
-
   const getColumnWithFilter = (title, dataIndex) => {
     const isFiltered = selectedFilters[dataIndex]?.length > 0;
 
@@ -792,7 +754,6 @@ export default function OptimizationCampaignAnalysis({
     getColumnWithFilter("NOCRM", "nocrm"),
     getColumnWithFilter("CLICKS", "clicks"),
   ];
-
   return (
     <div className="min-h-screen space-y-6">
       {/* Always show Edit Conditions on top */}

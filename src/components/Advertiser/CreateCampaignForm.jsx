@@ -145,7 +145,6 @@ const CreateCampaignForm = () => {
       status: values.status,
       user_id: userId,
     };
-    console.log(finalPayload);
     // remove nested structure (optional but recommended)
     delete finalPayload.geo_details;
 

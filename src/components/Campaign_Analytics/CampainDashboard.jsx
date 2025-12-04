@@ -13,9 +13,10 @@ import {
   Row,
   Col,
   DatePicker,
+  Divider,
 } from "antd";
 import UploadForm from "./UploadForm";
-import AjustUploadForm from "./AdjustForm"
+import AjustUploadForm from "./AdjustForm";
 import { useSelector } from "react-redux";
 import PerformanceComparison from "./PerformanceComparison";
 import dayjs from "dayjs";
@@ -28,7 +29,7 @@ dayjs.extend(isSameOrAfter);
 import minMax from "dayjs/plugin/minMax";
 
 dayjs.extend(minMax);
-const { Title } = Typography;
+const { Title,Text } = Typography;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 
@@ -37,7 +38,7 @@ const cardStyle = {
   boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
   border: "1px solid #f0f0f0",
 };
-const apiUrl =import.meta.env.VITE_API_URL2; // Replace with your actual API URL
+const apiUrl = import.meta.env.VITE_API_URL2; // Replace with your actual API URL
 
 export default function OptimizationPage() {
   const user = useSelector((state) => state.auth.user);
@@ -45,7 +46,7 @@ export default function OptimizationPage() {
   const [selectedCampaign, setSelectedCampaign] = useState("");
   const [selectedDateRange, setSelectedDateRange] = useState([null, null]);
   const [loading, setLoading] = useState(true);
-
+  const [selectedForm, setSelectedForm] = useState("upload");
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -142,9 +143,9 @@ export default function OptimizationPage() {
         acc[key].noi += curr.noi || 0;
         acc[key].noe += curr.noe || 0;
         acc[key].nocrm += curr.nocrm || 0;
-        acc[key].pi += curr.pi || 0;
-        acc[key].pe += curr.pe || 0;
-        acc[key].rti += curr.rti || 0;
+        acc[key].pi += curr.pi === null ? 0 : curr.pi;
+        acc[key].pe += curr.pe === null ? 0 : curr.pe;
+        acc[key].rti += curr.rti === null ? 0 : curr.rti;
       }
       return acc;
     }, {});
@@ -217,82 +218,124 @@ export default function OptimizationPage() {
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Upload Form */}
       {user?.permissions?.can_see_input1 === 1 && (
-        <Card style={cardStyle} className="mb-6">
-          <UploadForm onUploadSuccess={fetchData} />
-          {/* <AjustUploadForm onUploadSuccess={fetchData}/> */}
+        <Card
+          style={{
+            ...cardStyle,
+            padding: "24px",
+            borderRadius: "14px",
+            boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
+            background: "#ffffff",
+          }}
+          className="mb-6">
+          {/* Heading Section */}
+          <div style={{ marginBottom: 20 }}>
+            <Title level={4} style={{ margin: 0, color: "#1f1f1f" }}>
+               Upload Files
+            </Title>
+            <Text type="secondary">
+              Choose the type of File type you want to upload.
+            </Text>
+          </div>
+          <Divider />
+
+          {/* Select Dropdown */}
+          <div style={{ marginBottom: 20 }}>
+            <Text strong style={{ marginRight: 10 }}>
+              Select Upload Type:
+            </Text>
+            <Select
+              value={selectedForm}
+              onChange={(value) => setSelectedForm(value)}
+              style={{ width: 260 }}
+              size="large">
+              <Option value="upload">Appslyer Upload Form</Option>
+              <Option value="adjust">Adjust Upload Form</Option>
+            </Select>
+          </div>
+
+          {/* Conditionally show forms */}
+          {selectedForm === "upload" && (
+            <div style={{ marginTop: 20 }}>
+              <UploadForm onUploadSuccess={fetchData} />
+            </div>
+          )}
+
+          {selectedForm === "adjust" && (
+            <div style={{ marginTop: 20 }}>
+              <AjustUploadForm onUploadSuccess={fetchData} />
+            </div>
+          )}
         </Card>
       )}
 
       {/* Header & Filters */}
       <div className="py-2">
-          {/* Title */}
-          <div className="my-2">
-            <Title level={3} className="text-[#2F5D99] font-bold tracking-wide">
-              Optimization Dashboard
-            </Title>
-          </div>
+        {/* Title */}
+        <div className="my-2">
+          <Title level={3} className="text-[#2F5D99] font-bold tracking-wide">
+            Optimization Dashboard
+          </Title>
+        </div>
 
-          {/* Filter Card */}
-          <Card className="rounded-2xl shadow-2xl border border-gray-100 bg-white/90 backdrop-blur-sm transition-transform hover:scale-[1.01]">
-            <Row gutter={[24, 24]}>
-              {/* Campaign Selector */}
-              <Col xs={24} md={12}>
-                <label className="block mb-2 font-medium text-[#2F5D99]">
-                  Select Campaign
-                </label>
-                <Select
-                  value={selectedCampaign}
-                  onChange={setSelectedCampaign}
-                  size="large"
-                  className="w-full rounded-lg"
-                  placeholder="Choose a campaign"
-                  allowClear
-                  showSearch
-                  optionFilterProp="children"
-                  filterOption={(input, option) =>
-                    option?.children
-                      ?.toLowerCase()
-                      .includes(input.toLowerCase())
-                  }
-                  dropdownStyle={{
-                    borderRadius: "0.75rem",
-                    padding: "0.5rem",
-                  }}>
-                  {campaigns.map((c) => (
-                    <Option key={c} value={c}>
-                      {c}
-                    </Option>
-                  ))}
-                </Select>
-              </Col>
+        {/* Filter Card */}
+        <Card className="rounded-2xl shadow-2xl border border-gray-100 bg-white/90 backdrop-blur-sm transition-transform hover:scale-[1.01]">
+          <Row gutter={[24, 24]}>
+            {/* Campaign Selector */}
+            <Col xs={24} md={12}>
+              <label className="block mb-2 font-medium text-[#2F5D99]">
+                Select Campaign
+              </label>
+              <Select
+                value={selectedCampaign}
+                onChange={setSelectedCampaign}
+                size="large"
+                className="w-full rounded-lg"
+                placeholder="Choose a campaign"
+                allowClear
+                showSearch
+                optionFilterProp="children"
+                filterOption={(input, option) =>
+                  option?.children?.toLowerCase().includes(input.toLowerCase())
+                }
+                dropdownStyle={{
+                  borderRadius: "0.75rem",
+                  padding: "0.5rem",
+                }}>
+                {campaigns.map((c) => (
+                  <Option key={c} value={c}>
+                    {c}
+                  </Option>
+                ))}
+              </Select>
+            </Col>
 
-              {/* Date Range Selector */}
-              <Col xs={24} md={12}>
-                <label className="block mb-2 font-medium text-[#2F5D99]">
-                  Select Date Range
-                </label>
-                <RangePicker
-                  value={selectedDateRange}
-                  size="large"
-                  className="w-full rounded-lg hover:border-[#2F5D99] focus:border-[#2F5D99] focus:ring-[#2F5D99]/40 transition-all"
-                  allowClear
-                  inputReadOnly
-                  onChange={handleDateChange}
-                  format="YYYY-MM-DD"
-                  disabledDate={disabledDate}
-                />
-                {minDate && maxDate && (
-                  <div className="mt-2 text-sm text-gray-600">
-                    Available Range:{" "}
-                    <span className="font-medium text-[#2F5D99]">
-                      {minDate.format("YYYY-MM-DD")} →{" "}
-                      {maxDate.format("YYYY-MM-DD")}
-                    </span>
-                  </div>
-                )}
-              </Col>
-            </Row>
-          </Card>
+            {/* Date Range Selector */}
+            <Col xs={24} md={12}>
+              <label className="block mb-2 font-medium text-[#2F5D99]">
+                Select Date Range
+              </label>
+              <RangePicker
+                value={selectedDateRange}
+                size="large"
+                className="w-full rounded-lg hover:border-[#2F5D99] focus:border-[#2F5D99] focus:ring-[#2F5D99]/40 transition-all"
+                allowClear
+                inputReadOnly
+                onChange={handleDateChange}
+                format="YYYY-MM-DD"
+                disabledDate={disabledDate}
+              />
+              {minDate && maxDate && (
+                <div className="mt-2 text-sm text-gray-600">
+                  Available Range:{" "}
+                  <span className="font-medium text-[#2F5D99]">
+                    {minDate.format("YYYY-MM-DD")} →{" "}
+                    {maxDate.format("YYYY-MM-DD")}
+                  </span>
+                </div>
+              )}
+            </Col>
+          </Row>
+        </Card>
       </div>
 
       {user?.username === "Akshat" && (

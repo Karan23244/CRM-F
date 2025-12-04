@@ -3,7 +3,7 @@
 import { io } from "socket.io-client";
 
 //  ^|^e Initialize Socket.IO connection
-export const socket = io("https://gapi.clickorbits.in/",
+export const socket = io(import.meta.env.VITE_API_URL2,
   {
     transports: ["websocket"], // force websocket for better stability
     reconnection: true,

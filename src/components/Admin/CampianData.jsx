@@ -898,7 +898,6 @@ const CampianData = () => {
       })),
     ];
   };
-  console.log(processedData);
   return (
     <div className="p-5 min-h-screen">
       {/* Toggle Section */}
@@ -1028,15 +1027,9 @@ const CampianData = () => {
           </div>
         ) : (
           <>
-            <Card className="shadow-md rounded-2xl border border-gray-100 bg-white mt-6 p-4 md:p-6">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                {selectedType === "publisher"
-                  ? "Publisher Data"
-                  : "Advertiser Data"}
-              </h2>
-
+            <div className="">
               <StyledTable
-                className="custom-table shadow-sm rounded-lg overflow-hidden"
+                className="overflow-hidden"
                 dataSource={processedData}
                 columns={
                   selectedType === "publisher"
@@ -1120,7 +1113,7 @@ const CampianData = () => {
                   );
                 }}
               />
-            </Card>
+            </div>
           </>
         )}
       </div>

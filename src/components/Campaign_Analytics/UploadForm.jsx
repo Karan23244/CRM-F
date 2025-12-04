@@ -71,7 +71,6 @@ export default function UploadForm({ onUploadSuccess }) {
     fileList.forEach((file) => {
       data.append("files", file.originFileObj);
     });
-    console.log("📤 Submitting upload with data:",data)
     // 🔹 Show processing Swal immediately BEFORE axios call
     Swal.fire({
       title: "⏳ Processing...",
@@ -105,7 +104,6 @@ export default function UploadForm({ onUploadSuccess }) {
   useEffect(() => {
     const handler = async (data) => {
       Swal.close();
-      console.log("📨 Received uploadComplete event:", data);
       if (data.status === "success") {
         Swal.fire({
           title: "✅ Upload Completed!",
@@ -119,15 +117,12 @@ export default function UploadForm({ onUploadSuccess }) {
           const senderName = user?.username;
 
           const dateRange = data?.dateRange;
-          console.log("📆 Date Range for notification:", dateRange);
           // ✅ Fetch all users (from your Notification.js helper)
           await notifyAllUsers(
             senderName,
             `📁 ${data.campaignName} file uploaded for ${dateRange}`,
             "/dashboard/analytics"
           );
-
-          console.log("✅ Notifications sent to all users!");
         } catch (err) {
           console.error("❌ Error sending notifications:", err);
         }
@@ -156,7 +151,7 @@ export default function UploadForm({ onUploadSuccess }) {
         {/* Header */}
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-[#2F5D99] mb-2">
-            Campaign Metrics Upload
+            Appslyer Files Upload Form 
           </h2>
           <p className="text-gray-500">
             Fill in the campaign details and upload your metric files below.

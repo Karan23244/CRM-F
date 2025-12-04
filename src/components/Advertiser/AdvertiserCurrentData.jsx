@@ -103,7 +103,6 @@ const AdvertiserData = () => {
   const fetchData = useCallback(async () => {
     try {
       const response = await axios.get(`${apiUrl}/advdata-byuser/${userId}`);
-      console.log("fetchData response:", response);
       if (response?.data.data && Array.isArray(response.data.data)) {
         const formatted = [...(response?.data?.data || [])]
           .reverse()
@@ -477,7 +476,6 @@ const AdvertiserData = () => {
       "adv_payout",
       "pub_name",
       "pub_id",
-      "pub_name",
       "pid",
       "pay_out",
       "shared_date",
@@ -621,7 +619,6 @@ const AdvertiserData = () => {
         } catch {
           updated.pub_Apno = "";
         }
-        console.log(updated);
         const res = await axios.post(
           `${apiUrl}/advdata-update/${record.id}`,
           updated,
@@ -716,7 +713,6 @@ const AdvertiserData = () => {
     },
     [fetchData, userId]
   );
-
   // Delete
   const handleDelete = useCallback(async (id) => {
     const result = await Swal.fire({
@@ -757,7 +753,6 @@ const AdvertiserData = () => {
         paused_date: selectedPauseDate,
         campaign_id: selectedCampaignId,
       };
-
       const res = await axios.post(
         `${apiUrl}/advdata-update/${selectedPauseRecord.id}`,
         payload,
@@ -963,35 +958,51 @@ const AdvertiserData = () => {
               //     />
               //   );
               // }
-              if (["paused_date"].includes(key)) {
-                const TODAY = "2025-11-20"; // HARD CODED DATE
+              // if (["paused_date"].includes(key)) {
+              //   const TODAY = "2025-12-02"; // HARD CODED DATE
 
-                // Normalize date -> yyyy-mm-dd
-                const normalize = (d) => {
-                  const dt = new Date(d);
-                  dt.setHours(0, 0, 0, 0);
-                  return dt.toISOString().slice(0, 10);
-                };
+              //   // Normalize date -> yyyy-mm-dd
+              //   const normalize = (d) => {
+              //     const dt = new Date(d);
+              //     dt.setHours(0, 0, 0, 0);
+              //     return dt.toISOString().slice(0, 10);
+              //   };
+
+              //   const rowDate = normalize(record.created_at);
+              //   // Find all rows created before TODAY
+              //   const pastDates = finalFilteredData
+              //     .map((r) => normalize(r.created_at))
+              //     .filter((d) => d < TODAY);
+
+              //   // FIX: Sort dates numerically (not alphabetically)
+              //   const latestPrevDate =
+              //     pastDates.length === 0
+              //       ? null
+              //       : pastDates.sort((a, b) => new Date(a) - new Date(b)).pop();
+
+              //   // Editable only for rows <= latest previous day & before today
+              //   const pausedEditable =
+              //     rowDate < TODAY &&
+              //     latestPrevDate !== null &&
+              //     rowDate <= latestPrevDate;
+
+              //   // ❌ Not editable
+              //   if (!pausedEditable) {
+              //     return (
+              //       <div style={{ color: "gray", cursor: "not-allowed" }}>
+              //         {value ? dayjs(value).format("YYYY-MM-DD") : "-"}
+              //       </div>
+              //     );
+              //   }
+              if (["paused_date"].includes(key)) {
+                const TODAY = "2025-12-02";
+
+                const normalize = (d) => d.slice(0, 10);
 
                 const rowDate = normalize(record.created_at);
-                // Find all rows created before TODAY
-                const pastDates = finalFilteredData
-                  .map((r) => normalize(r.created_at))
-                  .filter((d) => d < TODAY);
 
-                // FIX: Sort dates numerically (not alphabetically)
-                const latestPrevDate =
-                  pastDates.length === 0
-                    ? null
-                    : pastDates.sort((a, b) => new Date(a) - new Date(b)).pop();
+                const pausedEditable = rowDate === TODAY;
 
-                // Editable only for rows <= latest previous day & before today
-                const pausedEditable =
-                  rowDate < TODAY &&
-                  latestPrevDate !== null &&
-                  rowDate <= latestPrevDate;
-
-                // ❌ Not editable
                 if (!pausedEditable) {
                   return (
                     <div style={{ color: "gray", cursor: "not-allowed" }}>
@@ -1000,48 +1011,71 @@ const AdvertiserData = () => {
                   );
                 }
 
-                // ✔ Editable mode
                 if (isEditing) {
                   return (
                     <DatePicker
                       allowClear
                       value={value ? dayjs(value) : null}
                       format="YYYY-MM-DD"
-                      // onChange={(date) => {
-                      //   handleAutoSave(
-                      //     record,
-                      //     key,
-                      //     date ? date.format("YYYY-MM-DD") : null
-                      //   ).finally(() =>
-                      //     setEditingCell({ key: null, field: null })
-                      //   );
-                      // }}
                       onChange={(date) => {
                         const finalDate = date
                           ? date.format("YYYY-MM-DD")
                           : null;
-
-                        // 1️⃣ Save paused date normally using auto-save
-                        // handleAutoSave(record, key, finalDate).finally(() => {
-                        //   setEditingCell({ key: null, field: null });
-                        // });
-
-                        // 2️⃣ Open modal for campaign selection
                         setSelectedPauseDate(finalDate);
                         setSelectedPauseRecord(record);
                         setShareModalVisible(true);
                       }}
                       onOpenChange={(open) => {
-                        if (!open) {
-                          // popup closed → click outside
-                          setEditingCell({ key: null, field: null });
-                        }
+                        if (!open) setEditingCell({ key: null, field: null });
                       }}
                       autoFocus
                     />
                   );
                 }
               }
+
+              //   // ✔ Editable mode
+              //   if (isEditing) {
+              //     return (
+              //       <DatePicker
+              //         allowClear
+              //         value={value ? dayjs(value) : null}
+              //         format="YYYY-MM-DD"
+              //         // onChange={(date) => {
+              //         //   handleAutoSave(
+              //         //     record,
+              //         //     key,
+              //         //     date ? date.format("YYYY-MM-DD") : null
+              //         //   ).finally(() =>
+              //         //     setEditingCell({ key: null, field: null })
+              //         //   );
+              //         // }}
+              //         onChange={(date) => {
+              //           const finalDate = date
+              //             ? date.format("YYYY-MM-DD")
+              //             : null;
+
+              //           // 1️⃣ Save paused date normally using auto-save
+              //           // handleAutoSave(record, key, finalDate).finally(() => {
+              //           //   setEditingCell({ key: null, field: null });
+              //           // });
+
+              //           // 2️⃣ Open modal for campaign selection
+              //           setSelectedPauseDate(finalDate);
+              //           setSelectedPauseRecord(record);
+              //           setShareModalVisible(true);
+              //         }}
+              //         onOpenChange={(open) => {
+              //           if (!open) {
+              //             // popup closed → click outside
+              //             setEditingCell({ key: null, field: null });
+              //           }
+              //         }}
+              //         autoFocus
+              //       />
+              //     );
+              //   }
+              // }
 
               return (
                 <Input
@@ -1232,6 +1266,7 @@ const AdvertiserData = () => {
     },
     [columns]
   );
+  console.log(finalFilteredData);
   return (
     <div className="p-4 bg-gray-100 min-h-screen flex flex-col items-center">
       <div className="w-full bg-white p-6 rounded shadow-md relative">
