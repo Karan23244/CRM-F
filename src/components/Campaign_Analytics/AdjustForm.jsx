@@ -124,7 +124,6 @@ export default function AjustUploadForm({ onUploadSuccess }) {
             `📁 ${data.campaignName} file uploaded for ${dateRange}`,
             "/dashboard/analytics"
           );
-
         } catch (err) {
           console.error("❌ Error sending notifications:", err);
         }
@@ -142,8 +141,8 @@ export default function AjustUploadForm({ onUploadSuccess }) {
       setLoading(false);
     };
 
-    socket.on("uploadComplete", handler);
-    return () => socket.off("uploadComplete", handler);
+    socket.on("uploadAdjustComplete", handler);
+    return () => socket.off("uploadAdjustComplete", handler);
   }, [user]);
   return (
     <div className=" flex items-center justify-center bg-gradient-to-br from-[#EAF1FA] via-[#F6F9FC] to-[#FFFFFF] p-8">

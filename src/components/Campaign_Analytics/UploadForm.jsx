@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   DatePicker,
   Form,
@@ -11,7 +11,7 @@ import {
 import { UploadOutlined } from "@ant-design/icons";
 import axios from "axios";
 import Swal from "sweetalert2";
-import { socket, joinRoom } from "../Socket/Socket";
+import { joinRoom, joinUserRoom, socket } from "../Socket/Socket.jsx";
 import { useSelector } from "react-redux";
 import {
   createNotification,
@@ -24,24 +24,40 @@ const { RangePicker } = DatePicker;
 const { Title, Text } = Typography;
 
 export default function UploadForm({ onUploadSuccess }) {
+  const joinedRef = useRef(false);
   const user = useSelector((state) => state.auth?.user);
+  useEffect(() => {
+    if (!user?.id) return;
+
+    // Prevent duplicate joins (Strict Mode fix)
+    if (joinedRef.current) return;
+    joinedRef.current = true;
+
+    joinUserRoom(user.id);
+  }, [user]);
+
   const [form] = Form.useForm();
   const [msg, setMsg] = useState(null);
   const [fileList, setFileList] = useState([]);
   const [loading, setLoading] = useState(false); // 🔥 loading state
   const [submitted, setSubmitted] = useState(false); // 🔥 prevent resubmit
   const [socketId, setSocketId] = useState(null);
-  // 🔹 On mount, join room using socket.id
+  // Track socket.id so we can send it to backend
   useEffect(() => {
-    if (socket.connected) {
+    const handleConnect = () => {
+      console.log("Socket connected:", socket.id);
       setSocketId(socket.id);
-      joinRoom(socket.id);
+    };
+
+    if (socket.connected) {
+      handleConnect();
     } else {
-      socket.on("connect", () => {
-        setSocketId(socket.id);
-        joinRoom(socket.id);
-      });
+      socket.on("connect", handleConnect);
     }
+
+    return () => {
+      socket.off("connect", handleConnect);
+    };
   }, []);
 
   const handleFinish = async (values) => {
@@ -151,7 +167,7 @@ export default function UploadForm({ onUploadSuccess }) {
         {/* Header */}
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-[#2F5D99] mb-2">
-            Appslyer Files Upload Form 
+            Appslyer Files Upload Form
           </h2>
           <p className="text-gray-500">
             Fill in the campaign details and upload your metric files below.
