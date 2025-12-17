@@ -415,6 +415,10 @@ const AdvertiserData = () => {
         new Set(
           source.map((row) => {
             const v = row[col];
+            // 🔥 force 2 decimals for payout total
+            if (col === "adv_payout_total" && !isNaN(v)) {
+              return Number(v).toFixed(2);
+            }
             return v === null || v === undefined || v === ""
               ? "-"
               : v.toString().trim();
@@ -859,9 +863,10 @@ const AdvertiserData = () => {
               const total =
                 (Number(record.adv_payout) || 0) *
                 (Number(record.adv_approved_no) || 0);
+
               return (
                 <span>
-                  <p>{isNaN(total) ? "-" : total}</p>
+                  <p>{isNaN(total) ? "-" : total.toFixed(2)}</p>
                 </span>
               );
             }
@@ -1255,7 +1260,7 @@ const AdvertiserData = () => {
             } else if (col.dataIndex === "adv_payout_total") {
               return (
                 <Table.Summary.Cell key={`total-${index}`}>
-                  <b>{totalAdvPayoutTotal}</b>
+                  <b>{totalAdvPayoutTotal.toFixed(2)}</b>
                 </Table.Summary.Cell>
               );
             } else {

@@ -290,13 +290,29 @@ const CampianData = () => {
     // Build unique dropdown values dynamically based on selection rules
     const valuesObj = {};
 
-    // For each column:
     Object.keys(columnHeadingsAdv).forEach((col) => {
-      const source = getDataForDropdown(col); // 🔥 critical
+      const source = getDataForDropdown(col);
+
       valuesObj[col] = Array.from(
         new Set(
           source.map((row) => {
-            const v = row[col];
+            let v;
+
+            // ✅ compute adv_payout_total
+            if (col === "adv_payout_total") {
+              const total =
+                Number(row.adv_payout) * Number(row.adv_approved_no);
+              return isNaN(total) ? "-" : total.toFixed(2);
+            }
+
+            // ✅ format pub_Apno to 2 decimals
+            if (col === "pub_Apno") {
+              v = row.pub_Apno;
+              return isNaN(v) ? "-" : Number(v).toFixed(2);
+            }
+
+            // normal columns
+            v = row[col];
             return v === null || v === undefined || v === ""
               ? "-"
               : v.toString().trim();
@@ -756,11 +772,10 @@ const CampianData = () => {
           }
           if (key === "adv_payout_total") {
             const total =
-              (Number(record.adv_payout) || 0) *
-              (Number(record.adv_approved_no) || 0);
+              Number(record.adv_payout) * Number(record.adv_approved_no);
             return (
               <span>
-                <p>{isNaN(total) ? "-" : total}</p>
+                <p>{isNaN(total) ? "-" : total.toFixed(2)}</p>
               </span>
             );
           }
@@ -1062,13 +1077,17 @@ const CampianData = () => {
                       adv_deductions,
                       adv_approved_no,
                       pub_Apno,
-                      adv_payout_total,
+                      adv_payout,
                     }) => {
                       totalAdvTotalNo += Number(adv_total_no) || 0;
                       totalAdvDeductions += Number(adv_deductions) || 0;
                       totalAdvApprovedNo += Number(adv_approved_no) || 0;
                       totalpubApprovedNo += Number(pub_Apno) || 0;
-                      totalAdvPayoutTotal += Number(adv_payout_total) || 0;
+
+                      // ✅ FIX: calculate here
+                      totalAdvPayoutTotal +=
+                        (Number(adv_payout) || 0) *
+                        (Number(adv_approved_no) || 0);
                     }
                   );
 
@@ -1081,33 +1100,36 @@ const CampianData = () => {
                               <b>{totalAdvTotalNo}</b>
                             </Table.Summary.Cell>
                           );
-                        } else if (key === "adv_deductions") {
+                        }
+                        if (key === "adv_deductions") {
                           return (
                             <Table.Summary.Cell key={key}>
                               <b>{totalAdvDeductions}</b>
                             </Table.Summary.Cell>
                           );
-                        } else if (key === "adv_approved_no") {
+                        }
+                        if (key === "adv_approved_no") {
                           return (
                             <Table.Summary.Cell key={key}>
                               <b>{totalAdvApprovedNo}</b>
                             </Table.Summary.Cell>
                           );
-                        } else if (key === "pub_Apno") {
-                          return (
-                            <Table.Summary.Cell key={key}>
-                              <b>{totalpubApprovedNo}</b>
-                            </Table.Summary.Cell>
-                          );
-                        } else if (key === "adv_payout_total") {
-                          return (
-                            <Table.Summary.Cell key={key}>
-                              <b>{totalAdvPayoutTotal}</b>
-                            </Table.Summary.Cell>
-                          );
-                        } else {
-                          return <Table.Summary.Cell key={key} />;
                         }
+                        if (key === "pub_Apno") {
+                          return (
+                            <Table.Summary.Cell key={key}>
+                              <b>{totalpubApprovedNo.toFixed(2)}</b>
+                            </Table.Summary.Cell>
+                          );
+                        }
+                        if (key === "adv_payout_total") {
+                          return (
+                            <Table.Summary.Cell key={key}>
+                              <b>{totalAdvPayoutTotal.toFixed(2)}</b>
+                            </Table.Summary.Cell>
+                          );
+                        }
+                        return <Table.Summary.Cell key={key} />;
                       })}
                     </Table.Summary.Row>
                   );

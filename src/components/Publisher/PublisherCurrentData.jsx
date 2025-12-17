@@ -407,7 +407,13 @@ const PublisherPayoutData = () => {
       valuesObj[col] = Array.from(
         new Set(
           source.map((row) => {
-            const v = row[col];
+            let v;
+            // ✅ format pub_Apno to 2 decimals
+            if (col === "pub_Apno") {
+              v = row.pub_Apno;
+              return isNaN(v) ? "-" : Number(v).toFixed(2);
+            }
+            v = row[col];
             return v === null || v === undefined || v === ""
               ? "-"
               : v.toString().trim();
@@ -481,7 +487,11 @@ const PublisherPayoutData = () => {
           if (value === null || value === undefined || value === "") {
             return <span style={{ color: "gray" }}>-</span>; // You can add Tooltip if needed
           }
-
+          // ✅ Format only these two columns to 2 decimals
+          if (key === "adv_total_no" || key === "pub_Apno") {
+            const num = Number(value);
+            return isNaN(num) ? "-" : num.toFixed(2);
+          }
           return value;
         },
 
@@ -790,7 +800,7 @@ const PublisherPayoutData = () => {
           </div>
         </div>
 
-        <StyledTable
+        {/* <StyledTable
           bordered
           columns={getColumns(columnHeadingsAdv)}
           components={{
@@ -813,6 +823,64 @@ const PublisherPayoutData = () => {
             return record.flag === "1" ? "light-yellow-row" : "";
           }}
           className="mt-5"
+        /> */}
+        <StyledTable
+          bordered
+          columns={getColumns(columnHeadingsAdv)}
+          dataSource={processedData}
+          rowKey="id"
+          pagination={{
+            pageSizeOptions: ["10", "20", "50", "100", "200", "500"],
+            showSizeChanger: true,
+            defaultPageSize: 10,
+          }}
+          scroll={{ x: "max-content" }}
+          summary={(pageData) => {
+            const pageTotals = pageData.reduce(
+              (acc, row) => {
+                acc.adv_total_no += Number(row.adv_total_no) || 0;
+                acc.pub_Apno += Number(row.pub_Apno) || 0;
+                return acc;
+              },
+              { adv_total_no: 0, pub_Apno: 0 }
+            );
+
+            return (
+              <Table.Summary fixed>
+                <Table.Summary.Row
+                  style={{ background: "#fafafa", fontWeight: "bold" }}>
+                  {getColumns(columnHeadingsAdv).map((col, index) => {
+                    if (col.key === "adv_total_no") {
+                      return (
+                        <Table.Summary.Cell key={col.key} index={index}>
+                          {pageTotals.adv_total_no.toFixed(2)}
+                        </Table.Summary.Cell>
+                      );
+                    }
+
+                    if (col.key === "pub_Apno") {
+                      return (
+                        <Table.Summary.Cell key={col.key} index={index}>
+                          {pageTotals.pub_Apno.toFixed(2)}
+                        </Table.Summary.Cell>
+                      );
+                    }
+
+                    // TOTAL label in first column
+                    if (index === 0) {
+                      return (
+                        <Table.Summary.Cell key="total-label" index={index}>
+                          TOTAL
+                        </Table.Summary.Cell>
+                      );
+                    }
+
+                    return <Table.Summary.Cell key={col.key} index={index} />;
+                  })}
+                </Table.Summary.Row>
+              </Table.Summary>
+            );
+          }}
         />
       </div>
     </div>
