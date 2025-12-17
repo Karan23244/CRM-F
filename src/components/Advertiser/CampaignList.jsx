@@ -9,12 +9,14 @@ import {
   message,
   Button,
   Checkbox,
+  Modal,
 } from "antd";
 import {
   FilterOutlined,
   PushpinOutlined,
   PushpinFilled,
   ClearOutlined,
+  EyeOutlined,
 } from "@ant-design/icons";
 import { useSelector } from "react-redux";
 import axios from "axios";
@@ -40,6 +42,9 @@ const CampaignList = () => {
     const saved = localStorage.getItem("hiddenCampaignColumns");
     return saved ? JSON.parse(saved) : [];
   });
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [selectedLinks, setSelectedLinks] = useState([]);
+  const [selectedCampaignName, setSelectedCampaignName] = useState("");
   const [sortInfo, setSortInfo] = useState({
     columnKey: null,
     order: null,
@@ -51,6 +56,15 @@ const CampaignList = () => {
       JSON.stringify(hiddenColumns)
     );
   }, [hiddenColumns]);
+  const handleViewLinks = (record) => {
+    setSelectedCampaignName(record.campaign_name);
+    setSelectedLinks(record.links || []); // <-- update according to your API field
+    setIsLinkModalOpen(true);
+  };
+
+  const handleCloseLinks = () => {
+    setIsLinkModalOpen(false);
+  };
 
   // Fetch campaigns
   const fetchCampaigns = useCallback(async () => {
@@ -489,12 +503,11 @@ const CampaignList = () => {
       (text, record) => (
         <span
           style={{
-            cursor:
-              roles.some((r) =>
-                ["advertiser", "advertiser_manager", "operations"].includes(r)
-              )
-                ? "pointer"
-                : "not-allowed",
+            cursor: roles.some((r) =>
+              ["advertiser", "advertiser_manager", "operations"].includes(r)
+            )
+              ? "pointer"
+              : "not-allowed",
           }}
           onClick={() => {
             if (
@@ -559,6 +572,38 @@ const CampaignList = () => {
       "Status",
       getEditableCell("status").render
     ),
+    //     getColumnWithFilterAndPin(
+    //   "postback_url",
+    //   "Postback URL",
+    //   getEditableCell("status").render
+    // ),
+    // {
+    //   title: "Tracking Links",
+    //   key: "links",
+    //   align: "center",
+    //   render: (_, record) => (
+    //     <Button
+    //       type="primary"
+    //       ghost
+    //       icon={<EyeOutlined />}
+    //       onClick={() => handleViewLinks(record)}
+    //       style={{
+    //         borderColor: "#2F5D99",
+    //         color: "#2F5D99",
+    //       }}
+    //       onMouseEnter={(e) => {
+    //         e.currentTarget.style.backgroundColor = "#2F5D99";
+    //         e.currentTarget.style.color = "white";
+    //       }}
+    //       onMouseLeave={(e) => {
+    //         e.currentTarget.style.backgroundColor = "transparent";
+    //         e.currentTarget.style.color = "#2F5D99";
+    //       }}>
+    //       View Links
+    //     </Button>
+    //   ),
+    // },
+
     {
       title: "Last Updated",
       dataIndex: "updated_at",
@@ -628,6 +673,64 @@ const CampaignList = () => {
           scroll={{ x: "max-content" }}
         />
       </Card>
+      <Modal
+        title={
+          <div
+            style={{
+              background: "#2F5D99",
+              color: "white",
+              padding: "12px 0",
+              borderRadius: "8px 8px 0 0",
+              textAlign: "center",
+              fontSize: "18px",
+              fontWeight: "600",
+            }}>
+            Links for {selectedCampaignName}
+          </div>
+        }
+        open={isLinkModalOpen}
+        onCancel={handleCloseLinks}
+        footer={[
+          <Button key="close" onClick={handleCloseLinks} type="primary">
+            Close
+          </Button>,
+        ]}
+        centered
+        bodyStyle={{
+          maxHeight: "60vh",
+          overflowY: "auto",
+          backgroundColor: "#f9fafb",
+          padding: "20px",
+          borderRadius: "0 0 10px 10px",
+        }}
+        closable={false}>
+        {selectedLinks?.length > 0 ? (
+          <div className="flex flex-col gap-3">
+            {selectedLinks.map((link, index) => (
+              <div
+                key={index}
+                className="bg-white border border-gray-200 rounded-lg shadow-sm p-3 flex items-center justify-between">
+                <div className="text-gray-800 break-all w-3/4">{link}</div>
+
+                <Button
+                  size="small"
+                  onClick={() => navigator.clipboard.writeText(link)}
+                  style={{
+                    backgroundColor: "#2F5D99",
+                    color: "white",
+                    borderRadius: "6px",
+                  }}>
+                  Copy
+                </Button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center text-gray-500 text-base py-6">
+            No links found for this campaign.
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

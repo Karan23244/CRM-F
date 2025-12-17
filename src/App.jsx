@@ -38,6 +38,7 @@ import CreateAdvertiser from "./components/Advertiser/CreateAdvertiser";
 import CreatePublisher from "./components/Publisher/CreatePublisher";
 import Notification from "./components/NotificationBar";
 import Home from "./layouts/Homepage";
+import Conversion from "./components/Publisher/Conversion";
 const AppRoutes = () => (
   <Router>
     <Routes>
@@ -84,9 +85,10 @@ const AppRoutes = () => (
           <Route path="createadvform" element={<CreateAdvertiser />} />
           <Route path="createpubform" element={<CreatePublisher />} />
           <Route path="notifications" element={<Notification />} />
+          <Route path="conversion" element={<Conversion />} />
           <Route path="myaccount" element={<MyAccount />} />
           {/* default redirect */}
-          <Route index element={<Navigate to="analytics" replace />} />
+          <Route index element={<Navigate to="home" replace />} />
         </Route>
       </Route>
     </Routes>

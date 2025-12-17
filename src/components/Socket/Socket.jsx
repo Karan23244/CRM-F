@@ -48,56 +48,69 @@
 
 // Socket.jsx
 import { io } from "socket.io-client";
-// ---------------------------------------
-// 🔗 Initialize Socket connection
-// ---------------------------------------
+
 export const socket = io(import.meta.env.VITE_API_URL2, {
   transports: ["websocket"],
   reconnection: true,
-  reconnectionAttempts: 5,
+  reconnectionAttempts: Infinity,
   reconnectionDelay: 2000,
-  autoConnect: true,
 });
 
-// ---------------------------------------
-// 🔥 Join any room manually
-// ---------------------------------------
+// ---------------------------
+// Join Room
+// ---------------------------
 export const joinRoom = (roomId) => {
-  if (!roomId) {
-    console.warn("⚠️ No roomId provided to joinRoom()");
-    return;
-  }
+  if (!roomId) return console.warn("⚠️ Missing roomId");
 
   if (socket.connected) {
+    console.log("➡️ Joining room:", roomId);
     socket.emit("joinRoom", roomId);
   } else {
     socket.once("connect", () => {
+      console.log("➡️ Joining room after reconnect:", roomId);
       socket.emit("joinRoom", roomId);
     });
   }
 };
 
-// ---------------------------------------
-// 🔥 Join a room using user.id
-// (Call this from a component where Redux is available)
-// ---------------------------------------
+// ---------------------------
+// Join Room by User ID
+// ---------------------------
+let lastUserId = null;
+
 export const joinUserRoom = (userId) => {
-  if (!userId) {
-    console.warn("⚠️ No userId provided → cannot join room");
-    return;
-  }
-  console.log("Joining room for user ID:", userId);
+  if (!userId) return console.warn("⚠️ Missing userId");
+
+  lastUserId = userId; // SAVE FOR RECONNECTS
   joinRoom(userId);
 };
 
+// ---------------------------
+// Socket Events
+// ---------------------------
 socket.on("connect", () => {
-  console.log("⚡ Socket connected:", socket.id);
+  console.log("⚡ Connected:", socket.id);
+
+  // 🔥 Auto-rejoin the user room after new connection
+  if (lastUserId) {
+    console.log("🔁 Rejoining user room:", lastUserId);
+    joinRoom(lastUserId);
+  }
+});
+
+socket.on("reconnect", (attempt) => {
+  console.log("🔄 Reconnected after attempts:", attempt);
+
+  if (lastUserId) {
+    console.log("🔁 Rejoining user room after reconnect:", lastUserId);
+    joinRoom(lastUserId);
+  }
 });
 
 socket.on("disconnect", (reason) => {
-  console.warn("⚠️ Socket disconnected:", reason);
+  console.warn("⚠️ Disconnected:", reason);
 });
 
 socket.on("connect_error", (err) => {
-  console.error("❌ Socket connect error:", err.message);
+  console.error("❌ Connection error:", err.message);
 });

@@ -13,8 +13,7 @@ import {
 } from "@ant-design/icons";
 import StyledTable from "../../Utils/StyledTable";
 
-const apiUrl =
-  import.meta.env.VITE_API_URL;
+const apiUrl = import.meta.env.VITE_API_URL;
 
 const AdvertiserIDDashboard = () => {
   const user = useSelector((state) => state.auth.user);
@@ -497,6 +496,39 @@ const AdvertiserEditForm = () => {
 
           setSortInfo({
             columnKey: "assign_user",
+            order: newOrder,
+          });
+        },
+      }),
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
+        createFilterDropdown(
+          filteredData,
+          "assign_user",
+          setSelectedKeys,
+          selectedKeys,
+          confirm
+        ),
+      onFilter: (value, record) => record.assign_user === value,
+    },
+    {
+      title: "Postback URL",
+      dataIndex: "postback_url",
+      key: "postback_url",
+      sorter: (a, b) => a.postback_url.localeCompare(b.postback_url),
+      sortOrder: sortInfo.columnKey === "postback_url" ? sortInfo.order : null,
+      onHeaderCell: () => ({
+        onClick: () => {
+          let newOrder = "ascend";
+
+          if (sortInfo.columnKey === "postback_url") {
+            if (sortInfo.order === "ascend") newOrder = "descend";
+            else if (sortInfo.order === "descend")
+              newOrder = null; // 🔹 third click removes sorting
+            else newOrder = "ascend";
+          }
+
+          setSortInfo({
+            columnKey: "postback_url",
             order: newOrder,
           });
         },

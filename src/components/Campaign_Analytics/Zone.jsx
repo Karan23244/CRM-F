@@ -63,6 +63,7 @@ export default function OptimizationCampaignAnalysis({
   canEdit,
   selectedDateRange,
 }) {
+  console.log(data);
   const user = useSelector((state) => state.auth.user);
   const fields = [
     "fraud_min",
@@ -655,6 +656,8 @@ export default function OptimizationCampaignAnalysis({
         return "text-red-600";
     }
   };
+  const displayValue = (val) =>
+    val === null || val === undefined ? "N/A" : val;
 
   const modalColumns = [
     getColumnWithFilter("PUB AM", "pubam"),
@@ -670,10 +673,12 @@ export default function OptimizationCampaignAnalysis({
           : "text-gray-500";
         return (
           <>
-            {val}{" "}
-            <span className={`${colorClass} text-xs`}>
-              ({perc?.value.toFixed(2)}%)
-            </span>
+            {displayValue(val)}{" "}
+            {val !== null && val !== undefined && perc && (
+              <span className={`${colorClass} text-xs`}>
+                ({perc?.value.toFixed(2)}%)
+              </span>
+            )}
           </>
         );
       },
@@ -688,10 +693,12 @@ export default function OptimizationCampaignAnalysis({
           : "text-gray-500";
         return (
           <>
-            {val}{" "}
-            <span className={`${colorClass} text-xs`}>
-              ({perc?.value.toFixed(2)}%)
-            </span>
+            {displayValue(val)}{" "}
+            {val !== null && val !== undefined && perc && (
+              <span className={`${colorClass} text-xs`}>
+                ({perc?.value.toFixed(2)}%)
+              </span>
+            )}
           </>
         );
       },
@@ -706,10 +713,12 @@ export default function OptimizationCampaignAnalysis({
           : "text-gray-500";
         return (
           <>
-            {val}{" "}
-            <span className={`${colorClass} text-xs`}>
-              ({perc?.value.toFixed(2)}%)
-            </span>
+            {displayValue(val)}{" "}
+            {val !== null && val !== undefined && perc && (
+              <span className={`${colorClass} text-xs`}>
+                ({perc?.value.toFixed(2)}%)
+              </span>
+            )}
           </>
         );
       },
@@ -724,10 +733,12 @@ export default function OptimizationCampaignAnalysis({
           : "text-gray-500";
         return (
           <>
-            {val}{" "}
-            <span className={`${colorClass} text-xs`}>
-              ({perc?.value.toFixed(2)}%)
-            </span>
+            {displayValue(val)}{" "}
+            {val !== null && val !== undefined && perc && (
+              <span className={`${colorClass} text-xs`}>
+                ({perc?.value.toFixed(2)}%)
+              </span>
+            )}
           </>
         );
       },
@@ -742,10 +753,12 @@ export default function OptimizationCampaignAnalysis({
           : "text-gray-500";
         return (
           <>
-            {val}{" "}
-            <span className={`${colorClass} text-xs`}>
-              ({perc?.value.toFixed(2)}%)
-            </span>
+            {displayValue(val)}{" "}
+            {val !== null && val !== undefined && perc && (
+              <span className={`${colorClass} text-xs`}>
+                ({perc?.value.toFixed(2)}%)
+              </span>
+            )}
           </>
         );
       },

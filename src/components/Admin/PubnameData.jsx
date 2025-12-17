@@ -12,8 +12,7 @@ import Swal from "sweetalert2";
 import StyledTable from "../../Utils/StyledTable";
 
 const { Option } = Select;
-const apiUrl =
-  import.meta.env.VITE_API_URL;
+const apiUrl = import.meta.env.VITE_API_URL;
 
 const PubnameData = () => {
   const [tableData, setTableData] = useState([]);
@@ -28,6 +27,8 @@ const PubnameData = () => {
   const [pubUserId, setPubUserId] = useState(null);
   const [editingAssignRowId, setEditingAssignRowId] = useState(null);
   const [target, setTarget] = useState("");
+  const [editingLinkId, setEditingLinkId] = useState(null);
+  const [placeLinkValue, setPlaceLinkValue] = useState("");
   // const [level, setLevel] = useState("");
   const [subAdmins, setSubAdmins] = useState([]);
   const [filters, setFilters] = useState({});
@@ -187,6 +188,55 @@ const PubnameData = () => {
     setPubUserId(null);
     setEditingPub(null);
     // setLevel("");
+  };
+  // Handle place link save
+  const autoSavePlaceLink = async (record, value) => {
+    const trimmedValue = value.trim();
+    const userid = record.user_id;
+
+    // Skip API call if unchanged
+    if ((record.place_link || "") === trimmedValue) {
+      setEditingLinkId(null);
+      return;
+    }
+
+    try {
+      const res = await axios.put(`${apiUrl}/place-link`, {
+        pub_id: record.pub_id,
+        user_id: userid,
+        place_link: trimmedValue,
+      });
+
+      if (res.data.success) {
+        Swal.fire({
+          icon: "success",
+          title: "Saved!",
+          text: "Postback URL saved successfully.",
+        });
+      }
+
+      const { data } = await axios.get(`${apiUrl}/get-Namepub/`);
+      if (data.success && Array.isArray(data.data)) {
+        setTableData(data.data);
+      }
+    } catch (err) {
+      // 🔥 Handle 404 specifically
+      if (err.response?.status === 404) {
+        Swal.fire({
+          icon: "warning",
+          title: "Link Not Generated",
+          text: "Publisher link has not been generated.",
+        });
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Save Failed",
+          text: "Could not save Postback URL. Please try again.",
+        });
+      }
+    } finally {
+      setEditingLinkId(null);
+    }
   };
 
   // **Table Columns**
@@ -401,6 +451,65 @@ const PubnameData = () => {
             return part;
           })
           .join(",");
+      },
+    },
+    {
+      title: (
+        <div className="flex items-center justify-between">
+          <span>Postback URL</span>
+        </div>
+      ),
+      key: "postback_url",
+      dataIndex: "postback_url",
+      width: 300,
+      render: (text, record) => {
+        if (!text && editingLinkId !== record.pub_id) {
+          return (
+            <div
+              className="cursor-pointer min-h-[32px] text-gray-400"
+              onClick={() => {
+                setEditingLinkId(record.pub_id);
+                setPlaceLinkValue("");
+              }}>
+              Click to add link
+            </div>
+          );
+        }
+
+        const isEditing = editingLinkId === record.pub_id;
+
+        if (isEditing) {
+          return (
+            <Input
+              autoFocus
+              value={placeLinkValue}
+              placeholder="Paste place link"
+              onChange={(e) => setPlaceLinkValue(e.target.value)}
+              onBlur={() => autoSavePlaceLink(record, placeLinkValue)}
+              onPressEnter={() => autoSavePlaceLink(record, placeLinkValue)}
+              className="w-full"
+            />
+          );
+        }
+
+        // Normal render (like Level column formatting logic)
+        return (
+          <div
+            className="cursor-pointer min-h-[32px]"
+            onClick={() => {
+              setEditingLinkId(record.pub_id);
+              setPlaceLinkValue(text);
+            }}>
+            <a
+              href={text}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="text-blue-500 underline">
+              {text}
+            </a>
+          </div>
+        );
       },
     },
     {

@@ -462,6 +462,8 @@ const PublisherEditForm = () => {
   const [editingPub, setEditingPub] = useState(null);
   const [loading, setLoading] = useState(false);
   const [searchTextPub, setSearchTextPub] = useState("");
+  const [editingLinkId, setEditingLinkId] = useState(null);
+  const [placeLinkValue, setPlaceLinkValue] = useState("");
 
   // Form fields
   const [name, setName] = useState("");
@@ -614,6 +616,60 @@ const PublisherEditForm = () => {
       </div>
     );
   };
+  // Handle place link save
+  const autoSavePlaceLink = async (record, value) => {
+    const trimmedValue = value.trim();
+
+    // Skip API call if unchanged
+    if ((record.place_link || "") === trimmedValue) {
+      setEditingLinkId(null);
+      return;
+    }
+    console.log("Auto-saving place link:", trimmedValue);
+    console.log("For record:", record.pub_id);
+    console.log("User ID:", userId);
+    try {
+      setLoading(true);
+
+      const res = await axios.put(`${apiUrl}/place-link`, {
+        pub_id: record.pub_id,
+        user_id: userId,
+        place_link: trimmedValue,
+      });
+      console.log("Response from place link save:", res.data);
+      if (res.data.success) {
+        Swal.fire({
+          icon: "success",
+          title: "Saved!",
+          text: "Postback URL saved successfully.",
+        });
+
+        // Refresh data
+        const { data } = await axios.get(`${apiUrl}/pubid-data/${userId}`);
+        if (data.success && Array.isArray(data.Publisher)) {
+          setPublishers(data.Publisher);
+        }
+      }
+    } catch (err) {
+      // 🔥 Handle 404 specifically
+      if (err.response?.status === 404) {
+        Swal.fire({
+          icon: "warning",
+          title: "Link Not Generated",
+          text: "Publisher link has not been generated.",
+        });
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Save Failed",
+          text: "Could not save Postback URL. Please try again.",
+        });
+      }
+    } finally {
+      setLoading(false);
+      setEditingLinkId(null);
+    }
+  };
 
   const columns = [
     {
@@ -708,6 +764,51 @@ const PublisherEditForm = () => {
           .join(",");
       },
     },
+    {
+      title: "Postback URL",
+      dataIndex: "postback_url",
+      key: "postback_url",
+      width: 300,
+      render: (text, record) => {
+        const isEditing = editingLinkId === record.pub_id;
+
+        if (isEditing) {
+          return (
+            <Input
+              autoFocus
+              value={placeLinkValue}
+              placeholder="Paste Postback URL"
+              onChange={(e) => setPlaceLinkValue(e.target.value)}
+              onBlur={() => autoSavePlaceLink(record, placeLinkValue)}
+              onPressEnter={() => autoSavePlaceLink(record, placeLinkValue)}
+              className="w-full"
+            />
+          );
+        }
+
+        return (
+          <div
+            className="cursor-pointer min-h-[32px]"
+            onClick={() => {
+              setEditingLinkId(record.pub_id);
+              setPlaceLinkValue(text || "");
+            }}>
+            {text ? (
+              <a
+                href={text}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}>
+                {text}
+              </a>
+            ) : (
+              <span className="text-gray-400">Click to add link</span>
+            )}
+          </div>
+        );
+      },
+    },
+
     {
       title: "Actions",
       key: "actions",

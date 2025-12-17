@@ -7,8 +7,7 @@ import Swal from "sweetalert2";
 import StyledTable from "../../Utils/StyledTable";
 import { EditOutlined } from "@ant-design/icons";
 const { Option } = Select;
-const apiUrl =
-  import.meta.env.VITE_API_URL;
+const apiUrl = import.meta.env.VITE_API_URL;
 
 const SubAdminPubnameData = () => {
   const user = useSelector((state) => state.auth.user);
@@ -24,6 +23,8 @@ const SubAdminPubnameData = () => {
   const [note, setNote] = useState("");
   const [pubUserId, setPubUserId] = useState(null);
   const [target, setTarget] = useState("");
+  const [editingLinkId, setEditingLinkId] = useState(null);
+  const [placeLinkValue, setPlaceLinkValue] = useState("");
   // Fetch publisher data
   useEffect(() => {
     const fetchData = async () => {
@@ -173,6 +174,55 @@ const SubAdminPubnameData = () => {
       </div>
     );
   };
+  // Handle place link save
+  const autoSavePlaceLink = async (record, value) => {
+    const trimmedValue = value.trim();
+    const userid = record.user_id;
+
+    // Skip API call if unchanged
+    if ((record.place_link || "") === trimmedValue) {
+      setEditingLinkId(null);
+      return;
+    }
+
+    try {
+      const res = await axios.put(`${apiUrl}/place-link`, {
+        pub_id: record.pub_id,
+        user_id: userid,
+        place_link: trimmedValue,
+      });
+
+      if (res.data.success) {
+        Swal.fire({
+          icon: "success",
+          title: "Saved!",
+          text: "Postback URL saved successfully.",
+        });
+      }
+
+      const { data } = await axios.get(`${apiUrl}/get-Namepub/`);
+      if (data.success && Array.isArray(data.data)) {
+        setTableData(data.data);
+      }
+    } catch (err) {
+      // 🔥 Handle 404 specifically
+      if (err.response?.status === 404) {
+        Swal.fire({
+          icon: "warning",
+          title: "Link Not Generated",
+          text: "Publisher link has not been generated.",
+        });
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Save Failed",
+          text: "Could not save Postback URL. Please try again.",
+        });
+      }
+    } finally {
+      setEditingLinkId(null);
+    }
+  };
 
   // 💡 You'll need your tableData available in scope for filters
   // For example: const [tableData, setTableData] = useState([]);
@@ -290,6 +340,50 @@ const SubAdminPubnameData = () => {
             return part;
           })
           .join(",");
+      },
+    },
+    {
+      title: "Postback URL",
+      dataIndex: "postback_url",
+      key: "postback_url",
+      width: 300,
+      render: (text, record) => {
+        const isEditing = editingLinkId === record.pub_id;
+
+        if (isEditing) {
+          return (
+            <Input
+              autoFocus
+              value={placeLinkValue}
+              placeholder="Paste Postback URL"
+              onChange={(e) => setPlaceLinkValue(e.target.value)}
+              onBlur={() => autoSavePlaceLink(record, placeLinkValue)}
+              onPressEnter={() => autoSavePlaceLink(record, placeLinkValue)}
+              className="w-full"
+            />
+          );
+        }
+
+        return (
+          <div
+            className="cursor-pointer min-h-[32px]"
+            onClick={() => {
+              setEditingLinkId(record.pub_id);
+              setPlaceLinkValue(text || "");
+            }}>
+            {text ? (
+              <a
+                href={text}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}>
+                {text}
+              </a>
+            ) : (
+              <span className="text-gray-400">Click to add link</span>
+            )}
+          </div>
+        );
       },
     },
     {

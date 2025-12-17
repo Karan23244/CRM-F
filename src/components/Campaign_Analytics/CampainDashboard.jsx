@@ -17,6 +17,7 @@ import {
 } from "antd";
 import UploadForm from "./UploadForm";
 import AjustUploadForm from "./AdjustForm";
+import SingularUploadForm from "./SingularForm";
 import { useSelector } from "react-redux";
 import PerformanceComparison from "./PerformanceComparison";
 import dayjs from "dayjs";
@@ -29,7 +30,7 @@ dayjs.extend(isSameOrAfter);
 import minMax from "dayjs/plugin/minMax";
 
 dayjs.extend(minMax);
-const { Title,Text } = Typography;
+const { Title, Text } = Typography;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 
@@ -47,6 +48,7 @@ export default function OptimizationPage() {
   const [selectedDateRange, setSelectedDateRange] = useState([null, null]);
   const [loading, setLoading] = useState(true);
   const [selectedForm, setSelectedForm] = useState("upload");
+  console.log(rawData);
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -139,13 +141,21 @@ export default function OptimizationPage() {
       if (!acc[key]) {
         acc[key] = { ...curr };
       } else {
-        acc[key].clicks += curr.clicks || 0;
-        acc[key].noi += curr.noi || 0;
-        acc[key].noe += curr.noe || 0;
-        acc[key].nocrm += curr.nocrm || 0;
-        acc[key].pi += curr.pi === null ? 0 : curr.pi;
-        acc[key].pe += curr.pe === null ? 0 : curr.pe;
-        acc[key].rti += curr.rti === null ? 0 : curr.rti;
+        const safeAdd = (a, b) => {
+          if (a === null && b === null) return null;
+          if (a === null) return b;
+          if (b === null) return a;
+          return a + b;
+        };
+        // For each numeric field
+        acc[key].clicks = safeAdd(acc[key].clicks, curr.clicks);
+        acc[key].noi = safeAdd(acc[key].noi, curr.noi);
+        acc[key].noe = safeAdd(acc[key].noe, curr.noe);
+        acc[key].nocrm = safeAdd(acc[key].nocrm, curr.nocrm);
+
+        acc[key].pi = safeAdd(acc[key].pi, curr.pi);
+        acc[key].pe = safeAdd(acc[key].pe, curr.pe);
+        acc[key].rti = safeAdd(acc[key].rti, curr.rti);
       }
       return acc;
     }, {});
@@ -230,7 +240,7 @@ export default function OptimizationPage() {
           {/* Heading Section */}
           <div style={{ marginBottom: 20 }}>
             <Title level={4} style={{ margin: 0, color: "#1f1f1f" }}>
-               Upload Files
+              Upload Files
             </Title>
             <Text type="secondary">
               Choose the type of File type you want to upload.
@@ -250,6 +260,7 @@ export default function OptimizationPage() {
               size="large">
               <Option value="upload">Appslyer Upload Form</Option>
               <Option value="adjust">Adjust Upload Form</Option>
+              <Option value="singular">Singular Upload Form</Option>
             </Select>
           </div>
 
@@ -263,6 +274,11 @@ export default function OptimizationPage() {
           {selectedForm === "adjust" && (
             <div style={{ marginTop: 20 }}>
               <AjustUploadForm onUploadSuccess={fetchData} />
+            </div>
+          )}
+              {selectedForm === "singular" && (
+            <div style={{ marginTop: 20 }}>
+              <SingularUploadForm onUploadSuccess={fetchData} />
             </div>
           )}
         </Card>

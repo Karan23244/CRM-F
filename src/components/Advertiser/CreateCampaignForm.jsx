@@ -10,6 +10,7 @@ import StyledTable from "../../Utils/StyledTable";
 import { useNavigate } from "react-router-dom";
 
 const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl2 = import.meta.env.VITE_API_URL3;
 const { Option } = Select;
 
 const CreateCampaignForm = () => {
@@ -107,19 +108,81 @@ const CreateCampaignForm = () => {
     fetchDropdowns();
   }, [fetchDropdowns]);
 
+  // const onFinish = async (values) => {
+  //   trimAll(values);
+  //   if (isSubmitting) return; // ⛔ Prevent double click
+  //   setIsSubmitting(true); // 🔒 Lock submit
+  //   if (editRecord) {
+  //     await handleEditCampaign(values);
+  //     setIsSubmitting(false);
+  //     return;
+  //   }
+
+  //   // Extract ONLY the IDs
+  //   const adv_id = values.advertiser?.value || values.advertiser;
+  //   const adv_d = values.adv_d?.value || values.adv_d;
+  //   const geoArray = values.geo_details.map((item) => item.geo);
+  //   const payoutValue = values.geo_details.map((item) => [item.payout]);
+  //   const osValue = values.geo_details.map((item) => [item.os]);
+  //   const payableEvents = values.geo_details.map((item) => [
+  //     item.payable_event,
+  //   ]);
+
+  //   const finalPayload = {
+  //     Adv_name: values.Adv_name,
+  //     campaign_name: values.campaign_name,
+  //     Vertical: values.Vertical,
+  //     geo: geoArray,
+  //     adv_payout: payoutValue, // FIXED
+  //     os: osValue, // FIXED (no array)
+  //     state_city: values.state_city,
+  //     payable_event: payableEvents,
+  //     mmp_tracker: values.mmp_tracker,
+  //     adv_d: adv_d,
+  //     kpi: values.kpi || "",
+  //     tracking_url: values.tracking_url || "",
+  //     preview_url: values.preview_url || "",
+  //     da: values.da,
+  //     status: values.status,
+  //     user_id: userId,
+  //   };
+  //   console.log("Final Payload:", finalPayload);
+  //   // remove nested structure (optional but recommended)
+  //   delete finalPayload.geo_details;
+
+  //   try {
+  //     const res = await axios.post(`${apiUrl}/campaignsnew`, finalPayload);
+  //     console.log(res);
+  //     if (res.data?.message === "Campaign(s) created successfully") {
+  //       Swal.fire({
+  //         icon: "success",
+  //         title: "Created!",
+  //         text: res.data.message,
+  //         timer: 1200,
+  //         showConfirmButton: false,
+  //       });
+  //       form.resetFields();
+  //     }
+  //   } catch (error) {
+  //     console.error(error);
+  //     Swal.fire("Error", "Error creating campaign", "error");
+  //   }
+  //   setIsSubmitting(false);
+  // };
   const onFinish = async (values) => {
     trimAll(values);
-    if (isSubmitting) return; // ⛔ Prevent double click
-    setIsSubmitting(true); // 🔒 Lock submit
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
     if (editRecord) {
       await handleEditCampaign(values);
       setIsSubmitting(false);
       return;
     }
 
-    // Extract ONLY the IDs
     const adv_id = values.advertiser?.value || values.advertiser;
     const adv_d = values.adv_d?.value || values.adv_d;
+
     const geoArray = values.geo_details.map((item) => item.geo);
     const payoutValue = values.geo_details.map((item) => [item.payout]);
     const osValue = values.geo_details.map((item) => [item.os]);
@@ -132,8 +195,8 @@ const CreateCampaignForm = () => {
       campaign_name: values.campaign_name,
       Vertical: values.Vertical,
       geo: geoArray,
-      adv_payout: payoutValue, // FIXED
-      os: osValue, // FIXED (no array)
+      adv_payout: payoutValue,
+      os: osValue,
       state_city: values.state_city,
       payable_event: payableEvents,
       mmp_tracker: values.mmp_tracker,
@@ -145,14 +208,47 @@ const CreateCampaignForm = () => {
       status: values.status,
       user_id: userId,
     };
-    console.log("Final Payload:", finalPayload);
-    // remove nested structure (optional but recommended)
+
     delete finalPayload.geo_details;
 
     try {
+      // ============================================================
+      // 1️⃣ CREATE CAMPAIGN
+      // ============================================================
       const res = await axios.post(`${apiUrl}/campaignsnew`, finalPayload);
-      console.log(res);
+
+      console.log("Create Campaign Response:", res.data);
+
       if (res.data?.message === "Campaign(s) created successfully") {
+        const campaignId = res.data.campaign_id; // ⚠ MUST be returned from backend
+
+        console.log("Received Campaign ID:", campaignId);
+
+        if (!campaignId) {
+          console.error(
+            "❌ campaign_id missing from backend. Cannot save advertiser link."
+          );
+        } else {
+          // ============================================================
+          // 2️⃣ SAVE ADVERTISER LINK
+          // ============================================================
+          const advertiserPayload = {
+            campaign_id: campaignId,
+            advertiser_link: values.tracking_url, // advertiser link
+            pubid: values.pubid || "defaultPubId", // default if not available
+            click_id_param: "click_id",
+          };
+
+          console.log("Sending Advertiser Payload:", advertiserPayload);
+
+          const advRes = await axios.post(
+            `${apiUrl2}/link/advertiser`,
+            advertiserPayload
+          );
+
+          console.log("Advertiser API Response:", advRes.data);
+        }
+
         Swal.fire({
           icon: "success",
           title: "Created!",
@@ -160,12 +256,14 @@ const CreateCampaignForm = () => {
           timer: 1200,
           showConfirmButton: false,
         });
+
         form.resetFields();
       }
     } catch (error) {
-      console.error(error);
+      console.error("Final Error:", error);
       Swal.fire("Error", "Error creating campaign", "error");
     }
+
     setIsSubmitting(false);
   };
   const handleEditCampaign = async (values) => {
@@ -684,9 +782,7 @@ const CreateCampaignForm = () => {
               className="h-11 rounded-lg border-gray-200 bg-gray-50"
             />
           </Form.Item>
-          <Form.Item
-            label="Tracking Link"
-            name="tracking_url">
+          <Form.Item label="Tracking Link" name="tracking_url">
             <Input
               placeholder="Enter Tracking Link"
               className="h-11 rounded-lg border-gray-200 bg-gray-50"
@@ -735,6 +831,11 @@ const CreateCampaignForm = () => {
         <>
           {/* Top Bar */}
           <div className="mt-8 w-full max-w-8xl">
+            <GenrateLink
+              campaignId={editRecord.id}
+              trackingurl={editRecord.tracking_url}
+              className="w-full"
+            />
             <div className="flex items-center justify-between m-4">
               <h2 className="text-xl font-semibold text-gray-700">
                 Edit PID Status
@@ -805,3 +906,137 @@ const CreateCampaignForm = () => {
 };
 
 export default CreateCampaignForm;
+
+const GenrateLink = ({ campaignId, trackingurl }) => {
+  const [allPubs, setAllPubs] = useState([]);
+  const [selectedPub, setSelectedPub] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [trackingUrl, setTrackingUrl] = useState("");
+
+  useEffect(() => {
+    fetchPublisherIds();
+  }, []);
+
+  const fetchPublisherIds = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get(`${apiUrl}/get-allpub`);
+      const pubList = res?.data?.data?.map((i) => i.pub_id) || [];
+      setAllPubs(pubList);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedPub) return;
+
+    try {
+      setSubmitting(true);
+      console.log({
+        publisher_id: selectedPub,
+        campaign_id: campaignId,
+      });
+
+      const res = await axios.post(
+        `${apiUrl2}/link/publisher`,
+        {
+          publisher_id: selectedPub,
+          campaign_id: campaignId,
+        }
+      );
+      console.log("Generate Link Response:", res);
+      // ⬇ THIS should be returned by your backend
+      // Example: { link: "https://track.com/campaign/5543?pub=100" }
+      const url = res.data?.publisher_link;
+
+      if (url) {
+        setTrackingUrl(url);
+      }
+    } catch (err) {
+      alert("Error generating link");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(trackingUrl);
+    Swal.fire({
+      icon: "success",
+      title: "Copied!",
+      text: "Tracking URL copied to clipboard.",
+      timer: 1500,
+      showConfirmButton: false,
+    });
+  };
+
+  return (
+    <Card className="m-6 rounded-2xl border border-gray-200 shadow-lg p-6 bg-white">
+      <h3 className="text-xl font-semibold text-gray-700 mb-4">
+        Generate Tracking Link
+      </h3>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-6">
+          <Spin size="large" />
+        </div>
+      ) : (
+        <>
+          <div className="flex flex-row gap-4 items-end">
+            <div className="flex-1">
+              <label className="block text-lg font-medium mb-1 text-gray-600">
+                Publisher List
+              </label>
+
+              <Select
+                className="w-full"
+                placeholder="Select Publisher ID"
+                value={selectedPub}
+                onChange={(val) => setSelectedPub(val)}
+                showSearch
+                size="large">
+                {allPubs.map((pid) => (
+                  <Select.Option key={pid} value={pid}>
+                    {pid}
+                  </Select.Option>
+                ))}
+              </Select>
+            </div>
+
+            <Button
+              type="primary"
+              size="large"
+              className="!bg-[#2F5D99] hover:!bg-[#24487A] !text-white !rounded-xl !px-8 !py-3 !h-10 !text-lg !border-none !shadow-md"
+              loading={submitting}
+              onClick={handleSubmit}>
+              Generate Tracking Link
+            </Button>
+          </div>
+
+          {/* Result Box */}
+          {trackingUrl && (
+            <div className="mt-6 p-4 border border-gray-300 rounded-xl bg-gray-50 shadow-sm">
+              <p className="text-gray-700 font-medium mb-2">Generated Link:</p>
+
+              <div className="flex items-center gap-3">
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 border rounded-lg bg-white text-gray-700"
+                  value={trackingUrl}
+                  readOnly
+                />
+                <Button
+                  className="!bg-green-600 hover:!bg-green-700 !text-white !rounded-lg"
+                  onClick={copyToClipboard}>
+                  Copy
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </Card>
+  );
+};

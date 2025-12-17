@@ -13,8 +13,7 @@ import { useSelector } from "react-redux";
 import geoData from "../../Data/geoData.json";
 
 const { Option } = Select;
-const apiUrl =
-  import.meta.env.VITE_API_URL;
+const apiUrl = import.meta.env.VITE_API_URL;
 
 const AdvnameData = () => {
   const user = useSelector((state) => state.auth.user);
@@ -82,6 +81,7 @@ const AdvnameData = () => {
       item.geo,
       item.note,
       item.target,
+      item.postback_url,
     ].some((field) =>
       field?.toString().toLowerCase().includes(searchTerm.toLowerCase())
     )
@@ -132,20 +132,6 @@ const AdvnameData = () => {
 
     fetchSubAdmins();
   }, []);
-
-  // **Filtered data for search**
-  const filteredData = tableData.filter((item) =>
-    [
-      item.username,
-      item.adv_name,
-      item.adv_id,
-      item.geo,
-      item.note,
-      item.target,
-    ].some((field) =>
-      field?.toString().toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  );
   // **Handle Form Submission for Updating**
   const handleUpdate = async (e) => {
     e.preventDefault();
@@ -727,6 +713,56 @@ const AdvnameData = () => {
           </span>
         );
       },
+    },
+    {
+      title: (
+        <div className="flex items-center justify-between">
+          <span>Postback URL</span>
+        </div>
+      ),
+      dataIndex: "postback_url",
+      key: "postback_url",
+      sorter: (a, b) => a.postback_url.localeCompare(b.postback_url),
+      sortOrder: sortInfo.columnKey === "postback_url" ? sortInfo.order : null,
+      onHeaderCell: () => ({
+        onClick: () => {
+          let newOrder = "ascend";
+
+          if (sortInfo.columnKey === "postback_url") {
+            if (sortInfo.order === "ascend") newOrder = "descend";
+            else if (sortInfo.order === "descend")
+              newOrder = null; // 🔹 third click removes sorting
+            else newOrder = "ascend";
+          }
+
+          setSortInfo({
+            columnKey: "geo",
+            order: newOrder,
+          });
+        },
+      }),
+      filterDropdown: ({ confirm }) => (
+        <div style={{ padding: 8 }}>
+          <Select
+            mode="multiple"
+            allowClear
+            showSearch
+            placeholder="Select Postback URL"
+            style={{ width: 200 }}
+            value={filters["postback_url"] || []}
+            onChange={(value) => {
+              handleFilterChange(value, "postback_url");
+              confirm();
+            }}>
+            {safeArray("postback_url").map((val) => (
+              <Select.Option key={val} value={val}>
+                {val}
+              </Select.Option>
+            ))}
+          </Select>
+        </div>
+      ),
+      filtered: !!filters["postback_url"],
     },
     {
       title: "Actions",

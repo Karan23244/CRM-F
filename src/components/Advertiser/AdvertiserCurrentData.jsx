@@ -378,6 +378,7 @@ const AdvertiserData = () => {
 
     return filtered;
   }, [data, selectedDateRange, filters, searchTerm]);
+  console.log(finalFilteredData);
   const getDataForDropdown = (columnKey) => {
     // 🔹 Case 1: No filter applied yet → always use full data of current month/date range
     if (!firstFilteredColumn) {

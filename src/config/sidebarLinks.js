@@ -18,7 +18,18 @@ export const sidebarLinks = [
   // ==========================
   // 🔹 ADMIN SECTION
   // ==========================
-  { to: "home", label: "Dashboard", roles: ["admin","advertiser", "advertiser_manager", "operations","publisher", "publisher_manager"] },
+  {
+    to: "home",
+    label: "Dashboard",
+    roles: [
+      "admin",
+      "advertiser",
+      "advertiser_manager",
+      "operations",
+      "publisher",
+      "publisher_manager",
+    ],
+  },
   {
     label: "Users",
     roles: ["admin"],
@@ -204,12 +215,12 @@ export const sidebarLinks = [
       {
         to: "reportform",
         label: "Reports",
-        roles: ["operations", "advertiser_manager","advertiser", "admin"],
+        roles: ["operations", "advertiser_manager", "advertiser", "admin"],
       },
       {
         to: "genrategraph",
         label: "Graph",
-        roles: ["operations", "advertiser_manager","advertiser", "admin"],
+        roles: ["operations", "advertiser_manager", "advertiser", "admin"],
       },
       {
         to: "analytics",
@@ -232,6 +243,18 @@ export const sidebarLinks = [
     to: "blacklistpid",
     label: "Blacklist PID",
     roles: ["publisher_manager", "admin"],
+  },
+  {
+    to: "conversion",
+    label: "Conversions",
+    roles: [
+      "admin",
+      "advertiser",
+      "advertiser_manager",
+      "publisher",
+      "publisher_manager",
+      "operations",
+    ],
   },
   // ==========================
   // 🔹 ACCOUNT SETTINGS
