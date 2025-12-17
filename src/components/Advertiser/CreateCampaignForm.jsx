@@ -235,7 +235,7 @@ const CreateCampaignForm = () => {
           const advertiserPayload = {
             campaign_id: campaignId,
             advertiser_link: values.tracking_url, // advertiser link
-            pubid: values.pubid || "defaultPubId", // default if not available
+            adv_id: values.adv_d?.value, // default if not available
             click_id_param: "click_id",
           };
 
@@ -939,13 +939,10 @@ const GenrateLink = ({ campaignId, trackingurl }) => {
         campaign_id: campaignId,
       });
 
-      const res = await axios.post(
-        `${apiUrl2}/link/publisher`,
-        {
-          publisher_id: selectedPub,
-          campaign_id: campaignId,
-        }
-      );
+      const res = await axios.post(`${apiUrl2}/link/publisher`, {
+        publisher_id: selectedPub,
+        campaign_id: campaignId,
+      });
       console.log("Generate Link Response:", res);
       // ⬇ THIS should be returned by your backend
       // Example: { link: "https://track.com/campaign/5543?pub=100" }
