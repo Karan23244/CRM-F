@@ -132,34 +132,52 @@ const CampaignList = () => {
       Swal.fire("Error", "Failed to update campaign", "error");
     }
   };
-  // Helpers
-  const handleDropdownFilter = (value, key) =>
-    setFilters((prev) => ({ ...prev, [key]: value }));
 
   const togglePin = (key) =>
     setPinnedColumns((prev) => ({ ...prev, [key]: !prev[key] }));
 
-  // const getUniqueOptions = (key) => [
-  //   ...new Set(campaigns.map((c) => c[key]).filter(Boolean)),
-  // ];
+  const normalizeGeo = (geo) => {
+    if (!geo) return [];
+    console.log("Normalizing geo:", geo);
+    let value = geo;
+
+    // 1️⃣ Keep parsing JSON strings until it’s not a string anymore
+    while (typeof value === "string") {
+      try {
+        value = JSON.parse(value);
+      } catch {
+        // "US,IN" case
+        return value
+          .split(",")
+          .map((g) => g.trim())
+          .filter(Boolean);
+      }
+    }
+
+    // 2️⃣ Recursively flatten until only strings remain
+    const flattenDeep = (arr) =>
+      Array.isArray(arr) ? arr.flatMap(flattenDeep) : [arr];
+
+    const flattened = flattenDeep(value);
+
+    // 3️⃣ Return clean country codes only
+    return flattened.map((v) => String(v).trim()).filter(Boolean);
+  };
+
   // 🔥 Dynamic filter option generator
   const getUniqueOptions = (columnKey) => {
-    const noFiltersApplied = Object.keys(filters).length === 0;
+    const sourceRows =
+      Object.keys(filters).length === 0 || firstFilterColumn === columnKey
+        ? campaigns
+        : filteredCampaigns;
 
-    // If NO filters applied → show full options
-    if (noFiltersApplied) {
-      return [...new Set(campaigns.map((r) => r[columnKey]))].filter(Boolean);
+    // ✅ GEO — always normalize + flatten
+    if (columnKey === "geo") {
+      return [...new Set(sourceRows.flatMap((r) => normalizeGeo(r.geo)))];
     }
 
-    // If THIS is the first filtered column → show full options
-    if (firstFilterColumn === columnKey) {
-      return [...new Set(campaigns.map((r) => r[columnKey]))].filter(Boolean);
-    }
-
-    // Otherwise → show options based on already filtered rows
-    return [...new Set(filteredCampaigns.map((r) => r[columnKey]))].filter(
-      Boolean
-    );
+    // ✅ All other columns
+    return [...new Set(sourceRows.map((r) => r[columnKey]))].filter(Boolean);
   };
 
   // Editable cell factory
@@ -424,7 +442,10 @@ const CampaignList = () => {
       // FILTERS
       const matchesFilters = Object.keys(filters).every((key) => {
         if (!filters[key] || filters[key].length === 0) return true;
-
+        if (key === "geo") {
+          const rowGeos = normalizeGeo(row.geo);
+          return filters.geo.some((g) => rowGeos.includes(g));
+        }
         return filters[key].includes(row[key]);
       });
 
@@ -460,13 +481,15 @@ const CampaignList = () => {
 
   if (
     roles.some((r) =>
-      ["advertiser", "advertiser_manager", "operations"].includes(r)
+      ["advertiser", "advertiser_manager", "operations", "admin"].includes(r)
     )
   ) {
     editableFields.push("adv_note", "status");
   }
 
-  if (roles.some((r) => ["publisher", "publisher_manager"].includes(r))) {
+  if (
+    roles.some((r) => ["publisher", "publisher_manager", "admin"].includes(r))
+  ) {
     editableFields.push("category", "Target", "achieve_number");
   }
 
@@ -486,8 +509,6 @@ const CampaignList = () => {
   const allowedRoles = ["publisher", "publisher_manager"];
   const isPublisherRole = user?.role?.some((r) => allowedRoles.includes(r));
 
-  console.log(user.role);
-  console.log(isPublisherRole);
   // All Columns
   const allColumns = [
     getColumnWithFilterAndPin("da", "DA"),
@@ -504,7 +525,12 @@ const CampaignList = () => {
         <span
           style={{
             cursor: roles.some((r) =>
-              ["advertiser", "advertiser_manager", "operations"].includes(r)
+              [
+                "advertiser",
+                "advertiser_manager",
+                "operations",
+                "admin",
+              ].includes(r)
             )
               ? "pointer"
               : "not-allowed",
@@ -512,7 +538,12 @@ const CampaignList = () => {
           onClick={() => {
             if (
               roles.some((r) =>
-                ["advertiser", "advertiser_manager", "operations"].includes(r)
+                [
+                  "advertiser",
+                  "advertiser_manager",
+                  "operations",
+                  "admin",
+                ].includes(r)
               )
             ) {
               navigate("/dashboard/createcampaign", { state: { record } });

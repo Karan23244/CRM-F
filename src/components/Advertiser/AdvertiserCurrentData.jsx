@@ -92,17 +92,36 @@ const AdvertiserData = () => {
   const [selectedPauseDate, setSelectedPauseDate] = useState(null);
   const [selectedCampaignId, setSelectedCampaignId] = useState(null);
   const [firstFilteredColumn, setFirstFilteredColumn] = useState(null);
+
   useEffect(() => {
     if (user?.id) {
-      fetchData();
       fetchDropdowns();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
-
+  useEffect(() => {
+    if (
+      !selectedDateRange ||
+      selectedDateRange.length !== 2 ||
+      !selectedDateRange[0] ||
+      !selectedDateRange[1]
+    ) {
+      return;
+    }
+    // Fetch initially
+    fetchData();
+  }, [selectedDateRange]);
   const fetchData = useCallback(async () => {
     try {
-      const response = await axios.get(`${apiUrl}/advdata-byuser/${userId}`);
+      const [startDate, endDate] = selectedDateRange;
+      console.log(startDate.format("YYYY-MM-DD"), endDate.format("YYYY-MM-DD"));
+      const response = await axios.get(`${apiUrl}/advdata-byuser/${userId}`, {
+        params: {
+          startDate: startDate.format("YYYY-MM-DD"),
+          endDate: endDate.format("YYYY-MM-DD"),
+        },
+      });
+      console.log(response);
       if (response?.data.data && Array.isArray(response.data.data)) {
         const formatted = [...(response?.data?.data || [])]
           .reverse()
@@ -121,7 +140,7 @@ const AdvertiserData = () => {
       console.error("fetchData error:", error);
       message.error("Failed to fetch data");
     }
-  }, [userId]);
+  }, [userId,selectedDateRange]);
   const fetchCampaignList = async () => {
     try {
       const res = await axios.get(`${apiUrl}/campaigns_list`);

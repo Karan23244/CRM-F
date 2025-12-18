@@ -10,14 +10,8 @@ import {
   Menu,
   message,
   Tooltip,
-  Card,
 } from "antd";
-import {
-  FilterOutlined,
-  EditOutlined,
-  SaveOutlined,
-  CloseCircleOutlined,
-} from "@ant-design/icons";
+import { FilterOutlined } from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
 import "../../index.css";
@@ -35,31 +29,6 @@ const { Option } = Select;
 const { RangePicker } = DatePicker;
 
 const apiUrl = import.meta.env.VITE_API_URL;
-
-// Publisher Column Headings
-const columnHeadingsPub = {
-  username: "Input UserName",
-  adv_name: "ADVM Name",
-  campaign_name: "Campaign Name",
-  vertical: "Vertical", // ✅ Added here
-  geo: "GEO",
-  city: "State Or City",
-  os: "OS",
-  payable_event: "Payable Event",
-  mmp_tracker: "MMP Tracker",
-  pub_id: "Pub ID",
-  p_id: "PID",
-  pub_payout: "Pub Payout $",
-  shared_date: "Shared Date",
-  paused_date: "Paused Date",
-  pa: "PA", // ✅ Added after paused_date
-  fa: "FA", // ✅ Added after paused_date
-  fa1: "FA1", // ✅ Added after paused_date
-  review: "Review",
-  pub_total_numbers: "PUB Total Numbers",
-  pub_deductions: "PUB Deductions",
-  pub_approved_numbers: "PUB Approved Numbers",
-};
 
 // Advertiser Column Headings
 const columnHeadingsAdv = {
@@ -89,27 +58,10 @@ const columnHeadingsAdv = {
   pub_Apno: "PUB Approved Numbers",
   adv_payout_total: "ADV Payout Total ($)",
 };
-
-const monthClasses = [
-  "january-row",
-  "february-row",
-  "march-row",
-  "april-row",
-  "may-row",
-  "june-row",
-  "july-row",
-  "august-row",
-  "september-row",
-  "october-row",
-  "november-row",
-  "december-row",
-];
 const CampianData = () => {
   const [advData, setAdvData] = useState([]);
-  const [pubData, setPubData] = useState([]);
   const [selectedType, setSelectedType] = useState("advertiser");
   const [filters, setFilters] = useState({});
-  const [filteredData, setFilteredData] = useState([]);
   const [uniqueValues, setUniqueValues] = useState({});
   const [showValidation, setShowValidation] = useState(false);
   const [stickyColumns, setStickyColumns] = useState([]);
@@ -167,18 +119,6 @@ const CampianData = () => {
       })
     );
   };
-
-  // Fetch Publisher Data
-  const fetchPubData = async () => {
-    try {
-      const response = await axios.get(`${apiUrl}/all-pubdata`);
-      if (response.data.success) {
-        setPubData(response.data.data);
-      }
-    } catch (error) {
-      console.error("Error fetching publisher data:", error);
-    }
-  };
   const toggleStickyColumn = (key) => {
     setStickyColumns((prev) =>
       prev.includes(key) ? prev.filter((col) => col !== key) : [...prev, key]
@@ -187,7 +127,19 @@ const CampianData = () => {
   // Fetch Advertiser Data
   const fetchAdvData = async () => {
     try {
-      const response = await axios.get(`${apiUrl}/get-advdata`);
+      const [startDate, endDate] = selectedDateRange;
+      console.log(
+        "Fetching data for range:",
+        startDate.format("YYYY-MM-DD"),
+        endDate.format("YYYY-MM-DD")
+      );
+      const response = await axios.get(`${apiUrl}/get-advdata`, {
+        params: {
+          startDate: startDate.format("YYYY-MM-DD"),
+          endDate: endDate.format("YYYY-MM-DD"),
+        },
+      });
+      console.log(response);
       if (response.data.success) {
         setAdvData(response.data.data);
       }
@@ -198,15 +150,23 @@ const CampianData = () => {
 
   // Fetch data on load
   useEffect(() => {
-    fetchPubData();
-    fetchAdvData();
     fetchDropdowns();
   }, []);
-
   useEffect(() => {
-    const data = selectedType === "publisher" ? pubData : advData;
+    if (
+      !selectedDateRange ||
+      selectedDateRange.length !== 2 ||
+      !selectedDateRange[0] ||
+      !selectedDateRange[1]
+    ) {
+      return;
+    }
 
-    const filtered = data.filter((item) => {
+    fetchAdvData();
+  }, [selectedDateRange]);
+
+  const filteredData = useMemo(() => {
+    return advData.filter((item) => {
       // 🔹 Normalize Date Range filter for shared_date
       if (
         selectedDateRange &&
@@ -270,23 +230,8 @@ const CampianData = () => {
         val?.toString().trim().toLowerCase().includes(lowerSearch)
       );
     });
-    setFilteredData(filtered.filter((row) => !isRowEmpty(row)));
-  }, [pubData, advData, selectedType, filters, searchTerm, selectedDateRange]);
+  }, [advData, selectedType, filters, searchTerm, selectedDateRange]);
   useEffect(() => {
-    // if (
-    //   selectedDateRange &&
-    //   selectedDateRange.length === 2 &&
-    //   selectedDateRange[0] &&
-    //   selectedDateRange[1] &&
-    //   advData &&
-    //   advData.length > 0 // <--- important
-    // ) {
-    //   console.log(selectedDateRange)
-    //   const [start, end] = selectedDateRange;
-
-    //   const dateFiltered = filteredData.filter((item) =>
-    //     dayjs(item.shared_date).isBetween(start, end, null, "[]")
-    //   );
     // Build unique dropdown values dynamically based on selection rules
     const valuesObj = {};
 
@@ -325,9 +270,6 @@ const CampianData = () => {
 
     // }
   }, [selectedDateRange, filteredData]);
-  // useEffect(() => {
-  //   generateUniqueValues(advData);
-  // }, [advData]);
   const getDataForDropdown = (columnKey) => {
     // 🔹 Case 1: No filter applied yet → always use full data of current month/date range
     if (!firstFilteredColumn) {
@@ -343,49 +285,16 @@ const CampianData = () => {
     return filteredData;
   };
   const fullMonthOrRangeData = useMemo(() => {
-    const data = selectedType === "publisher" ? pubData : advData;
+    const data = advData;
 
-    // Keep only rows inside date range / current month
+    // Keep only rows inside date range / current monthSelect columns to hide
     return data.filter((item) => {
       const shared = dayjs(item.shared_date);
       const start = dayjs(selectedDateRange[0]).startOf("day");
       const end = dayjs(selectedDateRange[1]).endOf("day");
       return shared.isBetween(start, end, null, "[]");
     });
-  }, [pubData, advData, selectedType, selectedDateRange]);
-
-  // Generate unique values for filtering
-  const generateUniqueValues = (data) => {
-    const uniqueVals = {};
-    data.forEach((item) => {
-      Object.keys(item).forEach((key) => {
-        if (!uniqueVals[key]) {
-          uniqueVals[key] = new Set();
-        }
-
-        let value = item[key];
-
-        // Normalize value
-        if (
-          value === null ||
-          value === undefined ||
-          value.toString().trim() === ""
-        ) {
-          uniqueVals[key].add("-"); // Treat empty/null/undefined as "-"
-        } else {
-          value = value.toString().trim();
-          uniqueVals[key].add(value);
-        }
-      });
-    });
-
-    const formattedValues = Object.keys(uniqueVals).reduce((acc, key) => {
-      acc[key] = Array.from(uniqueVals[key]);
-      return acc;
-    }, {});
-
-    setUniqueValues(formattedValues);
-  };
+  }, [advData, selectedType, selectedDateRange]);
 
   // Fetch Dropdown Options
   const fetchDropdowns = async () => {
@@ -476,18 +385,6 @@ const CampianData = () => {
     }
   };
   // Check if all values in a row are empty
-  // Check if the row has empty pub_name or adv_name
-  const isRowEmpty = (row) => {
-    if (selectedType === "publisher") {
-      return !row.adv_name || row.adv_name === null || row.adv_name === "";
-    } else {
-      return !row.pub_name || row.pub_name === null || row.pub_name === "";
-    }
-  };
-  // Handle Filter Change
-  // const handleFilterChange = (value, key) => {
-  //   setFilters((prev) => ({ ...prev, [key]: value }));
-  // };
   const handleFilterChange = (value, key) => {
     setFilters((prev) => {
       // If no filter applied yet → mark this as first filtered column
@@ -543,25 +440,9 @@ const CampianData = () => {
     return pub_Apno;
   }
   const handleAutoSave = async (newValue, record, key) => {
-    const updateUrl =
-      selectedType === "publisher"
-        ? `${apiUrl}/pubdata-update/${record.id}`
-        : `${apiUrl}/advdata-update/${record.id}`;
+    const updateUrl = `${apiUrl}/advdata-update/${record.id}`;
 
     const updated = { ...record, [key]: newValue };
-    // Auto-calculate adv_approved_no
-    // if (key === "adv_total_no" || key === "adv_deductions") {
-    //   const total = key === "adv_total_no" ? newValue : record.adv_total_no;
-    //   const deductions =
-    //     key === "adv_deductions" ? newValue : record.adv_deductions;
-
-    //   const parsedTotal = parseFloat(total);
-    //   const parsedDeductions = parseFloat(deductions);
-
-    //   if (!isNaN(parsedTotal) && !isNaN(parsedDeductions)) {
-    //     updated.adv_approved_no = parsedTotal - parsedDeductions;
-    //   }
-    // }
     if (key === "adv_total_no" || key === "adv_deductions") {
       const total =
         key === "adv_total_no"
@@ -612,7 +493,6 @@ const CampianData = () => {
         timer: 1000,
         showConfirmButton: false,
       });
-      fetchPubData();
       fetchAdvData();
     } catch (err) {
       Swal.fire({
@@ -913,6 +793,19 @@ const CampianData = () => {
       })),
     ];
   };
+  const columns = useMemo(
+    () => getColumns(columnHeadingsAdv),
+    [
+      filters,
+      uniqueValues,
+      stickyColumns,
+      editingCell,
+      sortInfo,
+      dropdownOptions,
+      hiddenColumns,
+    ]
+  );
+
   return (
     <div className="p-5 min-h-screen">
       {/* Toggle Section */}
@@ -930,7 +823,6 @@ const CampianData = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-[240px] px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              prefix={<span className="text-gray-400">🔍</span>}
             />
 
             {/* Date Range Picker */}
@@ -965,15 +857,9 @@ const CampianData = () => {
                 value={hiddenColumns[selectedType] || []}
                 onChange={handleHiddenColumnsChange}
                 maxTagCount="responsive">
-                {Object.keys(
-                  selectedType === "publisher"
-                    ? columnHeadingsPub
-                    : columnHeadingsAdv
-                ).map((key) => (
+                {Object.keys(columnHeadingsAdv).map((key) => (
                   <Option key={key} value={key}>
-                    {selectedType === "publisher"
-                      ? columnHeadingsPub[key]
-                      : columnHeadingsAdv[key]}
+                    {columnHeadingsAdv[key]}
                   </Option>
                 ))}
               </Select>
@@ -1001,10 +887,7 @@ const CampianData = () => {
             <Tooltip title="Download Excel" placement="top">
               <Button
                 onClick={() => {
-                  const columnHeadings =
-                    selectedType === "publisher"
-                      ? columnHeadingsPub
-                      : columnHeadingsAdv;
+                  const columnHeadings = columnHeadingsAdv;
                   const visibleKeys = Object.keys(columnHeadings);
                   const cleanedData = filteredData.map((row) => {
                     const cleanedRow = {};
@@ -1046,11 +929,7 @@ const CampianData = () => {
               <StyledTable
                 className="overflow-hidden"
                 dataSource={processedData}
-                columns={
-                  selectedType === "publisher"
-                    ? getColumns(columnHeadingsPub)
-                    : getColumns(columnHeadingsAdv)
-                }
+                columns={columns}
                 rowKey="id"
                 bordered={false}
                 pagination={{

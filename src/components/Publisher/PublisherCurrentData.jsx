@@ -68,7 +68,6 @@ const PublisherPayoutData = () => {
       JSON.stringify(hiddenColumns)
     );
   }, [hiddenColumns]);
-
   const isEditing = (record) => record.id === editingKey;
   // 🔹 Save Note
   const saveNote = async (record, newNote) => {
@@ -213,7 +212,14 @@ const PublisherPayoutData = () => {
   };
   const fetchAdvData = async () => {
     try {
-      const response = await axios.get(`${apiUrl}/get-advdata`);
+      const [startDate, endDate] = selectedDateRange;
+      const response = await axios.get(`${apiUrl}/get-advdata`, {
+        params: {
+          startDate: startDate.format("YYYY-MM-DD"),
+          endDate: endDate.format("YYYY-MM-DD"),
+        },
+      });
+      console.log(response);
       setAdvData([...response.data.data].reverse());
     } catch (error) {
       console.error("Error fetching advertiser data:", error);
@@ -245,6 +251,14 @@ const PublisherPayoutData = () => {
   }, [assignedSubAdmins]); // Refetch if assigned sub-admins change
 
   useEffect(() => {
+    if (
+      !selectedDateRange ||
+      selectedDateRange.length !== 2 ||
+      !selectedDateRange[0] ||
+      !selectedDateRange[1]
+    ) {
+      return;
+    }
     // Fetch initially
     fetchAdvData();
 
@@ -255,7 +269,7 @@ const PublisherPayoutData = () => {
 
     // Cleanup on unmount
     return () => clearInterval(intervalId);
-  }, []);
+  }, [selectedDateRange]);
 
   const handleFilterChange = (value, key) => {
     setFilters((prev) => {
@@ -299,19 +313,19 @@ const PublisherPayoutData = () => {
         ),
       ].includes(normalizedPubName);
 
-      // 🔹 Match by date range
-      const matchesDate =
-        selectedDateRange?.length === 2 &&
-        selectedDateRange[0] &&
-        selectedDateRange[1]
-          ? sharedDate.isBetween(
-              selectedDateRange[0],
-              selectedDateRange[1],
-              null,
-              "[]"
-            )
-          : sharedDate.month() === currentMonth &&
-            sharedDate.year() === currentYear;
+      // // 🔹 Match by date range
+      // const matchesDate =
+      //   selectedDateRange?.length === 2 &&
+      //   selectedDateRange[0] &&
+      //   selectedDateRange[1]
+      //     ? sharedDate.isBetween(
+      //         selectedDateRange[0],
+      //         selectedDateRange[1],
+      //         null,
+      //         "[]"
+      //       )
+      //     : sharedDate.month() === currentMonth &&
+      //       sharedDate.year() === currentYear;
 
       // 🔹 Match by filters
       const matchesFilters = Object.keys(filters).every((key) => {
@@ -336,7 +350,7 @@ const PublisherPayoutData = () => {
             val?.toString().toLowerCase().includes(searchTerm.toLowerCase())
           );
 
-      return matchesPub && matchesDate && matchesFilters && matchesSearch;
+      return matchesPub && matchesFilters && matchesSearch;
     });
 
     setFilteredData(filtered);
@@ -344,7 +358,6 @@ const PublisherPayoutData = () => {
     advData,
     filters,
     searchTerm,
-    selectedDateRange,
     selectedSubAdmins,
     user,
   ]);
@@ -364,13 +377,13 @@ const PublisherPayoutData = () => {
         ...selectedSubAdmins.map((x) => x.toLowerCase()),
       ].includes(normalizedPubName);
 
-      // match date range
-      const matchesDate = sharedDate.isBetween(
-        selectedDateRange[0],
-        selectedDateRange[1],
-        null,
-        "[]"
-      );
+      // // match date range
+      // const matchesDate = sharedDate.isBetween(
+      //   selectedDateRange[0],
+      //   selectedDateRange[1],
+      //   null,
+      //   "[]"
+      // );
 
       // match search
       const matchesSearch = !searchTerm
@@ -379,7 +392,7 @@ const PublisherPayoutData = () => {
             val?.toString().toLowerCase().includes(searchTerm.toLowerCase())
           );
 
-      return matchesPub && matchesDate && matchesSearch;
+      return matchesPub && matchesSearch;
     });
   }, [advData, selectedSubAdmins, selectedDateRange, user, searchTerm]);
 
