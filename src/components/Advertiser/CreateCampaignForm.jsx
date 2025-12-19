@@ -1,6 +1,16 @@
 // src/components/Campaigns/CreateCampaignForm.jsx
 import React, { useCallback, useEffect, useState } from "react";
-import { Form, Input, Select, Button, Card, Table, Spin, Switch } from "antd";
+import {
+  Form,
+  Input,
+  Select,
+  Button,
+  Card,
+  Table,
+  Spin,
+  Switch,
+  Checkbox,
+} from "antd";
 import axios from "axios";
 import { useSelector } from "react-redux";
 import Swal from "sweetalert2";
@@ -913,6 +923,7 @@ const GenrateLink = ({ campaignId, trackingurl }) => {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [trackingUrl, setTrackingUrl] = useState("");
+  const [hideReferrer, setHideReferrer] = useState(false);
 
   useEffect(() => {
     fetchPublisherIds();
@@ -937,11 +948,13 @@ const GenrateLink = ({ campaignId, trackingurl }) => {
       console.log({
         publisher_id: selectedPub,
         campaign_id: campaignId,
+        hide_referrer: hideReferrer ? 1 : 0,
       });
 
       const res = await axios.post(`${apiUrl2}/link/publisher`, {
         publisher_id: selectedPub,
         campaign_id: campaignId,
+        hide_referrer: hideReferrer ? 1 : 0,
       });
       console.log("Generate Link Response:", res);
       // ⬇ THIS should be returned by your backend
@@ -981,35 +994,61 @@ const GenrateLink = ({ campaignId, trackingurl }) => {
         </div>
       ) : (
         <>
-          <div className="flex flex-row gap-4 items-end">
-            <div className="flex-1">
-              <label className="block text-lg font-medium mb-1 text-gray-600">
-                Publisher List
-              </label>
+          <div className="bg-white rounded-2xl shadow-lg p-6">
+            <div className="flex flex-col lg:flex-row gap-6 items-end">
+              {/* Left Controls */}
+              <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Publisher Select */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-semibold text-gray-700">
+                    Publisher ID
+                  </label>
+                  <Select
+                    placeholder="Select Publisher ID"
+                    value={selectedPub}
+                    onChange={(val) => setSelectedPub(val)}
+                    showSearch
+                    size="large"
+                    className="rounded-lg">
+                    {allPubs.map((pid) => (
+                      <Select.Option key={pid} value={pid}>
+                        {pid}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </div>
 
-              <Select
-                className="w-full"
-                placeholder="Select Publisher ID"
-                value={selectedPub}
-                onChange={(val) => setSelectedPub(val)}
-                showSearch
-                size="large">
-                {allPubs.map((pid) => (
-                  <Select.Option key={pid} value={pid}>
-                    {pid}
-                  </Select.Option>
-                ))}
-              </Select>
+                {/* Checkbox */}
+                <div className="flex flex-col gap-2 border border-white">
+                  <label className="text-sm font-semibold text-gray-700">
+                    Referrer Settings
+                  </label>
+                  <div className="h-[40px] flex items-center px-4 border rounded-lg bg-white">
+                    <Checkbox
+                      checked={hideReferrer}
+                      onChange={(e) => setHideReferrer(e.target.checked)}>
+                      <span className="text-gray-700 font-medium">
+                        Hide Google Referrer
+                      </span>
+                    </Checkbox>
+                  </div>
+                </div>
+              </div>
+
+              {/* CTA Button */}
+              <Button
+                type="primary"
+                size="large"
+                loading={submitting}
+                onClick={handleSubmit}
+                className="!bg-[#2F5D99] hover:!bg-[#24487A] 
+                 !text-white !rounded-xl 
+                 !px-10 !h-[48px] 
+                 !text-lg !font-semibold 
+                 !border-none !shadow-lg">
+                Generate Tracking Link
+              </Button>
             </div>
-
-            <Button
-              type="primary"
-              size="large"
-              className="!bg-[#2F5D99] hover:!bg-[#24487A] !text-white !rounded-xl !px-8 !py-3 !h-10 !text-lg !border-none !shadow-md"
-              loading={submitting}
-              onClick={handleSubmit}>
-              Generate Tracking Link
-            </Button>
           </div>
 
           {/* Result Box */}
