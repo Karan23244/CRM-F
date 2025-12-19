@@ -140,7 +140,7 @@ const AdvertiserData = () => {
       console.error("fetchData error:", error);
       message.error("Failed to fetch data");
     }
-  }, [userId,selectedDateRange]);
+  }, [userId, selectedDateRange]);
   const fetchCampaignList = async () => {
     try {
       const res = await axios.get(`${apiUrl}/campaigns_list`);
@@ -1024,9 +1024,13 @@ const AdvertiserData = () => {
 
                 const normalize = (d) => d.slice(0, 10);
 
-                const rowDate = normalize(record.created_at);
+                const createdDate = normalize(record.created_at);
+                const updatedDate = record.updated_at
+                  ? normalize(record.updated_at)
+                  : null;
 
-                const pausedEditable = rowDate === TODAY;
+                const pausedEditable =
+                  createdDate === TODAY || updatedDate === TODAY;
 
                 if (!pausedEditable) {
                   return (
