@@ -725,6 +725,7 @@ const CreateCampaignForm = () => {
                             className="!h-11 rounded-lg border-gray-300 bg-white">
                             <Option value="Android">Android</Option>
                             <Option value="iOS">iOS</Option>
+                            <Option value="Web">Web</Option>
                             <Option value="both">Both</Option>
                           </Select>
                         </Form.Item>
