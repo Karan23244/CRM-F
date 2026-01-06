@@ -514,6 +514,7 @@ const AdvertiserData = () => {
   );
   const fieldonlyeditable = useMemo(
     () => [
+      "adv_payout",
       "paused_date",
       "pay_out",
       "fa",
