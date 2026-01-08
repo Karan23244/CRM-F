@@ -120,7 +120,6 @@ const DashboardLayout = () => {
         const hasPermission = item.permission
           ? user?.permissions?.[item.permission] === 1
           : true;
-
         // ❌ If parent permission fails → hide everything
         if (!hasRole || !hasPermission) {
           return null;
