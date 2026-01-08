@@ -938,6 +938,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
                         }}>
                         <Option value="Android">Android</Option>
                         <Option value="iOS">iOS</Option>
+                        <Option value="Web">Web</Option>
                         <Option value="both">Both</Option>
                       </Select>
                     </Form.Item>

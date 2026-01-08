@@ -67,7 +67,7 @@ const CampianData = () => {
   const [stickyColumns, setStickyColumns] = useState([]);
   const [editingCell, setEditingCell] = useState({ key: null, field: null });
   const [dropdownOptions, setDropdownOptions] = useState({
-    os: ["Android", "APK", "iOS"],
+    os: ["Android", "APK", "iOS", "Web"],
   });
   const [firstFilteredColumn, setFirstFilteredColumn] = useState(null);
   // 🔹 Manage hidden columns (saved per table type)
@@ -75,7 +75,7 @@ const CampianData = () => {
     const saved = localStorage.getItem("hiddenColumns");
     return saved ? JSON.parse(saved) : { publisher: [], advertiser: [] };
   });
-
+  console.log(uniqueValues)
   useEffect(() => {
     localStorage.setItem("hiddenColumns", JSON.stringify(hiddenColumns));
   }, [hiddenColumns]);
@@ -484,20 +484,30 @@ const CampianData = () => {
       updated.pub_Apno = "";
     }
     try {
-      await axios.post(updateUrl, updated, {
+      const response = await axios.post(updateUrl, updated, {
         headers: { "Content-Type": "application/json" },
       });
+      console.log(response)
+      // const updatedRecord = data.updated_fields; // 👈 updated row
+
+      // // ✅ Update only the row with matching id
+      // setAdvData((prevData) =>
+      //   prevData.map((item) =>
+      //     item.id === updatedRecord.id ? { ...item, ...updatedRecord } : item
+      //   )
+      // );
+
       Swal.fire({
         icon: "success",
-        title: "Auto-Saved",
-        timer: 1000,
+        title: data.message || "Auto-Saved",
+        timer: 1200,
         showConfirmButton: false,
       });
-      fetchAdvData();
     } catch (err) {
       Swal.fire({
         icon: "error",
         title: "Failed to Auto-Save",
+        text: err.response?.data?.message || "Something went wrong",
       });
     }
   };
@@ -520,6 +530,7 @@ const CampianData = () => {
           : item.pub_Apno?.trim() || "-",
     };
   });
+  console.log(processedData); 
   const getColumns = (columnHeadings) => {
     return [
       ...getVisibleColumnKeys(columnHeadings).map((key) => ({
@@ -663,6 +674,7 @@ const CampianData = () => {
             if (dropdownOptions[key]) {
               return (
                 <Select
+                  showSearch
                   defaultValue={value}
                   autoFocus
                   style={{ width: "100%" }}

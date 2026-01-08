@@ -43,6 +43,7 @@ const SubAdminEdit = () => {
   const [subAdminOptions, setSubAdminOptions] = useState([]);
   const [permissionEditCondition, setPermissionEditCondition] = useState(false);
   const [permissionUploadFiles, setPermissionUploadFiles] = useState(false);
+  const [permissionAddStore, setPermissionAddStore] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -135,6 +136,7 @@ const SubAdminEdit = () => {
     setAssignedSubAdmins(subAdmin.assigned_subadmins?.map((a) => a.id) || []);
     setPermissionEditCondition(subAdmin.permissions?.can_see_button1 === 1);
     setPermissionUploadFiles(subAdmin.permissions?.can_see_input1 === 1);
+    setPermissionAddStore(subAdmin.permissions?.can_add_store === 1);
     setShowForm(true);
   };
 
@@ -171,6 +173,7 @@ const SubAdminEdit = () => {
           : [],
       can_see_button1: permissionEditCondition ? 1 : 0,
       can_see_input1: permissionUploadFiles ? 1 : 0,
+      can_add_store: permissionAddStore ? 1 : 0,
     };
 
     try {
@@ -313,6 +316,7 @@ const SubAdminEdit = () => {
     setAssignedSubAdmins([]);
     setPermissionEditCondition(false);
     setPermissionUploadFiles(false);
+    setPermissionAddStore(false);
   };
 
   const columns = [
@@ -389,6 +393,21 @@ const SubAdminEdit = () => {
           </Tooltip>
         ) : (
           <Tooltip title="No Upload Permission">
+            <CloseCircleOutlined style={{ color: "red", fontSize: 18 }} />
+          </Tooltip>
+        ),
+    },
+    {
+      title: "Add Store Permission",
+      key: "addStorePermission",
+      align: "center",
+      render: (_, record) =>
+        record.permissions?.can_add_store ? (
+          <Tooltip title="Can Add Store">
+            <CheckCircleOutlined style={{ color: "#2F5D99", fontSize: 18 }} />
+          </Tooltip>
+        ) : (
+          <Tooltip title="Cannot Add Store">
             <CloseCircleOutlined style={{ color: "red", fontSize: 18 }} />
           </Tooltip>
         ),
@@ -554,6 +573,11 @@ const SubAdminEdit = () => {
               checked={permissionUploadFiles}
               onChange={(e) => setPermissionUploadFiles(e.target.checked)}>
               Permission for Uploading Files
+            </Checkbox>
+            <Checkbox
+              checked={permissionAddStore}
+              onChange={(e) => setPermissionAddStore(e.target.checked)}>
+              Permission to Add Store
             </Checkbox>
           </div>
 

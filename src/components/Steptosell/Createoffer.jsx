@@ -1,0 +1,236 @@
+import React, { useState,useEffect } from "react";
+import {
+  Form,
+  Input,
+  Select,
+  Upload,
+  Button,
+  Card,
+  InputNumber,
+  Row,
+  Col,
+  message,
+} from "antd";
+import { UploadOutlined } from "@ant-design/icons";
+import axios from "axios";
+import Swal from "sweetalert2";
+const apiUrl = import.meta.env.VITE_API_URL4;
+
+const { TextArea } = Input;
+
+const CreateOffer = () => {
+  const [form] = Form.useForm();
+  const [type, setType] = useState("deal");
+  const [logo, setLogo] = useState(null);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const handleUpload = (file) => {
+    setLogo(file);
+    return false; // stop auto upload
+  };
+  const fetchCategories = async () => {
+    try {
+      const res = await axios.get(`${apiUrl}/api/categories`);
+      setCategories(res.data.data || []);
+    } catch (error) {
+      Swal.fire("Error", "Failed to load categories", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+  const handleSubmit = async (values) => {
+    if (!logo) {
+      message.error("Logo is required");
+      return;
+    }
+
+    const formData = new FormData();
+
+    Object.keys(values).forEach((key) => {
+      if (key === "code" && type !== "coupon") return;
+      formData.append(key, values[key]);
+    });
+
+    formData.append("logo", logo);
+    formData.append("type", type);
+    formData.append("slider", 0);
+
+    try {
+      await axios.post(`${apiUrl}/api/create-deal`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      Swal.fire("Success", "Offer created successfully", "success");
+      form.resetFields();
+      setLogo(null);
+    } catch (err) {
+      Swal.fire(
+        "Error",
+        err.response?.data?.message || "Something went wrong",
+        "error"
+      );
+    }
+  };
+
+  return (
+    <div style={{ padding: 24, background: "#f5f5f5", minHeight: "100vh" }}>
+      <Card title="Create Offer" style={{ maxWidth: 1000, margin: "auto" }}>
+        <Form
+          layout="vertical"
+          form={form}
+          onFinish={handleSubmit}
+          initialValues={{
+            currency: "₹",
+            countries: "IN",
+          }}>
+          <Row gutter={24}>
+            {/* Offer Type */}
+            <Col xs={24} md={12}>
+              <Form.Item label="Offer Type" name="type">
+                <Select onChange={setType}>
+                  <Select.Option value="deal">Deal</Select.Option>
+                  <Select.Option value="coupon">Coupon</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+
+            {/* Title */}
+            <Col xs={24} md={12}>
+              <Form.Item
+                label="Title"
+                name="title"
+                rules={[{ required: true, message: "Title is required" }]}>
+                <Input />
+              </Form.Item>
+            </Col>
+
+            {/* Description */}
+            <Col xs={24}>
+              <Form.Item label="Description" name="description">
+                <TextArea rows={3} />
+              </Form.Item>
+            </Col>
+
+            {/* Category */}
+            <Col xs={24} md={12}>
+              <Form.Item
+                label="Category"
+                name="categories"
+                rules={[{ required: true, message: "Category is required" }]}>
+                <Select
+                  placeholder="Select category"
+                  loading={loading}
+                  allowClear>
+                  {categories.map((cat) => (
+                    <Select.Option
+                      key={cat.id || cat._id || cat.slug}
+                      value={cat.categore}>
+                      {cat.categore}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+
+            {/* Tracking Link */}
+            <Col xs={24} md={12}>
+              <Form.Item
+                label="Tracking Link"
+                name="tracking_link"
+                rules={[
+                  { required: true, message: "Tracking link is required" },
+                ]}>
+                <Input />
+              </Form.Item>
+            </Col>
+
+            {/* Coupon Code */}
+            {type === "coupon" && (
+              <Col xs={24} md={24}>
+                <Form.Item
+                  label="Coupon Code"
+                  name="code"
+                  rules={[{ required: true, message: "Coupon code required" }]}>
+                  <Input />
+                </Form.Item>
+              </Col>
+            )}
+
+            {/* About */}
+            <Col xs={24}>
+              <Form.Item label="About Store" name="about">
+                <TextArea rows={3} />
+              </Form.Item>
+            </Col>
+
+            {/* Payout */}
+            <Col xs={24} md={12}>
+              <Form.Item
+                label="Payout"
+                name="payout"
+                rules={[{ required: true, message: "Payout is required" }]}>
+                <InputNumber style={{ width: "100%" }} />
+              </Form.Item>
+            </Col>
+
+            {/* Discount Payout */}
+            <Col xs={24} md={12}>
+              <Form.Item
+                label="Discount Payout"
+                name="discount_payout"
+                rules={[
+                  { required: true, message: "Discount payout required" },
+                ]}>
+                <InputNumber style={{ width: "100%" }} />
+              </Form.Item>
+            </Col>
+
+            {/* Currency */}
+            <Col xs={24} md={12}>
+              <Form.Item label="Currency" name="currency">
+                <Select>
+                  <Select.Option value="₹">INR</Select.Option>
+                  <Select.Option value="$">USD</Select.Option>
+                  <Select.Option value="%">%</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+
+            {/* Country */}
+            <Col xs={24} md={12}>
+              <Form.Item label="Country" name="countries">
+                <Select>
+                  <Select.Option value="IN">IN</Select.Option>
+                  <Select.Option value="US">US</Select.Option>
+                  <Select.Option value="UK">UK</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+
+            {/* Logo Upload */}
+            <Col xs={24}>
+              <Form.Item label="Logo" required>
+                <Upload beforeUpload={handleUpload} maxCount={1}>
+                  <Button icon={<UploadOutlined />}>Upload Logo</Button>
+                </Upload>
+              </Form.Item>
+            </Col>
+
+            {/* Submit */}
+            <Col xs={24}>
+              <Button type="primary" htmlType="submit" size="large" block>
+                Create Offer
+              </Button>
+            </Col>
+          </Row>
+        </Form>
+      </Card>
+    </div>
+  );
+};
+
+export default CreateOffer;

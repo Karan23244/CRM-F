@@ -13,7 +13,6 @@
 //   - advertiser / advertiser_manager
 //   - publisher / publisher_manager
 // ==========================
-
 export const sidebarLinks = [
   // ==========================
   // 🔹 ADMIN SECTION
@@ -254,6 +253,43 @@ export const sidebarLinks = [
       "publisher",
       "publisher_manager",
       "operations",
+    ],
+  },
+  {
+    label: "Step To Sell",
+    roles: ["admin", "advertiser", "advertiser_manager", "operations"],
+    permission: "can_add_store",
+    sublinks: [
+      {
+        to: "createdeals",
+        label: "Create Deals",
+        roles: ["admin", "advertiser", "advertiser_manager", "operations"],
+      },
+      {
+        to: "listdeals",
+        label: "List Deals",
+        roles: ["admin", "advertiser", "advertiser_manager", "operations"],
+      },
+      {
+        to: "createoffer",
+        label: "Create Offer",
+        roles: ["admin", "advertiser", "advertiser_manager", "operations"],
+      },
+      {
+        to: "listoffer",
+        label: "List Offers",
+        roles: ["admin", "advertiser", "advertiser_manager", "operations"],
+      },
+           {
+        to: "createcategory",
+        label: "Create Category",
+        roles: ["admin", "advertiser", "advertiser_manager", "operations"],
+      },
+      {
+        to: "listcategory",
+        label: "List Categories",
+        roles: ["admin", "advertiser", "advertiser_manager", "operations"],
+      },
     ],
   },
   // ==========================

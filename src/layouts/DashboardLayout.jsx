@@ -28,7 +28,7 @@ const DashboardLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useSelector((state) => state.auth);
-
+  console.log(user);
   const userId = user?.id || JSON.parse(localStorage.getItem("user"))?.id;
   if (!userId) return null;
 
@@ -111,17 +111,27 @@ const DashboardLayout = () => {
   const filterByRole = (items) =>
     items
       .map((item) => {
+        // ✅ ROLE CHECK
+        const hasRole =
+          Array.isArray(user?.role) &&
+          user.role.some((r) => item.roles?.includes(r));
+
+        // ✅ PERMISSION CHECK
+        const hasPermission = item.permission
+          ? user?.permissions?.[item.permission] === 1
+          : true;
+
+        // ❌ If parent permission fails → hide everything
+        if (!hasRole || !hasPermission) {
+          return null;
+        }
+
+        // ✅ Filter sublinks ONLY if parent is allowed
         const filteredSublinks = item.sublinks
           ? filterByRole(item.sublinks)
           : [];
-        if (
-          (Array.isArray(user.role) &&
-            user.role.some((r) => item.roles.includes(r))) ||
-          filteredSublinks.length > 0
-        ) {
-          return { ...item, sublinks: filteredSublinks };
-        }
-        return null;
+
+        return { ...item, sublinks: filteredSublinks };
       })
       .filter(Boolean);
 

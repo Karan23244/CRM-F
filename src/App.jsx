@@ -39,6 +39,12 @@ import CreatePublisher from "./components/Publisher/CreatePublisher";
 import Notification from "./components/NotificationBar";
 import Home from "./layouts/Homepage";
 import Conversion from "./components/Publisher/Conversion";
+import Createdeals from "./components/Steptosell/Createdeals";
+import Createoffer from "./components/Steptosell/Createoffer";
+import Listoffer from "./components/Steptosell/Listoffer";
+import Listdeals from "./components/Steptosell/Listdeals";
+import Listcategory from "./components/Steptosell/Listcategory";
+import Createcategory from "./components/Steptosell/Createcategory";
 const AppRoutes = () => (
   <Router>
     <Routes>
@@ -86,6 +92,12 @@ const AppRoutes = () => (
           <Route path="createpubform" element={<CreatePublisher />} />
           <Route path="notifications" element={<Notification />} />
           <Route path="conversion" element={<Conversion />} />
+          <Route path="createdeals" element={<Createdeals />} />
+          <Route path="createoffer" element={<Createoffer />} />
+          <Route path="listdeals" element={<Listdeals />} />
+          <Route path="listoffer" element={<Listoffer />} />
+          <Route path="listcategory" element={<Listcategory />} />
+          <Route path="createcategory" element={<Createcategory />} />
           <Route path="myaccount" element={<MyAccount />} />
           {/* default redirect */}
           <Route index element={<Navigate to="home" replace />} />

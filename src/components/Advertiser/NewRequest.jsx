@@ -537,7 +537,7 @@ const NewRequest = () => {
         receiver: receiverName, // resolved to receiver_id internally
         type: "status_update",
         message: `📢 ${senderName} updated status of campaign "${sharedCampaign}" → SHARED`,
-        url: "/makerequest",
+        url: "/dashboard/makerequest",
       });
       if (res.data?.success) {
         // ✅ Show success alert

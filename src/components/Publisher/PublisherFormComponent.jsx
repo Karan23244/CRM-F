@@ -636,7 +636,6 @@ const PublisherEditForm = () => {
         user_id: userId,
         place_link: trimmedValue,
       });
-      console.log("Response from place link save:", res.data);
       if (res.data.success) {
         Swal.fire({
           icon: "success",

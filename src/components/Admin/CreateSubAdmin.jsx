@@ -38,8 +38,7 @@ const SubAdminForm = () => {
   const [subAdminOptions, setSubAdminOptions] = useState([]);
   const [permissionEditCondition, setPermissionEditCondition] = useState(false);
   const [permissionUploadFiles, setPermissionUploadFiles] = useState(false);
-  console.log(subAdmins);
-  console.log(subAdminOptions);
+  const [permissionAddStore, setPermissionAddStore] = useState(false);
   useEffect(() => {
     fetchSubAdmins();
   }, []);
@@ -128,6 +127,7 @@ const SubAdminForm = () => {
           : [],
       can_see_button1: permissionEditCondition ? 1 : 0,
       can_see_input1: permissionUploadFiles ? 1 : 0,
+      can_add_store: permissionAddStore ? 1 : 0,
     };
 
     try {
@@ -170,6 +170,7 @@ const SubAdminForm = () => {
     setAssignedSubAdmins([]);
     setPermissionEditCondition(false);
     setPermissionUploadFiles(false);
+    setPermissionAddStore(false);
   };
 
   return (
@@ -231,6 +232,11 @@ const SubAdminForm = () => {
             onChange={(e) => setPermissionUploadFiles(e.target.checked)}>
             Permission for Uploading Files
           </Checkbox>
+          <Checkbox
+            checked={permissionAddStore}
+            onChange={(e) => setPermissionAddStore(e.target.checked)}>
+            Permission to Add Store
+          </Checkbox>
         </div>
 
         {/* Assign Sub-Admins */}
@@ -257,7 +263,11 @@ const SubAdminForm = () => {
                     role.includes("advertiser_manager") &&
                     role.includes("publisher_manager")
                   ) {
-                    return ["advertiser", "publisher","publisher_manager"].includes(s.role);
+                    return [
+                      "advertiser",
+                      "publisher",
+                      "publisher_manager",
+                    ].includes(s.role);
                   }
 
                   // For advertiser manager → only advertiser + advertiser_manager (except him)
