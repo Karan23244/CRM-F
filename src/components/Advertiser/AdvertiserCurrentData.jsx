@@ -1020,19 +1020,10 @@ const AdvertiserData = () => {
               //       </div>
               //     );
               //   }
-              if (["paused_date"].includes(key)) {
-                const TODAY = "2025-12-02";
+              if (key === "paused_date") {
+                const pausedEditable = record.flag === "1";
 
-                const normalize = (d) => d.slice(0, 10);
-
-                const createdDate = normalize(record.created_at);
-                const updatedDate = record.updated_at
-                  ? normalize(record.updated_at)
-                  : null;
-
-                const pausedEditable =
-                  createdDate === TODAY || updatedDate === TODAY;
-
+                // ❌ Not editable
                 if (!pausedEditable) {
                   return (
                     <div style={{ color: "gray", cursor: "not-allowed" }}>
@@ -1041,6 +1032,7 @@ const AdvertiserData = () => {
                   );
                 }
 
+                // ✏️ Editable
                 if (isEditing) {
                   return (
                     <DatePicker
@@ -1062,6 +1054,11 @@ const AdvertiserData = () => {
                     />
                   );
                 }
+
+                // Default display (editable but not editing)
+                return (
+                  <div>{value ? dayjs(value).format("YYYY-MM-DD") : "-"}</div>
+                );
               }
 
               //   // ✔ Editable mode
@@ -1296,6 +1293,7 @@ const AdvertiserData = () => {
     },
     [columns]
   );
+  console.log(finalFilteredData);
   return (
     <div className="p-4 bg-gray-100 min-h-screen flex flex-col items-center">
       <div className="w-full bg-white p-6 rounded shadow-md relative">
