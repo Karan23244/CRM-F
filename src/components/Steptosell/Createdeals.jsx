@@ -33,7 +33,10 @@ const Dashboard = () => {
   // ---------------- FETCH CATEGORIES ----------------
   const fetchCategories = async () => {
     try {
-      const res = await axios.get(`${apiUrl}/api/categories`);
+      const res = await axios.get(`${apiUrl}/api/categories/`, {
+        withCredentials: true,
+      });
+      console.log(res);
       setCategories(res.data.data || []);
     } catch (error) {
       Swal.fire("Error", "Failed to load categories", "error");
