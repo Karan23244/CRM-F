@@ -425,35 +425,42 @@ const NewRequest = () => {
   const actionColumn = {
     title: "Action",
     key: "action",
-    render: (text, record) => (
-      <Tooltip
-        title={
-          record.prm !== 1
-            ? "Status can only be changed when Permission is Allowed"
-            : ""
-        }>
-        <Select
-          value={record.adv_res} // ✅ controlled by actual DB value
-          style={{ width: 160 }}
-          onChange={(value) => {
-            if (value === "shared") {
-              // ✅ open modal but revert dropdown visually
-              setSelectedRequestId(record.id);
-              fetchCampaignList();
-              setShareModalVisible(true);
-            } else {
-              handleStatusUpdate(record.id, value);
-            }
-          }}
-          disabled={record.prm !== 1}>
-          {statuses.map((status) => (
-            <Option key={status} value={status}>
-              {status.charAt(0).toUpperCase() + status.slice(1)}
-            </Option>
-          ))}
-        </Select>
-      </Tooltip>
-    ),
+    render: (text, record) => {
+      // ✅ Web OS bypass permission & priority
+      const isWebOS = record.os?.toLowerCase() === "web";
+
+      // ✅ Permission required only for non-web
+      const isDisabled = !isWebOS && record.prm !== 1;
+
+      return (
+        <Tooltip
+          title={
+            isDisabled
+              ? "Status can only be changed when Permission is Allowed"
+              : ""
+          }>
+          <Select
+            value={record.adv_res}
+            style={{ width: 160 }}
+            disabled={isDisabled}
+            onChange={(value) => {
+              if (value === "shared") {
+                setSelectedRequestId(record.id);
+                fetchCampaignList();
+                setShareModalVisible(true);
+              } else {
+                handleStatusUpdate(record.id, value);
+              }
+            }}>
+            {statuses.map((status) => (
+              <Option key={status} value={status}>
+                {status.charAt(0).toUpperCase() + status.slice(1)}
+              </Option>
+            ))}
+          </Select>
+        </Tooltip>
+      );
+    },
   };
 
   // ✅ Handle Status Update
@@ -511,7 +518,7 @@ const NewRequest = () => {
       return;
     }
     const sharedRecord = requests.find((r) => r.id === selectedRequestId);
-    console.log(sharedRecord)
+    console.log(sharedRecord);
     try {
       const res = await axios.post(
         `${apiUrl}/api/campaigns/copynew/${selectedCampaignId}`,
@@ -604,7 +611,7 @@ const NewRequest = () => {
               key={c.id}
               value={c.id}
               label={`${c.id} / ${c.campaign_name} / ${c.os} / ${c.Adv_name}`}>
-              {`${c.id} / ${c.campaign_name}  / ${c.os} / ${c.Adv_name}`} 
+              {`${c.id} / ${c.campaign_name}  / ${c.os} / ${c.Adv_name}`}
             </Select.Option>
           ))}
         </Select>

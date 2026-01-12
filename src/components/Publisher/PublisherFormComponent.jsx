@@ -24,6 +24,7 @@ import Swal from "sweetalert2";
 const { Option } = Select;
 
 const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl1 = import.meta.env.VITE_API_URL3;
 
 const PublisherIDDashboard = () => {
   const user = useSelector((state) => state.auth.user);
@@ -630,8 +631,8 @@ const PublisherEditForm = () => {
     console.log("User ID:", userId);
     try {
       setLoading(true);
-
-      const res = await axios.put(`${apiUrl}/place-link`, {
+      console.log(`${apiUrl1}/postback/place-link`);
+      const res = await axios.put("https://track.pidmetric.com/postback/place-link", {
         pub_id: record.pub_id,
         user_id: userId,
         place_link: trimmedValue,
@@ -650,6 +651,7 @@ const PublisherEditForm = () => {
         }
       }
     } catch (err) {
+      console.error("Error saving Postback URL:", err);
       // 🔥 Handle 404 specifically
       if (err.response?.status === 404) {
         Swal.fire({

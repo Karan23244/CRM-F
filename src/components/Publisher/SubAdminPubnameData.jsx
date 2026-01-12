@@ -186,12 +186,12 @@ const SubAdminPubnameData = () => {
     }
 
     try {
-      const res = await axios.put(`${apiUrl}/place-link`, {
+      const res = await axios.put("https://track.pidmetric.com/postback/place-link", {
         pub_id: record.pub_id,
         user_id: userid,
         place_link: trimmedValue,
       });
-
+      console.log("Place link save response:", res);
       if (res.data.success) {
         Swal.fire({
           icon: "success",
@@ -205,6 +205,7 @@ const SubAdminPubnameData = () => {
         setTableData(data.data);
       }
     } catch (err) {
+      console.error("Error saving Postback URL:", err);
       // 🔥 Handle 404 specifically
       if (err.response?.status === 404) {
         Swal.fire({
