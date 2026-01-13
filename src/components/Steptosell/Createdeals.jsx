@@ -66,10 +66,9 @@ const Dashboard = () => {
     });
     formData.append("logo", files.logo);
     formData.append("slider", slider ? 1 : 0);
-
+    formData.append("banner2", files.banner2);
     if (slider) {
       formData.append("banner1", files.banner1);
-      formData.append("banner2", files.banner2);
     }
     for (let [key, value] of formData.entries()) {
       console.log(key, value);
@@ -228,7 +227,15 @@ const Dashboard = () => {
                 </Upload>
               </Form.Item>
             </Col>
-
+            <Col xs={24} md={12}>
+              <Form.Item label="Banner 2" required>
+                <Upload
+                  beforeUpload={(f) => handleUpload(f, "banner2")}
+                  maxCount={1}>
+                  <Button icon={<UploadOutlined />}>Upload Banner 2</Button>
+                </Upload>
+              </Form.Item>
+            </Col>
             {/* Banners */}
             {slider && (
               <>
@@ -238,16 +245,6 @@ const Dashboard = () => {
                       beforeUpload={(f) => handleUpload(f, "banner1")}
                       maxCount={1}>
                       <Button icon={<UploadOutlined />}>Upload Banner 1</Button>
-                    </Upload>
-                  </Form.Item>
-                </Col>
-
-                <Col xs={24} md={12}>
-                  <Form.Item label="Banner 2" required>
-                    <Upload
-                      beforeUpload={(f) => handleUpload(f, "banner2")}
-                      maxCount={1}>
-                      <Button icon={<UploadOutlined />}>Upload Banner 2</Button>
                     </Upload>
                   </Form.Item>
                 </Col>
