@@ -902,7 +902,10 @@ const AdvertiserData = () => {
           },
         }),
 
-        render: (value, record) => {
+        render: (text, record) => {
+          const value = record[key];
+          const createdAt = dayjs(record.created_at);
+          const isWithin3Days = dayjs().diff(createdAt, "day") <= 3;
           const editable = fieldonlyeditable.includes(key);
           const isEditing =
             editingCell.key === record.id && editingCell.field === key;
@@ -918,22 +921,234 @@ const AdvertiserData = () => {
             return <span>{isNaN(total) ? "-" : total.toFixed(2)}</span>;
           }
 
+          // Editor UI
           if (isEditing) {
+            // Select from dropdownOptions
+            if (dropdownOptions[key]) {
+              return (
+                <Select
+                  allowClear
+                  showSearch
+                  value={value || undefined}
+                  style={{ width: 180 }}
+                  onBlur={() => setEditingCell({ key: null, field: null })}
+                  onChange={(val) => {
+                    handleAutoSave(record, key, val);
+                    setEditingCell({ key: null, field: null });
+                  }}
+                  autoFocus
+                  optionFilterProp="children"
+                  filterOption={(input, option) =>
+                    (option?.children ?? "")
+                      .toString()
+                      .toLowerCase()
+                      .includes(input.toLowerCase())
+                  }>
+                  {[...new Set(dropdownOptions[key] || [])].map((opt) => (
+                    <Option key={opt} value={opt}>
+                      {opt}
+                    </Option>
+                  ))}
+                </Select>
+              );
+            }
+
+            if (key === "fa") {
+              return (
+                <Select
+                  defaultValue={value}
+                  style={{ width: 150 }}
+                  onBlur={() => setEditingCell({ key: null, field: null })}
+                  onChange={(val) => {
+                    handleAutoSave(record, key, val);
+                    // reset fa1 on server by passing null next time; we already set updated.fa1 = null in handler
+                    setEditingCell({ key: null, field: null });
+                  }}
+                  autoFocus>
+                  {dropdownOptions.fa.map((opt) => (
+                    <Option key={opt} value={opt}>
+                      {opt}
+                    </Option>
+                  ))}
+                </Select>
+              );
+            }
+
+            if (key === "fa1") {
+              if (!record.fa)
+                return <span style={{ color: "gray" }}>Select FA first</span>;
+              return (
+                <Select
+                  defaultValue={value}
+                  style={{ width: 150 }}
+                  onBlur={() => setEditingCell({ key: null, field: null })}
+                  onChange={(val) => {
+                    handleAutoSave(record, key, val);
+                    setEditingCell({ key: null, field: null });
+                  }}
+                  autoFocus>
+                  {dropdownOptions.fa1.map((opt) => (
+                    <Option key={opt} value={opt}>
+                      {opt}
+                    </Option>
+                  ))}
+                </Select>
+              );
+            }
+
+            // if (["shared_date", "paused_date"].includes(key)) {
+            //   return (
+            //     <DatePicker
+            //       allowClear
+            //       defaultValue={value ? dayjs(value) : null}
+            //       format="YYYY-MM-DD"
+            //       onChange={(date) => {
+            //         handleAutoSave(
+            //           record,
+            //           key,
+            //           date ? date.format("YYYY-MM-DD") : null
+            //         ).finally(() =>
+            //           setEditingCell({ key: null, field: null })
+            //         );
+            //       }}
+            //       autoFocus
+            //     />
+            //   );
+            // }
+            // if (["paused_date"].includes(key)) {
+            //   const TODAY = "2025-12-02"; // HARD CODED DATE
+
+            //   // Normalize date -> yyyy-mm-dd
+            //   const normalize = (d) => {
+            //     const dt = new Date(d);
+            //     dt.setHours(0, 0, 0, 0);
+            //     return dt.toISOString().slice(0, 10);
+            //   };
+
+            //   const rowDate = normalize(record.created_at);
+            //   // Find all rows created before TODAY
+            //   const pastDates = finalFilteredData
+            //     .map((r) => normalize(r.created_at))
+            //     .filter((d) => d < TODAY);
+
+            //   // FIX: Sort dates numerically (not alphabetically)
+            //   const latestPrevDate =
+            //     pastDates.length === 0
+            //       ? null
+            //       : pastDates.sort((a, b) => new Date(a) - new Date(b)).pop();
+
+            //   // Editable only for rows <= latest previous day & before today
+            //   const pausedEditable =
+            //     rowDate < TODAY &&
+            //     latestPrevDate !== null &&
+            //     rowDate <= latestPrevDate;
+
+            //   // ❌ Not editable
+            //   if (!pausedEditable) {
+            //     return (
+            //       <div style={{ color: "gray", cursor: "not-allowed" }}>
+            //         {value ? dayjs(value).format("YYYY-MM-DD") : "-"}
+            //       </div>
+            //     );
+            //   }
+            if (key === "paused_date") {
+              const pausedEditable = record.flag === "1";
+
+              // ❌ Not editable
+              if (!pausedEditable) {
+                return (
+                  <div style={{ color: "gray", cursor: "not-allowed" }}>
+                    {value ? dayjs(value).format("YYYY-MM-DD") : "-"}
+                  </div>
+                );
+              }
+
+              // ✏️ Editable
+              if (isEditing) {
+                return (
+                  <DatePicker
+                    allowClear
+                    value={value ? dayjs(value) : null}
+                    format="YYYY-MM-DD"
+                    onChange={(date) => {
+                      const finalDate = date ? date.format("YYYY-MM-DD") : null;
+                      setSelectedPauseDate(finalDate);
+                      setSelectedPauseRecord(record);
+                      setShareModalVisible(true);
+                    }}
+                    onOpenChange={(open) => {
+                      if (!open) setEditingCell({ key: null, field: null });
+                    }}
+                    autoFocus
+                  />
+                );
+              }
+
+              // Default display (editable but not editing)
+              return (
+                <div>{value ? dayjs(value).format("YYYY-MM-DD") : "-"}</div>
+              );
+            }
+
+            //   // ✔ Editable mode
+            //   if (isEditing) {
+            //     return (
+            //       <DatePicker
+            //         allowClear
+            //         value={value ? dayjs(value) : null}
+            //         format="YYYY-MM-DD"
+            //         // onChange={(date) => {
+            //         //   handleAutoSave(
+            //         //     record,
+            //         //     key,
+            //         //     date ? date.format("YYYY-MM-DD") : null
+            //         //   ).finally(() =>
+            //         //     setEditingCell({ key: null, field: null })
+            //         //   );
+            //         // }}
+            //         onChange={(date) => {
+            //           const finalDate = date
+            //             ? date.format("YYYY-MM-DD")
+            //             : null;
+
+            //           // 1️⃣ Save paused date normally using auto-save
+            //           // handleAutoSave(record, key, finalDate).finally(() => {
+            //           //   setEditingCell({ key: null, field: null });
+            //           // });
+
+            //           // 2️⃣ Open modal for campaign selection
+            //           setSelectedPauseDate(finalDate);
+            //           setSelectedPauseRecord(record);
+            //           setShareModalVisible(true);
+            //         }}
+            //         onOpenChange={(open) => {
+            //           if (!open) {
+            //             // popup closed → click outside
+            //             setEditingCell({ key: null, field: null });
+            //           }
+            //         }}
+            //         autoFocus
+            //       />
+            //     );
+            //   }
+            // }
+
             return (
               <Input
-                autoFocus
                 defaultValue={value}
+                autoFocus
                 onBlur={(e) => {
-                  handleAutoSave(record, key, e.target.value);
+                  handleAutoSave(record, key, e.target.value?.trim());
                   setEditingCell({ key: null, field: null });
                 }}
                 onPressEnter={(e) => {
-                  handleAutoSave(record, key, e.target.value);
+                  handleAutoSave(record, key, e.target.value?.trim());
                   setEditingCell({ key: null, field: null });
                 }}
               />
             );
           }
+          if (key === "fp") return <span>{value}</span>;
 
           return (
             <div
@@ -942,7 +1157,7 @@ const AdvertiserData = () => {
                 if (!checkEditableAndAlert(editable)) return;
                 setEditingCell({ key: record.id, field: key });
               }}>
-              {value ?? "-"}
+              {value || "-"}
             </div>
           );
         },
@@ -1025,38 +1240,38 @@ const AdvertiserData = () => {
       })),
 
     // 🔹 ACTIONS COLUMN
-    {
-      title: "Actions",
-      fixed: "right",
-      width: 100,
-      render: (_, record) => {
-        const createdAt = dayjs(record.created_at);
-        const hoursSinceCreation = dayjs().diff(createdAt, "hour");
-        const remainingHours = Math.max(24 - hoursSinceCreation, 0);
-        const isDeletable = hoursSinceCreation < 24;
+    // {
+    //   title: "Actions",
+    //   fixed: "right",
+    //   width: 100,
+    //   render: (_, record) => {
+    //     const createdAt = dayjs(record.created_at);
+    //     const hoursSinceCreation = dayjs().diff(createdAt, "hour");
+    //     const remainingHours = Math.max(24 - hoursSinceCreation, 0);
+    //     const isDeletable = hoursSinceCreation < 24;
 
-        return (
-          <div style={{ display: "flex", gap: "8px" }}>
-            {isDeletable && (
-              <Tooltip title={`Delete option available for ${remainingHours}h`}>
-                <Button
-                  type="primary"
-                  danger
-                  icon={<DeleteOutlined />}
-                  onClick={() => handleDelete(record.id)}
-                />
-              </Tooltip>
-            )}
-            {/* <Tooltip title="Copy this row">
-                <Button
-                  icon={<CopyOutlined />}
-                  onClick={() => handleCopyRow(record)}
-                />
-              </Tooltip> */}
-          </div>
-        );
-      },
-    },
+    //     return (
+    //       <div style={{ display: "flex", gap: "8px" }}>
+    //         {isDeletable && (
+    //           <Tooltip title={`Delete option available for ${remainingHours}h`}>
+    //             <Button
+    //               type="primary"
+    //               danger
+    //               icon={<DeleteOutlined />}
+    //               onClick={() => handleDelete(record.id)}
+    //             />
+    //           </Tooltip>
+    //         )}
+    //         {/* <Tooltip title="Copy this row">
+    //             <Button
+    //               icon={<CopyOutlined />}
+    //               onClick={() => handleCopyRow(record)}
+    //             />
+    //           </Tooltip> */}
+    //       </div>
+    //     );
+    //   },
+    // },
   ];
 
   // Summary function (memoized)
