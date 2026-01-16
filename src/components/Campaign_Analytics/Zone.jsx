@@ -63,7 +63,6 @@ export default function OptimizationCampaignAnalysis({
   canEdit,
   selectedDateRange,
 }) {
-  console.log(data);
   const user = useSelector((state) => state.auth.user);
   const fields = [
     "fraud_min",
@@ -75,10 +74,6 @@ export default function OptimizationCampaignAnalysis({
     "etc_min",
     "etc_max",
   ];
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-  });
   const [modalData, setModalData] = useState({
     open: false,
     rows: [],

@@ -103,6 +103,7 @@ const SubAdminForm = () => {
   };
 
   const handleSaveSubAdmin = async () => {
+    console.log(role.length, password, username);
     if (!username || !password || role.length === 0) {
       Swal.fire({
         icon: "warning",
@@ -116,10 +117,10 @@ const SubAdminForm = () => {
       username,
       password,
       role,
-      ranges: ranges.map(({ start, end }) => ({
-        start: String(start),
-        end: String(end),
-      })),
+      // ranges: ranges.map(({ start, end }) => ({
+      //   start: String(start),
+      //   end: String(end),
+      // })),
       assigned_subadmins:
         role.includes("publisher_manager") ||
         role.includes("advertiser_manager")
@@ -136,6 +137,7 @@ const SubAdminForm = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+      console.log(response)
       const data = await response.json();
 
       if (response.ok) {
@@ -166,7 +168,7 @@ const SubAdminForm = () => {
     setUsername("");
     setPassword("");
     setRole([]);
-    setRanges([{ start: "", end: "" }]);
+    // setRanges([{ start: "", end: "" }]);
     setAssignedSubAdmins([]);
     setPermissionEditCondition(false);
     setPermissionUploadFiles(false);
@@ -291,7 +293,7 @@ const SubAdminForm = () => {
           </div>
         )}
 
-        {/* Ranges */}
+        {/* Ranges
         <div className="mb-6">
           <label className="block font-semibold mb-2">Ranges</label>
           {ranges.map((range, index) => (
@@ -328,7 +330,7 @@ const SubAdminForm = () => {
             className="border-[#2F5D99] text-[#2F5D99] rounded-lg">
             Add More Ranges
           </Button>
-        </div>
+        </div> */}
 
         {/* Create Button */}
         <div className="flex justify-center">

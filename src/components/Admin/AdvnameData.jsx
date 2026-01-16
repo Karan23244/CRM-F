@@ -1,7 +1,7 @@
 import React, { useState, useEffect, use } from "react";
 import Swal from "sweetalert2";
 import axios from "axios";
-import { Table, Input, Select, Button, Space, Tooltip } from "antd";
+import { Table, Input, Select, Button, Space, Tooltip, Checkbox } from "antd";
 import StyledTable from "../../Utils/StyledTable";
 import {
   FilterOutlined,
@@ -11,7 +11,7 @@ import {
 } from "@ant-design/icons";
 import { useSelector } from "react-redux";
 import geoData from "../../Data/geoData.json";
-
+import { PushpinOutlined } from "@ant-design/icons";
 const { Option } = Select;
 const apiUrl = import.meta.env.VITE_API_URL;
 
@@ -35,57 +35,69 @@ const AdvnameData = () => {
   const [assign_user, setAssign_user] = useState("");
   const [assign_id, setAssign_id] = useState("");
   const [subAdmins, setSubAdmins] = useState([]);
+  const [filterSearch, setFilterSearch] = useState({});
+  const [pinnedColumns, setPinnedColumns] = useState({});
+  const [uniqueValues, setUniqueValues] = useState({});
   const [editingAssignRowId, setEditingAssignRowId] = useState(null);
   const [filters, setFilters] = useState({});
   const [sortInfo, setSortInfo] = useState({
     columnKey: null,
     order: null,
   });
-  const uniqueValues = {};
-
-  if (Array.isArray(tableData) && tableData.length > 0) {
-    tableData.forEach((item) => {
-      Object.keys(item).forEach((key) => {
-        if (!uniqueValues[key]) uniqueValues[key] = new Set();
-        if (item[key] !== null && item[key] !== undefined) {
-          uniqueValues[key].add(String(item[key]));
-        }
-      });
-    });
-  }
-
   // ✅ Fallbacks for empty data (avoid "not iterable" error)
   const safeArray = (key) =>
     Array.from(uniqueValues[key] || []).filter(
       (val) => val && val.trim() !== ""
     );
+  const normalize = (val) => {
+    if (val === null || val === undefined || val === "") return "-";
+    return val.toString().trim();
+  };
+  const getExcelFilteredDataForColumn = (columnKey) => {
+    return tableData.filter((row) => {
+      return Object.entries(filters).every(([key, values]) => {
+        if (key === columnKey) return true;
+        if (!values || values.length === 0) return true;
+        return values.includes(normalize(row[key]));
+      });
+    });
+  };
+  useEffect(() => {
+    const valuesObj = {};
 
-  const handleFilterChange = (value, key) => {
-    setFilters((prev) => ({
+    Object.keys(tableData[0] || {}).forEach((col) => {
+      const source = getExcelFilteredDataForColumn(col);
+
+      valuesObj[col] = [
+        ...new Set(source.map((row) => normalize(row[col]))),
+      ].sort((a, b) => a.localeCompare(b));
+    });
+
+    setUniqueValues(valuesObj);
+  }, [tableData, filters]);
+  const togglePin = (key) => {
+    setPinnedColumns((prev) => ({
       ...prev,
-      [key]: value?.length ? value : undefined,
+      [key]: !prev[key],
     }));
   };
 
-  const filteredTableData = tableData.filter((item) => {
-    return Object.keys(filters).every((key) => {
-      if (!filters[key]) return true;
-      return filters[key].includes(item[key]);
+  const finalFilteredData = tableData.filter((row) => {
+    // 🔍 Global search
+    const matchesSearch = Object.values(row)
+      .join(" ")
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+
+    if (!matchesSearch) return false;
+
+    // 🎯 Excel-style filters
+    return Object.entries(filters).every(([key, values]) => {
+      if (!values || values.length === 0) return true;
+      return values.includes(normalize(row[key]));
     });
   });
-  const finalFilteredData = filteredTableData.filter((item) =>
-    [
-      item.username,
-      item.adv_name,
-      item.adv_id,
-      item.geo,
-      item.note,
-      item.target,
-      item.postback_url,
-    ].some((field) =>
-      field?.toString().toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  );
+
   // **Fetch advertiser data**
   useEffect(() => {
     const fetchData = async () => {
@@ -247,403 +259,724 @@ const AdvnameData = () => {
     }
   };
   // **Table Columns**
+  // const columns = [
+  //   {
+  //     title: (
+  //       <div className="flex items-center justify-between">
+  //         <span>Username</span>
+  //       </div>
+  //     ),
+  //     key: "username",
+  //     dataIndex: "username",
+  //     sorter: (a, b) => a.adv_id.localeCompare(b.adv_id),
+  //     sortOrder: sortInfo.columnKey === "username" ? sortInfo.order : null,
+  //     onHeaderCell: () => ({
+  //       onClick: () => {
+  //         let newOrder = "ascend";
+
+  //         if (sortInfo.columnKey === "username") {
+  //           if (sortInfo.order === "ascend") newOrder = "descend";
+  //           else if (sortInfo.order === "descend")
+  //             newOrder = null; // 🔹 third click removes sorting
+  //           else newOrder = "ascend";
+  //         }
+
+  //         setSortInfo({
+  //           columnKey: "username",
+  //           order: newOrder,
+  //         });
+  //       },
+  //     }),
+  //     filterDropdown: ({ confirm }) => (
+  //       <div style={{ padding: 8 }}>
+  //         <Select
+  //           mode="multiple"
+  //           allowClear
+  //           showSearch
+  //           placeholder="Select UserName"
+  //           style={{ width: 200 }}
+  //           value={filters["username"] || []}
+  //           onChange={(value) => {
+  //             handleFilterChange(value, "username");
+  //             confirm();
+  //           }}>
+  //           {safeArray("username").map((val) => (
+  //             <Select.Option key={val} value={val}>
+  //               {val}
+  //             </Select.Option>
+  //           ))}
+  //         </Select>
+  //       </div>
+  //     ),
+  //     filtered: !!filters["username"],
+  //   },
+  //   {
+  //     title: (
+  //       <div className="flex items-center justify-between">
+  //         <span>Advertiser ID</span>
+  //       </div>
+  //     ),
+  //     dataIndex: "adv_id",
+  //     key: "adv_id",
+  //     sorter: (a, b) => a.adv_id.localeCompare(b.adv_id),
+  //     sortOrder: sortInfo.columnKey === "adv_id" ? sortInfo.order : null,
+  //     onHeaderCell: () => ({
+  //       onClick: () => {
+  //         let newOrder = "ascend";
+
+  //         if (sortInfo.columnKey === "adv_id") {
+  //           if (sortInfo.order === "ascend") newOrder = "descend";
+  //           else if (sortInfo.order === "descend")
+  //             newOrder = null; // 🔹 third click removes sorting
+  //           else newOrder = "ascend";
+  //         }
+
+  //         setSortInfo({
+  //           columnKey: "adv_id",
+  //           order: newOrder,
+  //         });
+  //       },
+  //     }),
+  //     filterDropdown: ({ confirm }) => (
+  //       <div style={{ padding: 8 }}>
+  //         <Select
+  //           mode="multiple"
+  //           allowClear
+  //           showSearch
+  //           placeholder="Select Advertiser ID"
+  //           style={{ width: 200 }}
+  //           value={filters["adv_id"] || []}
+  //           onChange={(value) => {
+  //             handleFilterChange(value, "adv_id");
+  //             confirm();
+  //           }}>
+  //           {safeArray("adv_id").map((val) => (
+  //             <Select.Option key={val} value={val}>
+  //               {val}
+  //             </Select.Option>
+  //           ))}
+  //         </Select>
+  //       </div>
+  //     ),
+  //     filtered: !!filters["adv_id"],
+  //   },
+  //   {
+  //     title: (
+  //       <div className="flex items-center justify-between">
+  //         <span>Advertiser Name</span>
+  //       </div>
+  //     ),
+  //     dataIndex: "adv_name",
+  //     key: "adv_name",
+  //     sorter: (a, b) => a.adv_name.localeCompare(b.adv_name),
+  //     sortOrder: sortInfo.columnKey === "adv_name" ? sortInfo.order : null,
+  //     onHeaderCell: () => ({
+  //       onClick: () => {
+  //         let newOrder = "ascend";
+
+  //         if (sortInfo.columnKey === "adv_name") {
+  //           if (sortInfo.order === "ascend") newOrder = "descend";
+  //           else if (sortInfo.order === "descend")
+  //             newOrder = null; // 🔹 third click removes sorting
+  //           else newOrder = "ascend";
+  //         }
+
+  //         setSortInfo({
+  //           columnKey: "adv_name",
+  //           order: newOrder,
+  //         });
+  //       },
+  //     }),
+  //     filterDropdown: ({ confirm }) => (
+  //       <div style={{ padding: 8 }}>
+  //         <Select
+  //           mode="multiple"
+  //           allowClear
+  //           showSearch
+  //           placeholder="Select Advertiser Name"
+  //           style={{ width: 200 }}
+  //           value={filters["adv_name"] || []}
+  //           onChange={(value) => {
+  //             handleFilterChange(value, "adv_name");
+  //             confirm();
+  //           }}>
+  //           {safeArray("adv_name").map((val) => (
+  //             <Select.Option key={val} value={val}>
+  //               {val}
+  //             </Select.Option>
+  //           ))}
+  //         </Select>
+  //       </div>
+  //     ),
+  //     filtered: !!filters["adv_name"],
+  //   },
+  //   {
+  //     title: (
+  //       <div className="flex items-center justify-between">
+  //         <span>Geo</span>
+  //       </div>
+  //     ),
+  //     dataIndex: "geo",
+  //     key: "geo",
+  //     sorter: (a, b) => a.geo.localeCompare(b.geo),
+  //     sortOrder: sortInfo.columnKey === "geo" ? sortInfo.order : null,
+  //     onHeaderCell: () => ({
+  //       onClick: () => {
+  //         let newOrder = "ascend";
+
+  //         if (sortInfo.columnKey === "geo") {
+  //           if (sortInfo.order === "ascend") newOrder = "descend";
+  //           else if (sortInfo.order === "descend")
+  //             newOrder = null; // 🔹 third click removes sorting
+  //           else newOrder = "ascend";
+  //         }
+
+  //         setSortInfo({
+  //           columnKey: "geo",
+  //           order: newOrder,
+  //         });
+  //       },
+  //     }),
+  //     filterDropdown: ({ confirm }) => (
+  //       <div style={{ padding: 8 }}>
+  //         <Select
+  //           mode="multiple"
+  //           allowClear
+  //           showSearch
+  //           placeholder="Select Geo"
+  //           style={{ width: 200 }}
+  //           value={filters["geo"] || []}
+  //           onChange={(value) => {
+  //             handleFilterChange(value, "geo");
+  //             confirm();
+  //           }}>
+  //           {safeArray("geo").map((val) => (
+  //             <Select.Option key={val} value={val}>
+  //               {val}
+  //             </Select.Option>
+  //           ))}
+  //         </Select>
+  //       </div>
+  //     ),
+  //     filtered: !!filters["geo"],
+  //   },
+  //   {
+  //     title: (
+  //       <div className="flex items-center justify-between">
+  //         <span>Note</span>
+  //       </div>
+  //     ),
+  //     dataIndex: "note",
+  //     key: "note",
+  //     sorter: (a, b) => a.note.localeCompare(b.note),
+  //     sortOrder: sortInfo.columnKey === "note" ? sortInfo.order : null,
+  //     onHeaderCell: () => ({
+  //       onClick: () => {
+  //         let newOrder = "ascend";
+
+  //         if (sortInfo.columnKey === "note") {
+  //           if (sortInfo.order === "ascend") newOrder = "descend";
+  //           else if (sortInfo.order === "descend")
+  //             newOrder = null; // 🔹 third click removes sorting
+  //           else newOrder = "ascend";
+  //         }
+
+  //         setSortInfo({
+  //           columnKey: "note",
+  //           order: newOrder,
+  //         });
+  //       },
+  //     }),
+  //     filterDropdown: ({ confirm }) => (
+  //       <div style={{ padding: 8 }}>
+  //         <Select
+  //           mode="multiple"
+  //           allowClear
+  //           showSearch
+  //           placeholder="Select Note"
+  //           style={{ width: 200 }}
+  //           value={filters["note"] || []}
+  //           onChange={(value) => {
+  //             handleFilterChange(value, "note");
+  //             confirm();
+  //           }}>
+  //           {safeArray("note").map((val) => (
+  //             <Select.Option key={val} value={val}>
+  //               {val}
+  //             </Select.Option>
+  //           ))}
+  //         </Select>
+  //       </div>
+  //     ),
+  //     filtered: !!filters["note"],
+  //   },
+  //   {
+  //     title: (
+  //       <div className="flex items-center justify-between">
+  //         <span>Target</span>
+  //       </div>
+  //     ),
+  //     dataIndex: "target",
+  //     key: "target",
+  //     sorter: (a, b) => a.target.localeCompare(b.target),
+  //     sortOrder: sortInfo.columnKey === "target" ? sortInfo.order : null,
+  //     onHeaderCell: () => ({
+  //       onClick: () => {
+  //         let newOrder = "ascend";
+
+  //         if (sortInfo.columnKey === "target") {
+  //           if (sortInfo.order === "ascend") newOrder = "descend";
+  //           else if (sortInfo.order === "descend")
+  //             newOrder = null; // 🔹 third click removes sorting
+  //           else newOrder = "ascend";
+  //         }
+
+  //         setSortInfo({
+  //           columnKey: "target",
+  //           order: newOrder,
+  //         });
+  //       },
+  //     }),
+  //     filterDropdown: ({ confirm }) => (
+  //       <div style={{ padding: 8 }}>
+  //         <Select
+  //           mode="multiple"
+  //           allowClear
+  //           showSearch
+  //           placeholder="Select Target"
+  //           style={{ width: 200 }}
+  //           value={filters["target"] || []}
+  //           onChange={(value) => {
+  //             handleFilterChange(value, "target");
+  //             confirm();
+  //           }}>
+  //           {safeArray("target").map((val) => (
+  //             <Select.Option key={val} value={val}>
+  //               {val}
+  //             </Select.Option>
+  //           ))}
+  //         </Select>
+  //       </div>
+  //     ),
+  //     filtered: !!filters["target"],
+  //   },
+  //   {
+  //     title: "Acc Email",
+  //     dataIndex: "acc_email",
+  //     key: "acc_email",
+  //     sorter: (a, b) => a.acc_email.localeCompare(b.acc_email),
+  //     sortOrder: sortInfo.columnKey === "acc_email" ? sortInfo.order : null,
+  //     onHeaderCell: () => ({
+  //       onClick: () => {
+  //         let newOrder = "ascend";
+
+  //         if (sortInfo.columnKey === "acc_email") {
+  //           if (sortInfo.order === "ascend") newOrder = "descend";
+  //           else if (sortInfo.order === "descend")
+  //             newOrder = null; // 🔹 third click removes sorting
+  //           else newOrder = "ascend";
+  //         }
+
+  //         setSortInfo({
+  //           columnKey: "acc_email",
+  //           order: newOrder,
+  //         });
+  //       },
+  //     }),
+  //     render: (text) => (user?.role === "advertiser" ? "*****" : text),
+  //   },
+  //   {
+  //     title: "POC Email",
+  //     dataIndex: "poc_email",
+  //     key: "poc_email",
+  //     sorter: (a, b) => a.poc_email.localeCompare(b.poc_email),
+  //     sortOrder: sortInfo.columnKey === "poc_email" ? sortInfo.order : null,
+  //     onHeaderCell: () => ({
+  //       onClick: () => {
+  //         let newOrder = "ascend";
+
+  //         if (sortInfo.columnKey === "poc_email") {
+  //           if (sortInfo.order === "ascend") newOrder = "descend";
+  //           else if (sortInfo.order === "descend")
+  //             newOrder = null; // 🔹 third click removes sorting
+  //           else newOrder = "ascend";
+  //         }
+
+  //         setSortInfo({
+  //           columnKey: "poc_email",
+  //           order: newOrder,
+  //         });
+  //       },
+  //     }),
+  //     render: (text) => (user?.role === "advertiser" ? "*****" : text),
+  //   },
+
+  //   {
+  //     title: "Assign User",
+  //     key: "assign_user",
+  //     dataIndex: "assign_user",
+  //     sorter: (a, b) => a.assign_user.localeCompare(b.assign_user),
+  //     sortOrder: sortInfo.columnKey === "assign_user" ? sortInfo.order : null,
+  //     onHeaderCell: () => ({
+  //       onClick: () => {
+  //         let newOrder = "ascend";
+
+  //         if (sortInfo.columnKey === "assign_user") {
+  //           if (sortInfo.order === "ascend") newOrder = "descend";
+  //           else if (sortInfo.order === "descend")
+  //             newOrder = null; // 🔹 third click removes sorting
+  //           else newOrder = "ascend";
+  //         }
+
+  //         setSortInfo({
+  //           columnKey: "assign_user",
+  //           order: newOrder,
+  //         });
+  //       },
+  //     }),
+  //     filterDropdown: ({ confirm }) => (
+  //       <div style={{ padding: 8 }}>
+  //         <Select
+  //           mode="multiple"
+  //           allowClear
+  //           showSearch
+  //           placeholder="Select Assign User"
+  //           style={{ width: 200 }}
+  //           value={filters["assign_user"] || []}
+  //           onChange={(value) => {
+  //             handleFilterChange(value, "assign_user");
+  //             confirm();
+  //           }}>
+  //           {safeArray("assign_user").map((val) => (
+  //             <Select.Option key={val} value={val}>
+  //               {val}
+  //             </Select.Option>
+  //           ))}
+  //         </Select>
+  //       </div>
+  //     ),
+  //     filtered: !!filters["assign_user"],
+  //   },
+  //   {
+  //     title: "Transfer Adv AM",
+  //     key: "user_id",
+  //     render: (_, record) => {
+  //       const isEditing = editingAssignRowId === record.adv_id;
+
+  //       if (isEditing) {
+  //         return (
+  //           <Select
+  //             autoFocus
+  //             value={record.username}
+  //             onChange={async (newUserId) => {
+  //               try {
+  //                 const response = await axios.put(`${apiUrl}/update-advid`, {
+  //                   ...record,
+  //                   user_id: newUserId,
+  //                 });
+
+  //                 if (response.data.success) {
+  //                   Swal.fire(
+  //                     "Success",
+  //                     "User transferred successfully!",
+  //                     "success"
+  //                   );
+
+  //                   // ✅ Update local tableData to reflect changes
+  //                   setTableData((prev) =>
+  //                     prev.map((item) =>
+  //                       item.adv_id === record.adv_id
+  //                         ? {
+  //                             ...item,
+  //                             user_id: newUserId,
+  //                           }
+  //                         : item
+  //                     )
+  //                   );
+  //                 } else {
+  //                   Swal.fire("Error", "Failed to transfer user", "error");
+  //                 }
+  //               } catch (error) {
+  //                 console.error("User transfer error:", error);
+  //                 Swal.fire("Error", "Something went wrong", "error");
+  //               } finally {
+  //                 setEditingAssignRowId(null);
+  //               }
+  //             }}
+  //             onBlur={() => setEditingAssignRowId(null)} // Close if user clicks away
+  //             className="min-w-[150px]">
+  //             <Option value="">Select Sub Admin</Option>
+  //             {subAdmins.map((admin) => (
+  //               <Option key={admin.id} value={admin.id.toString()}>
+  //                 {admin.username}
+  //               </Option>
+  //             ))}
+  //           </Select>
+  //         );
+  //       }
+
+  //       // Show normal text, and enter edit mode on click
+  //       return (
+  //         <span
+  //           onClick={() => setEditingAssignRowId(record.adv_id)}
+  //           className="cursor-pointer hover:underline"
+  //           title="Click to change user">
+  //           {"-"}
+  //         </span>
+  //       );
+  //     },
+  //   },
+  //   {
+  //     title: (
+  //       <div className="flex items-center justify-between">
+  //         <span>Postback URL</span>
+  //       </div>
+  //     ),
+  //     dataIndex: "postback_url",
+  //     key: "postback_url",
+  //     sorter: (a, b) => a.postback_url.localeCompare(b.postback_url),
+  //     sortOrder: sortInfo.columnKey === "postback_url" ? sortInfo.order : null,
+  //     onHeaderCell: () => ({
+  //       onClick: () => {
+  //         let newOrder = "ascend";
+
+  //         if (sortInfo.columnKey === "postback_url") {
+  //           if (sortInfo.order === "ascend") newOrder = "descend";
+  //           else if (sortInfo.order === "descend")
+  //             newOrder = null; // 🔹 third click removes sorting
+  //           else newOrder = "ascend";
+  //         }
+
+  //         setSortInfo({
+  //           columnKey: "geo",
+  //           order: newOrder,
+  //         });
+  //       },
+  //     }),
+  //     filterDropdown: ({ confirm }) => (
+  //       <div style={{ padding: 8 }}>
+  //         <Select
+  //           mode="multiple"
+  //           allowClear
+  //           showSearch
+  //           placeholder="Select Postback URL"
+  //           style={{ width: 200 }}
+  //           value={filters["postback_url"] || []}
+  //           onChange={(value) => {
+  //             handleFilterChange(value, "postback_url");
+  //             confirm();
+  //           }}>
+  //           {safeArray("postback_url").map((val) => (
+  //             <Select.Option key={val} value={val}>
+  //               {val}
+  //             </Select.Option>
+  //           ))}
+  //         </Select>
+  //       </div>
+  //     ),
+  //     filtered: !!filters["postback_url"],
+  //   },
+  //   {
+  //     title: "Actions",
+  //     key: "actions",
+  //     render: (_, record) => (
+  //       <Space size="middle">
+  //         <Tooltip title="Edit">
+  //           <EditOutlined
+  //             onClick={() => handleEdit(record)}
+  //             style={{
+  //               color: "#2F5D99",
+  //               fontSize: "18px",
+  //               cursor: "pointer",
+  //             }}
+  //           />
+  //         </Tooltip>
+  //       </Space>
+  //     ),
+  //   },
+  // ];
+  const createExcelColumn = ({
+    key,
+    title,
+    filters,
+    setFilters,
+    uniqueValues,
+    filterSearch,
+    setFilterSearch,
+    pinnedColumns,
+    togglePin,
+    sortInfo,
+    setSortInfo,
+  }) => {
+    const isFiltered = !!filters[key]?.length;
+    const isPinned = pinnedColumns[key];
+    const isSorted = sortInfo.columnKey === key;
+
+    return {
+      title: (
+        <div className="flex items-center justify-between gap-2">
+          <span
+            style={{
+              color: isFiltered ? "#1677ff" : "inherit",
+              fontWeight: isFiltered ? "bold" : "normal",
+            }}>
+            {title}
+          </span>
+
+          <PushpinOutlined
+            onClick={(e) => {
+              e.stopPropagation();
+              togglePin(key);
+            }}
+            style={{
+              color: isPinned ? "#1677ff" : "#aaa",
+              cursor: "pointer",
+            }}
+          />
+        </div>
+      ),
+
+      key,
+      dataIndex: key,
+      fixed: isPinned ? "left" : false,
+
+      sorter: (a, b) =>
+        (a[key] || "").toString().localeCompare((b[key] || "").toString()),
+
+      sortOrder: isSorted ? sortInfo.order : null,
+
+      onHeaderCell: () => ({
+        onClick: () => {
+          let newOrder = "ascend";
+
+          if (sortInfo.columnKey === key) {
+            if (sortInfo.order === "ascend") newOrder = "descend";
+            else if (sortInfo.order === "descend") newOrder = null;
+          }
+
+          setSortInfo({ columnKey: key, order: newOrder });
+        },
+      }),
+
+      filterDropdown: () => {
+        const allValues = Array.isArray(uniqueValues[key])
+          ? uniqueValues[key]
+          : [];
+
+        const selectedValues = Array.isArray(filters[key])
+          ? filters[key]
+          : allValues;
+
+        const searchVal = filterSearch[key] || "";
+
+        const visibleValues = allValues.filter((v) =>
+          v.toLowerCase().includes(searchVal.toLowerCase())
+        );
+
+        const isAllSelected = selectedValues.length === allValues.length;
+        const isIndeterminate = selectedValues.length > 0 && !isAllSelected;
+
+        return (
+          <div className="w-[260px]" onClick={(e) => e.stopPropagation()}>
+            <div className="p-2 border-b bg-white">
+              <Input
+                allowClear
+                placeholder="Search values"
+                value={searchVal}
+                onChange={(e) =>
+                  setFilterSearch((prev) => ({
+                    ...prev,
+                    [key]: e.target.value,
+                  }))
+                }
+              />
+            </div>
+
+            <div className="px-3 py-2">
+              <Checkbox
+                checked={isAllSelected}
+                indeterminate={isIndeterminate}
+                onChange={(e) => {
+                  setFilters((prev) => {
+                    const next = { ...prev };
+                    if (e.target.checked) delete next[key];
+                    else next[key] = [];
+                    return next;
+                  });
+                }}>
+                Select All
+              </Checkbox>
+            </div>
+
+            <div className="max-h-[220px] overflow-y-auto px-2 pb-2">
+              {visibleValues.map((val) => (
+                <label
+                  key={val}
+                  className="flex items-center gap-2 px-2 py-1 cursor-pointer hover:bg-blue-50">
+                  <Checkbox
+                    checked={selectedValues.includes(val)}
+                    onChange={(e) => {
+                      const next = e.target.checked
+                        ? [...selectedValues, val]
+                        : selectedValues.filter((v) => v !== val);
+
+                      setFilters((prev) => ({
+                        ...prev,
+                        [key]: next,
+                      }));
+                    }}
+                  />
+                  <span className="truncate">{val}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        );
+      },
+
+      filtered: isFiltered,
+    };
+  };
+  const columnConfig = {
+    username: "Username",
+    adv_id: "Advertiser ID",
+    adv_name: "Advertiser Name",
+    geo: "Geo",
+    note: "Note",
+    target: "Target",
+  };
   const columns = [
-    {
-      title: (
-        <div className="flex items-center justify-between">
-          <span>Username</span>
-        </div>
-      ),
-      key: "username",
-      dataIndex: "username",
-      sorter: (a, b) => a.adv_id.localeCompare(b.adv_id),
-      sortOrder: sortInfo.columnKey === "username" ? sortInfo.order : null,
-      onHeaderCell: () => ({
-        onClick: () => {
-          let newOrder = "ascend";
-
-          if (sortInfo.columnKey === "username") {
-            if (sortInfo.order === "ascend") newOrder = "descend";
-            else if (sortInfo.order === "descend")
-              newOrder = null; // 🔹 third click removes sorting
-            else newOrder = "ascend";
-          }
-
-          setSortInfo({
-            columnKey: "username",
-            order: newOrder,
-          });
-        },
-      }),
-      filterDropdown: ({ confirm }) => (
-        <div style={{ padding: 8 }}>
-          <Select
-            mode="multiple"
-            allowClear
-            showSearch
-            placeholder="Select UserName"
-            style={{ width: 200 }}
-            value={filters["username"] || []}
-            onChange={(value) => {
-              handleFilterChange(value, "username");
-              confirm();
-            }}>
-            {safeArray("username").map((val) => (
-              <Select.Option key={val} value={val}>
-                {val}
-              </Select.Option>
-            ))}
-          </Select>
-        </div>
-      ),
-      filtered: !!filters["username"],
-    },
-    {
-      title: (
-        <div className="flex items-center justify-between">
-          <span>Advertiser ID</span>
-        </div>
-      ),
-      dataIndex: "adv_id",
-      key: "adv_id",
-      sorter: (a, b) => a.adv_id.localeCompare(b.adv_id),
-      sortOrder: sortInfo.columnKey === "adv_id" ? sortInfo.order : null,
-      onHeaderCell: () => ({
-        onClick: () => {
-          let newOrder = "ascend";
-
-          if (sortInfo.columnKey === "adv_id") {
-            if (sortInfo.order === "ascend") newOrder = "descend";
-            else if (sortInfo.order === "descend")
-              newOrder = null; // 🔹 third click removes sorting
-            else newOrder = "ascend";
-          }
-
-          setSortInfo({
-            columnKey: "adv_id",
-            order: newOrder,
-          });
-        },
-      }),
-      filterDropdown: ({ confirm }) => (
-        <div style={{ padding: 8 }}>
-          <Select
-            mode="multiple"
-            allowClear
-            showSearch
-            placeholder="Select Advertiser ID"
-            style={{ width: 200 }}
-            value={filters["adv_id"] || []}
-            onChange={(value) => {
-              handleFilterChange(value, "adv_id");
-              confirm();
-            }}>
-            {safeArray("adv_id").map((val) => (
-              <Select.Option key={val} value={val}>
-                {val}
-              </Select.Option>
-            ))}
-          </Select>
-        </div>
-      ),
-      filtered: !!filters["adv_id"],
-    },
-    {
-      title: (
-        <div className="flex items-center justify-between">
-          <span>Advertiser Name</span>
-        </div>
-      ),
-      dataIndex: "adv_name",
-      key: "adv_name",
-      sorter: (a, b) => a.adv_name.localeCompare(b.adv_name),
-      sortOrder: sortInfo.columnKey === "adv_name" ? sortInfo.order : null,
-      onHeaderCell: () => ({
-        onClick: () => {
-          let newOrder = "ascend";
-
-          if (sortInfo.columnKey === "adv_name") {
-            if (sortInfo.order === "ascend") newOrder = "descend";
-            else if (sortInfo.order === "descend")
-              newOrder = null; // 🔹 third click removes sorting
-            else newOrder = "ascend";
-          }
-
-          setSortInfo({
-            columnKey: "adv_name",
-            order: newOrder,
-          });
-        },
-      }),
-      filterDropdown: ({ confirm }) => (
-        <div style={{ padding: 8 }}>
-          <Select
-            mode="multiple"
-            allowClear
-            showSearch
-            placeholder="Select Advertiser Name"
-            style={{ width: 200 }}
-            value={filters["adv_name"] || []}
-            onChange={(value) => {
-              handleFilterChange(value, "adv_name");
-              confirm();
-            }}>
-            {safeArray("adv_name").map((val) => (
-              <Select.Option key={val} value={val}>
-                {val}
-              </Select.Option>
-            ))}
-          </Select>
-        </div>
-      ),
-      filtered: !!filters["adv_name"],
-    },
-    {
-      title: (
-        <div className="flex items-center justify-between">
-          <span>Geo</span>
-        </div>
-      ),
-      dataIndex: "geo",
-      key: "geo",
-      sorter: (a, b) => a.geo.localeCompare(b.geo),
-      sortOrder: sortInfo.columnKey === "geo" ? sortInfo.order : null,
-      onHeaderCell: () => ({
-        onClick: () => {
-          let newOrder = "ascend";
-
-          if (sortInfo.columnKey === "geo") {
-            if (sortInfo.order === "ascend") newOrder = "descend";
-            else if (sortInfo.order === "descend")
-              newOrder = null; // 🔹 third click removes sorting
-            else newOrder = "ascend";
-          }
-
-          setSortInfo({
-            columnKey: "geo",
-            order: newOrder,
-          });
-        },
-      }),
-      filterDropdown: ({ confirm }) => (
-        <div style={{ padding: 8 }}>
-          <Select
-            mode="multiple"
-            allowClear
-            showSearch
-            placeholder="Select Geo"
-            style={{ width: 200 }}
-            value={filters["geo"] || []}
-            onChange={(value) => {
-              handleFilterChange(value, "geo");
-              confirm();
-            }}>
-            {safeArray("geo").map((val) => (
-              <Select.Option key={val} value={val}>
-                {val}
-              </Select.Option>
-            ))}
-          </Select>
-        </div>
-      ),
-      filtered: !!filters["geo"],
-    },
-    {
-      title: (
-        <div className="flex items-center justify-between">
-          <span>Note</span>
-        </div>
-      ),
-      dataIndex: "note",
-      key: "note",
-      sorter: (a, b) => a.note.localeCompare(b.note),
-      sortOrder: sortInfo.columnKey === "note" ? sortInfo.order : null,
-      onHeaderCell: () => ({
-        onClick: () => {
-          let newOrder = "ascend";
-
-          if (sortInfo.columnKey === "note") {
-            if (sortInfo.order === "ascend") newOrder = "descend";
-            else if (sortInfo.order === "descend")
-              newOrder = null; // 🔹 third click removes sorting
-            else newOrder = "ascend";
-          }
-
-          setSortInfo({
-            columnKey: "note",
-            order: newOrder,
-          });
-        },
-      }),
-      filterDropdown: ({ confirm }) => (
-        <div style={{ padding: 8 }}>
-          <Select
-            mode="multiple"
-            allowClear
-            showSearch
-            placeholder="Select Note"
-            style={{ width: 200 }}
-            value={filters["note"] || []}
-            onChange={(value) => {
-              handleFilterChange(value, "note");
-              confirm();
-            }}>
-            {safeArray("note").map((val) => (
-              <Select.Option key={val} value={val}>
-                {val}
-              </Select.Option>
-            ))}
-          </Select>
-        </div>
-      ),
-      filtered: !!filters["note"],
-    },
-    {
-      title: (
-        <div className="flex items-center justify-between">
-          <span>Target</span>
-        </div>
-      ),
-      dataIndex: "target",
-      key: "target",
-      sorter: (a, b) => a.target.localeCompare(b.target),
-      sortOrder: sortInfo.columnKey === "target" ? sortInfo.order : null,
-      onHeaderCell: () => ({
-        onClick: () => {
-          let newOrder = "ascend";
-
-          if (sortInfo.columnKey === "target") {
-            if (sortInfo.order === "ascend") newOrder = "descend";
-            else if (sortInfo.order === "descend")
-              newOrder = null; // 🔹 third click removes sorting
-            else newOrder = "ascend";
-          }
-
-          setSortInfo({
-            columnKey: "target",
-            order: newOrder,
-          });
-        },
-      }),
-      filterDropdown: ({ confirm }) => (
-        <div style={{ padding: 8 }}>
-          <Select
-            mode="multiple"
-            allowClear
-            showSearch
-            placeholder="Select Target"
-            style={{ width: 200 }}
-            value={filters["target"] || []}
-            onChange={(value) => {
-              handleFilterChange(value, "target");
-              confirm();
-            }}>
-            {safeArray("target").map((val) => (
-              <Select.Option key={val} value={val}>
-                {val}
-              </Select.Option>
-            ))}
-          </Select>
-        </div>
-      ),
-      filtered: !!filters["target"],
-    },
+    ...Object.entries(columnConfig).map(([key, label]) =>
+      createExcelColumn({
+        key,
+        title: label,
+        filters,
+        setFilters,
+        uniqueValues,
+        filterSearch,
+        setFilterSearch,
+        pinnedColumns,
+        togglePin,
+        sortInfo,
+        setSortInfo,
+      })
+    ),
     {
       title: "Acc Email",
       dataIndex: "acc_email",
       key: "acc_email",
-      sorter: (a, b) => a.acc_email.localeCompare(b.acc_email),
-      sortOrder: sortInfo.columnKey === "acc_email" ? sortInfo.order : null,
-      onHeaderCell: () => ({
-        onClick: () => {
-          let newOrder = "ascend";
-
-          if (sortInfo.columnKey === "acc_email") {
-            if (sortInfo.order === "ascend") newOrder = "descend";
-            else if (sortInfo.order === "descend")
-              newOrder = null; // 🔹 third click removes sorting
-            else newOrder = "ascend";
-          }
-
-          setSortInfo({
-            columnKey: "acc_email",
-            order: newOrder,
-          });
-        },
-      }),
       render: (text) => (user?.role === "advertiser" ? "*****" : text),
     },
     {
       title: "POC Email",
       dataIndex: "poc_email",
       key: "poc_email",
-      sorter: (a, b) => a.poc_email.localeCompare(b.poc_email),
-      sortOrder: sortInfo.columnKey === "poc_email" ? sortInfo.order : null,
-      onHeaderCell: () => ({
-        onClick: () => {
-          let newOrder = "ascend";
-
-          if (sortInfo.columnKey === "poc_email") {
-            if (sortInfo.order === "ascend") newOrder = "descend";
-            else if (sortInfo.order === "descend")
-              newOrder = null; // 🔹 third click removes sorting
-            else newOrder = "ascend";
-          }
-
-          setSortInfo({
-            columnKey: "poc_email",
-            order: newOrder,
-          });
-        },
-      }),
       render: (text) => (user?.role === "advertiser" ? "*****" : text),
     },
-
     {
       title: "Assign User",
       key: "assign_user",
       dataIndex: "assign_user",
-      sorter: (a, b) => a.assign_user.localeCompare(b.assign_user),
-      sortOrder: sortInfo.columnKey === "assign_user" ? sortInfo.order : null,
-      onHeaderCell: () => ({
-        onClick: () => {
-          let newOrder = "ascend";
-
-          if (sortInfo.columnKey === "assign_user") {
-            if (sortInfo.order === "ascend") newOrder = "descend";
-            else if (sortInfo.order === "descend")
-              newOrder = null; // 🔹 third click removes sorting
-            else newOrder = "ascend";
-          }
-
-          setSortInfo({
-            columnKey: "assign_user",
-            order: newOrder,
-          });
-        },
-      }),
-      filterDropdown: ({ confirm }) => (
-        <div style={{ padding: 8 }}>
-          <Select
-            mode="multiple"
-            allowClear
-            showSearch
-            placeholder="Select Assign User"
-            style={{ width: 200 }}
-            value={filters["assign_user"] || []}
-            onChange={(value) => {
-              handleFilterChange(value, "assign_user");
-              confirm();
-            }}>
-            {safeArray("assign_user").map((val) => (
-              <Select.Option key={val} value={val}>
-                {val}
-              </Select.Option>
-            ))}
-          </Select>
-        </div>
-      ),
-      filtered: !!filters["assign_user"],
     },
     {
       title: "Transfer Adv AM",
@@ -722,65 +1055,6 @@ const AdvnameData = () => {
       ),
       dataIndex: "postback_url",
       key: "postback_url",
-      sorter: (a, b) => a.postback_url.localeCompare(b.postback_url),
-      sortOrder: sortInfo.columnKey === "postback_url" ? sortInfo.order : null,
-      onHeaderCell: () => ({
-        onClick: () => {
-          let newOrder = "ascend";
-
-          if (sortInfo.columnKey === "postback_url") {
-            if (sortInfo.order === "ascend") newOrder = "descend";
-            else if (sortInfo.order === "descend")
-              newOrder = null; // 🔹 third click removes sorting
-            else newOrder = "ascend";
-          }
-
-          setSortInfo({
-            columnKey: "geo",
-            order: newOrder,
-          });
-        },
-      }),
-      filterDropdown: ({ confirm }) => (
-        <div style={{ padding: 8 }}>
-          <Select
-            mode="multiple"
-            allowClear
-            showSearch
-            placeholder="Select Postback URL"
-            style={{ width: 200 }}
-            value={filters["postback_url"] || []}
-            onChange={(value) => {
-              handleFilterChange(value, "postback_url");
-              confirm();
-            }}>
-            {safeArray("postback_url").map((val) => (
-              <Select.Option key={val} value={val}>
-                {val}
-              </Select.Option>
-            ))}
-          </Select>
-        </div>
-      ),
-      filtered: !!filters["postback_url"],
-    },
-    {
-      title: "Actions",
-      key: "actions",
-      render: (_, record) => (
-        <Space size="middle">
-          <Tooltip title="Edit">
-            <EditOutlined
-              onClick={() => handleEdit(record)}
-              style={{
-                color: "#2F5D99",
-                fontSize: "18px",
-                cursor: "pointer",
-              }}
-            />
-          </Tooltip>
-        </Space>
-      ),
     },
   ];
 
@@ -973,6 +1247,7 @@ const AdvnameData = () => {
             onClick={() => {
               setSearchTerm("");
               setFilters({});
+              setPinnedColumns({});
             }}
             className="!bg-gray-400 hover:!bg-gray-500 !text-white !rounded-lg !px-6 !py-2 !h-10 !text-sm !border-none !shadow-md flex items-center gap-2"
             disabled={Object.keys(filters).length === 0 && !searchTerm}>

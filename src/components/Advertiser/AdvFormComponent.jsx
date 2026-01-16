@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
-import { Table, Select, Button, Space, Input, Tooltip } from "antd";
+import { Table, Select, Button, Space, Input, Tooltip, Checkbox } from "antd";
 import { useSelector } from "react-redux";
 import geoData from "../../Data/geoData.json";
 import SubAdminAdvnameData from "./SubAdminAdvnameData";
@@ -52,7 +52,7 @@ const AdvertiserIDDashboard = () => {
                 ? "!bg-[#2F5D99] hover:!bg-[#24487A] !text-white !border-none !shadow-md"
                 : "!bg-gray-100 hover:!bg-gray-200 !text-[#2F5D99]"
             }`}>
-            Assign Pub Data
+            Assign Adv Data
           </Button>
         </div>
       )}
@@ -83,7 +83,9 @@ const AdvertiserEditForm = () => {
   const [assign_user, setAssign_user] = useState("");
   const [assign_id, setAssign_id] = useState("");
   const [editingAdv, setEditingAdv] = useState(null);
-
+  const [filters, setFilters] = useState({});
+  const [filterSearch, setFilterSearch] = useState({});
+  const [uniqueValues, setUniqueValues] = useState({});
   const [advertisers, setAdvertisers] = useState([]);
   const [subAdmins, setSubAdmins] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -91,6 +93,11 @@ const AdvertiserEditForm = () => {
     columnKey: null,
     order: null,
   });
+  const normalize = (val) => {
+    if (val === null || val === undefined || val === "") return "-";
+    return val.toString().trim();
+  };
+
   const trimValues = (obj) =>
     Object.fromEntries(
       Object.entries(obj).map(([k, v]) => [
@@ -98,6 +105,28 @@ const AdvertiserEditForm = () => {
         typeof v === "string" ? v.trim() : v,
       ])
     );
+  const getExcelFilteredDataForColumn = (columnKey) => {
+    return advertisers.filter((row) =>
+      Object.entries(filters).every(([key, values]) => {
+        if (key === columnKey) return true;
+        if (!values || values.length === 0) return true;
+        return values.includes(normalize(row[key]));
+      })
+    );
+  };
+  useEffect(() => {
+    const valuesObj = {};
+
+    Object.keys(advertisers[0] || {}).forEach((col) => {
+      const source = getExcelFilteredDataForColumn(col);
+
+      valuesObj[col] = [
+        ...new Set(source.map((row) => normalize(row[col]))),
+      ].sort((a, b) => a.localeCompare(b));
+    });
+
+    setUniqueValues(valuesObj);
+  }, [advertisers, filters]);
 
   useEffect(() => {
     const fetchAdvertisers = async () => {
@@ -113,57 +142,22 @@ const AdvertiserEditForm = () => {
     };
     fetchAdvertisers();
   }, [userId]);
-  const filteredData = advertisers.filter((item) =>
-    [
-      item.username,
-      item.adv_name,
-      item.adv_id,
-      item.geo,
-      item.note,
-      item.target,
-    ].some((field) =>
-      field?.toString().toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  );
-  const getUniqueValues = (data, key) => {
-    return [...new Set(data.map((item) => item[key]).filter(Boolean))];
-  };
-  const createFilterDropdown = (
-    data,
-    key,
-    setSelectedKeys,
-    selectedKeys,
-    confirm
-  ) => {
-    const options = getUniqueValues(data, key).sort((a, b) => {
-      const aVal = isNaN(a) ? a.toString().toLowerCase() : parseFloat(a);
-      const bVal = isNaN(b) ? b.toString().toLowerCase() : parseFloat(b);
-      return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
-    });
+  const filteredData = advertisers.filter((row) => {
+    // 🔍 Global search
+    const matchesSearch = Object.values(row)
+      .join(" ")
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
 
-    return (
-      <div style={{ padding: 8 }}>
-        <Select
-          mode="multiple"
-          allowClear
-          showSearch
-          style={{ width: 200 }}
-          placeholder={`Filter ${key}`}
-          value={selectedKeys}
-          onChange={(value) => {
-            setSelectedKeys(value);
-            confirm({ closeDropdown: false });
-          }}
-          optionFilterProp="children">
-          {options.map((option) => (
-            <Option key={option} value={option}>
-              {option}
-            </Option>
-          ))}
-        </Select>
-      </div>
-    );
-  };
+    if (!matchesSearch) return false;
+
+    // 🎯 Excel-style filters
+    return Object.entries(filters).every(([key, values]) => {
+      if (!values || values.length === 0) return true;
+      return values.includes(normalize(row[key]));
+    });
+  });
+
   useEffect(() => {
     const fetchSubAdmins = async () => {
       try {
@@ -260,7 +254,79 @@ const AdvertiserEditForm = () => {
     setAssign_id("");
     setEditingAdv(null);
   };
+  const excelFilterDropdown = (key) => () => {
+    const allValues = uniqueValues[key] || [];
+    const selectedValues = filters[key] ?? allValues;
+    const searchVal = filterSearch[key] || "";
 
+    const visibleValues = allValues.filter((v) =>
+      v.toLowerCase().includes(searchVal.toLowerCase())
+    );
+
+    const isAllSelected = selectedValues.length === allValues.length;
+    const isIndeterminate = selectedValues.length > 0 && !isAllSelected;
+
+    return (
+      <div className="w-[260px]" onClick={(e) => e.stopPropagation()}>
+        {/* 🔍 Search */}
+        <div className="p-2 border-b bg-white">
+          <Input
+            allowClear
+            placeholder="Search values"
+            value={searchVal}
+            onChange={(e) =>
+              setFilterSearch((prev) => ({
+                ...prev,
+                [key]: e.target.value,
+              }))
+            }
+          />
+        </div>
+
+        {/* ☑ Select All */}
+        <div className="px-3 py-2">
+          <Checkbox
+            checked={isAllSelected}
+            indeterminate={isIndeterminate}
+            onChange={(e) => {
+              const checked = e.target.checked;
+              setFilters((prev) => {
+                const updated = { ...prev };
+                if (checked) delete updated[key];
+                else updated[key] = [];
+                return updated;
+              });
+            }}>
+            Select All
+          </Checkbox>
+        </div>
+
+        {/* 📋 Values */}
+        <div className="max-h-[220px] overflow-y-auto px-2 pb-2">
+          {visibleValues.map((val) => (
+            <label
+              key={val}
+              className="flex items-center gap-2 px-2 py-1 cursor-pointer hover:bg-blue-50">
+              <Checkbox
+                checked={selectedValues.includes(val)}
+                onChange={(e) => {
+                  const next = e.target.checked
+                    ? [...selectedValues, val]
+                    : selectedValues.filter((v) => v !== val);
+
+                  setFilters((prev) => ({
+                    ...prev,
+                    [key]: next,
+                  }));
+                }}
+              />
+              <span className="truncate">{val}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+    );
+  };
   const columns = [
     {
       title: "Advertiser ID",
@@ -285,14 +351,7 @@ const AdvertiserEditForm = () => {
           });
         },
       }),
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
-        createFilterDropdown(
-          filteredData,
-          "adv_id",
-          setSelectedKeys,
-          selectedKeys,
-          confirm
-        ),
+      filterDropdown: excelFilterDropdown("adv_id"),
       onFilter: (value, record) => record.adv_id === value,
     },
     {
@@ -318,14 +377,7 @@ const AdvertiserEditForm = () => {
           });
         },
       }),
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
-        createFilterDropdown(
-          filteredData,
-          "adv_name",
-          setSelectedKeys,
-          selectedKeys,
-          confirm
-        ),
+      filterDropdown: excelFilterDropdown("adv_name"),
       onFilter: (value, record) => record.adv_name === value,
     },
     {
@@ -351,14 +403,7 @@ const AdvertiserEditForm = () => {
           });
         },
       }),
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
-        createFilterDropdown(
-          filteredData,
-          "geo",
-          setSelectedKeys,
-          selectedKeys,
-          confirm
-        ),
+      filterDropdown: excelFilterDropdown("geo"),
       onFilter: (value, record) => record.geo === value,
     },
     {
@@ -384,14 +429,7 @@ const AdvertiserEditForm = () => {
           });
         },
       }),
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
-        createFilterDropdown(
-          filteredData,
-          "note",
-          setSelectedKeys,
-          selectedKeys,
-          confirm
-        ),
+      filterDropdown: excelFilterDropdown("note"),
       onFilter: (value, record) => record.note === value,
     },
     {
@@ -417,64 +455,19 @@ const AdvertiserEditForm = () => {
           });
         },
       }),
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
-        createFilterDropdown(
-          filteredData,
-          "target",
-          setSelectedKeys,
-          selectedKeys,
-          confirm
-        ),
+      filterDropdown: excelFilterDropdown("target"),
       onFilter: (value, record) => record.target === value,
     },
     {
       title: "Acc Email",
       dataIndex: "acc_email",
       key: "acc_email",
-      sorter: (a, b) => a.acc_email.localeCompare(b.acc_email),
-      sortOrder: sortInfo.columnKey === "acc_email" ? sortInfo.order : null,
-      onHeaderCell: () => ({
-        onClick: () => {
-          let newOrder = "ascend";
-
-          if (sortInfo.columnKey === "acc_email") {
-            if (sortInfo.order === "ascend") newOrder = "descend";
-            else if (sortInfo.order === "descend")
-              newOrder = null; // 🔹 third click removes sorting
-            else newOrder = "ascend";
-          }
-
-          setSortInfo({
-            columnKey: "acc_email",
-            order: newOrder,
-          });
-        },
-      }),
       render: (text) => (user?.role === "advertiser" ? "*****" : text),
     },
     {
       title: "POC Email",
       dataIndex: "poc_email",
       key: "poc_email",
-      sorter: (a, b) => a.poc_email.localeCompare(b.poc_email),
-      sortOrder: sortInfo.columnKey === "poc_email" ? sortInfo.order : null,
-      onHeaderCell: () => ({
-        onClick: () => {
-          let newOrder = "ascend";
-
-          if (sortInfo.columnKey === "poc_email") {
-            if (sortInfo.order === "ascend") newOrder = "descend";
-            else if (sortInfo.order === "descend")
-              newOrder = null; // 🔹 third click removes sorting
-            else newOrder = "ascend";
-          }
-
-          setSortInfo({
-            columnKey: "poc_email",
-            order: newOrder,
-          });
-        },
-      }),
       render: (text) => (user?.role === "advertiser" ? "*****" : text),
     },
     {
@@ -500,48 +493,13 @@ const AdvertiserEditForm = () => {
           });
         },
       }),
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
-        createFilterDropdown(
-          filteredData,
-          "assign_user",
-          setSelectedKeys,
-          selectedKeys,
-          confirm
-        ),
+      filterDropdown: excelFilterDropdown("assign_user"),
       onFilter: (value, record) => record.assign_user === value,
     },
     {
       title: "Postback URL",
       dataIndex: "postback_url",
       key: "postback_url",
-      sorter: (a, b) => a.postback_url.localeCompare(b.postback_url),
-      sortOrder: sortInfo.columnKey === "postback_url" ? sortInfo.order : null,
-      onHeaderCell: () => ({
-        onClick: () => {
-          let newOrder = "ascend";
-
-          if (sortInfo.columnKey === "postback_url") {
-            if (sortInfo.order === "ascend") newOrder = "descend";
-            else if (sortInfo.order === "descend")
-              newOrder = null; // 🔹 third click removes sorting
-            else newOrder = "ascend";
-          }
-
-          setSortInfo({
-            columnKey: "postback_url",
-            order: newOrder,
-          });
-        },
-      }),
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
-        createFilterDropdown(
-          filteredData,
-          "assign_user",
-          setSelectedKeys,
-          selectedKeys,
-          confirm
-        ),
-      onFilter: (value, record) => record.assign_user === value,
     },
     {
       title: "Actions",
@@ -745,6 +703,7 @@ const AdvertiserEditForm = () => {
           </div>
 
           <StyledTable
+            bordered
             dataSource={filteredData}
             columns={columns}
             rowKey="adv_id"

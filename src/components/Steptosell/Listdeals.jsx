@@ -1,215 +1,18 @@
-// // export default LoginForm;
-// import { useEffect, useState } from "react";
-// import axios from "axios";
-// import Swal from "sweetalert2";
-// import { useNavigate } from "react-router-dom";
-// import { List } from "antd";
-
-// const Listoffer = () => {
-//   const [campaigns, setCampaigns] = useState([]);
-//   const [loading, setLoading] = useState(true);
-//   const navigate = useNavigate();
-
-//   // EDIT MODAL STATE
-//   const [showModal, setShowModal] = useState(false);
-//   const [editData, setEditData] = useState(null);
-
-//   // ---------------- FETCH CAMPAIGNS ----------------
-//   // const fetchCampaigns = async () => {
-//   //   try {
-//   //     const res = await axios.get("http://localhost:5500/api/campaigns");
-//   //     setCampaigns(res.data.data || []);
-//   //   } catch {
-//   //     Swal.fire("Error", "Failed to load campaigns", "error");
-//   //   } finally {
-//   //     setLoading(false);
-//   //   }
-//   // };
-
-//   const fetchCampaigns = async () => {
-//     const res = await axios.get("http://localhost:5500/api/campaigns");
-
-//     const normalized = (res.data.data || []).map((c) => ({
-//       ...c,
-//       is_active: Number(c.is_active) // 🔥 force number
-//     }));
-
-//     setCampaigns(normalized);
-//   };
-// console.log("data",campaigns);
-//   useEffect(() => {
-//     fetchCampaigns();
-//   }, []);
-
-//   // ---------------- DELETE ----------------
-//   const handleDelete = async (id) => {
-//     const confirm = await Swal.fire({
-//       title: "Delete campaign?",
-//       text: "This action cannot be undone",
-//       icon: "warning",
-//       showCancelButton: true,
-//       confirmButtonColor: "#dc2626"
-//     });
-
-//     if (!confirm.isConfirmed) return;
-
-//     await axios.delete(`http://localhost:5500/api/campaigns/${id}`);
-//     Swal.fire("Deleted", "Campaign removed", "success");
-//     fetchCampaigns();
-//   };
-
-//   // ---------------- STATUS TOGGLE ----------------
-//   const toggleStatus = async (c) => {
-//     await axios.put(
-//       `http://localhost:5500/api/campaigns/${c.id}/status`,
-//       { is_active: c.is_active ? 0 : 1 }
-//     );
-//     console.log("Status toggled");
-//     fetchCampaigns();
-//   };
-
-//   // ---------------- OPEN EDIT MODAL ----------------
-//   const openEditModal = (campaign) => {
-//     setEditData(campaign);
-//     setShowModal(true);
-//   };
-
-//   // ---------------- UPDATE ----------------
-//   const handleUpdate = async () => {
-//     try {
-//       await axios.put(
-//         `http://localhost:5500/api/campaigns/${editData.id}`,
-//         editData
-//       );
-
-//       Swal.fire("Updated", "Campaign updated successfully", "success");
-//       setShowModal(false);
-//       fetchCampaigns();
-//     } catch {
-//       Swal.fire("Error", "Update failed", "error");
-//     }
-//   };
-
-//   // if (loading) return <p className="text-center mt-10">Loading...</p>;
-
-//   return (
-//     <>
-
-//     <div className="p-6 bg-white rounded shadow">
-//       <h2 className="text-xl font-bold mb-4">Campaigns</h2>
-
-//       <table className="w-full border">
-//         <thead className="bg-gray-100">
-//           <tr>
-//             <th className="border p-2">#</th>
-//             <th className="border p-2">Title</th>
-//             <th className="border p-2">Category</th>
-//             <th className="border p-2">Payout</th>
-//             <th className="border p-2">Status</th>
-//             <th className="border p-2">Actions</th>
-//           </tr>
-//         </thead>
-
-//         <tbody>
-//           {campaigns.map((c, i) => (
-//             <tr key={c.id} className="text-center">
-//               <td className="border p-2">{i + 1}</td>
-//               <td className="border p-2">{c.title}</td>
-//               <td className="border p-2">{c.categories}</td>
-//               <td className="border p-2">{c.payout}</td>
-
-//               <td className="border p-2">
-//   <button
-//     onClick={() => toggleStatus(c)}
-//     className={`px-3 py-1 text-white rounded ${
-//       Number(c.is_active) === 1 ? "bg-green-600" : "bg-gray-500"
-//     }`}
-//   >
-//     {Number(c.is_active) === 1 ? "Active" : "Inactive"}
-//   </button>
-// </td>
-
-//               <td className="border p-2 space-x-2">
-//                 <button
-//                   onClick={() => openEditModal(c)}
-//                   className="bg-blue-600 text-white px-3 py-1 rounded"
-//                 >
-//                   Edit
-//                 </button>
-
-//                 <button
-//                   onClick={() => handleDelete(c.id)}
-//                   className="bg-red-600 text-white px-3 py-1 rounded"
-//                 >
-//                   Delete
-//                 </button>
-//               </td>
-//             </tr>
-//           ))}
-//         </tbody>
-//       </table>
-
-//       {/* ================= EDIT MODAL ================= */}
-//       {showModal && (
-//         <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center">
-//           <div className="bg-white p-6 rounded w-[400px]">
-//             <h3 className="text-lg font-bold mb-4">Edit Campaign</h3>
-
-//             <input
-//               className="w-full border p-2 mb-2"
-//               value={editData.title}
-//               onChange={(e) =>
-//                 setEditData({ ...editData, title: e.target.value })
-//               }
-//               placeholder="Title"
-//             />
-
-//             <input
-//               className="w-full border p-2 mb-2"
-//               value={editData.categories}
-//               onChange={(e) =>
-//                 setEditData({ ...editData, categories: e.target.value })
-//               }
-//               placeholder="Category"
-//             />
-
-//             <input
-//               className="w-full border p-2 mb-4"
-//               value={editData.payout}
-//               onChange={(e) =>
-//                 setEditData({ ...editData, payout: e.target.value })
-//               }
-//               placeholder="Payout"
-//             />
-
-//             <div className="flex justify-end gap-2">
-//               <button
-//                 onClick={() => setShowModal(false)}
-//                 className="px-4 py-2 border rounded"
-//               >
-//                 Cancel
-//               </button>
-
-//               <button
-//                 onClick={handleUpdate}
-//                 className="px-4 py-2 bg-blue-600 text-white rounded"
-//               >
-//                 Save
-//               </button>
-//             </div>
-//           </div>
-//         </div>
-//       )}
-//     </div>
-//     </>
-//   );
-// };
-
 // export default Listoffer;
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
-import { Button, Modal, Form, Input, Switch, Space, Card, Tag } from "antd";
+import {
+  Button,
+  Modal,
+  Form,
+  Input,
+  Switch,
+  Space,
+  Card,
+  Tag,
+  Checkbox,
+} from "antd";
 import StyledTable from "../../Utils/StyledTable";
 const apiUrl = import.meta.env.VITE_API_URL4;
 
@@ -219,7 +22,11 @@ const Listdeals = () => {
   const [open, setOpen] = useState(false);
   const [editData, setEditData] = useState(null);
   const [form] = Form.useForm();
-
+  const [searchText, setSearchText] = useState("");
+  const [tableFilters, setTableFilters] = useState({});
+  const [filters, setFilters] = useState({});
+  const [filterSearch, setFilterSearch] = useState({});
+  const [uniqueValues, setUniqueValues] = useState({});
   // ---------------- FETCH CAMPAIGNS ----------------
   const fetchCampaigns = async () => {
     try {
@@ -236,7 +43,6 @@ const Listdeals = () => {
       setLoading(false);
     }
   };
-
   useEffect(() => {
     fetchCampaigns();
   }, []);
@@ -296,6 +102,142 @@ const Listdeals = () => {
       Swal.fire("Error", "Update failed", "error");
     }
   };
+  const STATUS_MAP = {
+    1: "Active",
+    0: "Inactive",
+  };
+
+  const normalize = (val, key) => {
+    if (val === null || val === undefined || val === "") return "-";
+
+    if (key === "is_active") {
+      return STATUS_MAP[Number(val)];
+    }
+
+    return val.toString().trim();
+  };
+
+  const getExcelFilteredDataForColumn = (columnKey) => {
+    return campaigns.filter((row) => {
+      return Object.entries(filters).every(([key, values]) => {
+        if (key === columnKey) return true;
+        if (!values || values.length === 0) return true;
+
+        return values.includes(normalize(row[key], key));
+      });
+    });
+  };
+
+  useEffect(() => {
+    if (!campaigns.length) return;
+
+    const valuesObj = {};
+    Object.keys(campaigns[0]).forEach((col) => {
+      const source = getExcelFilteredDataForColumn(col);
+      valuesObj[col] = [
+        ...new Set(source.map((row) => normalize(row[col], col))),
+      ].sort((a, b) => a.localeCompare(b));
+    });
+
+    setUniqueValues(valuesObj);
+  }, [campaigns, filters]);
+  const finalFilteredCampaigns = campaigns.filter((row) => {
+    // Global search
+    if (
+      searchText &&
+      !Object.values(row)
+        .join(" ")
+        .toLowerCase()
+        .includes(searchText.toLowerCase())
+    )
+      return false;
+
+    // Excel filters
+    return Object.entries(filters).every(([key, values]) => {
+      if (!values || values.length === 0) return true;
+      return values.includes(normalize(row[key]));
+    });
+  });
+  const createExcelColumn = ({ key, title }) => {
+    const allValues = uniqueValues[key] || [];
+    const selectedValues = filters[key] || allValues;
+    const searchVal = filterSearch[key] || "";
+
+    const visibleValues = allValues.filter((v) =>
+      v.toLowerCase().includes(searchVal.toLowerCase())
+    );
+
+    const isAllSelected = selectedValues.length === allValues.length;
+    const isIndeterminate = selectedValues.length > 0 && !isAllSelected;
+
+    return {
+      title,
+      dataIndex: key,
+      key,
+
+      filterDropdown: () => (
+        <div className="w-[260px]" onClick={(e) => e.stopPropagation()}>
+          {/* Search */}
+          <div className="p-2 border-b">
+            <Input
+              allowClear
+              placeholder="Search"
+              value={searchVal}
+              onChange={(e) =>
+                setFilterSearch((prev) => ({
+                  ...prev,
+                  [key]: e.target.value,
+                }))
+              }
+            />
+          </div>
+
+          {/* Select All */}
+          <div className="px-3 py-2">
+            <Checkbox
+              checked={isAllSelected}
+              indeterminate={isIndeterminate}
+              onChange={(e) => {
+                setFilters((prev) => {
+                  const next = { ...prev };
+                  if (e.target.checked) delete next[key];
+                  else next[key] = [];
+                  return next;
+                });
+              }}>
+              Select All
+            </Checkbox>
+          </div>
+
+          {/* Values */}
+          <div className="max-h-[220px] overflow-y-auto px-2 pb-2">
+            {visibleValues.map((val) => (
+              <label
+                key={val}
+                className="flex items-center gap-2 px-2 py-1 cursor-pointer hover:bg-blue-50">
+                <Checkbox
+                  checked={selectedValues.includes(val)}
+                  onChange={(e) => {
+                    const next = e.target.checked
+                      ? [...selectedValues, val]
+                      : selectedValues.filter((v) => v !== val);
+
+                    setFilters((prev) => ({
+                      ...prev,
+                      [key]: next,
+                    }));
+                  }}
+                />
+                <span className="truncate">{val}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      ),
+
+      filtered: !!filters[key]?.length,
+    };
+  };
 
   // ---------------- TABLE COLUMNS ----------------
   const columns = [
@@ -303,30 +245,27 @@ const Listdeals = () => {
       title: "#",
       render: (_, __, index) => index + 1,
     },
+    createExcelColumn({ key: "title", title: "Title" }),
     {
-      title: "Title",
-      dataIndex: "title",
-    },
-    {
-      title: "Category",
-      dataIndex: "categories",
+      ...createExcelColumn({ key: "categories", title: "Category" }),
       render: (cat) => <Tag color="purple">{cat}</Tag>,
     },
+
     {
-      title: "Payout",
-      dataIndex: "payout",
+      ...createExcelColumn({ key: "payout", title: "Payout" }),
       render: (p) => <Tag color="#2F5D99">{p}</Tag>,
     },
     {
-      title: "Status",
-      render: (campaign) => (
+      ...createExcelColumn({ key: "is_active", title: "Status" }),
+      render: (is_active, campaign) => (
         <Switch
-          checked={campaign.is_active === 1}
+          checked={Number(campaign.is_active) === 1}
           checkedChildren="Active"
           unCheckedChildren="Inactive"
           onChange={() => toggleStatus(campaign)}
           style={{
-            backgroundColor: campaign.is_active === 1 ? "#2F5D99" : undefined,
+            backgroundColor:
+              Number(campaign.is_active) === 1 ? "#2F5D99" : undefined,
           }}
         />
       ),
@@ -352,9 +291,28 @@ const Listdeals = () => {
 
   return (
     <Card className="shadow-md rounded-xl">
+      <div className="mb-4 flex justify-between items-center">
+        <Input.Search
+          placeholder="Search campaigns..."
+          allowClear
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          style={{ maxWidth: 300 }}
+        />
+
+        <Button
+          danger
+          onClick={() => {
+            setSearchText("");
+            setFilters({});
+            setFilterSearch({});
+          }}>
+          Remove All Filters
+        </Button>
+      </div>
+
       <StyledTable
-        title="Campaign Management"
-        dataSource={campaigns}
+        dataSource={finalFilteredCampaigns}
         columns={columns}
         loading={loading}
       />

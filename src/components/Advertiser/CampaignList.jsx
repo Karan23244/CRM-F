@@ -24,6 +24,7 @@ import dayjs from "dayjs";
 import Swal from "sweetalert2";
 import StyledTable from "../../Utils/StyledTable";
 import { useNavigate } from "react-router-dom";
+import { sortDropdownValues } from "../../Utils/sortDropdownValues";
 
 const apiUrl =
   import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
@@ -36,8 +37,9 @@ const CampaignList = () => {
   const [filters, setFilters] = useState({});
   const [pinnedColumns, setPinnedColumns] = useState({});
   const [searchText, setSearchText] = useState("");
+  const [filterSearch, setFilterSearch] = useState({});
+  const [uniqueValues, setUniqueValues] = useState({});
   const [editingCell, setEditingCell] = useState({ id: null, key: null });
-  const [firstFilterColumn, setFirstFilterColumn] = useState(null);
   const [hiddenColumns, setHiddenColumns] = useState(() => {
     const saved = localStorage.getItem("hiddenCampaignColumns");
     return saved ? JSON.parse(saved) : [];
@@ -49,6 +51,11 @@ const CampaignList = () => {
     columnKey: null,
     order: null,
   });
+  const normalize = (val) => {
+    if (val === null || val === undefined || val === "") return "-";
+    return val.toString().trim();
+  };
+
   // persist hidden columns
   useEffect(() => {
     localStorage.setItem(
@@ -80,7 +87,6 @@ const CampaignList = () => {
       Swal.fire("Error", "Failed to fetch campaigns", "error");
     }
   }, [user]);
-
   useEffect(() => {
     fetchCampaigns();
   }, [fetchCampaigns]);
@@ -138,7 +144,6 @@ const CampaignList = () => {
 
   const normalizeGeo = (geo) => {
     if (!geo) return [];
-    console.log("Normalizing geo:", geo);
     let value = geo;
 
     // 1️⃣ Keep parsing JSON strings until it’s not a string anymore
@@ -163,23 +168,25 @@ const CampaignList = () => {
     // 3️⃣ Return clean country codes only
     return flattened.map((v) => String(v).trim()).filter(Boolean);
   };
+  useEffect(() => {
+    const valuesObj = {};
 
-  // 🔥 Dynamic filter option generator
-  const getUniqueOptions = (columnKey) => {
-    const sourceRows =
-      Object.keys(filters).length === 0 || firstFilterColumn === columnKey
-        ? campaigns
-        : filteredCampaigns;
+    Object.keys(columnHeadings).forEach((col) => {
+      const source = getExcelFilteredDataForColumn(col);
 
-    // ✅ GEO — always normalize + flatten
-    if (columnKey === "geo") {
-      return [...new Set(sourceRows.flatMap((r) => normalizeGeo(r.geo)))];
-    }
+      // ✅ SPECIAL CASE FOR GEO
+      if (col === "geo") {
+        const allGeos = source.flatMap((row) => normalizeGeo(row.geo));
+        valuesObj[col] = sortDropdownValues([...new Set(allGeos)]);
+      } else {
+        valuesObj[col] = sortDropdownValues([
+          ...new Set(source.map((row) => normalize(row[col]))),
+        ]);
+      }
+    });
 
-    // ✅ All other columns
-    return [...new Set(sourceRows.map((r) => r[columnKey]))].filter(Boolean);
-  };
-
+    setUniqueValues(valuesObj);
+  }, [campaigns, filters]);
   // Editable cell factory
   const getEditableCell = (field, type = "text") => ({
     render: (_, record) => {
@@ -269,7 +276,15 @@ const CampaignList = () => {
       );
     },
   });
-
+  const getExcelFilteredDataForColumn = (columnKey) => {
+    return campaigns.filter((row) => {
+      return Object.entries(filters).every(([key, values]) => {
+        if (key === columnKey) return true; // ignore self
+        if (!values || values.length === 0) return true;
+        return values.includes(normalize(row[key]));
+      });
+    });
+  };
   // Reusable column generator with Filter + Pin + Sort
   const getColumnWithFilterAndPin = (dataIndex, title, renderFn = null) => {
     const isPinned = pinnedColumns[dataIndex];
@@ -292,95 +307,6 @@ const CampaignList = () => {
             onClick={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}>
-            {/* Filter Dropdown */}
-            <Dropdown
-              trigger={["click"]}
-              dropdownRender={() => (
-                <div
-                  style={{
-                    padding: 8,
-                    backgroundColor: "white",
-                    borderRadius: 4,
-                  }}>
-                  {/* Select All */}
-                  <div style={{ marginBottom: 8 }}>
-                    {getUniqueOptions(dataIndex)
-                      .sort((a, b) =>
-                        !isNaN(a) && !isNaN(b)
-                          ? a - b
-                          : a.toString().localeCompare(b.toString())
-                      )
-                      .map((val) => (
-                        <Select.Option key={val} value={val} label={val}>
-                          <Checkbox checked={filters[dataIndex]?.includes(val)}>
-                            {val}
-                          </Checkbox>
-                        </Select.Option>
-                      ))}
-                  </div>
-
-                  {/* Multiselect */}
-                  <Select
-                    mode="multiple"
-                    allowClear
-                    showSearch
-                    placeholder={`Select ${title}`}
-                    style={{ width: 250 }}
-                    value={filters[dataIndex] || []}
-                    onChange={(val) => {
-                      setFilters((prev) => {
-                        const newFilters = { ...prev, [dataIndex]: val };
-
-                        // If no first filter is selected, set this column as first
-                        if (!firstFilterColumn && val.length > 0) {
-                          setFirstFilterColumn(dataIndex);
-                        }
-
-                        // If this column is cleared and it was the first filter → reset first filter
-                        if (
-                          firstFilterColumn === dataIndex &&
-                          val.length === 0
-                        ) {
-                          setFirstFilterColumn(null);
-                        }
-
-                        return newFilters;
-                      });
-                    }}
-                    optionLabelProp="label"
-                    maxTagCount="responsive"
-                    filterOption={(input, option) =>
-                      (option?.label ?? "")
-                        .toString()
-                        .toLowerCase()
-                        .includes(input.toLowerCase())
-                    }>
-                    {getUniqueOptions(dataIndex)
-                      .filter((v) => v !== "" && v !== null && v !== undefined)
-                      .sort((a, b) =>
-                        !isNaN(a) && !isNaN(b)
-                          ? a - b
-                          : a.toString().localeCompare(b.toString())
-                      )
-                      .map((val) => (
-                        <Select.Option key={val} value={val} label={val}>
-                          <Checkbox checked={filters[dataIndex]?.includes(val)}>
-                            {val}
-                          </Checkbox>
-                        </Select.Option>
-                      ))}
-                  </Select>
-                </div>
-              )}>
-              <FilterOutlined
-                onClick={(e) => e.stopPropagation()} // 👈 prevent header click
-                style={{
-                  color: isFiltered ? "#1677ff" : "#888",
-                  cursor: "pointer",
-                }}
-              />
-            </Dropdown>
-
             {/* Pin Icon */}
             {isPinned ? (
               <PushpinFilled
@@ -427,6 +353,87 @@ const CampaignList = () => {
           });
         },
       }),
+      filterDropdown: () => {
+        const allValues = uniqueValues[dataIndex] || [];
+        const selectedValues = filters[dataIndex] ?? allValues;
+        const searchText = filterSearch[dataIndex] || "";
+
+        const visibleValues = allValues.filter((val) =>
+          val.toString().toLowerCase().includes(searchText.toLowerCase())
+        );
+
+        const isAllSelected = selectedValues.length === allValues.length;
+        const isIndeterminate = selectedValues.length > 0 && !isAllSelected;
+
+        return (
+          <div
+            className="w-[260px] rounded-xl"
+            onClick={(e) => e.stopPropagation()}>
+            {/* 🔍 Search */}
+            <div className="sticky top-0 bg-white p-2 border-b">
+              <Input
+                allowClear
+                placeholder="Search values"
+                value={searchText}
+                onChange={(e) =>
+                  setFilterSearch((prev) => ({
+                    ...prev,
+                    [dataIndex]: e.target.value,
+                  }))
+                }
+              />
+            </div>
+
+            {/* ☑ Select All */}
+            <div className="px-3 py-2">
+              <Checkbox
+                indeterminate={isIndeterminate}
+                checked={isAllSelected}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setFilters((prev) => {
+                    const updated = { ...prev };
+                    if (checked) delete updated[dataIndex];
+                    else updated[dataIndex] = [];
+                    return updated;
+                  });
+                }}>
+                Select All
+              </Checkbox>
+            </div>
+
+            {/* 📋 Values */}
+            <div className="max-h-[220px] overflow-y-auto px-2 pb-2 space-y-1">
+              {visibleValues.map((val) => (
+                <label
+                  key={val}
+                  className="flex items-center gap-2 px-2 py-1 rounded cursor-pointer hover:bg-blue-50">
+                  <Checkbox
+                    checked={selectedValues.includes(val)}
+                    onChange={(e) => {
+                      const next = e.target.checked
+                        ? [...selectedValues, val]
+                        : selectedValues.filter((v) => v !== val);
+
+                      setFilters((prev) => ({
+                        ...prev,
+                        [dataIndex]: next,
+                      }));
+                    }}
+                  />
+                  <span className="truncate">{val}</span>
+                </label>
+              ))}
+
+              {visibleValues.length === 0 && (
+                <div className="py-4 text-center text-gray-400 text-sm">
+                  No matching values
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      },
       render: renderFn
         ? (text, record) => renderFn(text, record)
         : (text) => text || "-",
@@ -435,32 +442,29 @@ const CampaignList = () => {
   // 🔍 APPLY SEARCH + FILTERS + SORT
   const filteredCampaigns = campaigns
     .filter((row) => {
-      // SEARCH
+      // 🔍 SEARCH
       const rowText = Object.values(row).join(" ").toLowerCase();
-      const matchesSearch = rowText.includes(searchText.toLowerCase());
+      if (!rowText.includes(searchText.toLowerCase())) return false;
 
-      // FILTERS
-      const matchesFilters = Object.keys(filters).every((key) => {
-        if (!filters[key] || filters[key].length === 0) return true;
+      // 🎯 EXCEL FILTER LOGIC
+      return Object.entries(filters).every(([key, values]) => {
+        if (!values || values.length === 0) return true;
+
+        // GEO is multi-value
         if (key === "geo") {
           const rowGeos = normalizeGeo(row.geo);
-          return filters.geo.some((g) => rowGeos.includes(g));
+          return values.some((v) => rowGeos.includes(v));
         }
-        return filters[key].includes(row[key]);
-      });
 
-      return matchesSearch && matchesFilters;
+        return values.includes(normalize(row[key]));
+      });
     })
     .sort((a, b) => {
       if (!sortInfo.order || !sortInfo.columnKey) return 0;
-
       const col = sortInfo.columnKey;
-      const valA = (a[col] || "").toString().toLowerCase();
-      const valB = (b[col] || "").toString().toLowerCase();
-
       return sortInfo.order === "ascend"
-        ? valA.localeCompare(valB)
-        : valB.localeCompare(valA);
+        ? normalize(a[col]).localeCompare(normalize(b[col]))
+        : normalize(b[col]).localeCompare(normalize(a[col]));
     });
 
   // ✅ Normalize to array safely

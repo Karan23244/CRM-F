@@ -1,241 +1,17 @@
-// import { useEffect, useState } from "react";
-// import axios from "axios";
-// import Swal from "sweetalert2";
-// const apiUrl = import.meta.env.VITE_API_URL4;
-
-// const DealList = () => {
-//   const [deals, setDeals] = useState([]);
-//   const [loading, setLoading] = useState(true);
-
-//   // modal state
-//   const [showModal, setShowModal] = useState(false);
-//   const [editDeal, setEditDeal] = useState(null);
-
-//   // ---------------- FETCH DEALS ----------------
-//   const fetchDeals = async () => {
-//     try {
-//       const res = await axios.get(`${apiUrl}/api/deals`);
-
-//       // normalize is_active (IMPORTANT)
-//       const normalized = (res.data.data || []).map((d) => ({
-//         ...d,
-//         is_active: Number(d.is_active),
-//       }));
-
-//       setDeals(normalized);
-//     } catch {
-//       Swal.fire("Error", "Failed to load deals", "error");
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   useEffect(() => {
-//     fetchDeals();
-//   }, []);
-
-//   // ---------------- TOGGLE STATUS ----------------
-//   const toggleStatus = async (deal) => {
-//     try {
-//       await axios.put(
-//         `http://localhost:5500/api/deals/${deal.id}/status`,
-//         { is_active: deal.is_active === 1 ? 0 : 1 }
-//       );
-//       fetchDeals();
-//     } catch {
-//       Swal.fire("Error", "Failed to update status", "error");
-//     }
-//   };
-
-//   // ---------------- DELETE ----------------
-//   const handleDelete = async (id) => {
-//     const confirm = await Swal.fire({
-//       title: "Delete Deal?",
-//       text: "This action cannot be undone",
-//       icon: "warning",
-//       showCancelButton: true,
-//       confirmButtonColor: "#dc2626",
-//     });
-
-//     if (!confirm.isConfirmed) return;
-
-//     try {
-//       await axios.delete(`http://localhost:5500/api/deals/${id}`);
-//       Swal.fire("Deleted", "Deal deleted successfully", "success");
-//       fetchDeals();
-//     } catch {
-//       Swal.fire("Error", "Failed to delete deal", "error");
-//     }
-//   };
-
-//   // ---------------- EDIT ----------------
-//   const openEditModal = (deal) => {
-//     setEditDeal({ ...deal });
-//     setShowModal(true);
-//   };
-
-//   const handleUpdate = async () => {
-//     try {
-//       await axios.put(
-//         `http://localhost:5500/api/deals/${editDeal.id}`,
-//         editDeal
-//       );
-//       Swal.fire("Updated", "Deal updated successfully", "success");
-//       setShowModal(false);
-//       fetchDeals();
-//     } catch {
-//       Swal.fire("Error", "Failed to update deal", "error");
-//     }
-//   };
-
-//   if (loading) {
-//     return <p className="text-center mt-10">Loading deals...</p>;
-//   }
-
-//   return (
-//     <div className="p-6 bg-white rounded shadow">
-//       <h2 className="text-xl font-bold mb-4">Deals</h2>
-
-//       <div className="overflow-x-auto">
-//         <table className="w-full border">
-//           <thead className="bg-gray-100">
-//             <tr>
-//               <th className="border p-2">#</th>
-//               <th className="border p-2">Title</th>
-//               <th className="border p-2">Offer</th>
-//               <th className="border p-2">Payout</th>
-//               <th className="border p-2">Status</th>
-//               <th className="border p-2">Actions</th>
-//             </tr>
-//           </thead>
-
-//           <tbody>
-//             {deals.map((d, i) => (
-//               <tr key={d.id} className="text-center">
-//                 <td className="border p-2">{i + 1}</td>
-//                 <td className="border p-2">{d.title}</td>
-//                 <td className="border p-2">{d.offer}</td>
-//                 <td className="border p-2">
-//                   {d.discount_payout} {d.currency}
-//                 </td>
-
-//                 {/* STATUS */}
-//                 <td className="border p-2">
-//                   <button
-//                     onClick={() => toggleStatus(d)}
-//                     className={`px-3 py-1 text-white rounded text-sm ${
-//                       d.is_active === 1
-//                         ? "bg-green-600"
-//                         : "bg-gray-500"
-//                     }`}
-//                   >
-//                     {d.is_active === 1 ? "Active" : "Inactive"}
-//                   </button>
-//                 </td>
-
-//                 {/* ACTIONS */}
-//                 <td className="border p-2 space-x-2">
-//                   <button
-//                     onClick={() => openEditModal(d)}
-//                     className="bg-blue-600 text-white px-3 py-1 rounded text-sm"
-//                   >
-//                     Edit
-//                   </button>
-
-//                   <button
-//                     onClick={() => handleDelete(d.id)}
-//                     className="bg-red-600 text-white px-3 py-1 rounded text-sm"
-//                   >
-//                     Delete
-//                   </button>
-//                 </td>
-//               </tr>
-//             ))}
-
-//             {deals.length === 0 && (
-//               <tr>
-//                 <td colSpan="6" className="p-6 text-center text-gray-500">
-//                   No deals found
-//                 </td>
-//               </tr>
-//             )}
-//           </tbody>
-//         </table>
-//       </div>
-
-//       {/* ================= EDIT MODAL ================= */}
-//       {showModal && (
-//         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-//           <div className="bg-white p-6 rounded w-[420px]">
-//             <h3 className="text-lg font-bold mb-4">Edit Deal</h3>
-
-//             <input
-//               className="w-full border p-2 mb-2"
-//               value={editDeal.title}
-//               onChange={(e) =>
-//                 setEditDeal({ ...editDeal, title: e.target.value })
-//               }
-//               placeholder="Title"
-//             />
-
-//             <input
-//               className="w-full border p-2 mb-2"
-//               value={editDeal.offer}
-//               onChange={(e) =>
-//                 setEditDeal({ ...editDeal, offer: e.target.value })
-//               }
-//               placeholder="Offer"
-//             />
-
-//             <input
-//               className="w-full border p-2 mb-2"
-//               value={editDeal.discount_payout}
-//               onChange={(e) =>
-//                 setEditDeal({
-//                   ...editDeal,
-//                   discount_payout: e.target.value,
-//                 })
-//               }
-//               placeholder="Discount Payout"
-//             />
-
-//             <input
-//               className="w-full border p-2 mb-4"
-//               value={editDeal.geo}
-//               onChange={(e) =>
-//                 setEditDeal({ ...editDeal, geo: e.target.value })
-//               }
-//               placeholder="Geo"
-//             />
-
-//             <div className="flex justify-end gap-2">
-//               <button
-//                 onClick={() => setShowModal(false)}
-//                 className="px-4 py-2 border rounded"
-//               >
-//                 Cancel
-//               </button>
-
-//               <button
-//                 onClick={handleUpdate}
-//                 className="px-4 py-2 bg-blue-600 text-white rounded"
-//               >
-//                 Save
-//               </button>
-//             </div>
-//           </div>
-//         </div>
-//       )}
-//     </div>
-//   );
-// };
-
-// export default DealList;
-
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
-import { Button, Modal, Form, Input, Switch, Tag, Space, Card } from "antd";
+import {
+  Button,
+  Modal,
+  Form,
+  Input,
+  Switch,
+  Tag,
+  Space,
+  Card,
+  Checkbox,
+} from "antd";
 import StyledTable from "../../Utils/StyledTable";
 
 const apiUrl = import.meta.env.VITE_API_URL4;
@@ -246,6 +22,65 @@ const Listoffer = () => {
   const [open, setOpen] = useState(false);
   const [editDeal, setEditDeal] = useState(null);
   const [form] = Form.useForm();
+  const [searchText, setSearchText] = useState("");
+  const [filters, setFilters] = useState({});
+  const [filterSearch, setFilterSearch] = useState({});
+  const [uniqueValues, setUniqueValues] = useState({});
+  console.log(deals);
+  const STATUS_MAP = {
+    1: "Active",
+    0: "Inactive",
+  };
+
+  const normalize = (val, key) => {
+    if (val === null || val === undefined || val === "") return "-";
+
+    if (key === "status") {
+      return STATUS_MAP[Number(val)];
+    }
+
+    return val.toString().trim();
+  };
+  const getExcelFilteredDataForColumn = (columnKey) => {
+    return deals.filter((row) => {
+      return Object.entries(filters).every(([key, values]) => {
+        if (key === columnKey) return true;
+        if (!values || values.length === 0) return true;
+
+        return values.includes(normalize(row[key], key));
+      });
+    });
+  };
+  useEffect(() => {
+    if (!deals.length) return;
+
+    const valuesObj = {};
+    Object.keys(deals[0]).forEach((col) => {
+      const source = getExcelFilteredDataForColumn(col);
+      valuesObj[col] = [
+        ...new Set(source.map((row) => normalize(row[col], col))),
+      ].sort((a, b) => a.localeCompare(b));
+    });
+
+    setUniqueValues(valuesObj);
+  }, [deals, filters]);
+  const finalFilteredDeals = deals.filter((row) => {
+    // Global search
+    if (
+      searchText &&
+      !Object.values(row)
+        .join(" ")
+        .toLowerCase()
+        .includes(searchText.toLowerCase())
+    )
+      return false;
+
+    // Excel filters
+    return Object.entries(filters).every(([key, values]) => {
+      if (!values || values.length === 0) return true;
+      return values.includes(normalize(row[key], key));
+    });
+  });
 
   // ---------------- FETCH DEALS ----------------
   const fetchDeals = async () => {
@@ -325,6 +160,84 @@ const Listoffer = () => {
       Swal.fire("Error", "Failed to update deal", "error");
     }
   };
+  const createExcelColumn = ({ key, title }) => {
+    const allValues = uniqueValues[key] || [];
+    const selectedValues = filters[key] || allValues;
+    const searchVal = filterSearch[key] || "";
+
+    const visibleValues = allValues.filter((v) =>
+      v.toLowerCase().includes(searchVal.toLowerCase())
+    );
+
+    const isAllSelected = selectedValues.length === allValues.length;
+    const isIndeterminate = selectedValues.length > 0 && !isAllSelected;
+
+    return {
+      title,
+      dataIndex: key,
+      key,
+      filterDropdown: () => (
+        <div className="w-[260px]" onClick={(e) => e.stopPropagation()}>
+          {/* Search */}
+          <div className="p-2 border-b">
+            <Input
+              allowClear
+              placeholder="Search"
+              value={searchVal}
+              onChange={(e) =>
+                setFilterSearch((prev) => ({
+                  ...prev,
+                  [key]: e.target.value,
+                }))
+              }
+            />
+          </div>
+
+          {/* Select All */}
+          <div className="px-3 py-2">
+            <Checkbox
+              checked={isAllSelected}
+              indeterminate={isIndeterminate}
+              onChange={(e) => {
+                setFilters((prev) => {
+                  const next = { ...prev };
+                  if (e.target.checked) delete next[key];
+                  else next[key] = [];
+                  return next;
+                });
+              }}>
+              Select All
+            </Checkbox>
+          </div>
+
+          {/* Values */}
+          <div className="max-h-[220px] overflow-y-auto px-2 pb-2">
+            {visibleValues.map((val) => (
+              <label
+                key={val}
+                className="flex items-center gap-2 px-2 py-1 cursor-pointer hover:bg-blue-50">
+                <Checkbox
+                  checked={selectedValues.includes(val)}
+                  onChange={(e) => {
+                    const next = e.target.checked
+                      ? [...selectedValues, val]
+                      : selectedValues.filter((v) => v !== val);
+
+                    setFilters((prev) => ({
+                      ...prev,
+                      [key]: next,
+                    }));
+                  }}
+                />
+                <span className="truncate">{val}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      ),
+      filtered: !!filters[key]?.length,
+    };
+  };
 
   // ---------------- TABLE COLUMNS ----------------
   const columns = [
@@ -332,32 +245,29 @@ const Listoffer = () => {
       title: "#",
       render: (_, __, index) => index + 1,
     },
+
+    createExcelColumn({ key: "title", title: "Title" }),
+
+    createExcelColumn({ key: "offer", title: "Offer" }),
     {
-      title: "Title",
-      dataIndex: "title",
-    },
-    {
-      title: "Offer",
-      dataIndex: "offer",
-    },
-    {
-      title: "Payout",
-      render: (d) => (
+      ...createExcelColumn({ key: "discount_payout", title: "Payout" }),
+      render: (_, d) => (
         <Tag color="#2F5D99">
           {d.discount_payout} {d.currency}
         </Tag>
       ),
     },
     {
-      title: "Status",
-      render: (deal) => (
+      ...createExcelColumn({ key: "status", title: "Status" }),
+      render: (status,deal) => (
         <Switch
           checked={deal.status === 1}
           checkedChildren="Active"
           unCheckedChildren="Inactive"
           onChange={() => toggleStatus(deal)}
           style={{
-            backgroundColor: deal.status === 1 ? "#2F5D99" : undefined,
+            backgroundColor:
+              Number(deal.status) === 1 ? "#2F5D99" : undefined,
           }}
         />
       ),
@@ -383,9 +293,28 @@ const Listoffer = () => {
 
   return (
     <Card className="shadow-md rounded-xl">
+      <div className="mb-4 flex justify-between items-center">
+        <Input.Search
+          placeholder="Search deals..."
+          allowClear
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          style={{ maxWidth: 300 }}
+        />
+
+        <Button
+          danger
+          onClick={() => {
+            setSearchText("");
+            setFilters({});
+            setFilterSearch({});
+          }}>
+          Remove All Filters
+        </Button>
+      </div>
+
       <StyledTable
-        title="Deals Management"
-        dataSource={deals}
+        dataSource={finalFilteredDeals}
         columns={columns}
         loading={loading}
       />

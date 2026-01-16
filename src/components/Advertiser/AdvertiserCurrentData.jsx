@@ -32,6 +32,9 @@ import { exportToExcel } from "../exportExcel";
 import MainComponent from "./ManagerAllData";
 import Validation from "../Validation";
 import StyledTable from "../../Utils/StyledTable";
+import { sortDropdownValues } from "../../Utils/sortDropdownValues";
+import ColumnSettings from "../../Utils/ColumnSettings";
+import { useColumnPresets } from "../../Utils/useColumnPresets";
 
 dayjs.extend(isBetween);
 const { RangePicker } = DatePicker;
@@ -44,22 +47,10 @@ const AdvertiserData = () => {
 
   const [data, setData] = useState([]);
   const [savingTable, setSavingTable] = useState(false);
+  const [filterSearch, setFilterSearch] = useState({});
   const [sortInfo, setSortInfo] = useState({ columnKey: null, order: null });
   const [searchTerm, setSearchTerm] = useState("");
   const [uniqueValues, setUniqueValues] = useState({});
-  const [hiddenColumns, setHiddenColumns] = useState(() => {
-    const saved = localStorage.getItem("hiddenColumns");
-    try {
-      const parsed = saved ? JSON.parse(saved) : [];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  });
-  // When hiddenColumns changes, save to localStorage
-  useEffect(() => {
-    localStorage.setItem("hiddenColumns", JSON.stringify(hiddenColumns));
-  }, [hiddenColumns]);
   const [dropdownOptions, setDropdownOptions] = useState({
     os: ["Android", "APK", "iOS"],
     fa: ["Quality", "No Quality", "No Live"],
@@ -91,7 +82,6 @@ const AdvertiserData = () => {
   const [selectedPauseRecord, setSelectedPauseRecord] = useState(null);
   const [selectedPauseDate, setSelectedPauseDate] = useState(null);
   const [selectedCampaignId, setSelectedCampaignId] = useState(null);
-  const [firstFilteredColumn, setFirstFilteredColumn] = useState(null);
 
   useEffect(() => {
     if (user?.id) {
@@ -114,14 +104,12 @@ const AdvertiserData = () => {
   const fetchData = useCallback(async () => {
     try {
       const [startDate, endDate] = selectedDateRange;
-      console.log(startDate.format("YYYY-MM-DD"), endDate.format("YYYY-MM-DD"));
       const response = await axios.get(`${apiUrl}/advdata-byuser/${userId}`, {
         params: {
           startDate: startDate.format("YYYY-MM-DD"),
           endDate: endDate.format("YYYY-MM-DD"),
         },
       });
-      console.log(response);
       if (response?.data.data && Array.isArray(response.data.data)) {
         const formatted = [...(response?.data?.data || [])]
           .reverse()
@@ -309,24 +297,20 @@ const AdvertiserData = () => {
       message.error("Failed to fetch dropdown options");
     }
   }, [userId]);
-  const handleFilterChange = (value, key) => {
+  // Check if all values in a row are empty
+  const handleFilterChange = (values, key) => {
     setFilters((prev) => {
-      // If no filter applied yet → mark this as first filtered column
-      if (!firstFilteredColumn && value.length > 0) {
-        setFirstFilteredColumn(key);
+      const allValues = uniqueValues[key] || [];
+
+      // Excel behavior:
+      // If everything selected → treat as NO FILTER
+      if (values.length === allValues.length) {
+        const updated = { ...prev };
+        delete updated[key];
+        return updated;
       }
 
-      // If filter cleared completely → reset first filter logic
-      const isAllFiltersEmpty = Object.values({
-        ...prev,
-        [key]: value,
-      }).every((arr) => !arr || arr.length === 0);
-
-      if (isAllFiltersEmpty) {
-        setFirstFilteredColumn(null);
-      }
-
-      return { ...prev, [key]: value };
+      return { ...prev, [key]: values };
     });
   };
   // Filters / search / date range memoized
@@ -397,51 +381,76 @@ const AdvertiserData = () => {
 
     return filtered;
   }, [data, selectedDateRange, filters, searchTerm]);
-  console.log(finalFilteredData);
-  const getDataForDropdown = (columnKey) => {
-    // 🔹 Case 1: No filter applied yet → always use full data of current month/date range
-    if (!firstFilteredColumn) {
-      return finalFilteredData;
-    }
+  const getExcelFilteredDataForColumn = (columnKey) => {
+    const normalize = (val) =>
+      val === null || val === undefined || val.toString().trim() === ""
+        ? "-"
+        : val.toString().trim().toLowerCase();
 
-    // 🔹 Case 2: This is the FIRST filtered column → use full data of month/range (NOT filtered)
-    if (columnKey === firstFilteredColumn) {
-      return fullMonthOrRangeData;
-    }
+    return data.filter((row) => {
+      /* 🔹 1. DATE RANGE FILTER (same as filteredData) */
+      if (
+        selectedDateRange &&
+        selectedDateRange.length === 2 &&
+        dayjs(selectedDateRange[0]).isValid() &&
+        dayjs(selectedDateRange[1]).isValid()
+      ) {
+        const start = dayjs(selectedDateRange[0]).startOf("day");
+        const end = dayjs(selectedDateRange[1]).endOf("day");
+        const shared = dayjs(row.shared_date);
 
-    // 🔹 Case 3: Other columns → use filtered data
-    return finalFilteredData;
-  };
-  const fullMonthOrRangeData = useMemo(() => {
-    const advdata = data;
+        if (!shared.isBetween(start, end, null, "[]")) {
+          return false;
+        }
+      }
 
-    // Keep only rows inside date range / current month
-    return advdata.filter((item) => {
-      const shared = dayjs(item.shared_date);
-      const start = dayjs(selectedDateRange[0]).startOf("day");
-      const end = dayjs(selectedDateRange[1]).endOf("day");
-      return shared.isBetween(start, end, null, "[]");
+      /* 🔹 2. EXCEL-STYLE CASCADING FILTERS
+         → apply ALL filters except the current column */
+      return Object.entries(filters).every(([key, values]) => {
+        if (key === columnKey) return true;
+        if (!values || values.length === 0) return true;
+
+        let rowValue;
+
+        // 🔹 computed column support
+        if (key === "adv_payout_total") {
+          const total = Number(row.adv_payout) * Number(row.adv_approved_no);
+          rowValue = isNaN(total) ? "-" : total.toFixed(2);
+        } else if (key === "pub_Apno") {
+          rowValue = isNaN(row.pub_Apno)
+            ? "-"
+            : Number(row.pub_Apno).toFixed(2);
+        } else {
+          rowValue = row[key];
+        }
+
+        const normalizedRowVal = normalize(rowValue);
+
+        return values.some((v) => normalizedRowVal === normalize(v));
+      });
     });
-  }, [data, selectedDateRange]);
+  };
   // regenerate unique values when filtered data changes
   useEffect(() => {
     const valuesObj = {};
 
     // For each column:
-    Object.keys(columnHeadings).forEach((col) => {
-      const source = getDataForDropdown(col); // 🔥 critical
-      valuesObj[col] = Array.from(
-        new Set(
-          source.map((row) => {
-            const v = row[col];
-            // 🔥 force 2 decimals for payout total
-            if (col === "adv_payout_total" && !isNaN(v)) {
-              return Number(v).toFixed(2);
-            }
-            return v === null || v === undefined || v === ""
-              ? "-"
-              : v.toString().trim();
-          })
+    Object.keys(columnHeadingsAdv).forEach((col) => {
+      const source = getExcelFilteredDataForColumn(col); // 🔥 critical
+      valuesObj[col] = sortDropdownValues(
+        Array.from(
+          new Set(
+            source.map((row) => {
+              const v = row[col];
+              // 🔥 force 2 decimals for payout total
+              if (col === "adv_payout_total" && !isNaN(v)) {
+                return Number(v).toFixed(2);
+              }
+              return v === null || v === undefined || v === ""
+                ? "-"
+                : v.toString().trim();
+            })
+          )
         )
       );
     });
@@ -450,7 +459,6 @@ const AdvertiserData = () => {
   }, [selectedDateRange, finalFilteredData]);
   const clearAllFilters = useCallback(() => {
     setFilters({});
-    setHiddenColumns([]);
     setSortInfo({ columnKey: null, order: null });
   }, []);
 
@@ -526,7 +534,7 @@ const AdvertiserData = () => {
     []
   );
   // Columns and renderers memoized
-  const columnHeadings = {
+  const columnHeadingsAdv = {
     campaign_name: "Campaign Name",
     vertical: "Vertical",
     geo: "GEO",
@@ -551,7 +559,18 @@ const AdvertiserData = () => {
     adv_approved_no: "ADV Approved Numbers",
     adv_payout_total: "ADV Payout Total ($)",
   };
+  const allColumns = Object.keys(columnHeadingsAdv);
 
+  const {
+    presets,
+    hiddenColumns,
+    setHiddenColumns,
+    activePreset,
+    applyPreset,
+    savePreset,
+    updatePreset,
+    deletePreset,
+  } = useColumnPresets({ userId, allColumns });
   const desiredOrder = [
     "da",
     "adv_display",
@@ -808,430 +827,223 @@ const AdvertiserData = () => {
   };
 
   // Columns memoized
-  const columns = useMemo(() => {
-    return [
-      ...desiredOrder
-        .filter(
-          (key) => data[0] && key in data[0] && !hiddenColumns.includes(key)
-        )
-        .map((key) => ({
-          title: (
-            <div className="flex items-center gap-2">
+  const columns = [
+    ...desiredOrder
+      .filter(
+        (key) => data[0] && key in data[0] && !hiddenColumns.includes(key)
+      )
+      .map((key) => ({
+        title: (
+          <div className="flex items-center justify-between">
+            <span
+              style={{
+                color: filters[key] ? "#1677ff" : "inherit",
+                fontWeight: filters[key] ? "bold" : "normal",
+              }}>
+              {columnHeadingsAdv[key] || key}
+            </span>
+
+            <Tooltip title={stickyColumns.includes(key) ? "Unpin" : "Pin"}>
               <span
-                style={{
-                  color: filters[key] ? "#1677ff" : "inherit",
-                  fontWeight: filters[key] ? "bold" : "normal",
-                }}>
-                {columnHeadings[key] || key}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleStickyColumn(key);
+                }}
+                style={{ cursor: "pointer", display: "flex" }}>
+                {stickyColumns.includes(key) ? (
+                  <PushpinFilled style={{ color: "#1677ff" }} />
+                ) : (
+                  <PushpinOutlined />
+                )}
               </span>
-              <Tooltip title={stickyColumns.includes(key) ? "Unpin" : "Pin"}>
-                <span
-                  onClick={(e) => {
-                    e.stopPropagation(); // stop sort
-                    toggleStickyColumn(key);
-                  }}
-                  style={{
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                  }}>
-                  {stickyColumns.includes(key) ? (
-                    <PushpinFilled style={{ color: "#1677ff" }} />
-                  ) : (
-                    <PushpinOutlined />
-                  )}
-                </span>
-              </Tooltip>
-            </div>
-          ),
-          dataIndex: key,
-          fixed: stickyColumns.includes(key) ? "left" : undefined,
-          key,
-          sorter: (a, b) => {
-            const valA = a[key];
-            const valB = b[key];
-            return !isNaN(valA) && !isNaN(valB)
-              ? valA - valB
-              : (valA || "").toString().localeCompare((valB || "").toString());
+            </Tooltip>
+          </div>
+        ),
+
+        dataIndex: key,
+        key,
+        fixed: stickyColumns.includes(key) ? "left" : undefined,
+
+        sorter: (a, b) => {
+          const A = a[key];
+          const B = b[key];
+          return !isNaN(A) && !isNaN(B)
+            ? A - B
+            : String(A ?? "").localeCompare(String(B ?? ""));
+        },
+
+        sortOrder: sortInfo.columnKey === key ? sortInfo.order : null,
+
+        onHeaderCell: () => ({
+          onClick: (e) => {
+            if (e.target.closest(".ant-table-filter-trigger")) return;
+            if (e.target.tagName === "INPUT") return;
+
+            const order =
+              sortInfo.columnKey === key && sortInfo.order === "ascend"
+                ? "descend"
+                : "ascend";
+
+            setSortInfo({ columnKey: key, order });
           },
-          sortOrder: sortInfo.columnKey === key ? sortInfo.order : null,
-          onHeaderCell: () => ({
-            onClick: () => {
-              const newOrder =
-                sortInfo.columnKey === key && sortInfo.order === "ascend"
-                  ? "descend"
-                  : "ascend";
-              setSortInfo({ columnKey: key, order: newOrder });
-            },
-          }),
-          render: (text, record) => {
-            const value = record[key];
-            const createdAt = dayjs(record.created_at);
-            const isWithin3Days = dayjs().diff(createdAt, "day") <= 3;
-            const editable = fieldonlyeditable.includes(key);
-            const isEditing =
-              editingCell.key === record.id && editingCell.field === key;
+        }),
 
-            if (key === "adv_approved_no") {
-              return (
-                <div style={{ color: "gray", cursor: "not-allowed" }}>
-                  {value ?? "-"}
-                </div>
-              );
-            }
-            if (key === "adv_payout_total") {
-              const total =
-                (Number(record.adv_payout) || 0) *
-                (Number(record.adv_approved_no) || 0);
+        render: (value, record) => {
+          const editable = fieldonlyeditable.includes(key);
+          const isEditing =
+            editingCell.key === record.id && editingCell.field === key;
 
-              return (
-                <span>
-                  <p>{isNaN(total) ? "-" : total.toFixed(2)}</p>
-                </span>
-              );
-            }
-            // Editor UI
-            if (isEditing) {
-              // Select from dropdownOptions
-              if (dropdownOptions[key]) {
-                return (
-                  <Select
-                    allowClear
-                    showSearch
-                    value={value || undefined}
-                    style={{ width: 180 }}
-                    onBlur={() => setEditingCell({ key: null, field: null })}
-                    onChange={(val) => {
-                      handleAutoSave(record, key, val);
-                      setEditingCell({ key: null, field: null });
-                    }}
-                    autoFocus
-                    optionFilterProp="children"
-                    filterOption={(input, option) =>
-                      (option?.children ?? "")
-                        .toString()
-                        .toLowerCase()
-                        .includes(input.toLowerCase())
-                    }>
-                    {[...new Set(dropdownOptions[key] || [])].map((opt) => (
-                      <Option key={opt} value={opt}>
-                        {opt}
-                      </Option>
-                    ))}
-                  </Select>
-                );
-              }
+          if (key === "adv_approved_no") {
+            return <span style={{ color: "gray" }}>{value ?? "-"}</span>;
+          }
 
-              if (key === "fa") {
-                return (
-                  <Select
-                    defaultValue={value}
-                    style={{ width: 150 }}
-                    onBlur={() => setEditingCell({ key: null, field: null })}
-                    onChange={(val) => {
-                      handleAutoSave(record, key, val);
-                      // reset fa1 on server by passing null next time; we already set updated.fa1 = null in handler
-                      setEditingCell({ key: null, field: null });
-                    }}
-                    autoFocus>
-                    {dropdownOptions.fa.map((opt) => (
-                      <Option key={opt} value={opt}>
-                        {opt}
-                      </Option>
-                    ))}
-                  </Select>
-                );
-              }
+          if (key === "adv_payout_total") {
+            const total =
+              (Number(record.adv_payout) || 0) *
+              (Number(record.adv_approved_no) || 0);
+            return <span>{isNaN(total) ? "-" : total.toFixed(2)}</span>;
+          }
 
-              if (key === "fa1") {
-                if (!record.fa)
-                  return <span style={{ color: "gray" }}>Select FA first</span>;
-                return (
-                  <Select
-                    defaultValue={value}
-                    style={{ width: 150 }}
-                    onBlur={() => setEditingCell({ key: null, field: null })}
-                    onChange={(val) => {
-                      handleAutoSave(record, key, val);
-                      setEditingCell({ key: null, field: null });
-                    }}
-                    autoFocus>
-                    {dropdownOptions.fa1.map((opt) => (
-                      <Option key={opt} value={opt}>
-                        {opt}
-                      </Option>
-                    ))}
-                  </Select>
-                );
-              }
-
-              // if (["shared_date", "paused_date"].includes(key)) {
-              //   return (
-              //     <DatePicker
-              //       allowClear
-              //       defaultValue={value ? dayjs(value) : null}
-              //       format="YYYY-MM-DD"
-              //       onChange={(date) => {
-              //         handleAutoSave(
-              //           record,
-              //           key,
-              //           date ? date.format("YYYY-MM-DD") : null
-              //         ).finally(() =>
-              //           setEditingCell({ key: null, field: null })
-              //         );
-              //       }}
-              //       autoFocus
-              //     />
-              //   );
-              // }
-              // if (["paused_date"].includes(key)) {
-              //   const TODAY = "2025-12-02"; // HARD CODED DATE
-
-              //   // Normalize date -> yyyy-mm-dd
-              //   const normalize = (d) => {
-              //     const dt = new Date(d);
-              //     dt.setHours(0, 0, 0, 0);
-              //     return dt.toISOString().slice(0, 10);
-              //   };
-
-              //   const rowDate = normalize(record.created_at);
-              //   // Find all rows created before TODAY
-              //   const pastDates = finalFilteredData
-              //     .map((r) => normalize(r.created_at))
-              //     .filter((d) => d < TODAY);
-
-              //   // FIX: Sort dates numerically (not alphabetically)
-              //   const latestPrevDate =
-              //     pastDates.length === 0
-              //       ? null
-              //       : pastDates.sort((a, b) => new Date(a) - new Date(b)).pop();
-
-              //   // Editable only for rows <= latest previous day & before today
-              //   const pausedEditable =
-              //     rowDate < TODAY &&
-              //     latestPrevDate !== null &&
-              //     rowDate <= latestPrevDate;
-
-              //   // ❌ Not editable
-              //   if (!pausedEditable) {
-              //     return (
-              //       <div style={{ color: "gray", cursor: "not-allowed" }}>
-              //         {value ? dayjs(value).format("YYYY-MM-DD") : "-"}
-              //       </div>
-              //     );
-              //   }
-              if (key === "paused_date") {
-                const pausedEditable = record.flag === "1";
-
-                // ❌ Not editable
-                if (!pausedEditable) {
-                  return (
-                    <div style={{ color: "gray", cursor: "not-allowed" }}>
-                      {value ? dayjs(value).format("YYYY-MM-DD") : "-"}
-                    </div>
-                  );
-                }
-
-                // ✏️ Editable
-                if (isEditing) {
-                  return (
-                    <DatePicker
-                      allowClear
-                      value={value ? dayjs(value) : null}
-                      format="YYYY-MM-DD"
-                      onChange={(date) => {
-                        const finalDate = date
-                          ? date.format("YYYY-MM-DD")
-                          : null;
-                        setSelectedPauseDate(finalDate);
-                        setSelectedPauseRecord(record);
-                        setShareModalVisible(true);
-                      }}
-                      onOpenChange={(open) => {
-                        if (!open) setEditingCell({ key: null, field: null });
-                      }}
-                      autoFocus
-                    />
-                  );
-                }
-
-                // Default display (editable but not editing)
-                return (
-                  <div>{value ? dayjs(value).format("YYYY-MM-DD") : "-"}</div>
-                );
-              }
-
-              //   // ✔ Editable mode
-              //   if (isEditing) {
-              //     return (
-              //       <DatePicker
-              //         allowClear
-              //         value={value ? dayjs(value) : null}
-              //         format="YYYY-MM-DD"
-              //         // onChange={(date) => {
-              //         //   handleAutoSave(
-              //         //     record,
-              //         //     key,
-              //         //     date ? date.format("YYYY-MM-DD") : null
-              //         //   ).finally(() =>
-              //         //     setEditingCell({ key: null, field: null })
-              //         //   );
-              //         // }}
-              //         onChange={(date) => {
-              //           const finalDate = date
-              //             ? date.format("YYYY-MM-DD")
-              //             : null;
-
-              //           // 1️⃣ Save paused date normally using auto-save
-              //           // handleAutoSave(record, key, finalDate).finally(() => {
-              //           //   setEditingCell({ key: null, field: null });
-              //           // });
-
-              //           // 2️⃣ Open modal for campaign selection
-              //           setSelectedPauseDate(finalDate);
-              //           setSelectedPauseRecord(record);
-              //           setShareModalVisible(true);
-              //         }}
-              //         onOpenChange={(open) => {
-              //           if (!open) {
-              //             // popup closed → click outside
-              //             setEditingCell({ key: null, field: null });
-              //           }
-              //         }}
-              //         autoFocus
-              //       />
-              //     );
-              //   }
-              // }
-
-              return (
-                <Input
-                  defaultValue={value}
-                  autoFocus
-                  onBlur={(e) => {
-                    handleAutoSave(record, key, e.target.value?.trim());
-                    setEditingCell({ key: null, field: null });
-                  }}
-                  onPressEnter={(e) => {
-                    handleAutoSave(record, key, e.target.value?.trim());
-                    setEditingCell({ key: null, field: null });
-                  }}
-                />
-              );
-            }
-            if (key === "fp") return <span>{value}</span>;
-
+          if (isEditing) {
             return (
-              <div
-                style={{ cursor: editable ? "pointer" : "default" }}
-                onClick={() => {
-                  if (!checkEditableAndAlert(editable)) return;
-                  setEditingCell({ key: record.id, field: key });
-                }}>
-                {value || "-"}
-              </div>
+              <Input
+                autoFocus
+                defaultValue={value}
+                onBlur={(e) => {
+                  handleAutoSave(record, key, e.target.value);
+                  setEditingCell({ key: null, field: null });
+                }}
+                onPressEnter={(e) => {
+                  handleAutoSave(record, key, e.target.value);
+                  setEditingCell({ key: null, field: null });
+                }}
+              />
             );
-          },
-
-          filterDropdown: () =>
-            uniqueValues[key]?.length > 0 ? (
-              <div style={{ padding: 8 }}>
-                <div style={{ marginBottom: 8 }}>
-                  <Checkbox
-                    indeterminate={
-                      filters[key]?.length > 0 &&
-                      filters[key]?.length < uniqueValues[key]?.length
-                    }
-                    checked={filters[key]?.length === uniqueValues[key]?.length}
-                    onChange={(e) => {
-                      const checked = e.target.checked;
-                      handleFilterChange(
-                        checked ? [...uniqueValues[key]] : [],
-                        key
-                      );
-                    }}>
-                    Select All
-                  </Checkbox>
-                </div>
-                <Select
-                  mode="multiple"
-                  allowClear
-                  showSearch
-                  placeholder={`Select ${columnHeadings[key]}`}
-                  style={{ width: 250 }}
-                  value={filters[key] || []}
-                  onChange={(value) => handleFilterChange(value, key)}
-                  optionLabelProp="label"
-                  maxTagCount="responsive"
-                  filterOption={(input, option) =>
-                    (option?.label ?? "")
-                      .toString()
-                      .toLowerCase()
-                      .includes(input.toLowerCase())
-                  }>
-                  {[...uniqueValues[key]]
-                    .filter((val) => !isEmpty(val))
-                    .sort((a, b) =>
-                      !isNaN(a) && !isNaN(b)
-                        ? a - b
-                        : a.toString().localeCompare(b.toString())
-                    )
-                    .map((val) => (
-                      <Option key={val} value={val} label={val}>
-                        <Checkbox checked={filters[key]?.includes(val)}>
-                          {val}
-                        </Checkbox>
-                      </Option>
-                    ))}
-                </Select>
-              </div>
-            ) : null,
-        })),
-      {
-        title: "Actions",
-        fixed: "right",
-        render: (_, record) => {
-          const createdAt = dayjs(record.created_at);
-          const hoursSinceCreation = dayjs().diff(createdAt, "hour");
-          const remainingHours = Math.max(24 - hoursSinceCreation, 0);
-          const isDeletable = hoursSinceCreation < 24;
+          }
 
           return (
-            <div style={{ display: "flex", gap: "8px" }}>
-              {isDeletable && (
-                <Tooltip
-                  title={`Delete option available for ${remainingHours}h`}>
-                  <Button
-                    type="primary"
-                    danger
-                    icon={<DeleteOutlined />}
-                    onClick={() => handleDelete(record.id)}
-                  />
-                </Tooltip>
-              )}
-              {/* <Tooltip title="Copy this row">
+            <div
+              style={{ cursor: editable ? "pointer" : "default" }}
+              onClick={() => {
+                if (!checkEditableAndAlert(editable)) return;
+                setEditingCell({ key: record.id, field: key });
+              }}>
+              {value ?? "-"}
+            </div>
+          );
+        },
+
+        // ✅ FILTER DROPDOWN (LOCAL STATE)
+        filterDropdown: ({ confirm }) => {
+          const [searchText, setSearchText] = React.useState("");
+
+          const allValues = uniqueValues[key] || [];
+          const selectedValues = filters[key] ?? allValues;
+
+          const visibleValues = sortDropdownValues(
+            allValues.filter((val) =>
+              val.toString().toLowerCase().includes(searchText.toLowerCase())
+            )
+          );
+          const isAllSelected = selectedValues.length === allValues.length;
+          const isIndeterminate = selectedValues.length > 0 && !isAllSelected;
+          return (
+            <div
+              className="w-[240px] rounded-3xl"
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}>
+              <div className="p-3 border-b">
+                <Input
+                  autoFocus
+                  allowClear
+                  placeholder="Search values"
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                />
+              </div>
+              {/* ☑ Select All */}
+              <div className="px-3 py-2">
+                <Checkbox
+                  indeterminate={isIndeterminate}
+                  checked={isAllSelected}
+                  onChange={(e) =>
+                    handleFilterChange(e.target.checked ? allValues : [], key)
+                  }>
+                  <span className="font-medium text-base text-gray-700">
+                    Select All
+                  </span>
+                </Checkbox>
+              </div>
+              <div className="max-h-[220px] overflow-y-auto p-2 space-y-1">
+                {visibleValues.map((val) => (
+                  <label
+                    key={val}
+                    className="flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-blue-50">
+                    <Checkbox
+                      key={val}
+                      checked={selectedValues.includes(val)}
+                      onChange={(e) => {
+                        const next = e.target.checked
+                          ? [...selectedValues, val]
+                          : selectedValues.filter((v) => v !== val);
+
+                        handleFilterChange(next, key);
+                        confirm({ closeDropdown: false });
+                      }}>
+                      {val}
+                    </Checkbox>
+                  </label>
+                ))}
+
+                {visibleValues.length === 0 && (
+                  <div className="text-center text-gray-400 py-4">
+                    No matching values
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        },
+
+        filterDropdownProps: {
+          destroyOnClose: false,
+        },
+      })),
+
+    // 🔹 ACTIONS COLUMN
+    {
+      title: "Actions",
+      fixed: "right",
+      width: 100,
+      render: (_, record) => {
+        const createdAt = dayjs(record.created_at);
+        const hoursSinceCreation = dayjs().diff(createdAt, "hour");
+        const remainingHours = Math.max(24 - hoursSinceCreation, 0);
+        const isDeletable = hoursSinceCreation < 24;
+
+        return (
+          <div style={{ display: "flex", gap: "8px" }}>
+            {isDeletable && (
+              <Tooltip title={`Delete option available for ${remainingHours}h`}>
+                <Button
+                  type="primary"
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={() => handleDelete(record.id)}
+                />
+              </Tooltip>
+            )}
+            {/* <Tooltip title="Copy this row">
                 <Button
                   icon={<CopyOutlined />}
                   onClick={() => handleCopyRow(record)}
                 />
               </Tooltip> */}
-            </div>
-          );
-        },
+          </div>
+        );
       },
-    ];
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    data,
-    dropdownOptions,
-    editingCell,
-    filters,
-    uniqueValues,
-    stickyColumns,
-    sortInfo,
-    allowedFieldsAfter3Days,
-    hiddenColumns,
-  ]);
+    },
+  ];
 
   // Summary function (memoized)
   const tableSummary = useCallback(
@@ -1262,25 +1074,33 @@ const AdvertiserData = () => {
 
             if (col.dataIndex === "adv_total_no") {
               return (
-                <Table.Summary.Cell key={`total-${index}`}>
+                <Table.Summary.Cell
+                  key={`total-${index}`}
+                  className="text-center">
                   <b>{totalAdvTotalNo}</b>
                 </Table.Summary.Cell>
               );
             } else if (col.dataIndex === "adv_deductions") {
               return (
-                <Table.Summary.Cell key={`deductions-${index}`}>
+                <Table.Summary.Cell
+                  key={`deductions-${index}`}
+                  className="text-center">
                   <b>{totalAdvDeductions}</b>
                 </Table.Summary.Cell>
               );
             } else if (col.dataIndex === "adv_approved_no") {
               return (
-                <Table.Summary.Cell key={`approved-${index}`}>
+                <Table.Summary.Cell
+                  key={`approved-${index}`}
+                  className="text-center">
                   <b>{totalAdvApprovedNo}</b>
                 </Table.Summary.Cell>
               );
             } else if (col.dataIndex === "adv_payout_total") {
               return (
-                <Table.Summary.Cell key={`total-${index}`}>
+                <Table.Summary.Cell
+                  key={`total-${index}`}
+                  className="text-center">
                   <b>{totalAdvPayoutTotal.toFixed(2)}</b>
                 </Table.Summary.Cell>
               );
@@ -1293,7 +1113,6 @@ const AdvertiserData = () => {
     },
     [columns]
   );
-  console.log(finalFilteredData);
   return (
     <div className="p-4 bg-gray-100 min-h-screen flex flex-col items-center">
       <div className="w-full bg-white p-6 rounded shadow-md relative">
@@ -1346,24 +1165,18 @@ const AdvertiserData = () => {
             {/* Right Section */}
             {!showValidation && (
               <div className="flex flex-wrap items-center gap-3 justify-start lg:justify-end">
-                {/* Hide Columns Dropdown */}
-                <Tooltip title="Select Columns to Hide" placement="top">
-                  <Select
-                    mode="multiple"
-                    allowClear
-                    placeholder="Hide Columns"
-                    style={{ minWidth: 200 }}
-                    value={hiddenColumns}
-                    onChange={(values) => setHiddenColumns(values)}
-                    maxTagCount="responsive"
-                    className="rounded-xl border border-gray-300 shadow-sm hover:shadow-md transition-all">
-                    {desiredOrder.map((key) => (
-                      <Option key={key} value={key}>
-                        {columnHeadings[key] || key}
-                      </Option>
-                    ))}
-                  </Select>
-                </Tooltip>
+                {/* Column Preset & Visibility Controls */}
+                <ColumnSettings
+                  columnMap={columnHeadingsAdv}
+                  hiddenColumns={hiddenColumns}
+                  setHiddenColumns={setHiddenColumns}
+                  presets={presets}
+                  activePreset={activePreset}
+                  applyPreset={applyPreset}
+                  savePreset={savePreset}
+                  updatePreset={updatePreset}
+                  deletePreset={deletePreset}
+                />
 
                 {/* Subadmins Dropdown */}
                 {user?.role?.includes("advertiser_manager") && (
@@ -1389,8 +1202,8 @@ const AdvertiserData = () => {
                       const tableDataToExport = finalFilteredData.map(
                         (item) => {
                           const filteredItem = {};
-                          Object.keys(columnHeadings).forEach((key) => {
-                            filteredItem[columnHeadings[key]] = item[key];
+                          Object.keys(columnHeadingsAdv).forEach((key) => {
+                            filteredItem[columnHeadingsAdv[key]] = item[key];
                           });
                           return filteredItem;
                         }
@@ -1440,14 +1253,6 @@ const AdvertiserData = () => {
               columns={columns}
               dataSource={finalFilteredData}
               rowKey="id"
-              onChange={(pagination, _filters, sorter) => {
-                if (!Array.isArray(sorter)) {
-                  setSortInfo({
-                    columnKey: sorter.columnKey,
-                    order: sorter.order,
-                  });
-                }
-              }}
               pagination={{
                 pageSizeOptions: ["10", "20", "50", "100", "200", "500"],
                 showSizeChanger: true,

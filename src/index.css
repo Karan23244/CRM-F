@@ -2,3 +2,41 @@
 .light-yellow-row {
   background-color: #fff9c4; /* light yellow */
 }
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+
+/* HEADER CELL LAYOUT FIX */
+.custom-table .ant-table-thead > tr > th {
+  padding: 10px 10px;
+}
+
+/* HEADER CELL */
+.custom-table .ant-table-thead > tr > th {
+  padding: 8px 10px;
+}
+
+/* 🔥 FIX FLEX OVERFLOW */
+.header-cell-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;            /* ✅ REQUIRED */
+}
+
+/* 🔥 ONE LINE + ELLIPSIS */
+.header-cell-wrapper > * {
+  min-width: 0;
+  flex: 1;
+  white-space: nowrap;     /* ✅ single line */
+  overflow: hidden;
+  text-overflow: ellipsis; /* ✅ … */
+}
+
+/* 🔒 ICONS NEVER HIDE */
+.header-cell-wrapper svg,
+.header-cell-wrapper .anticon {
+  flex-shrink: 0;
+}
+

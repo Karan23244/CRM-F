@@ -55,6 +55,8 @@ const NewRequest = () => {
   const [requests, setRequests] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [filters, setFilters] = useState({});
+  const [filterSearch, setFilterSearch] = useState({});
+  const [uniqueValues, setUniqueValues] = useState({});
   const [campaignList, setCampaignList] = useState([]);
   const [selectedCampaignId, setSelectedCampaignId] = useState(null);
   const [shareModalVisible, setShareModalVisible] = useState(false);
@@ -67,6 +69,10 @@ const NewRequest = () => {
   const [pinnedColumns, setPinnedColumns] = useState({});
   const [sortInfo, setSortInfo] = useState({});
   const [firstFilteredColumn, setFirstFilteredColumn] = useState(null);
+  const normalize = (val) => {
+    if (val === null || val === undefined || val === "") return "-";
+    return val.toString().trim();
+  };
   const handlePinColumn = (key) => {
     setPinnedColumns((prev) => {
       const current = prev[key];
@@ -129,31 +135,6 @@ const NewRequest = () => {
     });
   }, []);
 
-  // const fetchRequests = async () => {
-  //   try {
-  //     const res = await axios.get(`${apiUrl}/PrmadvRequests`);
-  //     const result = res.data?.data;
-  //     // Sort by id DESC (newest first)
-  //     let sortedData = (Array.isArray(result) ? result : []).sort(
-  //       (a, b) => b.id - a.id
-  //     );
-
-  //     // Role-based filtering
-  //     if (Array.isArray(user?.role) && user.role.includes("advertiser")) {
-  //       sortedData = sortedData.filter(
-  //         (item) => item.adv_name === user.username
-  //       );
-  //     }
-
-  //     // if role is advertiser_manager -> no filtering needed
-
-  //     setRequests(sortedData);
-  //   } catch (error) {
-  //     message.error("Failed to fetch requests");
-  //     setRequests([]); // fallback on error
-  //   }
-  // };
-
   const fetchRequests = async () => {
     try {
       const res = await axios.get(`${apiUrl1}/newPrmadvRequests`, {
@@ -176,29 +157,29 @@ const NewRequest = () => {
     }
   };
 
-  // Get unique values for each column for filter options
-  const uniqueValues = useMemo(() => {
-    const values = {};
-    requests.forEach((item) => {
-      Object.keys(columnHeadings).forEach((key) => {
-        if (!values[key]) values[key] = new Set();
-        if (item[key] !== null && item[key] !== undefined)
-          values[key].add(item[key]);
+  const getExcelFilteredDataForColumn = (columnKey) => {
+    return requests.filter((row) => {
+      return Object.entries(filters).every(([key, values]) => {
+        if (key === columnKey) return true; // ignore self
+        if (!values || values.length === 0) return true;
+        return values.includes(normalize(row[key]));
       });
     });
-    // Convert sets to arrays
-    Object.keys(values).forEach((key) => {
-      values[key] = Array.from(values[key]);
+  };
+  useEffect(() => {
+    const valuesObj = {};
+
+    Object.keys(columnHeadings).forEach((col) => {
+      const source = getExcelFilteredDataForColumn(col);
+
+      valuesObj[col] = [
+        ...new Set(source.map((row) => normalize(row[col]))),
+      ].sort((a, b) => a.localeCompare(b));
     });
-    return values;
-  }, [requests]);
-  // Handle filter change for a column
-  // const handleFilterChange = (value, key) => {
-  //   setFilters((prev) => ({
-  //     ...prev,
-  //     [key]: value,
-  //   }));
-  // };
+
+    setUniqueValues(valuesObj);
+  }, [requests, filters]);
+
   const handleFilterChange = useCallback((value, key) => {
     // detect the first filter applied
     setFilters((prev) => {
@@ -213,22 +194,23 @@ const NewRequest = () => {
   }, []);
   // Filter requests based on filters and search text
   const filteredRequests = useMemo(() => {
-    return requests.filter((item) => {
-      // Search text across all fields
-      const matchesSearch = Object.values(item).some((val) =>
-        String(val).toLowerCase().includes(searchText.toLowerCase())
-      );
+    return requests.filter((row) => {
+      // 🔍 Global search
+      const matchesSearch = Object.values(row)
+        .join(" ")
+        .toLowerCase()
+        .includes(searchText.toLowerCase());
+
       if (!matchesSearch) return false;
 
-      // Apply filters: if filter array for column is empty or undefined => no filter for that column
-      for (const [key, selected] of Object.entries(filters)) {
-        if (selected && selected.length > 0 && !selected.includes(item[key])) {
-          return false;
-        }
-      }
-      return true;
+      // 🎯 Excel-style filters
+      return Object.entries(filters).every(([key, values]) => {
+        if (!values || values.length === 0) return true;
+        return values.includes(normalize(row[key]));
+      });
     });
   }, [requests, filters, searchText]);
+
   // Unique values based on filtered data (except first filtered column)
   const uniqueValuesFiltered = useMemo(() => {
     const values = {};
@@ -349,74 +331,88 @@ const NewRequest = () => {
         },
 
         // Filters: KEEP YOUR EXISTING CODE
-        filterDropdown:
-          uniqueValues[key]?.length > 0
-            ? () => {
-                const sourceList =
-                  firstFilteredColumn === key
-                    ? uniqueValues[key] // full data for first filtered column
-                    : uniqueValuesFiltered[key]; // filtered data for rest
+        filterDropdown: () => {
+          const allValues = uniqueValues[key] || [];
+          const selectedValues = filters[key] ?? allValues;
+          const searchText = filterSearch[key] || "";
 
-                const allOptions = sourceList?.filter(
-                  (v) => v !== null && v !== ""
-                );
+          const visibleValues = allValues.filter((val) =>
+            val.toLowerCase().includes(searchText.toLowerCase())
+          );
 
-                return (
-                  <div style={{ padding: 8 }}>
-                    <div style={{ marginBottom: 8 }}>
-                      <Checkbox
-                        indeterminate={
-                          filters[key]?.length > 0 &&
-                          filters[key]?.length < allOptions?.length
-                        }
-                        checked={filters[key]?.length === allOptions?.length}
-                        onChange={(e) =>
-                          setFilters((prev) => ({
-                            ...prev,
-                            [key]: e.target.checked ? [...allOptions] : [],
-                          }))
-                        }>
-                        Select All
-                      </Checkbox>
-                    </div>
+          const isAllSelected = selectedValues.length === allValues.length;
+          const isIndeterminate = selectedValues.length > 0 && !isAllSelected;
 
-                    <Select
-                      mode="multiple"
-                      allowClear
-                      showSearch
-                      placeholder={`Select ${columnHeadings[key]}`}
-                      style={{ width: 250 }}
-                      value={filters[key] || []}
-                      onChange={(val) => handleFilterChange(val, key)}
-                      optionLabelProp="label"
-                      maxTagCount="responsive"
-                      filterOption={(input, option) =>
-                        (option?.label ?? "")
-                          .toString()
-                          .toLowerCase()
-                          .includes(input.toLowerCase())
-                      }>
-                      {allOptions
-                        ?.slice()
-                        .sort((a, b) =>
-                          !isNaN(a) && !isNaN(b)
-                            ? a - b
-                            : a.toString().localeCompare(b.toString())
-                        )
-                        .map((val) => (
-                          <Option key={val} value={val} label={val}>
-                            <Checkbox checked={filters[key]?.includes(val)}>
-                              {val}
-                            </Checkbox>
-                          </Option>
-                        ))}
-                    </Select>
+          return (
+            <div
+              className="w-[260px] rounded-xl"
+              onClick={(e) => e.stopPropagation()}>
+              {/* 🔍 Search */}
+              <div className="sticky top-0 bg-white p-2 border-b">
+                <Input
+                  allowClear
+                  placeholder="Search values"
+                  value={searchText}
+                  onChange={(e) =>
+                    setFilterSearch((prev) => ({
+                      ...prev,
+                      [key]: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+
+              {/* ☑ Select All */}
+              <div className="px-3 py-2">
+                <Checkbox
+                  indeterminate={isIndeterminate}
+                  checked={isAllSelected}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setFilters((prev) => {
+                      const updated = { ...prev };
+                      if (checked) delete updated[key];
+                      else updated[key] = [];
+                      return updated;
+                    });
+                  }}>
+                  Select All
+                </Checkbox>
+              </div>
+
+              {/* 📋 Values */}
+              <div className="max-h-[220px] overflow-y-auto px-2 pb-2 space-y-1">
+                {visibleValues.map((val) => (
+                  <label
+                    key={val}
+                    className="flex items-center gap-2 px-2 py-1 rounded cursor-pointer hover:bg-blue-50">
+                    <Checkbox
+                      checked={selectedValues.includes(val)}
+                      onChange={(e) => {
+                        const next = e.target.checked
+                          ? [...selectedValues, val]
+                          : selectedValues.filter((v) => v !== val);
+
+                        setFilters((prev) => ({
+                          ...prev,
+                          [key]: next,
+                        }));
+                      }}
+                    />
+                    <span className="truncate">{val}</span>
+                  </label>
+                ))}
+
+                {visibleValues.length === 0 && (
+                  <div className="py-4 text-center text-gray-400 text-sm">
+                    No matching values
                   </div>
-                );
-              }
-            : null,
-
-        filtered: filters[key]?.length > 0,
+                )}
+              </div>
+            </div>
+          );
+        },
+        filtered: !!filters[key],
       };
     });
   };
@@ -699,6 +695,7 @@ const NewRequest = () => {
 
       <div className="overflow-auto border border-gray-300 rounded-lg shadow-sm">
         <StyledTable
+          bordered
           dataSource={filteredRequests}
           columns={[
             ...visibleColumns,

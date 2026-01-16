@@ -12,8 +12,26 @@ import axios from "axios";
 import { Switch, message } from "antd";
 import Swal from "sweetalert2";
 import useNotifications from "../Utils/useNotifications";
+import dayjs from "dayjs";
+import { DatePicker } from "antd";
+import KPICard from "./KPICard";
+import {
+  getKPIs,
+  groupByDate,
+  groupByAdvertiser,
+  groupByPublisher,
+  groupByOS,
+  groupByVertical,
+} from "../Utils/dashboardUtils";
+
+import OffersTrendChart from "./Charts/OffersTrendChart";
+import TopAdvertisersChart from "./Charts/TopAdvertisersChart";
+import TopPublishersChart from "./Charts/TopPublishersChart";
+import OSDistributionChart from "./Charts/OSDistributionChart";
+import VerticalDistributionChart from "./Charts/VerticalDistributionChart";
+const { RangePicker } = DatePicker;
 const apiUrl = import.meta.env.VITE_API_URL;
-const apiUrl3 = import.meta.env.VITE_API_URL2;
+const apiUrl3 = import.meta.env.VITE_API_URL;
 export default function Dashboard() {
   const { user } = useSelector((state) => state.auth);
   const { notifications } = useNotifications(15);
@@ -37,37 +55,40 @@ export default function Dashboard() {
       });
 
       // 1️⃣ total campaigns
-      const total = await axios.post(`${apiUrl3}/campaign-count`, {
+      const total = await axios.post(`${apiUrl}/campaign-count`, {
         role: user?.role,
         id: user?.id,
       });
-      setTotalCampaigns(total?.data?.campaign_count || 0);
+      setTotalCampaigns(total?.data?.campaign_count);
+      console.log("Received ←", total);
 
       // 2️⃣ paused PID count
-      const paused = await axios.post(`${apiUrl3}/geo-count`, {
+      const paused = await axios.post(`${apiUrl}/geo-count`, {
         role: user?.role,
         id: user?.id,
       });
-      setGeoCount(paused?.data?.totalGeo || 0);
+      setGeoCount(paused?.data?.totalGeo);
       console.log("Received ←", paused);
       // 3️⃣ live PID count
-      const live = await axios.post(`${apiUrl3}/pid-count`, {
+      const live = await axios.post(`${apiUrl}/pid-count`, {
         role: user?.role,
         id: user?.id,
       });
       setLiveCount(live?.data?.totalPid || 0);
       // 3️⃣ live PID count
-      const adv = await axios.post(`${apiUrl3}/adv-count`, {
+      const adv = await axios.post(`${apiUrl}/adv-count`, {
         role: user?.role,
         id: user?.id,
       });
       setAdvCount(adv?.data?.totalAdv || 0);
+      console.log("Received ←", adv);
       // 3️⃣ live PID count
-      const pub = await axios.post(`${apiUrl3}/pub-count`, {
+      const pub = await axios.post(`${apiUrl}/pub-count`, {
         role: user?.role,
         id: user?.id,
       });
       setPubCount(pub?.data?.totalPub || 0);
+      console.log("Received ←", pub);
     } catch (err) {
       console.log(err);
       message.error("Failed to load dashboard counts.");
@@ -136,18 +157,21 @@ export default function Dashboard() {
   const role = user?.role || "";
 
   const isAdmin = role.includes("admin");
-  const isAdvertiser = role.includes("advertiser");
-  const isPublisher = role.includes("publisher");
+  const isAdvertiser =
+    role.includes("advertiser") || role.includes("advertiser_manager");
+
+  const isPublisher =
+    role.includes("publisher") || role.includes("publisher_manager");
 
   const cards = [
     {
-      title: "Total Campaigns",
+      title: "Active Campaigns",
       value: totalCampaigns,
       color: "from-blue-500 to-indigo-500",
       show: true,
     },
     {
-      title: "Total PIDs",
+      title: "Live PIDs",
       value: liveCount,
       color: "from-orange-500 to-red-500",
       show: true,
@@ -159,13 +183,13 @@ export default function Dashboard() {
       show: true,
     },
     {
-      title: "Total Publishers",
+      title: "Publishers",
       value: pubCount,
       color: "from-green-500 to-emerald-500",
       show: isPublisher || isAdmin,
     },
     {
-      title: "Total Advertisers",
+      title: "Advertisers",
       value: advCount,
       color: "from-teal-500 to-cyan-500",
       show: isAdvertiser || isAdmin,
@@ -273,6 +297,140 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+      {/* <DashboardOverview /> */}
     </div>
   );
 }
+
+const DashboardOverview = () => {
+  const [data, setData] = useState([]); // ✅ FIX 1
+  const [selectedDateRange, setSelectedDateRange] = useState([
+    dayjs().startOf("month"),
+    dayjs().endOf("month"),
+  ]);
+
+  const fetchAdvData = async () => {
+    try {
+      const [startDate, endDate] = selectedDateRange;
+
+      console.log("Fetching data:", {
+        startDate: startDate.format("YYYY-MM-DD"),
+        endDate: endDate.format("YYYY-MM-DD"),
+      });
+
+      const response = await axios.get(`${apiUrl}/get-advdata`, {
+        params: {
+          startDate: startDate.format("YYYY-MM-DD"),
+          endDate: endDate.format("YYYY-MM-DD"),
+        },
+      });
+
+      console.log("API Response:", response.data);
+
+      if (response.data?.success) {
+        setData(response.data.data || []);
+      } else {
+        setData([]);
+      }
+    } catch (error) {
+      console.error("Error fetching advertiser data:", error);
+      setData([]);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedDateRange?.length === 2) {
+      fetchAdvData();
+    }
+  }, [selectedDateRange]);
+
+  const kpis = getKPIs(data);
+
+  return (
+    <div className="space-y-8">
+      {/* HEADER / FILTER BAR */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-5 rounded-2xl shadow">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800">
+            Dashboard Overview
+          </h2>
+          <p className="text-sm text-gray-500">
+            Performance summary based on selected date range
+          </p>
+        </div>
+
+        <RangePicker
+          value={selectedDateRange}
+          onChange={(dates) => {
+            if (!dates) {
+              setSelectedDateRange([
+                dayjs().startOf("month"),
+                dayjs().endOf("month"),
+              ]);
+            } else {
+              setSelectedDateRange(dates);
+            }
+          }}
+          className="w-[260px] rounded-lg"
+        />
+      </div>
+
+      {/* KPI SECTION */}
+      <div className="bg-white p-6 rounded-2xl shadow">
+        <h3 className="text-lg font-semibold text-gray-700 mb-4">
+          Key Metrics
+        </h3>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-5">
+          <KPICard
+            title="Total Campaigns"
+            value={kpis.totalCampaigns}
+            color="from-blue-500 to-indigo-500"
+          />
+          <KPICard
+            title="Live Campaigns"
+            value={kpis.liveCampaigns}
+            color="from-orange-500 to-red-500"
+          />
+          <KPICard
+            title="Advertisers"
+            value={kpis.advertisers}
+            color="from-purple-500 to-pink-500"
+          />
+          <KPICard
+            title="Publishers"
+            value={kpis.publishers}
+            color="from-green-500 to-emerald-500"
+          />
+          <KPICard
+            title="GEO Coverage"
+            value={kpis.geos}
+            color="from-teal-500 to-cyan-500"
+          />
+        </div>
+      </div>
+
+      {/* CHARTS ROW 1 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <di>
+          <TopAdvertisersChart data={groupByAdvertiser(data)} />
+        </di>
+
+        <div>
+          <OSDistributionChart data={groupByOS(data)} />
+        </div>
+      </div>
+
+      {/* CHARTS ROW 2 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div>
+          <TopPublishersChart data={groupByPublisher(data)} />
+        </div>
+
+        <div>
+          <VerticalDistributionChart data={groupByVertical(data)} />
+        </div>
+      </div>
+    </div>
+  );
+};

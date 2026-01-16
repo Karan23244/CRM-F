@@ -29,6 +29,7 @@ import { AutoComplete } from "antd";
 import StyledTable from "../../Utils/StyledTable";
 import { RiFileExcel2Line } from "react-icons/ri";
 import { FaFilterCircleXmark } from "react-icons/fa6";
+
 import geoData from "../../Data/geoData.json";
 
 const { Option } = Select;
@@ -55,7 +56,8 @@ const PublisherRequest = ({ senderId, receiverId }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm();
-
+  const [filterSearch, setFilterSearch] = useState({});
+  const [uniqueValues, setUniqueValues] = useState({});
   const [requests, setRequests] = useState([]);
   const [advertisers, setAdvertisers] = useState([]);
   const [dropdownOptions, setDropdownOptions] = useState({ geo: [] });
@@ -69,7 +71,10 @@ const PublisherRequest = ({ senderId, receiverId }) => {
   });
   const [firstFilteredColumn, setFirstFilteredColumn] = useState(null);
   const [geoRows, setGeoRows] = useState([]);
-
+  const normalize = (val) => {
+    if (val === null || val === undefined || val === "") return "-";
+    return val.toString().trim();
+  };
   // Default: start = first day of current month, end = today
   const [dateRange, setDateRange] = useState([
     dayjs().startOf("month"),
@@ -223,59 +228,48 @@ const PublisherRequest = ({ senderId, receiverId }) => {
 
   // 🔍 Filtered Requests
   const filteredRequests = useMemo(() => {
-    if (!requests.length) return [];
-    return requests.filter((item) => {
-      const matchesSearch = Object.values(item).some((val) =>
-        String(val).toLowerCase().includes(searchText.toLowerCase())
-      );
+    return requests.filter((row) => {
+      // 🔍 Global search
+      const matchesSearch = Object.values(row)
+        .join(" ")
+        .toLowerCase()
+        .includes(searchText.toLowerCase());
+
       if (!matchesSearch) return false;
 
-      for (const [key, selected] of Object.entries(filters)) {
-        if (selected?.length && !selected.includes(item[key])) {
-          return false;
-        }
-      }
-      return true;
+      // 🎯 Excel-style filters
+      return Object.entries(filters).every(([key, values]) => {
+        if (!values || values.length === 0) return true;
+        return values.includes(normalize(row[key]));
+      });
     });
   }, [requests, filters, searchText]);
 
-  // ✅ Unique filter values
-  const uniqueValues = useMemo(() => {
-    const values = {};
-    for (const item of requests) {
-      for (const key of Object.keys(columnHeadingsMap)) {
-        if (!values[key]) values[key] = new Set();
-        if (item[key] !== null && item[key] !== undefined) {
-          values[key].add(item[key]);
-        }
-      }
-      if (!values["adv_res"]) values["adv_res"] = new Set();
-      if (item.adv_res !== null && item.adv_res !== undefined) {
-        values["adv_res"].add(item.adv_res);
-      }
-    }
-    return Object.fromEntries(
-      Object.entries(values).map(([k, v]) => [k, [...v]])
-    );
-  }, [requests, columnHeadingsMap]);
-  // Unique values based on filtered data (except first filtered column)
-  const uniqueValuesFiltered = useMemo(() => {
-    const values = {};
+  const getExcelFilteredDataForColumn = useCallback(
+    (columnKey) => {
+      return requests.filter((row) => {
+        return Object.entries(filters).every(([key, values]) => {
+          if (key === columnKey) return true; // ignore self
+          if (!values || values.length === 0) return true;
+          return values.includes(normalize(row[key]));
+        });
+      });
+    },
+    [requests, filters]
+  );
+  useEffect(() => {
+    const valuesObj = {};
 
-    for (const item of filteredRequests) {
-      for (const key of Object.keys(columnHeadingsMap)) {
-        if (!values[key]) values[key] = new Set();
+    Object.keys(columnHeadingsMap).forEach((col) => {
+      const source = getExcelFilteredDataForColumn(col);
 
-        if (item[key] !== null && item[key] !== undefined) {
-          values[key].add(item[key]);
-        }
-      }
-    }
+      valuesObj[col] = [
+        ...new Set(source.map((row) => normalize(row[col]))),
+      ].sort((a, b) => a.localeCompare(b));
+    });
 
-    return Object.fromEntries(
-      Object.entries(values).map(([k, v]) => [k, [...v]])
-    );
-  }, [filteredRequests]);
+    setUniqueValues(valuesObj);
+  }, [requests, filters, getExcelFilteredDataForColumn]);
 
   const handleCancel = () => {
     setGeoRows([]); // empty rows
@@ -502,75 +496,88 @@ const PublisherRequest = ({ senderId, receiverId }) => {
 
         return value;
       },
+      filterDropdown: () => {
+        const allValues = uniqueValues[key] || [];
+        const selectedValues = filters[key] ?? allValues;
+        const searchValue = filterSearch[key] || "";
 
-      filterDropdown:
-        uniqueValues[key]?.length > 0
-          ? () => {
-              const sourceList =
-                firstFilteredColumn === key
-                  ? uniqueValues[key] // full data for first filtered column
-                  : uniqueValuesFiltered[key]; // filtered data for rest
+        const visibleValues = allValues.filter((val) =>
+          val.toLowerCase().includes(searchValue.toLowerCase())
+        );
 
-              const allOptions = sourceList?.filter(
-                (v) => v !== null && v !== ""
-              );
+        const isAllSelected = selectedValues.length === allValues.length;
+        const isIndeterminate = selectedValues.length > 0 && !isAllSelected;
 
-              return (
-                <div style={{ padding: 8 }}>
-                  <div style={{ marginBottom: 8 }}>
-                    <Checkbox
-                      indeterminate={
-                        filters[key]?.length > 0 &&
-                        filters[key]?.length < allOptions?.length
-                      }
-                      checked={filters[key]?.length === allOptions?.length}
-                      onChange={(e) =>
-                        setFilters((prev) => ({
-                          ...prev,
-                          [key]: e.target.checked ? [...allOptions] : [],
-                        }))
-                      }>
-                      Select All
-                    </Checkbox>
-                  </div>
+        return (
+          <div
+            className="w-[260px] rounded-xl"
+            onClick={(e) => e.stopPropagation()}>
+            {/* 🔍 Search */}
+            <div className="sticky top-0 bg-white p-2 border-b">
+              <Input
+                allowClear
+                placeholder="Search values"
+                value={searchValue}
+                onChange={(e) =>
+                  setFilterSearch((prev) => ({
+                    ...prev,
+                    [key]: e.target.value,
+                  }))
+                }
+              />
+            </div>
 
-                  <Select
-                    mode="multiple"
-                    allowClear
-                    showSearch
-                    placeholder={`Select ${columnHeadingsMap[key]}`}
-                    style={{ width: 250 }}
-                    value={filters[key] || []}
-                    onChange={(val) => handleFilterChange(val, key)}
-                    optionLabelProp="label"
-                    maxTagCount="responsive"
-                    filterOption={(input, option) =>
-                      (option?.label ?? "")
-                        .toString()
-                        .toLowerCase()
-                        .includes(input.toLowerCase())
-                    }>
-                    {allOptions
-                      ?.slice()
-                      .sort((a, b) =>
-                        !isNaN(a) && !isNaN(b)
-                          ? a - b
-                          : a.toString().localeCompare(b.toString())
-                      )
-                      .map((val) => (
-                        <Option key={val} value={val} label={val}>
-                          <Checkbox checked={filters[key]?.includes(val)}>
-                            {val}
-                          </Checkbox>
-                        </Option>
-                      ))}
-                  </Select>
+            {/* ☑ Select All */}
+            <div className="px-3 py-2">
+              <Checkbox
+                indeterminate={isIndeterminate}
+                checked={isAllSelected}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setFilters((prev) => {
+                    const updated = { ...prev };
+                    if (checked) delete updated[key];
+                    else updated[key] = [];
+                    return updated;
+                  });
+                }}>
+                Select All
+              </Checkbox>
+            </div>
+
+            {/* 📋 Values */}
+            <div className="max-h-[220px] overflow-y-auto px-2 pb-2 space-y-1">
+              {visibleValues.map((val) => (
+                <label
+                  key={val}
+                  className="flex items-center gap-2 px-2 py-1 rounded cursor-pointer hover:bg-blue-50">
+                  <Checkbox
+                    checked={selectedValues.includes(val)}
+                    onChange={(e) => {
+                      const next = e.target.checked
+                        ? [...selectedValues, val]
+                        : selectedValues.filter((v) => v !== val);
+
+                      setFilters((prev) => ({
+                        ...prev,
+                        [key]: next,
+                      }));
+                    }}
+                  />
+                  <span className="truncate">{val}</span>
+                </label>
+              ))}
+
+              {visibleValues.length === 0 && (
+                <div className="py-4 text-center text-gray-400 text-sm">
+                  No matching values
                 </div>
-              );
-            }
-          : null,
-
-      filtered: filters[key]?.length > 0,
+              )}
+            </div>
+          </div>
+        );
+      },
+      filtered: !!filters[key],
     }));
 
     cols.push(
@@ -873,15 +880,18 @@ const PublisherRequest = ({ senderId, receiverId }) => {
               ]}>
               <AutoComplete
                 options={dropdownOptions.pub_id?.map((pubId) => ({
-                  value: pubId,
+                  value: String(pubId), // 🔥 ensure string
                 }))}
                 placeholder="Enter or select PUB ID"
                 filterOption={(inputValue, option) =>
-                  option.value.toLowerCase().includes(inputValue.toLowerCase())
+                  String(option?.value)
+                    .toLowerCase()
+                    .includes(String(inputValue).toLowerCase())
                 }
                 className="rounded-lg"
               />
             </Form.Item>
+
             {/* Multi Row Geo + Payout + OS */}
             <div className="md:col-span-2">
               {geoRows.map((row, index) => (

@@ -16,32 +16,40 @@ const PublisherCreateForm = () => {
   const [geo, setGeo] = useState("");
   const [availableIds, setAvailableIds] = useState([]);
   const [usedIds, setUsedIds] = useState(new Set());
-
-  // Initialize available IDs
+  // Fetch available advertiser IDs (GLOBAL – no user_id)
   useEffect(() => {
-    if (user && Array.isArray(user.single_ids)) {
-      setAvailableIds(user.single_ids.map((id) => id.toString()));
-    }
-  }, [user]);
-
-  // Fetch publishers and filter used IDs
-  useEffect(() => {
-    const fetchPublishers = async () => {
-      if (!userId) return;
+    const fetchAvailableIds = async () => {
       try {
-        const { data } = await axios.get(`${apiUrl}/pubid-data/${userId}`);
-        if (data.success && Array.isArray(data.Publisher)) {
-          const used = new Set(data.Publisher.map((pub) => pub.pub_id));
-          setUsedIds(used);
-          setAvailableIds((prev) => prev.filter((id) => !used.has(id)));
+        const { data } = await axios.get(`${apiUrl}/available-id`);
+        if (data.success && data.available_id !== undefined) {
+          // Wrap single ID into array
+          setAvailableIds([String(data.available_id)]);
+        } else {
+          setAvailableIds([]);
         }
       } catch (err) {
-        console.error("Error fetching publishers:", err);
+        console.error("Failed to fetch available IDs", err);
+        setAvailableIds([]);
       }
     };
-    fetchPublishers();
-  }, [userId]);
 
+    fetchAvailableIds();
+  }, []);
+  const refreshAvailableIds = async () => {
+    try {
+      const { data } = await axios.get(`${apiUrl}/available-id`);
+
+      if (data.success && data.available_id !== undefined) {
+        // Wrap single ID into array
+        setAvailableIds([String(data.available_id)]);
+      } else {
+        setAvailableIds([]);
+      }
+    } catch (err) {
+      console.error("Failed to refresh available IDs", err);
+      setAvailableIds([]);
+    }
+  };
   // Submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -69,6 +77,7 @@ const PublisherCreateForm = () => {
           title: "Created",
           text: "Publisher created successfully!",
         });
+        await refreshAvailableIds();
         resetForm();
       }
     } catch (err) {
@@ -89,9 +98,12 @@ const PublisherCreateForm = () => {
 
   return (
     <div className="m-6 p-6 bg-white shadow-md rounded-2xl">
+      <h2 className="text-2xl font-semibold text-gray-800 mb-6 border-b pb-3">
+        Create Publisher
+      </h2>
       <form
         onSubmit={handleSubmit}
-        className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        className="space-y-6">
         {/* Publisher Name */}
         <div>
           <label className="block text-[#2F5D99] text-lg font-semibold mb-2">

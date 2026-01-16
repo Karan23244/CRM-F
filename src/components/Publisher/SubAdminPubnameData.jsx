@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { Table, Input, Select, Button, Space, Tooltip } from "antd";
+import { Table, Input, Select, Button, Space, Tooltip, Checkbox } from "antd";
 import geoData from "../../Data/geoData.json";
 import { useSelector } from "react-redux";
 import Swal from "sweetalert2";
@@ -15,7 +15,13 @@ const SubAdminPubnameData = () => {
   const [tableData, setTableData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingPub, setEditingPub] = useState(null);
-
+  const [filters, setFilters] = useState({});
+  const [filterSearch, setFilterSearch] = useState({});
+  const [uniqueValues, setUniqueValues] = useState({});
+  const [sortInfo, setSortInfo] = useState({
+    columnKey: null,
+    order: null, // "ascend" | "descend" | null
+  });
   // Form State for Editing
   const [name, setName] = useState("");
   const [selectedId, setSelectedId] = useState("");
@@ -44,23 +50,51 @@ const SubAdminPubnameData = () => {
 
     fetchData();
   }, []);
-
-  // Filtered data for search
-  const filteredData = tableData
-    .filter((item) => user?.assigned_subadmins?.includes(item.user_id))
-    .filter((item) =>
-      [
-        item.username,
-        item.pub_name,
-        item.pub_id,
-        item.geo,
-        item.note,
-        item.target,
-      ].some((field) =>
-        field?.toString().toLowerCase().includes(searchTerm.toLowerCase())
-      )
+  const getExcelFilteredDataForColumn = (columnKey) => {
+    return tableData.filter((row) =>
+      Object.entries(filters).every(([key, values]) => {
+        if (key === columnKey) return true;
+        if (!values || values.length === 0) return true;
+        return values.includes(normalize(row[key]));
+      })
     );
+  };
+  useEffect(() => {
+    if (!tableData.length) return;
 
+    const valuesObj = {};
+
+    Object.keys(tableData[0]).forEach((col) => {
+      const source = getExcelFilteredDataForColumn(col);
+
+      valuesObj[col] = [
+        ...new Set(source.map((row) => normalize(row[col]))),
+      ].sort((a, b) => a.localeCompare(b));
+    });
+
+    setUniqueValues(valuesObj);
+  }, [tableData, filters]);
+  const filteredData = tableData.filter((row) => {
+    // 🔍 Global search
+    const matchesSearch = [
+      row.pub_name,
+      row.pub_id,
+      row.geo,
+      row.note,
+      row.target,
+    ]
+      .join(" ")
+      .toLowerCase()
+      .includes(searchTextPub.toLowerCase());
+
+    if (!matchesSearch) return false;
+
+    // 🎯 Excel-style filters
+    return Object.entries(filters).every(([key, values]) => {
+      if (!values || values.length === 0) return true;
+      return values.includes(normalize(row[key]));
+    });
+  });
   // Handle Form Submission for Updating
   const handleUpdate = async (e) => {
     e.preventDefault();
@@ -131,49 +165,6 @@ const SubAdminPubnameData = () => {
     setPubUserId(null);
     setEditingPub(null);
   };
-
-  // Helper: Get unique values for a column
-  const getUniqueValues = (data, key) => [
-    ...new Set(data.map((item) => item[key]).filter(Boolean)),
-  ];
-
-  // Helper: Create filter dropdown with onChange
-  const createFilterDropdown = (
-    data,
-    key,
-    setSelectedKeys,
-    selectedKeys,
-    confirm
-  ) => {
-    const options = getUniqueValues(data, key).sort((a, b) => {
-      const aVal = isNaN(a) ? a.toString().toLowerCase() : parseFloat(a);
-      const bVal = isNaN(b) ? b.toString().toLowerCase() : parseFloat(b);
-      return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
-    });
-
-    return (
-      <div style={{ padding: 8 }}>
-        <Select
-          mode="multiple"
-          allowClear
-          showSearch
-          style={{ width: 200 }}
-          placeholder={`Filter ${key}`}
-          value={selectedKeys}
-          onChange={(value) => {
-            setSelectedKeys(value);
-            confirm({ closeDropdown: false });
-          }}
-          optionFilterProp="children">
-          {options.map((option) => (
-            <Option key={option} value={option}>
-              {option}
-            </Option>
-          ))}
-        </Select>
-      </div>
-    );
-  };
   // Handle place link save
   const autoSavePlaceLink = async (record, value) => {
     const trimmedValue = value.trim();
@@ -186,11 +177,14 @@ const SubAdminPubnameData = () => {
     }
 
     try {
-      const res = await axios.put("https://track.pidmetric.com/postback/place-link", {
-        pub_id: record.pub_id,
-        user_id: userid,
-        place_link: trimmedValue,
-      });
+      const res = await axios.put(
+        "https://track.pidmetric.com/postback/place-link",
+        {
+          pub_id: record.pub_id,
+          user_id: userid,
+          place_link: trimmedValue,
+        }
+      );
       console.log("Place link save response:", res);
       if (res.data.success) {
         Swal.fire({
@@ -227,90 +221,235 @@ const SubAdminPubnameData = () => {
 
   // 💡 You'll need your tableData available in scope for filters
   // For example: const [tableData, setTableData] = useState([]);
+  const excelFilterDropdown = (key) => () => {
+    const allValues = uniqueValues[key] || [];
+    const selectedValues = filters[key] ?? allValues;
+    const searchVal = filterSearch[key] || "";
+
+    const visibleValues = allValues.filter((v) =>
+      v.toLowerCase().includes(searchVal.toLowerCase())
+    );
+
+    const isAllSelected = selectedValues.length === allValues.length;
+    const isIndeterminate = selectedValues.length > 0 && !isAllSelected;
+
+    return (
+      <div className="w-[260px]" onClick={(e) => e.stopPropagation()}>
+        {/* Search */}
+        <div className="p-2 border-b bg-white">
+          <Input
+            allowClear
+            placeholder="Search values"
+            value={searchVal}
+            onChange={(e) =>
+              setFilterSearch((prev) => ({
+                ...prev,
+                [key]: e.target.value,
+              }))
+            }
+          />
+        </div>
+
+        {/* Select All */}
+        <div className="px-3 py-2">
+          <Checkbox
+            checked={isAllSelected}
+            indeterminate={isIndeterminate}
+            onChange={(e) => {
+              const checked = e.target.checked;
+              setFilters((prev) => {
+                const updated = { ...prev };
+                if (checked) delete updated[key];
+                else updated[key] = [];
+                return updated;
+              });
+            }}>
+            Select All
+          </Checkbox>
+        </div>
+
+        {/* Values */}
+        <div className="max-h-[220px] overflow-y-auto px-2 pb-2">
+          {visibleValues.map((val) => (
+            <label
+              key={val}
+              className="flex items-center gap-2 px-2 py-1 cursor-pointer hover:bg-blue-50">
+              <Checkbox
+                checked={selectedValues.includes(val)}
+                onChange={(e) => {
+                  const next = e.target.checked
+                    ? [...selectedValues, val]
+                    : selectedValues.filter((v) => v !== val);
+
+                  setFilters((prev) => ({
+                    ...prev,
+                    [key]: next,
+                  }));
+                }}
+              />
+              <span className="truncate">{val}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   const columns = [
     {
       title: "UserName",
       dataIndex: "username",
       key: "username",
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
-        createFilterDropdown(
-          filteredData,
-          "username",
-          setSelectedKeys,
-          selectedKeys,
-          confirm
-        ),
+      sorter: (a, b) => a.username.localeCompare(b.username),
+      sortOrder: sortInfo.columnKey === "username" ? sortInfo.order : null,
+      onHeaderCell: () => ({
+        onClick: () => {
+          let newOrder = "ascend";
+
+          if (sortInfo.columnKey === "username") {
+            if (sortInfo.order === "ascend") newOrder = "descend";
+            else if (sortInfo.order === "descend")
+              newOrder = null; // 🔹 third click removes sorting
+            else newOrder = "ascend";
+          }
+
+          setSortInfo({
+            columnKey: "username",
+            order: newOrder,
+          });
+        },
+      }),
+      filterDropdown: excelFilterDropdown("pub_id"),
       onFilter: (value, record) => record.username === value,
     },
     {
       title: "Publisher Name",
       dataIndex: "pub_name",
       key: "pub_name",
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
-        createFilterDropdown(
-          filteredData,
-          "pub_name",
-          setSelectedKeys,
-          selectedKeys,
-          confirm
-        ),
+      sorter: (a, b) => a.pub_name.localeCompare(b.pub_name),
+      sortOrder: sortInfo.columnKey === "pub_name" ? sortInfo.order : null,
+      onHeaderCell: () => ({
+        onClick: () => {
+          let newOrder = "ascend";
+
+          if (sortInfo.columnKey === "pub_name") {
+            if (sortInfo.order === "ascend") newOrder = "descend";
+            else if (sortInfo.order === "descend")
+              newOrder = null; // 🔹 third click removes sorting
+            else newOrder = "ascend";
+          }
+
+          setSortInfo({
+            columnKey: "pub_name",
+            order: newOrder,
+          });
+        },
+      }),
+      filterDropdown: excelFilterDropdown("pub_name"),
       onFilter: (value, record) => record.pub_name === value,
     },
     {
       title: "Publisher ID",
       dataIndex: "pub_id",
       key: "pub_id",
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
-        createFilterDropdown(
-          filteredData,
-          "pub_id",
-          setSelectedKeys,
-          selectedKeys,
-          confirm
-        ),
+      sorter: (a, b) => a.pub_id.localeCompare(b.pub_id),
+      sortOrder: sortInfo.columnKey === "pub_id" ? sortInfo.order : null,
+      onHeaderCell: () => ({
+        onClick: () => {
+          let newOrder = "ascend";
+
+          if (sortInfo.columnKey === "pub_id") {
+            if (sortInfo.order === "ascend") newOrder = "descend";
+            else if (sortInfo.order === "descend")
+              newOrder = null; // 🔹 third click removes sorting
+            else newOrder = "ascend";
+          }
+
+          setSortInfo({
+            columnKey: "pub_id",
+            order: newOrder,
+          });
+        },
+      }),
+      filterDropdown: excelFilterDropdown("pub_id"),
       onFilter: (value, record) => record.pub_id === value,
     },
     {
       title: "Geo",
       dataIndex: "geo",
       key: "geo",
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
-        createFilterDropdown(
-          filteredData,
-          "geo",
-          setSelectedKeys,
-          selectedKeys,
-          confirm
-        ),
+      sorter: (a, b) => a.geo.localeCompare(b.geo),
+      sortOrder: sortInfo.columnKey === "geo" ? sortInfo.order : null,
+      onHeaderCell: () => ({
+        onClick: () => {
+          let newOrder = "ascend";
+
+          if (sortInfo.columnKey === "geo") {
+            if (sortInfo.order === "ascend") newOrder = "descend";
+            else if (sortInfo.order === "descend")
+              newOrder = null; // 🔹 third click removes sorting
+            else newOrder = "ascend";
+          }
+
+          setSortInfo({
+            columnKey: "geo",
+            order: newOrder,
+          });
+        },
+      }),
+      filterDropdown: excelFilterDropdown("geo"),
       onFilter: (value, record) => record.geo === value,
     },
     {
       title: "Note",
       dataIndex: "note",
       key: "note",
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
-        createFilterDropdown(
-          filteredData,
-          "note",
-          setSelectedKeys,
-          selectedKeys,
-          confirm
-        ),
+      sorter: (a, b) => a.note.localeCompare(b.note),
+      sortOrder: sortInfo.columnKey === "note" ? sortInfo.order : null,
+      onHeaderCell: () => ({
+        onClick: () => {
+          let newOrder = "ascend";
+
+          if (sortInfo.columnKey === "note") {
+            if (sortInfo.order === "ascend") newOrder = "descend";
+            else if (sortInfo.order === "descend")
+              newOrder = null; // 🔹 third click removes sorting
+            else newOrder = "ascend";
+          }
+
+          setSortInfo({
+            columnKey: "note",
+            order: newOrder,
+          });
+        },
+      }),
+      filterDropdown: excelFilterDropdown("note"),
       onFilter: (value, record) => record.note === value,
     },
     {
       title: "Target",
       dataIndex: "target",
       key: "target",
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
-        createFilterDropdown(
-          filteredData,
-          "target",
-          setSelectedKeys,
-          selectedKeys,
-          confirm
-        ),
+      sorter: (a, b) => a.target.localeCompare(b.target),
+      sortOrder: sortInfo.columnKey === "target" ? sortInfo.order : null,
+      onHeaderCell: () => ({
+        onClick: () => {
+          let newOrder = "ascend";
+
+          if (sortInfo.columnKey === "target") {
+            if (sortInfo.order === "ascend") newOrder = "descend";
+            else if (sortInfo.order === "descend")
+              newOrder = null; // 🔹 third click removes sorting
+            else newOrder = "ascend";
+          }
+
+          setSortInfo({
+            columnKey: "target",
+            order: newOrder,
+          });
+        },
+      }),
+      filterDropdown: excelFilterDropdown("target"),
       onFilter: (value, record) => record.target === value,
     },
     {

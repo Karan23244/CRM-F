@@ -9,6 +9,7 @@ import {
   Space,
   Input,
   Tooltip,
+  Checkbox,
 } from "antd";
 import { useSelector } from "react-redux";
 import StyledTable from "../../Utils/StyledTable";
@@ -21,6 +22,7 @@ import {
 import geoData from "../../Data/geoData.json";
 import SubAdminPubnameData from "./SubAdminPubnameData";
 import Swal from "sweetalert2";
+import {} from "@ant-design/icons";
 const { Option } = Select;
 
 const apiUrl = import.meta.env.VITE_API_URL;
@@ -84,377 +86,6 @@ const PublisherIDDashboard = () => {
 
 export default PublisherIDDashboard;
 
-// const PublisherCreateForm = () => {
-//   const user = useSelector((state) => state.auth.user);
-//   const userId = user?.id || null;
-//   const [name, setName] = useState("");
-//   const [selectedId, setSelectedId] = useState("");
-//   const [geo, setGeo] = useState("");
-//   const [note, setNote] = useState("");
-//   const [publishers, setPublishers] = useState([]);
-//   const [availableIds, setAvailableIds] = useState([]);
-//   const [loading, setLoading] = useState(false);
-//   const [error, setError] = useState("");
-//   const [usedIds, setUsedIds] = useState(new Set());
-//   const [editingPub, setEditingPub] = useState(null);
-//   const [level, setLevel] = useState("");
-//   const [target, setTarget] = useState("");
-//   const [searchTextPub, setSearchTextPub] = useState("");
-//   const [showForm, setShowForm] = useState(false);
-
-//   // **Initialize available IDs**
-//   useEffect(() => {
-//     if (user && Array.isArray(user.single_ids)) {
-//       const allAvailableIds = user.single_ids.map((id) => id.toString());
-//       setAvailableIds(allAvailableIds);
-//     }
-//   }, [user]);
-
-//   // Fetch publishers
-//   useEffect(() => {
-//     const fetchPublishers = async () => {
-//       if (!userId) return;
-//       setLoading(true);
-//       try {
-//         const { data } = await axios.get(`${apiUrl}/pubid-data/${userId}`);
-//         if (data.success && Array.isArray(data.Publisher)) {
-//           setPublishers(data.Publisher);
-
-//           const usedIdsSet = new Set(data.Publisher.map((adv) => adv.pub_id));
-//           setUsedIds(usedIdsSet);
-//           setAvailableIds((prevIds) =>
-//             prevIds.filter((id) => !usedIdsSet.has(id))
-//           );
-//         }
-//       } catch (error) {
-//         console.error("Error fetching publishers:", error);
-//         setError("Failed to fetch publishers. Please try again.");
-//       } finally {
-//         setLoading(false);
-//       }
-//     };
-
-//     fetchPublishers();
-//   }, [userId]);
-
-//   // Handle form submission
-//   const handleSubmit = async (e) => {
-//     e.preventDefault();
-//     e.preventDefault();
-
-//     // Trim values before validation & submission
-//     const trimmedName = name.trim();
-//     const trimmedId = selectedId.trim();
-//     const trimmedGeo = geo.trim();
-//     const trimmedNote = note.trim();
-//     const trimmedTarget = target.trim();
-//     const trimmedLevel = level.trim();
-
-//     if (!trimmedName || !trimmedId || !trimmedGeo) {
-//       Swal.fire({
-//         icon: "error",
-//         title: "Validation Error",
-//         text: "Publisher Name, Publisher ID, and Geo are required.",
-//       });
-//       return;
-//     }
-
-//     const updatedPub = {
-//       pub_name: trimmedName,
-//       pub_id: trimmedId,
-//       geo: trimmedGeo,
-//       user_id: userId,
-//       note: trimmedNote || "",
-//       target: trimmedTarget || "",
-//       level: trimmedLevel || "",
-//     };
-//     setLoading(true);
-//     try {
-//       if (editingPub) {
-//         await axios.put(`${apiUrl}/update-pubid`, updatedPub);
-//         Swal.fire({
-//           icon: "success",
-//           title: "Updated!",
-//           text: "Publisher updated successfully",
-//           timer: 2000,
-//           showConfirmButton: false,
-//         });
-//         setEditingPub(null);
-//       } else {
-//         await axios.post(`${apiUrl}/create-pubid`, updatedPub);
-//         Swal.fire({
-//           icon: "success",
-//           title: "Created!",
-//           text: "Publisher created successfully",
-//           timer: 2000,
-//           showConfirmButton: false,
-//         });
-//       }
-
-//       const { data } = await axios.get(`${apiUrl}/pubid-data/${userId}`);
-//       if (data.success && Array.isArray(data.Publisher)) {
-//         setPublishers(data.Publisher);
-//         const usedIds = new Set(data.Publisher.map((pub) => pub.pub_id));
-//         setAvailableIds((prevIds) => prevIds.filter((id) => !usedIds.has(id)));
-//       }
-
-//       resetForm();
-//       setShowForm(false); // 👈 hide form after submit
-//     } catch (error) {
-//       console.error("Error creating/updating publisher:", error);
-//       setError("Failed to create/update publisher. Please try again.");
-//       Swal.fire({
-//         icon: "error",
-//         title: "Oops...",
-//         text: "Failed to create/update publisher. Please try again.",
-//       });
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   // Handle Edit
-//   const handleEdit = (record) => {
-//     setEditingPub(record);
-//     setName(record.pub_name);
-//     setSelectedId(record.pub_id);
-//     setGeo(record.geo);
-//     setNote(record.note);
-//     setTarget(record.target || "");
-//     setLevel(record.level || "");
-//     setShowForm(true); // 👈 show form when editing
-//   };
-
-//   // Reset
-//   const resetForm = () => {
-//     setName("");
-//     setSelectedId("");
-//     setGeo("");
-//     setNote("");
-//     setEditingPub(null);
-//     setTarget("");
-//     setError("");
-//     setLevel("");
-//   };
-
-//   // Filter
-//   const filteredPublishers = publishers.filter((item) =>
-//     Object.values(item).some((value) =>
-//       String(value).toLowerCase().includes(searchTextPub.toLowerCase())
-//     )
-//   );
-
-//   const columns = [
-//     { title: "Publisher ID", dataIndex: "pub_id", key: "pub_id" },
-//     { title: "Publisher Name", dataIndex: "pub_name", key: "pub_name" },
-//     { title: "Geo", dataIndex: "geo", key: "geo" },
-//     { title: "Note", dataIndex: "note", key: "note" },
-//     { title: "Target", dataIndex: "target", key: "target" },
-//     { title: "Rating", dataIndex: "level", key: "level" },
-//     {
-//       title: "Actions",
-//       key: "actions",
-//       render: (_, record) => (
-//         <Space size="middle">
-//           <Button type="link" onClick={() => handleEdit(record)}>
-//             Edit
-//           </Button>
-//         </Space>
-//       ),
-//     },
-//   ];
-
-//   return (
-//     <div className="m-6 p-6 bg-white shadow-md rounded-lg">
-//       {/* Toggle button */}
-//       {!showForm && !editingPub && (
-//         <button
-//           onClick={() => setShowForm(true)}
-//           className="mb-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 cursor-pointer">
-//           Add Publisher
-//         </button>
-//       )}
-
-//       {/* Form */}
-//       {showForm && (
-//         <>
-//           <h2 className="text-2xl font-bold mb-4">
-//             {editingPub ? "Edit Publisher" : "Create Publisher"}
-//           </h2>
-
-//           {error && (
-//             <Alert message={error} type="error" showIcon className="mb-4" />
-//           )}
-
-//           <form onSubmit={handleSubmit} className="space-y-4">
-//             {/* Publisher Name */}
-//             <div>
-//               <label className="block text-lg font-medium">
-//                 Publisher Name
-//               </label>
-//               <input
-//                 type="text"
-//                 value={name}
-//                 onChange={(e) => setName(e.target.value)}
-//                 className="w-full p-2 border border-gray-300 rounded-lg"
-//                 required
-//                 disabled={!!editingPub}
-//               />
-//             </div>
-
-//             {/* Publisher ID */}
-//             <div>
-//               <label className="block text-lg font-medium">
-//                 Select Publisher ID
-//               </label>
-//               <select
-//                 value={selectedId}
-//                 onChange={(e) => setSelectedId(e.target.value)}
-//                 className="w-full p-2 border border-gray-300 rounded-lg"
-//                 required
-//                 disabled={!!editingPub}>
-//                 <option value="">Select an ID</option>
-//                 {availableIds.length > 0 || editingPub ? (
-//                   (editingPub ? [editingPub.pub_id] : availableIds).map(
-//                     (id) => (
-//                       <option key={id} value={id}>
-//                         {id}
-//                       </option>
-//                     )
-//                   )
-//                 ) : (
-//                   <option disabled>No available IDs</option>
-//                 )}
-//               </select>
-//             </div>
-
-//             {/* Geo */}
-//             <div>
-//               <label className="block text-lg font-medium">Select Geo</label>
-//               <Select
-//                 showSearch
-//                 value={geo}
-//                 onChange={(value) => setGeo(value)}
-//                 placeholder="Select Geo"
-//                 className="w-full"
-//                 optionFilterProp="children"
-//                 filterOption={(input, option) =>
-//                   option?.label?.toLowerCase().includes(input.toLowerCase())
-//                 }
-//                 required>
-//                 {geoData.geo?.map((geo) => (
-//                   <Select.Option
-//                     key={geo.code}
-//                     value={geo.code}
-//                     label={`${geo.code}`}>
-//                     {geo.code}
-//                   </Select.Option>
-//                 ))}
-//               </Select>
-//             </div>
-
-//             {editingPub && user?.role === "publisher_manager" && (
-//               <>
-//                 <div>
-//                   <label className="block text-lg font-medium">Target</label>
-//                   <input
-//                     type="text"
-//                     value={target}
-//                     onChange={(e) => setTarget(e.target.value)}
-//                     className="w-full p-2 border border-gray-300 rounded-lg"
-//                   />
-//                 </div>
-//                 <div>
-//                   <label className="block text-lg font-medium">Note</label>
-//                   <textarea
-//                     value={note}
-//                     onChange={(e) => setNote(e.target.value)}
-//                     className="w-full p-2 border border-gray-300 rounded-lg"
-//                     rows="3"
-//                   />
-//                 </div>
-//                 <div>
-//                   <label className="block text-lg font-medium">Rating</label>
-//                   <input
-//                     type="text"
-//                     value={level}
-//                     onChange={(e) => setLevel(e.target.value)}
-//                     className="w-full p-2 border border-gray-300 rounded-lg"
-//                   />
-//                 </div>
-//               </>
-//             )}
-
-//             {/* Submit */}
-//             <button
-//               type="submit"
-//               className="w-full bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 cursor-pointer"
-//               disabled={loading}>
-//               {loading ? (
-//                 <Spin size="small" />
-//               ) : editingPub ? (
-//                 "Update"
-//               ) : (
-//                 "Create"
-//               )}
-//             </button>
-
-//             <button
-//               type="button"
-//               onClick={() => {
-//                 resetForm();
-//                 setShowForm(false); // 👈 hide form on cancel
-//               }}
-//               className="w-full mt-2 bg-gray-400 text-white p-2 rounded-lg hover:bg-gray-500 cursor-pointer">
-//               Cancel
-//             </button>
-//           </form>
-//         </>
-//       )}
-
-//       {/* Table */}
-//       <div className="bg-white rounded-2xl shadow-xl p-6 mt-4">
-//         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-//           <h3 className="text-2xl font-bold">Existing Publishers</h3>
-//           <div className="relative w-full md:w-[300px]">
-//             <Input
-//               placeholder="Search Publishers..."
-//               prefix={<SearchOutlined style={{ color: "#999" }} />}
-//               value={searchTextPub}
-//               onChange={(e) => setSearchTextPub(e.target.value)}
-//               allowClear
-//               className="rounded-full shadow-md border-none ring-1 ring-gray-300"
-//             />
-//           </div>
-//         </div>
-
-//         {loading ? (
-//           <div className="flex justify-center items-center py-12">
-//             <Spin size="large" />
-//           </div>
-//         ) : (
-//           <div className="overflow-x-auto">
-//             <Table
-//               dataSource={filteredPublishers}
-//               columns={columns}
-//               rowKey="pub_id"
-//               className="mt-4"
-//               pagination={{
-//                 pageSizeOptions: ["10", "20", "50", "100"],
-//                 showSizeChanger: true,
-//                 defaultPageSize: 10,
-//                 showTotal: (total, range) =>
-//                   `${range[0]}-${range[1]} of ${total} items`,
-//               }}
-//               scroll={{ x: "max-content" }}
-//             />
-//           </div>
-//         )}
-//       </div>
-//     </div>
-//   );
-// };
-
 const PublisherEditForm = () => {
   const user = useSelector((state) => state.auth.user);
   const userId = user?.id || null;
@@ -465,13 +96,24 @@ const PublisherEditForm = () => {
   const [searchTextPub, setSearchTextPub] = useState("");
   const [editingLinkId, setEditingLinkId] = useState(null);
   const [placeLinkValue, setPlaceLinkValue] = useState("");
-
+  const [filters, setFilters] = useState({});
+  const [filterSearch, setFilterSearch] = useState({});
+  const [uniqueValues, setUniqueValues] = useState({});
+  const [sortInfo, setSortInfo] = useState({
+    columnKey: null,
+    order: null, // "ascend" | "descend" | null
+  });
   // Form fields
   const [name, setName] = useState("");
   const [pubId, setPubId] = useState("");
   const [geo, setGeo] = useState("");
   const [note, setNote] = useState("");
   const [target, setTarget] = useState("");
+  const normalize = (val) => {
+    if (val === null || val === undefined || val === "") return "-";
+    return val.toString().trim();
+  };
+
   // Fetch publishers list
   useEffect(() => {
     const fetchPublishers = async () => {
@@ -491,24 +133,51 @@ const PublisherEditForm = () => {
     };
     fetchPublishers();
   }, [userId]);
+  const getExcelFilteredDataForColumn = (columnKey) => {
+    return publishers.filter((row) =>
+      Object.entries(filters).every(([key, values]) => {
+        if (key === columnKey) return true;
+        if (!values || values.length === 0) return true;
+        return values.includes(normalize(row[key]));
+      })
+    );
+  };
+  useEffect(() => {
+    if (!publishers.length) return;
 
-  // Helper: Get unique values for a column
-  const getUniqueValues = (data, key) => [
-    ...new Set(data.map((item) => item[key]).filter(Boolean)),
-  ];
-  // // Filtered data
-  // const filteredPublishers = publishers.filter((item) =>
-  //   Object.values(item).some((value) =>
-  //     String(value).toLowerCase().includes(searchTextPub.toLowerCase())
-  //   )
-  // );
-  // Filtered data for search
-  const filteredData = publishers.filter((item) =>
-    [item.pub_name, item.pub_id, item.geo, item.note, item.target].some(
-      (field) =>
-        field?.toString().toLowerCase().includes(searchTextPub.toLowerCase())
-    )
-  );
+    const valuesObj = {};
+
+    Object.keys(publishers[0]).forEach((col) => {
+      const source = getExcelFilteredDataForColumn(col);
+
+      valuesObj[col] = [
+        ...new Set(source.map((row) => normalize(row[col]))),
+      ].sort((a, b) => a.localeCompare(b));
+    });
+
+    setUniqueValues(valuesObj);
+  }, [publishers, filters]);
+  const filteredData = publishers.filter((row) => {
+    // 🔍 Global search
+    const matchesSearch = [
+      row.pub_name,
+      row.pub_id,
+      row.geo,
+      row.note,
+      row.target,
+    ]
+      .join(" ")
+      .toLowerCase()
+      .includes(searchTextPub.toLowerCase());
+
+    if (!matchesSearch) return false;
+
+    // 🎯 Excel-style filters
+    return Object.entries(filters).every(([key, values]) => {
+      if (!values || values.length === 0) return true;
+      return values.includes(normalize(row[key]));
+    });
+  });
 
   // Handle edit click
   const handleEdit = (record) => {
@@ -632,11 +301,14 @@ const PublisherEditForm = () => {
     try {
       setLoading(true);
       console.log(`${apiUrl1}/postback/place-link`);
-      const res = await axios.put("https://track.pidmetric.com/postback/place-link", {
-        pub_id: record.pub_id,
-        user_id: userId,
-        place_link: trimmedValue,
-      });
+      const res = await axios.put(
+        "https://track.pidmetric.com/postback/place-link",
+        {
+          pub_id: record.pub_id,
+          user_id: userId,
+          place_link: trimmedValue,
+        }
+      );
       if (res.data.success) {
         Swal.fire({
           icon: "success",
@@ -671,76 +343,209 @@ const PublisherEditForm = () => {
       setEditingLinkId(null);
     }
   };
+  const excelFilterDropdown = (key) => () => {
+    const allValues = uniqueValues[key] || [];
+    const selectedValues = filters[key] ?? allValues;
+    const searchVal = filterSearch[key] || "";
+
+    const visibleValues = allValues.filter((v) =>
+      v.toLowerCase().includes(searchVal.toLowerCase())
+    );
+
+    const isAllSelected = selectedValues.length === allValues.length;
+    const isIndeterminate = selectedValues.length > 0 && !isAllSelected;
+
+    return (
+      <div className="w-[260px]" onClick={(e) => e.stopPropagation()}>
+        {/* Search */}
+        <div className="p-2 border-b bg-white">
+          <Input
+            allowClear
+            placeholder="Search values"
+            value={searchVal}
+            onChange={(e) =>
+              setFilterSearch((prev) => ({
+                ...prev,
+                [key]: e.target.value,
+              }))
+            }
+          />
+        </div>
+
+        {/* Select All */}
+        <div className="px-3 py-2">
+          <Checkbox
+            checked={isAllSelected}
+            indeterminate={isIndeterminate}
+            onChange={(e) => {
+              const checked = e.target.checked;
+              setFilters((prev) => {
+                const updated = { ...prev };
+                if (checked) delete updated[key];
+                else updated[key] = [];
+                return updated;
+              });
+            }}>
+            Select All
+          </Checkbox>
+        </div>
+
+        {/* Values */}
+        <div className="max-h-[220px] overflow-y-auto px-2 pb-2">
+          {visibleValues.map((val) => (
+            <label
+              key={val}
+              className="flex items-center gap-2 px-2 py-1 cursor-pointer hover:bg-blue-50">
+              <Checkbox
+                checked={selectedValues.includes(val)}
+                onChange={(e) => {
+                  const next = e.target.checked
+                    ? [...selectedValues, val]
+                    : selectedValues.filter((v) => v !== val);
+
+                  setFilters((prev) => ({
+                    ...prev,
+                    [key]: next,
+                  }));
+                }}
+              />
+              <span className="truncate">{val}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   const columns = [
     {
       title: "Publisher ID",
       dataIndex: "pub_id",
       key: "pub_id",
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
-        createFilterDropdown(
-          filteredData,
-          "pub_id",
-          setSelectedKeys,
-          selectedKeys,
-          confirm
-        ),
+      sorter: (a, b) => a.pub_id.localeCompare(b.pub_id),
+      sortOrder: sortInfo.columnKey === "pub_id" ? sortInfo.order : null,
+      onHeaderCell: () => ({
+        onClick: () => {
+          let newOrder = "ascend";
+
+          if (sortInfo.columnKey === "pub_id") {
+            if (sortInfo.order === "ascend") newOrder = "descend";
+            else if (sortInfo.order === "descend")
+              newOrder = null; // 🔹 third click removes sorting
+            else newOrder = "ascend";
+          }
+
+          setSortInfo({
+            columnKey: "pub_id",
+            order: newOrder,
+          });
+        },
+      }),
+      filterDropdown: excelFilterDropdown("pub_id"),
       onFilter: (value, record) => record.pub_id === value,
     },
     {
       title: "Publisher Name",
       dataIndex: "pub_name",
       key: "pub_name",
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
-        createFilterDropdown(
-          filteredData,
-          "pub_name",
-          setSelectedKeys,
-          selectedKeys,
-          confirm
-        ),
+      sorter: (a, b) => a.pub_name.localeCompare(b.pub_name),
+      sortOrder: sortInfo.columnKey === "pub_name" ? sortInfo.order : null,
+      onHeaderCell: () => ({
+        onClick: () => {
+          let newOrder = "ascend";
+
+          if (sortInfo.columnKey === "pub_name") {
+            if (sortInfo.order === "ascend") newOrder = "descend";
+            else if (sortInfo.order === "descend")
+              newOrder = null; // 🔹 third click removes sorting
+            else newOrder = "ascend";
+          }
+
+          setSortInfo({
+            columnKey: "pub_name",
+            order: newOrder,
+          });
+        },
+      }),
+      filterDropdown: excelFilterDropdown("pub_name"),
       onFilter: (value, record) => record.pub_name === value,
     },
     {
       title: "Geo",
       dataIndex: "geo",
       key: "geo",
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
-        createFilterDropdown(
-          filteredData,
-          "geo",
-          setSelectedKeys,
-          selectedKeys,
-          confirm
-        ),
+      sorter: (a, b) => a.geo.localeCompare(b.geo),
+      sortOrder: sortInfo.columnKey === "geo" ? sortInfo.order : null,
+      onHeaderCell: () => ({
+        onClick: () => {
+          let newOrder = "ascend";
+
+          if (sortInfo.columnKey === "geo") {
+            if (sortInfo.order === "ascend") newOrder = "descend";
+            else if (sortInfo.order === "descend")
+              newOrder = null; // 🔹 third click removes sorting
+            else newOrder = "ascend";
+          }
+
+          setSortInfo({
+            columnKey: "geo",
+            order: newOrder,
+          });
+        },
+      }),
+      filterDropdown: excelFilterDropdown("geo"),
       onFilter: (value, record) => record.geo === value,
     },
     {
       title: "Note",
       dataIndex: "note",
       key: "note",
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
-        createFilterDropdown(
-          filteredData,
-          "note",
-          setSelectedKeys,
-          selectedKeys,
-          confirm
-        ),
+      sorter: (a, b) => a.note.localeCompare(b.note),
+      sortOrder: sortInfo.columnKey === "note" ? sortInfo.order : null,
+      onHeaderCell: () => ({
+        onClick: () => {
+          let newOrder = "ascend";
+
+          if (sortInfo.columnKey === "note") {
+            if (sortInfo.order === "ascend") newOrder = "descend";
+            else if (sortInfo.order === "descend")
+              newOrder = null; // 🔹 third click removes sorting
+            else newOrder = "ascend";
+          }
+
+          setSortInfo({
+            columnKey: "note",
+            order: newOrder,
+          });
+        },
+      }),
+      filterDropdown: excelFilterDropdown("note"),
       onFilter: (value, record) => record.note === value,
     },
     {
       title: "Target",
       dataIndex: "target",
       key: "target",
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
-        createFilterDropdown(
-          filteredData,
-          "target",
-          setSelectedKeys,
-          selectedKeys,
-          confirm
-        ),
+      sorter: (a, b) => a.target.localeCompare(b.target),
+      sortOrder: sortInfo.columnKey === "target" ? sortInfo.order : null,
+      onHeaderCell: () => ({
+        onClick: () => {
+          let newOrder = "ascend";
+
+          if (sortInfo.columnKey === "target") {
+            if (sortInfo.order === "ascend") newOrder = "descend";
+            else if (sortInfo.order === "descend")
+              newOrder = null; // 🔹 third click removes sorting
+            else newOrder = "ascend";
+          }
+
+          setSortInfo({
+            columnKey: "target",
+            order: newOrder,
+          });
+        },
+      }),
+      filterDropdown: excelFilterDropdown("target"),
       onFilter: (value, record) => record.target === value,
     },
     {

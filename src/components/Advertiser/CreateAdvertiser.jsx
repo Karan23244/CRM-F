@@ -16,12 +16,6 @@ const AdvertiserCreateForm = () => {
   const [name, setName] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const [geo, setGeo] = useState("");
-  const [note, setNote] = useState("");
-  const [target, setTarget] = useState("");
-  const [acc_email, setAcc_email] = useState("");
-  const [poc_email, setPoc_email] = useState("");
-  const [assign_user, setAssign_user] = useState("");
-  const [assign_id, setAssign_id] = useState("");
   const [editingAdv, setEditingAdv] = useState(null);
 
   // Data state
@@ -38,13 +32,40 @@ const AdvertiserCreateForm = () => {
       ])
     );
   };
-
-  // Initialize available IDs
+  // Fetch available advertiser IDs (GLOBAL – no user_id)
   useEffect(() => {
-    if (user && Array.isArray(user.single_ids)) {
-      setAvailableIds(user.single_ids.map((id) => id.toString()));
+    const fetchAvailableIds = async () => {
+      try {
+        const { data } = await axios.get(`${apiUrl}/available-id`);
+        if (data.success && data.available_id !== undefined) {
+          // Wrap single ID into array
+          setAvailableIds([String(data.available_id)]);
+        } else {
+          setAvailableIds([]);
+        }
+      } catch (err) {
+        console.error("Failed to fetch available IDs", err);
+        setAvailableIds([]);
+      }
+    };
+
+    fetchAvailableIds();
+  }, []);
+  const refreshAvailableIds = async () => {
+    try {
+      const { data } = await axios.get(`${apiUrl}/available-id`);
+
+      if (data.success && data.available_id !== undefined) {
+        // Wrap single ID into array
+        setAvailableIds([String(data.available_id)]);
+      } else {
+        setAvailableIds([]);
+      }
+    } catch (err) {
+      console.error("Failed to refresh available IDs", err);
+      setAvailableIds([]);
     }
-  }, [user]);
+  };
 
   // Fetch advertisers
   useEffect(() => {
@@ -54,11 +75,6 @@ const AdvertiserCreateForm = () => {
         const { data } = await axios.get(`${apiUrl}/advid-data/${userId}`);
         if (data.success && Array.isArray(data.advertisements)) {
           setAdvertisers(data.advertisements);
-          const usedIdsSet = new Set(
-            data.advertisements.map((adv) => adv.adv_id)
-          );
-          setUsedIds(usedIdsSet);
-          setAvailableIds((prev) => prev.filter((id) => !usedIdsSet.has(id)));
         }
       } catch {
         setAdvertisers([]);
@@ -101,16 +117,11 @@ const AdvertiserCreateForm = () => {
           text: response.data.message || "Operation successful!",
         });
       }
-
+      await refreshAvailableIds();
       // Refresh advertisers
       const { data } = await axios.get(`${apiUrl}/advid-data/${userId}`);
       if (data.success && Array.isArray(data.advertisements)) {
         setAdvertisers(data.advertisements);
-        const newUsedIds = new Set(
-          data.advertisements.map((adv) => adv.adv_id)
-        );
-        setUsedIds(newUsedIds);
-        setAvailableIds((prev) => prev.filter((id) => !newUsedIds.has(id)));
       }
 
       resetForm();

@@ -20,36 +20,29 @@ import StyledTable from "../../Utils/StyledTable";
 import { LuEye } from "react-icons/lu";
 import { RiFileExcel2Line } from "react-icons/ri";
 import { FaFilterCircleXmark } from "react-icons/fa6";
+import { sortDropdownValues } from "../../Utils/sortDropdownValues";
+import ColumnSettings from "../../Utils/ColumnSettings";
+import { useColumnPresets } from "../../Utils/useColumnPresets";
+
 dayjs.extend(isBetween);
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 const apiUrl = import.meta.env.VITE_API_URL;
 
 const PublisherPayoutData = () => {
-  const monthClasses = [
-    "january-row",
-    "february-row",
-    "march-row",
-    "april-row",
-    "may-row",
-    "june-row",
-    "july-row",
-    "august-row",
-    "september-row",
-    "october-row",
-    "november-row",
-    "december-row",
-  ];
+  const user = useSelector((state) => state.auth.user);
+  const userId = useSelector((state) => state.auth.user.id);
+  const assignedSubAdmins = user?.assigned_subadmins || [];
   const [advData, setAdvData] = useState([]);
   const [filters, setFilters] = useState({});
   const [filteredData, setFilteredData] = useState([]);
   const [uniqueValues, setUniqueValues] = useState({});
+  const [filterSearch, setFilterSearch] = useState({});
   const [stickyColumns, setStickyColumns] = useState([]);
   const [selectedDateRange, setSelectedDateRange] = useState([
     dayjs().startOf("month"),
     dayjs().endOf("month"),
   ]);
-  const [firstFilteredColumn, setFirstFilteredColumn] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSubAdmins, setSelectedSubAdmins] = useState([]);
   const [subAdmins, setSubAdmins] = useState([]);
@@ -58,16 +51,6 @@ const PublisherPayoutData = () => {
     order: null,
   });
   const [editingKey, setEditingKey] = useState(""); // which row is being edited
-  const [hiddenColumns, setHiddenColumns] = useState(() => {
-    const saved = localStorage.getItem("hiddenPublisherColumns");
-    return saved ? JSON.parse(saved) : [];
-  });
-  useEffect(() => {
-    localStorage.setItem(
-      "hiddenPublisherColumns",
-      JSON.stringify(hiddenColumns)
-    );
-  }, [hiddenColumns]);
   const isEditing = (record) => record.id === editingKey;
   // 🔹 Save Note
   const saveNote = async (record, newNote) => {
@@ -113,35 +96,6 @@ const PublisherPayoutData = () => {
 
     setEditingKey("");
   };
-
-  // 🔹 Save Vertical
-  const saveVertical = async (record, newVertical) => {
-    try {
-      const resp = await fetch(`${apiUrl}/adv_update/${record.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ vertical: newVertical }),
-      });
-
-      const data = await resp.json();
-      if (data.success) {
-        setAdvData((prev) =>
-          prev.map((item) =>
-            item.id === record.id ? { ...item, vertical: newVertical } : item
-          )
-        );
-        Swal.fire({
-          icon: "success",
-          title: "Vertical Updated",
-          timer: 1500,
-          showConfirmButton: false,
-        });
-      }
-    } catch (error) {
-      console.error("Error updating vertical:", error);
-    }
-  };
-
   // 🔹 Save FP
   const saveFP = async (record, newFP) => {
     try {
@@ -167,8 +121,6 @@ const PublisherPayoutData = () => {
       console.error("Error updating FP:", error);
     }
   };
-
-  const user = useSelector((state) => state.auth.user);
   const handleDateRangeChange = (dates) => {
     if (!dates || dates.length === 0) {
       // Reset to current month
@@ -179,7 +131,6 @@ const PublisherPayoutData = () => {
   };
   const clearAllFilters = () => {
     setFilters({});
-    setHiddenColumns([]);
     setSortInfo({ columnKey: null, order: null }); // 🔁 reset sorting
   };
   const columnHeadingsAdv = {
@@ -205,6 +156,17 @@ const PublisherPayoutData = () => {
     adv_total_no: "PUB Total Numbers",
     pub_Apno: "PUB Approved Numbers",
   };
+  const allColumns = Object.keys(columnHeadingsAdv);
+  const {
+    presets,
+    hiddenColumns,
+    setHiddenColumns,
+    activePreset,
+    applyPreset,
+    savePreset,
+    updatePreset,
+    deletePreset,
+  } = useColumnPresets({ userId, allColumns });
   const toggleStickyColumn = (key) => {
     setStickyColumns((prev) =>
       prev.includes(key) ? prev.filter((col) => col !== key) : [...prev, key]
@@ -225,9 +187,7 @@ const PublisherPayoutData = () => {
       console.error("Error fetching advertiser data:", error);
     }
   };
-
-  const assignedSubAdmins = user?.assigned_subadmins || [];
-
+  // Fetch sub-admins for the dropdown
   useEffect(() => {
     const fetchSubAdmins = async () => {
       try {
@@ -249,7 +209,6 @@ const PublisherPayoutData = () => {
 
     fetchSubAdmins();
   }, [assignedSubAdmins]); // Refetch if assigned sub-admins change
-
   useEffect(() => {
     if (
       !selectedDateRange ||
@@ -271,31 +230,23 @@ const PublisherPayoutData = () => {
     return () => clearInterval(intervalId);
   }, [selectedDateRange]);
 
-  const handleFilterChange = (value, key) => {
+  const handleFilterChange = (values, key) => {
     setFilters((prev) => {
-      // If no filter applied yet → mark this as first filtered column
-      if (!firstFilteredColumn && value.length > 0) {
-        setFirstFilteredColumn(key);
+      const allValues = uniqueValues[key] || [];
+
+      // Excel behavior:
+      // If everything selected → treat as NO FILTER
+      if (values.length === allValues.length) {
+        const updated = { ...prev };
+        delete updated[key];
+        return updated;
       }
 
-      // If filter cleared completely → reset first filter logic
-      const isAllFiltersEmpty = Object.values({
-        ...prev,
-        [key]: value,
-      }).every((arr) => !arr || arr.length === 0);
-
-      if (isAllFiltersEmpty) {
-        setFirstFilteredColumn(null);
-      }
-
-      return { ...prev, [key]: value };
+      return { ...prev, [key]: values };
     });
   };
 
   useEffect(() => {
-    const currentMonth = dayjs().month();
-    const currentYear = dayjs().year();
-
     const normalize = (val) =>
       val === null || val === undefined || val.toString().trim() === ""
         ? "-"
@@ -354,61 +305,30 @@ const PublisherPayoutData = () => {
     });
 
     setFilteredData(filtered);
-  }, [
-    advData,
-    filters,
-    searchTerm,
-    selectedSubAdmins,
-    user,
-  ]);
-  const baseAccessibleData = useMemo(() => {
+  }, [advData, filters, searchTerm, selectedSubAdmins, user]);
+  const getExcelFilteredDataForColumn = (columnKey) => {
     const normalize = (val) =>
       val === null || val === undefined || val.toString().trim() === ""
         ? "-"
         : val.toString().trim().toLowerCase();
 
-    return advData.filter((item) => {
-      const sharedDate = dayjs(item.shared_date);
-
-      // match publisher/subadmin allowed data
-      const normalizedPubName = normalize(item.pub_name);
+    return advData.filter((row) => {
+      // publisher access check
       const matchesPub = [
         user?.username?.toLowerCase(),
         ...selectedSubAdmins.map((x) => x.toLowerCase()),
-      ].includes(normalizedPubName);
+      ].includes(normalize(row.pub_name));
 
-      // // match date range
-      // const matchesDate = sharedDate.isBetween(
-      //   selectedDateRange[0],
-      //   selectedDateRange[1],
-      //   null,
-      //   "[]"
-      // );
+      if (!matchesPub) return false;
 
-      // match search
-      const matchesSearch = !searchTerm
-        ? true
-        : Object.values(item).some((val) =>
-            val?.toString().toLowerCase().includes(searchTerm.toLowerCase())
-          );
+      // apply ALL filters except current column
+      return Object.entries(filters).every(([key, values]) => {
+        if (key === columnKey) return true;
+        if (!values || values.length === 0) return true;
 
-      return matchesPub && matchesSearch;
+        return values.some((v) => normalize(row[key]) === normalize(v));
+      });
     });
-  }, [advData, selectedSubAdmins, selectedDateRange, user, searchTerm]);
-
-  const getDataForDropdown = (columnKey) => {
-    // 🔹 Case 1: No filter applied yet → always use full data of current month/date range
-    if (!firstFilteredColumn) {
-      return baseAccessibleData;
-    }
-
-    // 🔹 Case 2: This is the FIRST filtered column → use full data of month/range (NOT filtered)
-    if (columnKey === firstFilteredColumn) {
-      return baseAccessibleData;
-    }
-
-    // 🔹 Case 3: Other columns → use filtered data
-    return filteredData;
   };
   // regenerate unique values when filtered data changes
   useEffect(() => {
@@ -416,21 +336,23 @@ const PublisherPayoutData = () => {
 
     // For each column:
     Object.keys(columnHeadingsAdv).forEach((col) => {
-      const source = getDataForDropdown(col); // 🔥 critical
-      valuesObj[col] = Array.from(
-        new Set(
-          source.map((row) => {
-            let v;
-            // ✅ format pub_Apno to 2 decimals
-            if (col === "pub_Apno") {
-              v = row.pub_Apno;
-              return isNaN(v) ? "-" : Number(v).toFixed(2);
-            }
-            v = row[col];
-            return v === null || v === undefined || v === ""
-              ? "-"
-              : v.toString().trim();
-          })
+      const source = getExcelFilteredDataForColumn(col);
+      valuesObj[col] = sortDropdownValues(
+        Array.from(
+          new Set(
+            source.map((row) => {
+              let v;
+              // ✅ format pub_Apno to 2 decimals
+              if (col === "pub_Apno") {
+                v = row.pub_Apno;
+                return isNaN(v) ? "-" : Number(v).toFixed(2);
+              }
+              v = row[col];
+              return v === null || v === undefined || v === ""
+                ? "-"
+                : v.toString().trim();
+            })
+          )
         )
       );
     });
@@ -529,72 +451,93 @@ const PublisherPayoutData = () => {
           },
         }),
         // Add filterDropdown to show the custom filter UI (Select All + Select multiple)
-        filterDropdown:
-          uniqueValues[key]?.length > 0
-            ? () => (
-                <div style={{ padding: 8 }}>
-                  {/* Select All Checkbox */}
-                  <div style={{ marginBottom: 8 }}>
+        filterDropdown: () => {
+          const allValues = uniqueValues[key] || [];
+          const selectedValues = filters[key] ?? allValues;
+          const searchText = filterSearch[key] || "";
+
+          const visibleValues = sortDropdownValues(
+            allValues.filter((val) =>
+              val.toString().toLowerCase().includes(searchText.toLowerCase())
+            )
+          );
+          console.log(visibleValues);
+          const isAllSelected = selectedValues.length === allValues.length;
+          const isIndeterminate = selectedValues.length > 0 && !isAllSelected;
+
+          return (
+            <div className="w-[280px] rounded-3xl">
+              {/* 🔍 Search */}
+              <div className="sticky top-0 z-10 bg-white p-3 border-b">
+                <Input
+                  allowClear
+                  placeholder="Search values"
+                  value={searchText}
+                  onChange={(e) =>
+                    setFilterSearch((prev) => ({
+                      ...prev,
+                      [key]: e.target.value,
+                    }))
+                  }
+                  style={{ height: 34, fontSize: 16 }}
+                />
+              </div>
+
+              {/* ☑ Select All */}
+              <div className="px-3 py-2">
+                <Checkbox
+                  indeterminate={isIndeterminate}
+                  checked={isAllSelected}
+                  onChange={(e) =>
+                    handleFilterChange(e.target.checked ? allValues : [], key)
+                  }>
+                  <span className="font-medium text-base text-gray-700">
+                    Select All
+                  </span>
+                </Checkbox>
+              </div>
+
+              {/* 📋 Values */}
+              <div className="max-h-[220px] overflow-y-auto p-2 space-y-1">
+                {visibleValues.map((val) => (
+                  <label
+                    key={val}
+                    className="flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer
+                       hover:bg-blue-50 transition">
                     <Checkbox
-                      indeterminate={
-                        filters[key]?.length > 0 &&
-                        filters[key]?.length < uniqueValues[key]?.length
-                      }
-                      checked={
-                        filters[key]?.length === uniqueValues[key]?.length
-                      }
+                      checked={selectedValues.includes(val)}
                       onChange={(e) => {
-                        const checked = e.target.checked;
-                        handleFilterChange(
-                          checked ? [...uniqueValues[key]] : [],
-                          key
-                        );
-                      }}>
-                      Select All
-                    </Checkbox>
+                        const next = e.target.checked
+                          ? [...selectedValues, val]
+                          : selectedValues.filter((v) => v !== val);
+
+                        handleFilterChange(next, key);
+                      }}
+                    />
+                    <span className="text-base text-gray-800 truncate">
+                      {val}
+                    </span>
+                  </label>
+                ))}
+
+                {visibleValues.length === 0 && (
+                  <div className="py-6 text-center text-sm text-gray-400">
+                    No matching values
                   </div>
+                )}
+              </div>
+            </div>
+          );
+        },
 
-                  {/* Multi Select Dropdown */}
-                  <Select
-                    mode="multiple"
-                    allowClear
-                    showSearch
-                    placeholder={`Select ${columnHeadings[key]}`}
-                    style={{ width: 250 }}
-                    value={filters[key] || []}
-                    onChange={(value) => handleFilterChange(value, key)}
-                    optionLabelProp="label"
-                    maxTagCount="responsive"
-                    filterOption={(input, option) =>
-                      (option?.label ?? "")
-                        .toString()
-                        .toLowerCase()
-                        .includes(input.toLowerCase())
-                    }>
-                    {[...uniqueValues[key]]
-                      .filter((val) => val !== null && val !== undefined)
-                      .sort((a, b) => {
-                        const aNum = parseFloat(a);
-                        const bNum = parseFloat(b);
-                        const isNumeric = !isNaN(aNum) && !isNaN(bNum);
-                        return isNumeric
-                          ? aNum - bNum
-                          : a.toString().localeCompare(b.toString());
-                      })
-                      .map((val) => (
-                        <Select.Option key={val} value={val} label={val}>
-                          <Checkbox checked={filters[key]?.includes(val)}>
-                            {val}
-                          </Checkbox>
-                        </Select.Option>
-                      ))}
-                  </Select>
-                </div>
-              )
-            : null,
-
-        // This controls whether the filter icon is shown in the header
-        filtered: filters[key]?.length > 0,
+        onFilterDropdownOpenChange: (open) => {
+          if (!open) {
+            setFilterSearch((prev) => ({
+              ...prev,
+              [key]: "",
+            }));
+          }
+        },
       }));
 
     // 🔹 Insert FP after paused_date
@@ -749,7 +692,7 @@ const PublisherPayoutData = () => {
 
             {/* Right Section - Actions */}
             <div className="flex flex-wrap items-end gap-2">
-              {/* Hide Columns Dropdown */}
+              {/* Hide Columns Dropdown
               <Select
                 mode="multiple"
                 allowClear
@@ -763,7 +706,19 @@ const PublisherPayoutData = () => {
                     {columnHeadingsAdv[key] || key}
                   </Option>
                 ))}
-              </Select>
+              </Select> */}
+              {/* Column Preset & Visibility Controls */}
+              <ColumnSettings
+                columnMap={columnHeadingsAdv}
+                hiddenColumns={hiddenColumns}
+                setHiddenColumns={setHiddenColumns}
+                presets={presets}
+                activePreset={activePreset}
+                applyPreset={applyPreset}
+                savePreset={savePreset}
+                updatePreset={updatePreset}
+                deletePreset={deletePreset}
+              />
               {/* Subadmins Dropdown */}
               {user?.role?.includes("publisher_manager") && (
                 <Select
@@ -812,31 +767,6 @@ const PublisherPayoutData = () => {
             </div>
           </div>
         </div>
-
-        {/* <StyledTable
-          bordered
-          columns={getColumns(columnHeadingsAdv)}
-          components={{
-            body: {
-              cell: EditableCell,
-            },
-          }}
-          dataSource={processedData}
-          rowKey="id"
-          pagination={{
-            pageSizeOptions: ["10", "20", "50", "100", "200", "500"],
-            showSizeChanger: true,
-            defaultPageSize: 10,
-            showTotal: (total, range) =>
-              `${range[0]}-${range[1]} of ${total} items`,
-          }}
-          scroll={{ x: "max-content" }}
-          // Dynamically apply row class based on `flag` and `shared_date` month
-          rowClassName={(record) => {
-            return record.flag === "1" ? "light-yellow-row" : "";
-          }}
-          className="mt-5"
-        /> */}
         <StyledTable
           bordered
           columns={getColumns(columnHeadingsAdv)}
@@ -865,7 +795,10 @@ const PublisherPayoutData = () => {
                   {getColumns(columnHeadingsAdv).map((col, index) => {
                     if (col.key === "adv_total_no") {
                       return (
-                        <Table.Summary.Cell key={col.key} index={index}>
+                        <Table.Summary.Cell
+                          key={col.key}
+                          index={index}
+                          className="text-center">
                           {pageTotals.adv_total_no.toFixed(2)}
                         </Table.Summary.Cell>
                       );
@@ -873,7 +806,10 @@ const PublisherPayoutData = () => {
 
                     if (col.key === "pub_Apno") {
                       return (
-                        <Table.Summary.Cell key={col.key} index={index}>
+                        <Table.Summary.Cell
+                          key={col.key}
+                          index={index}
+                          className="text-center">
                           {pageTotals.pub_Apno.toFixed(2)}
                         </Table.Summary.Cell>
                       );
@@ -882,7 +818,10 @@ const PublisherPayoutData = () => {
                     // TOTAL label in first column
                     if (index === 0) {
                       return (
-                        <Table.Summary.Cell key="total-label" index={index}>
+                        <Table.Summary.Cell
+                          key="total-label"
+                          index={index}
+                          className="text-center">
                           TOTAL
                         </Table.Summary.Cell>
                       );

@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { Table, Input, Select, Button, Space, Tooltip } from "antd";
+import { Table, Input, Select, Button, Space, Tooltip, Checkbox } from "antd";
 import {
   FilterOutlined,
   EditOutlined,
   SearchOutlined,
   ReloadOutlined,
+  PushpinOutlined,
 } from "@ant-design/icons";
 import geoData from "../../Data/geoData.json";
 import Swal from "sweetalert2";
@@ -18,7 +19,7 @@ const PubnameData = () => {
   const [tableData, setTableData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingPub, setEditingPub] = useState(null);
-
+  console.log(tableData)
   // Form State for Editing
   const [name, setName] = useState("");
   const [selectedId, setSelectedId] = useState("");
@@ -32,24 +33,38 @@ const PubnameData = () => {
   // const [level, setLevel] = useState("");
   const [subAdmins, setSubAdmins] = useState([]);
   const [filters, setFilters] = useState({});
-  const uniqueValues = {};
-
-  if (Array.isArray(tableData) && tableData.length > 0) {
-    tableData.forEach((item) => {
-      Object.keys(item).forEach((key) => {
-        if (!uniqueValues[key]) uniqueValues[key] = new Set();
-        if (item[key] !== null && item[key] !== undefined) {
-          uniqueValues[key].add(String(item[key]));
-        }
-      });
-    });
-  }
-
-  // ✅ Fallbacks for empty data (avoid "not iterable" error)
-  const safeArray = (key) =>
-    Array.from(uniqueValues[key] || []).filter(
-      (val) => val && val.trim() !== ""
+  const [filterSearch, setFilterSearch] = useState({});
+  const [uniqueValues, setUniqueValues] = useState({});
+  const [pinnedColumns, setPinnedColumns] = useState({});
+  const [sortInfo, setSortInfo] = useState({
+    columnKey: null,
+    order: null,
+  });
+  const normalize = (val) => {
+    if (val === null || val === undefined || val === "") return "-";
+    return val.toString().trim();
+  };
+  const getExcelFilteredDataForColumn = (columnKey) => {
+    return tableData.filter((row) =>
+      Object.entries(filters).every(([key, values]) => {
+        if (key === columnKey) return true;
+        if (!values || values.length === 0) return true;
+        return values.includes(normalize(row[key]));
+      })
     );
+  };
+  useEffect(() => {
+    const valuesObj = {};
+
+    Object.keys(tableData[0] || {}).forEach((col) => {
+      const source = getExcelFilteredDataForColumn(col);
+      valuesObj[col] = [
+        ...new Set(source.map((row) => normalize(row[col]))),
+      ].sort((a, b) => a.localeCompare(b));
+    });
+
+    setUniqueValues(valuesObj);
+  }, [tableData, filters]);
 
   const handleFilterChange = (value, key) => {
     setFilters((prev) => ({
@@ -58,26 +73,27 @@ const PubnameData = () => {
     }));
   };
 
-  const filteredTableData = tableData.filter((item) => {
-    return Object.keys(filters).every((key) => {
-      if (!filters[key]) return true;
-      return filters[key].includes(item[key]);
+  const finalFilteredData = tableData.filter((row) => {
+    // 🔍 Global search
+    const matchesSearch = Object.values(row)
+      .join(" ")
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+
+    if (!matchesSearch) return false;
+
+    // 🎯 Excel-style filters
+    return Object.entries(filters).every(([key, values]) => {
+      if (!values || values.length === 0) return true;
+      return values.includes(normalize(row[key]));
     });
   });
-  const finalFilteredData = filteredTableData.filter((item) => {
-    const fieldsToSearch = [
-      item.username,
-      item.pub_name,
-      item.pub_id,
-      item.geo,
-      item.note,
-      item.target,
-    ];
-
-    return fieldsToSearch.some((field) =>
-      field?.toString().toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  });
+  const togglePin = (key) => {
+    setPinnedColumns((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
 
   // ✅ Make fetchData reusable
   const fetchData = async () => {
@@ -127,15 +143,6 @@ const PubnameData = () => {
       Swal.fire("Error", "Please fill all required fields.", "error");
       return;
     }
-
-    // const updatedPub = {
-    //   pub_name: name,
-    //   pub_id: selectedId,
-    //   geo: geo,
-    //   note: note || "",
-    //   target: target || "",
-    //   user_id: pubUserId, // Use the original creator's user_id
-    // };
     const updatedPub = {
       pub_name: name,
       pub_id: selectedId,
@@ -238,195 +245,145 @@ const PubnameData = () => {
       setEditingLinkId(null);
     }
   };
+  const createExcelColumn = ({ key, title }) => {
+    const isFiltered = !!filters[key]?.length;
+    const isPinned = pinnedColumns[key];
+    const isSorted = sortInfo.columnKey === key;
 
-  // **Table Columns**
+    return {
+      title: (
+        <div className="flex items-center justify-between gap-2">
+          <span
+            style={{
+              color: isFiltered ? "#1677ff" : "inherit",
+              fontWeight: isFiltered ? "bold" : "normal",
+            }}>
+            {title}
+          </span>
+
+          <PushpinOutlined
+            onClick={(e) => {
+              e.stopPropagation();
+              togglePin(key);
+            }}
+            style={{
+              color: isPinned ? "#1677ff" : "#aaa",
+              cursor: "pointer",
+            }}
+          />
+        </div>
+      ),
+
+      key,
+      dataIndex: key,
+      fixed: isPinned ? "left" : false,
+
+      sorter: (a, b) =>
+        (a[key] || "").toString().localeCompare((b[key] || "").toString()),
+
+      sortOrder: isSorted ? sortInfo.order : null,
+
+      onHeaderCell: () => ({
+        onClick: () => {
+          let newOrder = "ascend";
+          if (sortInfo.columnKey === key) {
+            if (sortInfo.order === "ascend") newOrder = "descend";
+            else if (sortInfo.order === "descend") newOrder = null;
+          }
+          setSortInfo({ columnKey: key, order: newOrder });
+        },
+      }),
+
+      filterDropdown: () => {
+        const allValues = uniqueValues[key] || [];
+        const selectedValues = filters[key] ?? allValues;
+        const searchVal = filterSearch[key] || "";
+
+        const visibleValues = allValues.filter((v) =>
+          v.toLowerCase().includes(searchVal.toLowerCase())
+        );
+
+        const isAllSelected = selectedValues.length === allValues.length;
+
+        return (
+          <div className="w-[260px]" onClick={(e) => e.stopPropagation()}>
+            {/* 🔍 Search */}
+            <div className="p-2 border-b bg-white">
+              <Input
+                allowClear
+                placeholder="Search values"
+                value={searchVal}
+                onChange={(e) =>
+                  setFilterSearch((prev) => ({
+                    ...prev,
+                    [key]: e.target.value,
+                  }))
+                }
+              />
+            </div>
+
+            {/* ☑ Select All */}
+            <div className="px-3 py-2">
+              <Checkbox
+                checked={isAllSelected}
+                indeterminate={selectedValues.length > 0 && !isAllSelected}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setFilters((prev) => {
+                    const updated = { ...prev };
+                    if (checked) delete updated[key];
+                    else updated[key] = [];
+                    return updated;
+                  });
+                }}>
+                Select All
+              </Checkbox>
+            </div>
+
+            {/* 📋 Values */}
+            <div className="max-h-[220px] overflow-y-auto px-2 pb-2">
+              {visibleValues.map((val) => (
+                <label
+                  key={val}
+                  className="flex items-center gap-2 px-2 py-1 cursor-pointer hover:bg-blue-50">
+                  <Checkbox
+                    checked={selectedValues.includes(val)}
+                    onChange={(e) => {
+                      const next = e.target.checked
+                        ? [...selectedValues, val]
+                        : selectedValues.filter((v) => v !== val);
+
+                      setFilters((prev) => ({
+                        ...prev,
+                        [key]: next,
+                      }));
+                    }}
+                  />
+                  <span className="truncate">{val}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        );
+      },
+
+      filtered: isFiltered,
+    };
+  };
+  const columnConfig = {
+    username: "UserName",
+    pub_name: "Publisher Name",
+    pub_id: "Publisher ID",
+    geo: "Geo",
+    note: "Note",
+    target: "Target",
+  };
+
   const columns = [
-    {
-      title: (
-        <div className="flex items-center justify-between">
-          <span>UserName</span>
-        </div>
-      ),
-      key: "username",
-      dataIndex: "username",
-      filterDropdown: ({ confirm }) => (
-        <div style={{ padding: 8 }}>
-          <Select
-            mode="multiple"
-            allowClear
-            showSearch
-            placeholder="Select UserName"
-            style={{ width: 200 }}
-            value={filters["username"] || []}
-            onChange={(value) => {
-              handleFilterChange(value, "username");
-              confirm();
-            }}>
-            {safeArray("username").map((val) => (
-              <Select.Option key={val} value={val}>
-                {val}
-              </Select.Option>
-            ))}
-          </Select>
-        </div>
-      ),
-      filtered: !!filters["username"],
-    },
-    {
-      title: (
-        <div className="flex items-center justify-between">
-          <span>Publisher Name</span>
-        </div>
-      ),
-      key: "pub_name",
-      dataIndex: "pub_name",
-      filterDropdown: ({ confirm }) => (
-        <div style={{ padding: 8 }}>
-          <Select
-            mode="multiple"
-            allowClear
-            showSearch
-            placeholder="Select Publisher Name"
-            style={{ width: 200 }}
-            value={filters["pub_name"] || []}
-            onChange={(value) => {
-              handleFilterChange(value, "pub_name");
-              confirm();
-            }}>
-            {safeArray("pub_name").map((val) => (
-              <Select.Option key={val} value={val}>
-                {val}
-              </Select.Option>
-            ))}
-          </Select>
-        </div>
-      ),
-      filtered: !!filters["pub_name"],
-    },
-    {
-      title: (
-        <div className="flex items-center justify-between">
-          <span>Publisher ID</span>
-        </div>
-      ),
-      key: "pub_id",
-      dataIndex: "pub_id",
-      filterDropdown: ({ confirm }) => (
-        <div style={{ padding: 8 }}>
-          <Select
-            mode="multiple"
-            allowClear
-            showSearch
-            placeholder="Select Publisher ID"
-            style={{ width: 200 }}
-            value={filters["pub_id"] || []}
-            onChange={(value) => {
-              handleFilterChange(value, "pub_id");
-              confirm();
-            }}>
-            {safeArray("pub_id").map((val) => (
-              <Select.Option key={val} value={val}>
-                {val}
-              </Select.Option>
-            ))}
-          </Select>
-        </div>
-      ),
-      filtered: !!filters["pub_id"],
-    },
-    {
-      title: (
-        <div className="flex items-center justify-between">
-          <span>Geo</span>
-        </div>
-      ),
-      key: "geo",
-      dataIndex: "geo",
-      filterDropdown: ({ confirm }) => (
-        <div style={{ padding: 8 }}>
-          <Select
-            mode="multiple"
-            allowClear
-            showSearch
-            placeholder="Select Geo"
-            style={{ width: 200 }}
-            value={filters["geo"] || []}
-            onChange={(value) => {
-              handleFilterChange(value, "geo");
-              confirm();
-            }}>
-            {safeArray("geo").map((val) => (
-              <Select.Option key={val} value={val}>
-                {val}
-              </Select.Option>
-            ))}
-          </Select>
-        </div>
-      ),
-      filtered: !!filters["geo"],
-    },
-    {
-      title: (
-        <div className="flex items-center justify-between">
-          <span>Note</span>
-        </div>
-      ),
-      key: "note",
-      dataIndex: "note",
-      filterDropdown: ({ confirm }) => (
-        <div style={{ padding: 8 }}>
-          <Select
-            mode="multiple"
-            allowClear
-            showSearch
-            placeholder="Select Note"
-            style={{ width: 200 }}
-            value={filters["note"] || []}
-            onChange={(value) => {
-              handleFilterChange(value, "note");
-              confirm();
-            }}>
-            {safeArray("note").map((val) => (
-              <Select.Option key={val} value={val}>
-                {val}
-              </Select.Option>
-            ))}
-          </Select>
-        </div>
-      ),
-      filtered: !!filters["note"],
-    },
-    {
-      title: (
-        <div className="flex items-center justify-between">
-          <span>Target</span>
-        </div>
-      ),
-      key: "target",
-      dataIndex: "target",
-      filterDropdown: ({ confirm }) => (
-        <div style={{ padding: 8 }}>
-          <Select
-            mode="multiple"
-            allowClear
-            showSearch
-            placeholder="Select Target"
-            style={{ width: 200 }}
-            value={filters["target"] || []}
-            onChange={(value) => {
-              handleFilterChange(value, "target");
-              confirm();
-            }}>
-            {safeArray("target").map((val) => (
-              <Select.Option key={val} value={val}>
-                {val}
-              </Select.Option>
-            ))}
-          </Select>
-        </div>
-      ),
-      filtered: !!filters["target"],
-    },
+    ...Object.entries(columnConfig).map(([key, label]) =>
+      createExcelColumn({ key, title: label })
+    ),
+
     {
       title: (
         <div className="flex items-center justify-between">
@@ -532,13 +489,11 @@ const PubnameData = () => {
                     Swal.fire("Error", "Invalid user selected", "error");
                     return;
                   }
-
                   const response = await axios.put(`${apiUrl}/update-pubid`, {
                     ...record,
                     user_id: selectedAdmin.id,
                     username: selectedAdmin.username,
                   });
-
                   if (response.data.success) {
                     Swal.fire(
                       "Success",

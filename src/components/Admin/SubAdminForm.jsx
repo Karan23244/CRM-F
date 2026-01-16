@@ -132,7 +132,7 @@ const SubAdminEdit = () => {
 
     setRole(parsedRole);
 
-    setRanges(subAdmin.ranges || [{ start: "", end: "" }]);
+    // setRanges(subAdmin.ranges || [{ start: "", end: "" }]);
     setAssignedSubAdmins(subAdmin.assigned_subadmins?.map((a) => a.id) || []);
     setPermissionEditCondition(subAdmin.permissions?.can_see_button1 === 1);
     setPermissionUploadFiles(subAdmin.permissions?.can_see_input1 === 1);
@@ -312,7 +312,7 @@ const SubAdminEdit = () => {
     setUsername("");
     setPassword("");
     setRole("");
-    setRanges([{ start: "", end: "" }]);
+    // setRanges([{ start: "", end: "" }]);
     setAssignedSubAdmins([]);
     setPermissionEditCondition(false);
     setPermissionUploadFiles(false);
@@ -338,33 +338,9 @@ const SubAdminEdit = () => {
       key: "role",
       align: "center",
       render: (role) => (
-        <span className="text-gray-800 font-medium">{role}</span>
-      ),
-    },
-    {
-      title: "Ranges",
-      key: "ranges",
-      align: "center",
-      render: (_, record) => (
-        <Button
-          type="primary"
-          ghost
-          icon={<EyeOutlined />}
-          onClick={() => handleView(record)}
-          style={{
-            borderColor: "#2F5D99",
-            color: "#2F5D99",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = "#2F5D99";
-            e.currentTarget.style.color = "white";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "transparent";
-            e.currentTarget.style.color = "#2F5D99";
-          }}>
-          View
-        </Button>
+        <span className="text-gray-800 font-medium">
+          {typeof role === "string" ? role.replace(/^["']|["']$/g, "") : role}
+        </span>
       ),
     },
     {
@@ -655,7 +631,7 @@ const SubAdminEdit = () => {
             </div>
           )}
 
-          {/* Ranges */}
+          {/* Ranges
           <div className="mb-6">
             <label className="block font-semibold mb-2">Ranges</label>
             {ranges.map((range, index) => (
@@ -692,7 +668,7 @@ const SubAdminEdit = () => {
               className="border-[#2F5D99] text-[#2F5D99] rounded-lg">
               Add More Ranges
             </Button>
-          </div>
+          </div> */}
 
           {/* Action Buttons */}
           <div className="flex justify-center gap-6">

@@ -1,5 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
+import {
+  NavLink,
+  Outlet,
+  useNavigate,
+  useLocation,
+  Link,
+} from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { logout } from "../redux/authSlice";
 import { sidebarLinks } from "../config/sidebarLinks";
@@ -13,7 +19,6 @@ import {
 } from "react-icons/fa";
 import axios from "axios";
 import io from "socket.io-client";
-
 const apiUrl = import.meta.env.VITE_API_URL;
 
 // ✅ Single broadcast channel (tab sync)
@@ -203,7 +208,13 @@ const DashboardLayout = () => {
         <header className="fixed bg-white shadow-md py-3 px-10 flex justify-between items-center w-full z-50">
           {/* Left: Dashboard Name */}
           <div className="flex items-center gap-4">
-            <img src="/logo.png" alt="Logo" className="h-15 w-15" />
+            <Link to="/dashboard/home">
+              <img
+                src="/logo.png"
+                alt="Logo"
+                className="h-15 w-15 cursor-pointer"
+              />
+            </Link>
           </div>
 
           {/* Center: Role + Dashboard */}
@@ -273,14 +284,28 @@ const DashboardLayout = () => {
         <div className="flex flex-1 overflow-hidden min-h-screen mt-21">
           {/* SIDEBAR */}
           {sidebarOpen && (
-            <aside className=" fixed text-white w-64 flex flex-row items-start bg-gradient-to-b from-[#002F65] to-[#002F65] h-screen">
-              <div className="flex-1 px-4 py-3 space-y-4 overflow-y-auto">
+            <aside
+              className="
+      fixed
+      left-0
+      top-[84px]           /* SAME as header height */
+      w-64
+      bg-gradient-to-b from-[#002F65] to-[#002F65]
+      text-white
+      flex flex-row
+      h-[calc(100vh-84px)] /* 👈 NOT full height */
+      z-40
+    ">
+              {/* SCROLLABLE LINKS */}
+              <div className="flex-1 px-4 py-3 overflow-y-auto scrollbar-hide">
                 <nav className="space-y-2">{renderLinks(links)}</nav>
               </div>
+
+              {/* CLOSE BUTTON */}
               <button
-                className="text-white text-2xl p-3 border-t border-white/20 hover:bg-white/10 transition"
+                className="h-14 p-2 text-2xl border-t border-white/20 hover:bg-white/10 transition flex items-center justify-center"
                 onClick={() => setSidebarOpen(false)}>
-                <FaTimes className="mx-auto" />
+                <FaTimes />
               </button>
             </aside>
           )}
@@ -317,5 +342,8 @@ window.addEventListener("beforeunload", () => {
     console.warn("⚠️ Error closing BroadcastChannel:", err.message);
   }
 });
+
+
+
 
 export default DashboardLayout;
