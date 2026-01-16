@@ -28,6 +28,7 @@ import Swal from "sweetalert2";
 import { PushpinOutlined, PushpinFilled } from "@ant-design/icons";
 import { useSelector } from "react-redux";
 import { useColumnPresets } from "../../Utils/useColumnPresets";
+import { debounce } from "lodash";
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 
@@ -101,7 +102,21 @@ const CampianData = () => {
     dayjs().startOf("month"),
     dayjs().endOf("month"),
   ]);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchInput, setSearchInput] = useState(""); // instant typing
+  const [searchTerm, setSearchTerm] = useState(""); // debounced filter
+  const debouncedSearch = useMemo(
+    () =>
+      debounce((value) => {
+        setSearchTerm(value);
+      }, 300),
+    []
+  );
+  useEffect(() => {
+    return () => {
+      debouncedSearch.cancel();
+    };
+  }, [debouncedSearch]);
+
   const clearAllFilters = () => {
     setFilters({});
     setSortInfo({ columnKey: null, order: null }); // 🔁 reset sorting
@@ -837,8 +852,12 @@ const CampianData = () => {
             {/* Search Input */}
             <Input
               placeholder="Search Username, Pub Name, or Campaign"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              value={searchInput} // ✅ fast typing
+              onChange={(e) => {
+                const value = e.target.value;
+                setSearchInput(value); // ✅ immediate UI update
+                debouncedSearch(value); // ✅ delayed heavy filtering
+              }}
               className="w-[240px] px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
 

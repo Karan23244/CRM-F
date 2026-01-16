@@ -23,6 +23,7 @@ import { FaFilterCircleXmark } from "react-icons/fa6";
 import { sortDropdownValues } from "../../Utils/sortDropdownValues";
 import ColumnSettings from "../../Utils/ColumnSettings";
 import { useColumnPresets } from "../../Utils/useColumnPresets";
+import { debounce } from "lodash";
 
 dayjs.extend(isBetween);
 const { RangePicker } = DatePicker;
@@ -43,7 +44,8 @@ const PublisherPayoutData = () => {
     dayjs().startOf("month"),
     dayjs().endOf("month"),
   ]);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchInput, setSearchInput] = useState(""); // fast UI typing
+  const [searchTerm, setSearchTerm] = useState(""); // debounced value
   const [selectedSubAdmins, setSelectedSubAdmins] = useState([]);
   const [subAdmins, setSubAdmins] = useState([]);
   const [sortInfo, setSortInfo] = useState({
@@ -52,6 +54,20 @@ const PublisherPayoutData = () => {
   });
   const [editingKey, setEditingKey] = useState(""); // which row is being edited
   const isEditing = (record) => record.id === editingKey;
+  const debouncedSearch = useMemo(
+    () =>
+      debounce((value) => {
+        setSearchTerm(value);
+      }, 300),
+    []
+  );
+
+  useEffect(() => {
+    return () => {
+      debouncedSearch.cancel();
+    };
+  }, [debouncedSearch]);
+
   // 🔹 Save Note
   const saveNote = async (record, newNote) => {
     try {
@@ -675,10 +691,15 @@ const PublisherPayoutData = () => {
               {/* Search Input */}
               <Input
                 placeholder="Search Publisher, Campaign, or Username"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={searchInput}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSearchInput(value); // ✅ instant typing
+                  debouncedSearch(value); // ✅ debounced filtering
+                }}
                 prefix={<span className="text-gray-400">🔍</span>}
-                className="!w-[200px] px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="!w-[200px] px-4 py-2 border border-gray-300 rounded-lg shadow-sm
+             focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
 
               {/* Date Range Picker */}

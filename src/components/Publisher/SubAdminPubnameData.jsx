@@ -14,6 +14,8 @@ const SubAdminPubnameData = () => {
   const userId = user?.id || null;
   const [tableData, setTableData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchTextPub, setSearchTextPub] = useState("");
+
   const [editingPub, setEditingPub] = useState(null);
   const [filters, setFilters] = useState({});
   const [filterSearch, setFilterSearch] = useState({});
@@ -31,6 +33,10 @@ const SubAdminPubnameData = () => {
   const [target, setTarget] = useState("");
   const [editingLinkId, setEditingLinkId] = useState(null);
   const [placeLinkValue, setPlaceLinkValue] = useState("");
+  const normalize = (val) => {
+    if (val === null || val === undefined || val === "") return "-";
+    return val.toString().trim();
+  };
   // Fetch publisher data
   useEffect(() => {
     const fetchData = async () => {
@@ -456,15 +462,6 @@ const SubAdminPubnameData = () => {
       title: "Rating",
       dataIndex: "level",
       key: "level",
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) =>
-        createFilterDropdown(
-          filteredData,
-          "level",
-          setSelectedKeys,
-          selectedKeys,
-          confirm
-        ),
-      onFilter: (value, record) => record.level === value,
       render: (text) => {
         if (!text) return "-";
 
@@ -657,8 +654,8 @@ const SubAdminPubnameData = () => {
       {/* Search Input */}
       <Input
         placeholder="Search by Publisher Name, Geo, or Note"
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
+        value={searchTextPub}
+        onChange={(e) => setSearchTextPub(e.target.value)}
         className="mb-4 w-1/3 p-2 border rounded"
       />
 

@@ -35,6 +35,7 @@ import StyledTable from "../../Utils/StyledTable";
 import { sortDropdownValues } from "../../Utils/sortDropdownValues";
 import ColumnSettings from "../../Utils/ColumnSettings";
 import { useColumnPresets } from "../../Utils/useColumnPresets";
+import { debounce } from "lodash";
 
 dayjs.extend(isBetween);
 const { RangePicker } = DatePicker;
@@ -49,7 +50,8 @@ const AdvertiserData = () => {
   const [savingTable, setSavingTable] = useState(false);
   const [filterSearch, setFilterSearch] = useState({});
   const [sortInfo, setSortInfo] = useState({ columnKey: null, order: null });
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchInput, setSearchInput] = useState(""); // fast UI typing
+  const [searchTerm, setSearchTerm] = useState(""); // debounced value
   const [uniqueValues, setUniqueValues] = useState({});
   const [dropdownOptions, setDropdownOptions] = useState({
     os: ["Android", "APK", "iOS"],
@@ -82,7 +84,19 @@ const AdvertiserData = () => {
   const [selectedPauseRecord, setSelectedPauseRecord] = useState(null);
   const [selectedPauseDate, setSelectedPauseDate] = useState(null);
   const [selectedCampaignId, setSelectedCampaignId] = useState(null);
+  const debouncedSearch = useMemo(
+    () =>
+      debounce((value) => {
+        setSearchTerm(value);
+      }, 300),
+    []
+  );
 
+  useEffect(() => {
+    return () => {
+      debouncedSearch.cancel();
+    };
+  }, [debouncedSearch]);
   useEffect(() => {
     if (user?.id) {
       fetchDropdowns();
@@ -1120,13 +1134,17 @@ const AdvertiserData = () => {
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
             {/* Left Section */}
             <div className="flex flex-wrap items-center gap-3">
-              {/* Search Input */}
               <Input
-                placeholder="Search Username, Pub Name, or Campaign"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                prefix={<IoMdSearch className="text-gray-400" size={18} />}
-                className="!w-[240px] md:!w-[320px] px-4 py-2 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 transition-all"
+                placeholder="Search Publisher, Campaign, or Username"
+                value={searchInput}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSearchInput(value); // ✅ instant typing
+                  debouncedSearch(value); // ✅ debounced filtering
+                }}
+                prefix={<span className="text-gray-400">🔍</span>}
+                className="!w-[200px] px-4 py-2 border border-gray-300 rounded-lg shadow-sm
+              focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
 
               {/* Date Range Picker */}

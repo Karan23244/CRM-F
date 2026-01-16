@@ -29,7 +29,7 @@ import { AutoComplete } from "antd";
 import StyledTable from "../../Utils/StyledTable";
 import { RiFileExcel2Line } from "react-icons/ri";
 import { FaFilterCircleXmark } from "react-icons/fa6";
-
+import { sortDropdownValues } from "../../Utils/sortDropdownValues";
 import geoData from "../../Data/geoData.json";
 
 const { Option } = Select;
@@ -440,14 +440,22 @@ const PublisherRequest = ({ senderId, receiverId }) => {
             }}>
             {columnHeadingsMap[key] || key}
           </span>
-          <PushpinOutlined
-            onClick={() => togglePin(key)}
-            rotate={pinnedColumns[key] === "right" ? 180 : 0}
-            style={{
-              color: pinnedColumns[key] ? "#1677ff" : "#aaa",
-              cursor: "pointer",
+          <span
+            onMouseDownCapture={(e) => e.stopPropagation()} // 🔥 KEY FIX
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              togglePin(key);
             }}
-          />
+            style={{ display: "flex", alignItems: "center" }}>
+            <PushpinOutlined
+              rotate={pinnedColumns[key] === "right" ? 180 : 0}
+              style={{
+                color: pinnedColumns[key] ? "#1677ff" : "#aaa",
+                cursor: "pointer",
+              }}
+            />
+          </span>
         </div>
       ),
       key,
@@ -496,80 +504,69 @@ const PublisherRequest = ({ senderId, receiverId }) => {
 
         return value;
       },
-      filterDropdown: () => {
+      filterDropdown: ({ confirm }) => {
+        const [searchText, setSearchText] = React.useState("");
+
         const allValues = uniqueValues[key] || [];
         const selectedValues = filters[key] ?? allValues;
-        const searchValue = filterSearch[key] || "";
 
-        const visibleValues = allValues.filter((val) =>
-          val.toLowerCase().includes(searchValue.toLowerCase())
+        const visibleValues = sortDropdownValues(
+          allValues.filter((val) =>
+            val.toString().toLowerCase().includes(searchText.toLowerCase())
+          )
         );
-
         const isAllSelected = selectedValues.length === allValues.length;
         const isIndeterminate = selectedValues.length > 0 && !isAllSelected;
-
         return (
           <div
-            className="w-[260px] rounded-xl"
-            onClick={(e) => e.stopPropagation()}>
-            {/* 🔍 Search */}
-            <div className="sticky top-0 bg-white p-2 border-b">
+            className="w-[240px] rounded-3xl"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}>
+            <div className="p-3 border-b">
               <Input
+                autoFocus
                 allowClear
                 placeholder="Search values"
-                value={searchValue}
-                onChange={(e) =>
-                  setFilterSearch((prev) => ({
-                    ...prev,
-                    [key]: e.target.value,
-                  }))
-                }
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
               />
             </div>
-
             {/* ☑ Select All */}
             <div className="px-3 py-2">
               <Checkbox
                 indeterminate={isIndeterminate}
                 checked={isAllSelected}
-                onChange={(e) => {
-                  const checked = e.target.checked;
-                  setFilters((prev) => {
-                    const updated = { ...prev };
-                    if (checked) delete updated[key];
-                    else updated[key] = [];
-                    return updated;
-                  });
-                }}>
-                Select All
+                onChange={(e) =>
+                  handleFilterChange(e.target.checked ? allValues : [], key)
+                }>
+                <span className="font-medium text-base text-gray-700">
+                  Select All
+                </span>
               </Checkbox>
             </div>
-
-            {/* 📋 Values */}
-            <div className="max-h-[220px] overflow-y-auto px-2 pb-2 space-y-1">
+            <div className="max-h-[220px] overflow-y-auto p-2 space-y-1">
               {visibleValues.map((val) => (
                 <label
                   key={val}
-                  className="flex items-center gap-2 px-2 py-1 rounded cursor-pointer hover:bg-blue-50">
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-blue-50">
                   <Checkbox
+                    key={val}
                     checked={selectedValues.includes(val)}
                     onChange={(e) => {
                       const next = e.target.checked
                         ? [...selectedValues, val]
                         : selectedValues.filter((v) => v !== val);
 
-                      setFilters((prev) => ({
-                        ...prev,
-                        [key]: next,
-                      }));
-                    }}
-                  />
-                  <span className="truncate">{val}</span>
+                      handleFilterChange(next, key);
+                      confirm({ closeDropdown: false });
+                    }}>
+                    {val}
+                  </Checkbox>
                 </label>
               ))}
 
               {visibleValues.length === 0 && (
-                <div className="py-4 text-center text-gray-400 text-sm">
+                <div className="text-center text-gray-400 py-4">
                   No matching values
                 </div>
               )}
@@ -577,7 +574,9 @@ const PublisherRequest = ({ senderId, receiverId }) => {
           </div>
         );
       },
-      filtered: !!filters[key],
+      filterDropdownProps: {
+        destroyOnClose: false,
+      },
     }));
 
     cols.push(

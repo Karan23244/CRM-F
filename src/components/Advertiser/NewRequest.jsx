@@ -89,7 +89,6 @@ const NewRequest = () => {
   const handleTableChange = (pagination, filters, sorter) => {
     setSortInfo(sorter);
   };
-  console.log(campaignList);
   // persist hidden columns
   useEffect(() => {
     localStorage.setItem(
