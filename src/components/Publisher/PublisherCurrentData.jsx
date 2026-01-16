@@ -790,6 +790,7 @@ const PublisherPayoutData = () => {
         </div>
         <StyledTable
           bordered
+          className="overflow-x-scroll"
           columns={getColumns(columnHeadingsAdv)}
           dataSource={processedData}
           rowKey="id"

@@ -975,7 +975,6 @@ const CampianData = () => {
           <>
             <div>
               <StyledTable
-                className="overflow-hidden h-[70vh]"
                 dataSource={processedData}
                 columns={getColumns(columnHeadingsAdv)}
                 rowKey="id"
