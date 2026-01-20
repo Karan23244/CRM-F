@@ -321,19 +321,19 @@ const SubAdminEdit = () => {
 
   const columns = [
     {
-      title: "ID",
+      title: <div style={{ textAlign: "center" }}>ID</div>,
       dataIndex: "id",
       key: "id",
       align: "center",
     },
     {
-      title: "Username",
+      title: <div style={{ textAlign: "center" }}>Username</div>,
       dataIndex: "username",
       key: "username",
       align: "center",
     },
     {
-      title: "Role",
+      title: <div style={{ textAlign: "center" }}>Role</div>,
       dataIndex: "role",
       key: "role",
       align: "center",
@@ -344,7 +344,7 @@ const SubAdminEdit = () => {
       ),
     },
     {
-      title: "Edit Permission",
+      title: <div style={{ textAlign: "center" }}>Name</div>,
       key: "editPermission",
       align: "center",
       render: (_, record) =>
@@ -359,7 +359,7 @@ const SubAdminEdit = () => {
         ),
     },
     {
-      title: "Upload Permission",
+      title: <div style={{ textAlign: "center" }}>Upload Permission</div>,
       key: "uploadPermission",
       align: "center",
       render: (_, record) =>
@@ -374,7 +374,7 @@ const SubAdminEdit = () => {
         ),
     },
     {
-      title: "Add Store Permission",
+      title: <div style={{ textAlign: "center" }}>Add Store Permission</div>,
       key: "addStorePermission",
       align: "center",
       render: (_, record) =>
@@ -389,7 +389,7 @@ const SubAdminEdit = () => {
         ),
     },
     {
-      title: "Actions",
+      title: <div style={{ textAlign: "center" }}>Actions</div>,
       key: "actions",
       align: "center",
       render: (record) => (
@@ -425,6 +425,7 @@ const SubAdminEdit = () => {
             <>
               <StyledTable
                 columns={columns}
+                className="shadow-md rounded-lg header-center"
                 dataSource={subAdmins}
                 rowKey="id"
                 pagination={{
@@ -434,7 +435,6 @@ const SubAdminEdit = () => {
                   showTotal: (total, range) =>
                     `${range[0]}-${range[1]} of ${total} items`,
                 }}
-                className="shadow-md rounded-lg"
               />
               <Modal
                 title={

@@ -119,7 +119,6 @@ const PubnameData = () => {
       try {
         const response = await fetch(`${apiUrl}/get-subadmin`);
         const data = await response.json();
-        console.log(data);
         if (response.ok) {
           const filtered = data.data.filter((subAdmin) =>
             ["publisher_manager", "publisher"].includes(subAdmin.role)

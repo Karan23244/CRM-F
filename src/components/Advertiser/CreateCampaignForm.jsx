@@ -220,7 +220,7 @@ const CreateCampaignForm = () => {
     };
 
     delete finalPayload.geo_details;
-
+    console.log(finalPayload);
     try {
       // ============================================================
       // 1️⃣ CREATE CAMPAIGN

@@ -31,10 +31,10 @@ export const sidebarLinks = [
   },
   {
     label: "Users",
-    roles: ["admin"],
+    roles: ["admin","advertiser_manager","publisher_manager"],
     sublinks: [
       { to: "listsubadmin", label: "Existing Users", roles: ["admin"] },
-      { to: "createsubadmin", label: "Create User", roles: ["admin"] },
+      { to: "createsubadmin", label: "Create User", roles: ["admin","advertiser_manager","publisher_manager"] },
     ],
   },
   // { to: "review", label: "Review", roles: ["admin"] },

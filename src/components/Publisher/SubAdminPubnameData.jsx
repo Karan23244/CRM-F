@@ -33,6 +33,8 @@ const SubAdminPubnameData = () => {
   const [target, setTarget] = useState("");
   const [editingLinkId, setEditingLinkId] = useState(null);
   const [placeLinkValue, setPlaceLinkValue] = useState("");
+  const [subAdmins, setSubAdmins] = useState([]);
+  const [editingAssignRowId, setEditingAssignRowId] = useState(null);
   const normalize = (val) => {
     if (val === null || val === undefined || val === "") return "-";
     return val.toString().trim();
@@ -42,7 +44,6 @@ const SubAdminPubnameData = () => {
     const fetchData = async () => {
       try {
         const response = await axios.get(`${apiUrl}/get-Namepub/`);
-
         if (response.data && Array.isArray(response.data.data)) {
           setTableData(response.data.data);
         } else {
@@ -55,6 +56,26 @@ const SubAdminPubnameData = () => {
     };
 
     fetchData();
+  }, []);
+  useEffect(() => {
+    const fetchSubAdmins = async () => {
+      try {
+        const response = await fetch(`${apiUrl}/get-subadmin`);
+        const data = await response.json();
+        if (response.ok) {
+          const filtered = data.data.filter((subAdmin) =>
+            ["publisher_manager","publisher"].includes(subAdmin.role)
+          );
+          setSubAdmins(filtered);
+        } else {
+          console.log(data.message || "Failed to fetch sub-admins.");
+        }
+      } catch (err) {
+        console.log("An error occurred while fetching sub-admins.");
+      }
+    };
+
+    fetchSubAdmins();
   }, []);
   const getExcelFilteredDataForColumn = (columnKey) => {
     return tableData.filter((row) =>
@@ -520,6 +541,74 @@ const SubAdminPubnameData = () => {
               <span className="text-gray-400">Click to add link</span>
             )}
           </div>
+        );
+      },
+    },
+    {
+      title: "Transfer PUB AM",
+      key: "user_id",
+      render: (_, record) => {
+        const isEditing = editingAssignRowId === record.pub_id;
+
+        if (isEditing) {
+          return (
+            <Select
+              autoFocus
+              value={record.user_id?.toString()}
+              onChange={async (newUserId) => {
+                try {
+                  const selectedAdmin = subAdmins.find(
+                    (admin) => admin.id.toString() === newUserId
+                  );
+                  if (!selectedAdmin) {
+                    Swal.fire("Error", "Invalid user selected", "error");
+                    return;
+                  }
+                  const response = await axios.put(`${apiUrl}/update-pubid`, {
+                    ...record,
+                    user_id: selectedAdmin.id,
+                    username: selectedAdmin.username,
+                  });
+                  if (response.data.success) {
+                    Swal.fire(
+                      "Success",
+                      "User transferred successfully!",
+                      "success"
+                    );
+                    fetchData();
+                  } else {
+                    Swal.fire("Error", "Failed to transfer user", "error");
+                  }
+                  console.log({
+                    ...record,
+                    user_id: selectedAdmin.id,
+                    username: selectedAdmin.username,
+                  });
+                } catch (error) {
+                  console.error("User transfer error:", error);
+                  Swal.fire("Error", "Something went wrong", "error");
+                } finally {
+                  setEditingAssignRowId(null);
+                }
+              }}
+              onBlur={() => setEditingAssignRowId(null)}
+              className="min-w-[150px]">
+              {subAdmins.map((admin) => (
+                <Option key={admin.id} value={admin.id.toString()}>
+                  {admin.username}
+                </Option>
+              ))}
+            </Select>
+          );
+        }
+
+        return (
+          <span
+            onClick={() => setEditingAssignRowId(record.pub_id)}
+            className="cursor-pointer hover:underline"
+            title="Click to change user">
+            {record.username || "Select Sub Admin"}
+          </span>
         );
       },
     },

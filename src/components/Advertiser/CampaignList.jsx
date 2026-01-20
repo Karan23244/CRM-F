@@ -27,7 +27,7 @@ import { useNavigate } from "react-router-dom";
 import { sortDropdownValues } from "../../Utils/sortDropdownValues";
 
 const apiUrl =
-  import.meta.env.VITE_API_URL || "https://apii.clickorbits.in/api";
+  import.meta.env.VITE_API_URL;
 
 const CampaignList = () => {
   const navigate = useNavigate();

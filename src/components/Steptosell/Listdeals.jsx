@@ -15,8 +15,9 @@ import {
 } from "antd";
 import StyledTable from "../../Utils/StyledTable";
 const apiUrl = import.meta.env.VITE_API_URL4;
-
+import { useNavigate } from "react-router-dom";
 const Listdeals = () => {
+  const navigate = useNavigate();
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -278,7 +279,7 @@ const Listdeals = () => {
             type="primary"
             size="small"
             className="!bg-[#2F5D99]"
-            onClick={() => openEditModal(campaign)}>
+            onClick={() => navigate(`/dashboard/createdeals/edit/${campaign.id}`)}>
             Edit
           </Button>
           <Button danger size="small" onClick={() => handleDelete(campaign.id)}>

@@ -11,7 +11,7 @@ import DashboardLayout from "./layouts/DashboardLayout";
 
 // Import all page components (reuse existing ones)
 import SubAdminForm from "./components/Admin/SubAdminForm";
-import CreateSubAdmin from "./components/Admin/CreateSubAdmin"
+import CreateSubAdmin from "./components/Admin/CreateSubAdmin";
 import ReviewForm from "./components/Admin/ReviewForm";
 import CampianData from "./components/Admin/CampianData";
 import AdvnameData from "./components/Admin/AdvnameData";
@@ -93,7 +93,9 @@ const AppRoutes = () => (
           <Route path="notifications" element={<Notification />} />
           <Route path="conversion" element={<Conversion />} />
           <Route path="createdeals" element={<Createdeals />} />
+          <Route path="createdeals/edit/:id" element={<Createdeals />} />
           <Route path="createoffer" element={<Createoffer />} />
+          <Route path="createoffer/edit/:id" element={<Createoffer />} />
           <Route path="listdeals" element={<Listdeals />} />
           <Route path="listoffer" element={<Listoffer />} />
           <Route path="listcategory" element={<Listcategory />} />

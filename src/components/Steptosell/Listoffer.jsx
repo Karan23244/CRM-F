@@ -13,10 +13,11 @@ import {
   Checkbox,
 } from "antd";
 import StyledTable from "../../Utils/StyledTable";
-
+import { useNavigate } from "react-router-dom";
 const apiUrl = import.meta.env.VITE_API_URL4;
 
 const Listoffer = () => {
+  const navigate = useNavigate();
   const [deals, setDeals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -259,15 +260,14 @@ const Listoffer = () => {
     },
     {
       ...createExcelColumn({ key: "status", title: "Status" }),
-      render: (status,deal) => (
+      render: (status, deal) => (
         <Switch
           checked={deal.status === 1}
           checkedChildren="Active"
           unCheckedChildren="Inactive"
           onChange={() => toggleStatus(deal)}
           style={{
-            backgroundColor:
-              Number(deal.status) === 1 ? "#2F5D99" : undefined,
+            backgroundColor: Number(deal.status) === 1 ? "#2F5D99" : undefined,
           }}
         />
       ),
@@ -280,9 +280,10 @@ const Listoffer = () => {
             type="primary"
             size="small"
             className="!bg-[#2F5D99]"
-            onClick={() => openEditModal(deal)}>
+            onClick={() => navigate(`/dashboard/createoffer/edit/${deal.id}`)}>
             Edit
           </Button>
+
           <Button danger size="small" onClick={() => handleDelete(deal.id)}>
             Delete
           </Button>

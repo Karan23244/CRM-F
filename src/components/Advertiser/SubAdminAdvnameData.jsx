@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Table, Input, Select, Button, Space, Tooltip,Checkbox } from "antd";
+import { Table, Input, Select, Button, Space, Tooltip, Checkbox } from "antd";
 import { useSelector } from "react-redux";
 import Swal from "sweetalert2"; // <-- Import SweetAlert2
 import geoData from "../../Data/geoData.json";
@@ -26,6 +26,8 @@ const AdvnameData = () => {
   const [note, setNote] = useState("");
   const [advUserId, setAdvUserId] = useState(null);
   const [target, setTarget] = useState("");
+  const [editingAssignRowId, setEditingAssignRowId] = useState(null);
+  const [subAdmins, setSubAdmins] = useState([]);
   const [sortInfo, setSortInfo] = useState({
     columnKey: null,
     order: null,
@@ -53,6 +55,29 @@ const AdvnameData = () => {
     };
 
     fetchData();
+  }, []);
+  useEffect(() => {
+    const fetchSubAdmins = async () => {
+      try {
+        const response = await fetch(`${apiUrl}/get-subadmin`);
+        const data = await response.json();
+        if (response.ok) {
+          const filtered = data.data.filter((subAdmin) =>
+            ["advertiser_manager", "advertiser", "operations"].includes(
+              subAdmin.role
+            )
+          );
+          console.log(filtered);
+          setSubAdmins(filtered);
+        } else {
+          console.log(data.message || "Failed to fetch sub-admins.");
+        }
+      } catch (err) {
+        console.log("An error occurred while fetching sub-admins.");
+      }
+    };
+
+    fetchSubAdmins();
   }, []);
   const getExcelFilteredDataForColumn = (columnKey) => {
     return tableData.filter((row) =>
@@ -472,6 +497,75 @@ const AdvnameData = () => {
       dataIndex: "postback_url",
       key: "postback_url",
       onFilter: (value, record) => record.assign_user === value,
+    },
+    {
+      title: "Transfer Adv AM",
+      key: "user_id",
+      render: (_, record) => {
+        const isEditing = editingAssignRowId === record.adv_id;
+
+        if (isEditing) {
+          return (
+            <Select
+              autoFocus
+              value={record.username}
+              onChange={async (newUserId) => {
+                try {
+                  // const response = await axios.put(`${apiUrl}/update-advid`, {
+                  //   ...record,
+                  //   user_id: newUserId,
+                  // });
+                  console.log({ user_id: newUserId,...record, });
+                  // if (response.data.success) {
+                  //   Swal.fire(
+                  //     "Success",
+                  //     "User transferred successfully!",
+                  //     "success"
+                  //   );
+
+                  //   // ✅ Update local tableData to reflect changes
+                  //   setTableData((prev) =>
+                  //     prev.map((item) =>
+                  //       item.adv_id === record.adv_id
+                  //         ? {
+                  //             ...item,
+                  //             user_id: newUserId,
+                  //           }
+                  //         : item
+                  //     )
+                  //   );
+                  // } else {
+                  //   Swal.fire("Error", "Failed to transfer user", "error");
+                  // }
+                } catch (error) {
+                  console.error("User transfer error:", error);
+                  Swal.fire("Error", "Something went wrong", "error");
+                } finally {
+                  setEditingAssignRowId(null);
+                }
+              }}
+              onBlur={() => setEditingAssignRowId(null)} // Close if user clicks away
+              className="min-w-[150px]">
+              <Option value="">Select Sub Admin</Option>
+              {subAdmins.map((admin) => (
+                <Option key={admin.id} value={admin.id.toString()}>
+                  {admin.username}
+                </Option>
+              ))}
+            </Select>
+          );
+        }
+
+        // Show normal text, and enter edit mode on click
+        return (
+          <span
+            onClick={() => setEditingAssignRowId(record.adv_id)}
+            className="cursor-pointer hover:underline"
+            title="Click to change user">
+            {"-"}
+          </span>
+        );
+      },
     },
     {
       title: "Actions",

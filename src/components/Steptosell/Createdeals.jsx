@@ -15,11 +15,13 @@ import {
 import { UploadOutlined } from "@ant-design/icons";
 import axios from "axios";
 import Swal from "sweetalert2";
-
+import { useParams, useNavigate } from "react-router-dom";
 const { TextArea } = Input;
 const apiUrl = import.meta.env.VITE_API_URL4;
 
 const Dashboard = () => {
+  const { id } = useParams();
+  const isEdit = Boolean(id);
   const [form] = Form.useForm();
   const [slider, setSlider] = useState(false);
   const [type, setType] = useState("deal");
@@ -30,6 +32,52 @@ const Dashboard = () => {
   });
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [existingImages, setExistingImages] = useState({
+    logo: "",
+    banner1: "",
+    banner2: "",
+  });
+
+  useEffect(() => {
+    if (isEdit) {
+      fetchDealDetails();
+    }
+  }, [id]);
+  const fetchDealDetails = async () => {
+    try {
+      const res = await axios.get(`${apiUrl}/api/campaigns/${id}`, {
+        withCredentials: true,
+      });
+
+      const deal = res.data.data;
+      console.log(deal)
+      // Fill form
+      form.setFieldsValue({
+        title: deal.title,
+        description: deal.description,
+        categories: deal.categories,
+        tracking_link: deal.tracking_link,
+        preview_url: deal.preview_url,
+        payout: deal.payout,
+        discount_payout: deal.discount_payout,
+        currency: deal.currency,
+        countries: deal.countries,
+        code: deal.code,
+      });
+
+      setSlider(Number(deal.slider) === 1);
+      // ✅ Save existing image URLs
+      setExistingImages({
+        logo: deal.logo_url,
+        banner1: deal.banner_url,
+        banner2: deal.banner_url2,
+      });
+      // Important: images are NOT re-uploaded automatically
+      // Keep existing image URLs if needed
+    } catch {
+      Swal.fire("Error", "Failed to load deal data", "error");
+    }
+  };
   // ---------------- FETCH CATEGORIES ----------------
   const fetchCategories = async () => {
     try {
@@ -54,49 +102,53 @@ const Dashboard = () => {
   };
 
   const handleSubmit = async (values) => {
-    if (!files.logo) return message.error("Logo is required");
-    if (slider && (!files.banner1 || !files.banner2))
-      return message.error("Both banners are required");
-
     const formData = new FormData();
 
     Object.keys(values).forEach((key) => {
       if (key === "code" && type !== "coupon") return;
       formData.append(key, values[key]);
     });
-    formData.append("logo", files.logo);
+
     formData.append("slider", slider ? 1 : 0);
-    formData.append("banner2", files.banner2);
-    if (slider) {
-      formData.append("banner1", files.banner1);
-    }
-    for (let [key, value] of formData.entries()) {
-      console.log(key, value);
-    }
+
+    if (files.logo) formData.append("logo", files.logo);
+    if (files.banner2) formData.append("banner2", files.banner2);
+    if (slider && files.banner1) formData.append("banner1", files.banner1);
 
     try {
-      const res = await axios.post(`${apiUrl}/api/create-offer`, formData, {
+      const url = isEdit
+        ? `${apiUrl}/api/campaigns/${id}`
+        : `${apiUrl}/api/create-offer`;
+
+      const method = isEdit ? "put" : "post";
+
+      await axios({
+        method,
+        url,
+        data: formData,
         withCredentials: true,
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+        headers: { "Content-Type": "multipart/form-data" },
       });
-      console.log(res);
-      Swal.fire("Success", "Offer created successfully", "success");
-      form.resetFields();
-      setSlider(false);
-      setFiles({ logo: null, banner1: null, banner2: null });
-    } catch (err) {
-      console.log(err);
+
+      Swal.fire(
+        "Success",
+        isEdit ? "Deal updated successfully" : "Deal created successfully",
+        "success"
+      );
+
+      if (!isEdit) {
+        form.resetFields();
+        setFiles({ logo: null, banner1: null, banner2: null });
+        setSlider(false);
+      }
+    } catch {
       Swal.fire("Error", "Something went wrong", "error");
     }
   };
-
+  console.log(existingImages)
   return (
     <div style={{ padding: 24, background: "#f5f5f5", minHeight: "100vh" }}>
-      <Card
-        title="Create Deal of the Day"
-        style={{ maxWidth: 1100, margin: "auto" }}>
+      <Card title={isEdit ? "Edit Deal" : "Create Deal of the Day"}>
         <Form
           layout="vertical"
           form={form}
@@ -196,6 +248,7 @@ const Dashboard = () => {
                 <Select>
                   <Select.Option value="INR">INR</Select.Option>
                   <Select.Option value="USD">USD</Select.Option>
+                  <Select.Option value="%">%</Select.Option>
                 </Select>
               </Form.Item>
             </Col>
@@ -219,36 +272,69 @@ const Dashboard = () => {
 
             {/* Logo */}
             <Col xs={24} md={12}>
-              <Form.Item label="Logo" required>
+              <Form.Item label="Logo">
+                {existingImages.logo && (
+                  <img
+                    src={`${existingImages.logo}`}
+                    alt="Logo"
+                    className="mb-2 h-20 object-contain border rounded"
+                  />
+                )}
+
                 <Upload
                   beforeUpload={(f) => handleUpload(f, "logo")}
-                  maxCount={1}>
-                  <Button icon={<UploadOutlined />}>Upload Logo</Button>
+                  maxCount={1}
+                  showUploadList={false}>
+                  <Button icon={<UploadOutlined />}>
+                    {existingImages.logo ? "Change Logo" : "Upload Logo"}
+                  </Button>
                 </Upload>
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
-              <Form.Item label="Banner 2" required>
+              <Form.Item label="Banner 2">
+                {existingImages.banner2 && (
+                  <img
+                    src={`${existingImages.banner2}`}
+                    alt="Banner 2"
+                    className="mb-2 h-24 w-full object-cover rounded"
+                  />
+                )}
+
                 <Upload
                   beforeUpload={(f) => handleUpload(f, "banner2")}
-                  maxCount={1}>
-                  <Button icon={<UploadOutlined />}>Upload Banner 2</Button>
+                  maxCount={1}
+                  showUploadList={false}>
+                  <Button icon={<UploadOutlined />}>
+                    {existingImages.banner2
+                      ? "Change Banner 2"
+                      : "Upload Banner 2"}
+                  </Button>
                 </Upload>
               </Form.Item>
             </Col>
             {/* Banners */}
             {slider && (
-              <>
-                <Col xs={24} md={12}>
-                  <Form.Item label="Banner 1" required>
-                    <Upload
-                      beforeUpload={(f) => handleUpload(f, "banner1")}
-                      maxCount={1}>
-                      <Button icon={<UploadOutlined />}>Upload Banner 1</Button>
-                    </Upload>
-                  </Form.Item>
-                </Col>
-              </>
+              <Form.Item label="Banner 1">
+                {existingImages.banner1 && (
+                  <img
+                    src={`${existingImages.banner1}`}
+                    alt="Banner 1"
+                    className="mb-2 h-24 w-full object-cover rounded"
+                  />
+                )}
+
+                <Upload
+                  beforeUpload={(f) => handleUpload(f, "banner1")}
+                  maxCount={1}
+                  showUploadList={false}>
+                  <Button icon={<UploadOutlined />}>
+                    {existingImages.banner1
+                      ? "Change Banner 1"
+                      : "Upload Banner 1"}
+                  </Button>
+                </Upload>
+              </Form.Item>
             )}
 
             {/* Submit */}
@@ -258,7 +344,7 @@ const Dashboard = () => {
                 htmlType="submit"
                 size="large"
                 block>
-                Create Deal
+                {isEdit ? "Update Deal" : "Create Deal"}
               </Button>
             </Col>
           </Row>

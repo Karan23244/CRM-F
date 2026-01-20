@@ -1,4 +1,4 @@
-import React, { useState,useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Form,
   Input,
@@ -14,14 +14,18 @@ import {
 import { UploadOutlined } from "@ant-design/icons";
 import axios from "axios";
 import Swal from "sweetalert2";
+import { useParams } from "react-router-dom";
 const apiUrl = import.meta.env.VITE_API_URL4;
 
 const { TextArea } = Input;
 
 const CreateOffer = () => {
+  const { id } = useParams();
+  const isEdit = Boolean(id);
   const [form] = Form.useForm();
   const [type, setType] = useState("deal");
   const [logo, setLogo] = useState(null);
+  const [existingLogo, setExistingLogo] = useState("");
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const handleUpload = (file) => {
@@ -30,9 +34,9 @@ const CreateOffer = () => {
   };
   const fetchCategories = async () => {
     try {
-      const res = await axios.get(`${apiUrl}/api/categories`,        {
-          withCredentials: true,
-        });
+      const res = await axios.get(`${apiUrl}/api/categories`, {
+        withCredentials: true,
+      });
       console.log(res);
       setCategories(res.data.data || []);
     } catch (error) {
@@ -41,12 +45,45 @@ const CreateOffer = () => {
       setLoading(false);
     }
   };
+  const fetchOffer = async () => {
+    try {
+      const res = await axios.get(`${apiUrl}/api/deals/${id}`, {
+        withCredentials: true,
+      });
+
+      const offer = res.data.data;
+
+      form.setFieldsValue({
+        type: offer.type,
+        title: offer.title,
+        description: offer.description,
+        categories: offer.categories,
+        tracking_link: offer.tracking_link,
+        code: offer.code,
+        about: offer.about,
+        payout: offer.payout,
+        discount_payout: offer.discount_payout,
+        currency: offer.currency,
+        countries: offer.countries,
+      });
+
+      setType(offer.type);
+
+      // ✅ store existing logo
+      setExistingLogo(offer.logo_url);
+    } catch {
+      Swal.fire("Error", "Failed to load offer data", "error");
+    }
+  };
 
   useEffect(() => {
     fetchCategories();
-  }, []);
+    if (isEdit) {
+      fetchOffer();
+    }
+  }, [id]);
   const handleSubmit = async (values) => {
-    if (!logo) {
+    if (!isEdit && !logo) {
       message.error("Logo is required");
       return;
     }
@@ -58,30 +95,47 @@ const CreateOffer = () => {
       formData.append(key, values[key]);
     });
 
-    formData.append("logo", logo);
+    if (logo) {
+      formData.append("logo", logo);
+    }
+
     formData.append("type", type);
     formData.append("slider", 0);
 
     try {
-      await axios.post(`${apiUrl}/api/create-deal`, formData, {
+      const url = isEdit
+        ? `${apiUrl}/api/deals/${id}`
+        : `${apiUrl}/api/create-deal`;
+
+      const method = isEdit ? "put" : "post";
+
+      await axios({
+        method,
+        url,
+        data: formData,
         headers: { "Content-Type": "multipart/form-data" },
+        withCredentials: true,
       });
 
-      Swal.fire("Success", "Offer created successfully", "success");
-      form.resetFields();
-      setLogo(null);
-    } catch (err) {
       Swal.fire(
-        "Error",
-        err.response?.data?.message || "Something went wrong",
-        "error"
+        "Success",
+        isEdit ? "Offer updated successfully" : "Offer created successfully",
+        "success"
       );
+
+      if (!isEdit) {
+        form.resetFields();
+        setLogo(null);
+        setExistingLogo("");
+      }
+    } catch (err) {
+      Swal.fire("Error", "Something went wrong", "error");
     }
   };
 
   return (
     <div style={{ padding: 24, background: "#f5f5f5", minHeight: "100vh" }}>
-      <Card title="Create Offer" style={{ maxWidth: 1000, margin: "auto" }}>
+      <Card title={isEdit ? "Edit Offer" : "Create Offer"}>
         <Form
           layout="vertical"
           form={form}
@@ -216,9 +270,25 @@ const CreateOffer = () => {
 
             {/* Logo Upload */}
             <Col xs={24}>
-              <Form.Item label="Logo" required>
-                <Upload beforeUpload={handleUpload} maxCount={1}>
-                  <Button icon={<UploadOutlined />}>Upload Logo</Button>
+              <Form.Item label="Logo" required={!isEdit}>
+                {existingLogo && (
+                  <img
+                    src={`${apiUrl}${existingLogo}`}
+                    alt="Offer Logo"
+                    className="mb-3 h-20 object-contain border rounded"
+                  />
+                )}
+
+                <Upload
+                  beforeUpload={(file) => {
+                    setLogo(file);
+                    return false;
+                  }}
+                  maxCount={1}
+                  showUploadList={false}>
+                  <Button icon={<UploadOutlined />}>
+                    {existingLogo ? "Change Logo" : "Upload Logo"}
+                  </Button>
                 </Upload>
               </Form.Item>
             </Col>
@@ -226,7 +296,7 @@ const CreateOffer = () => {
             {/* Submit */}
             <Col xs={24}>
               <Button type="primary" htmlType="submit" size="large" block>
-                Create Offer
+                {isEdit ? "Update Offer" : "Create Offer"}
               </Button>
             </Col>
           </Row>

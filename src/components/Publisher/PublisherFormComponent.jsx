@@ -89,7 +89,7 @@ export default PublisherIDDashboard;
 const PublisherEditForm = () => {
   const user = useSelector((state) => state.auth.user);
   const userId = user?.id || null;
-
+  const isPublisherManager = user?.role === "publisher_manager";
   const [publishers, setPublishers] = useState([]);
   const [editingPub, setEditingPub] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -99,10 +99,12 @@ const PublisherEditForm = () => {
   const [filters, setFilters] = useState({});
   const [filterSearch, setFilterSearch] = useState({});
   const [uniqueValues, setUniqueValues] = useState({});
+  const [subAdmins, setSubAdmins] = useState([]);
   const [sortInfo, setSortInfo] = useState({
     columnKey: null,
     order: null, // "ascend" | "descend" | null
   });
+  const [editingAssignRowId, setEditingAssignRowId] = useState(null);
   // Form fields
   const [name, setName] = useState("");
   const [pubId, setPubId] = useState("");
@@ -113,24 +115,46 @@ const PublisherEditForm = () => {
     if (val === null || val === undefined || val === "") return "-";
     return val.toString().trim();
   };
-
-  // Fetch publishers list
   useEffect(() => {
-    const fetchPublishers = async () => {
-      if (!userId) return;
-      setLoading(true);
+    const fetchSubAdmins = async () => {
       try {
-        const { data } = await axios.get(`${apiUrl}/pubid-data/${userId}`);
-        console.log("Fetched publishers data:", data);
-        if (data.success && Array.isArray(data.Publisher)) {
-          setPublishers(data.Publisher);
+        const response = await fetch(`${apiUrl}/get-subadmin`);
+        const data = await response.json();
+        if (response.ok) {
+          const filtered = data.data.filter(
+            (subAdmin) =>
+              ["publisher_manager", "publisher"].includes(subAdmin.role) &&
+              subAdmin.id !== userIdt,
+          );
+
+          setSubAdmins(filtered);
+        } else {
+          console.log(data.message || "Failed to fetch sub-admins.");
         }
       } catch (err) {
-        console.error("Error fetching publishers:", err);
-      } finally {
-        setLoading(false);
+        console.log("An error occurred while fetching sub-admins.");
       }
     };
+
+    fetchSubAdmins();
+  }, []);
+  const fetchPublishers = async () => {
+    if (!userId) return;
+    setLoading(true);
+    try {
+      const { data } = await axios.get(`${apiUrl}/pubid-data/${userId}`);
+      console.log("Fetched publishers data:", data);
+      if (data.success && Array.isArray(data.Publisher)) {
+        setPublishers(data.Publisher);
+      }
+    } catch (err) {
+      console.error("Error fetching publishers:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  // Fetch publishers list
+  useEffect(() => {
     fetchPublishers();
   }, [userId]);
   const getExcelFilteredDataForColumn = (columnKey) => {
@@ -139,7 +163,7 @@ const PublisherEditForm = () => {
         if (key === columnKey) return true;
         if (!values || values.length === 0) return true;
         return values.includes(normalize(row[key]));
-      })
+      }),
     );
   };
   useEffect(() => {
@@ -249,43 +273,6 @@ const PublisherEditForm = () => {
     setNote("");
     setTarget("");
   };
-  // Helper: Create filter dropdown with onChange
-  const createFilterDropdown = (
-    data,
-    key,
-    setSelectedKeys,
-    selectedKeys,
-    confirm
-  ) => {
-    const options = getUniqueValues(data, key).sort((a, b) => {
-      const aVal = isNaN(a) ? a.toString().toLowerCase() : parseFloat(a);
-      const bVal = isNaN(b) ? b.toString().toLowerCase() : parseFloat(b);
-      return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
-    });
-
-    return (
-      <div style={{ padding: 8 }}>
-        <Select
-          mode="multiple"
-          allowClear
-          showSearch
-          style={{ width: 200 }}
-          placeholder={`Filter ${key}`}
-          value={selectedKeys}
-          onChange={(value) => {
-            setSelectedKeys(value);
-            confirm({ closeDropdown: false });
-          }}
-          optionFilterProp="children">
-          {options.map((option) => (
-            <Option key={option} value={option}>
-              {option}
-            </Option>
-          ))}
-        </Select>
-      </div>
-    );
-  };
   // Handle place link save
   const autoSavePlaceLink = async (record, value) => {
     const trimmedValue = value.trim();
@@ -307,7 +294,7 @@ const PublisherEditForm = () => {
           pub_id: record.pub_id,
           user_id: userId,
           place_link: trimmedValue,
-        }
+        },
       );
       if (res.data.success) {
         Swal.fire({
@@ -349,7 +336,7 @@ const PublisherEditForm = () => {
     const searchVal = filterSearch[key] || "";
 
     const visibleValues = allValues.filter((v) =>
-      v.toLowerCase().includes(searchVal.toLowerCase())
+      v.toLowerCase().includes(searchVal.toLowerCase()),
     );
 
     const isAllSelected = selectedValues.length === allValues.length;
@@ -614,7 +601,86 @@ const PublisherEditForm = () => {
         );
       },
     },
+    /* ✅ CONDITIONAL COLUMN */
+    ...(isPublisherManager
+      ? [
+          {
+            title: "Transfer PUB AM",
+            key: "user_id",
+            render: (_, record) => {
+              const isEditing = editingAssignRowId === record.pub_id;
 
+              if (isEditing) {
+                return (
+                  <Select
+                    autoFocus
+                    value={record.username?.toString()}
+                    onChange={async (newUserId) => {
+                      try {
+                        const selectedAdmin = subAdmins.find(
+                          (admin) => admin.id.toString() === newUserId,
+                        );
+                        if (!selectedAdmin) {
+                          Swal.fire("Error", "Invalid user selected", "error");
+                          return;
+                        }
+                        const response = await axios.put(
+                          `${apiUrl}/update-pubid`,
+                          {
+                            ...record,
+                            user_id: selectedAdmin.id,
+                            username: selectedAdmin.username,
+                          },
+                        );
+                        console.log({
+                          ...record,
+                          user_id: selectedAdmin.id,
+                          username: selectedAdmin.username,
+                        });
+                        if (response.data.success) {
+                          Swal.fire(
+                            "Success",
+                            "User transferred successfully!",
+                            "success",
+                          );
+                          fetchPublishers();
+                        } else {
+                          Swal.fire(
+                            "Error",
+                            "Failed to transfer user",
+                            "error",
+                          );
+                        }
+                      } catch (error) {
+                        console.error("User transfer error:", error);
+                        Swal.fire("Error", "Something went wrong", "error");
+                      } finally {
+                        setEditingAssignRowId(null);
+                      }
+                    }}
+                    onBlur={() => setEditingAssignRowId(null)}
+                    className="min-w-[150px]">
+                    {subAdmins.map((admin) => (
+                      <Option key={admin.id} value={admin.id.toString()}>
+                        {admin.username}
+                      </Option>
+                    ))}
+                  </Select>
+                );
+              }
+
+              return (
+                <span
+                  onClick={() => setEditingAssignRowId(record.pub_id)}
+                  className="cursor-pointer hover:underline"
+                  title="Click to change user">
+                  {record.username || "Select Sub Admin"}
+                </span>
+              );
+            },
+          },
+        ]
+      : []),
     {
       title: "Actions",
       key: "actions",
@@ -631,7 +697,6 @@ const PublisherEditForm = () => {
       ),
     },
   ];
-
   return (
     <div className="">
       {/* Edit Form */}

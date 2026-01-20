@@ -72,6 +72,7 @@ const AdvertiserEditForm = () => {
   const user = useSelector((state) => state.auth.user);
   const userId = user?.id || null;
   const { Option } = Select;
+  const isAdvertiserManager = user?.role?.includes("advertiser_manager");
 
   const [name, setName] = useState("");
   const [selectedId, setSelectedId] = useState("");
@@ -93,17 +94,18 @@ const AdvertiserEditForm = () => {
     columnKey: null,
     order: null,
   });
+  const [editingAssignRowId, setEditingAssignRowId] = useState(null);
   const normalize = (val) => {
     if (val === null || val === undefined || val === "") return "-";
     return val.toString().trim();
   };
-
+  console.log(subAdmins);
   const trimValues = (obj) =>
     Object.fromEntries(
       Object.entries(obj).map(([k, v]) => [
         k,
         typeof v === "string" ? v.trim() : v,
-      ])
+      ]),
     );
   const getExcelFilteredDataForColumn = (columnKey) => {
     return advertisers.filter((row) =>
@@ -111,7 +113,7 @@ const AdvertiserEditForm = () => {
         if (key === columnKey) return true;
         if (!values || values.length === 0) return true;
         return values.includes(normalize(row[key]));
-      })
+      }),
     );
   };
   useEffect(() => {
@@ -127,19 +129,18 @@ const AdvertiserEditForm = () => {
 
     setUniqueValues(valuesObj);
   }, [advertisers, filters]);
-
-  useEffect(() => {
-    const fetchAdvertisers = async () => {
-      if (!userId) return;
-      try {
-        const { data } = await axios.get(`${apiUrl}/advid-data/${userId}`);
-        if (data.success && Array.isArray(data.advertisements)) {
-          setAdvertisers(data.advertisements);
-        }
-      } catch {
-        setAdvertisers([]);
+  const fetchAdvertisers = async () => {
+    if (!userId) return;
+    try {
+      const { data } = await axios.get(`${apiUrl}/advid-data/${userId}`);
+      if (data.success && Array.isArray(data.advertisements)) {
+        setAdvertisers(data.advertisements);
       }
-    };
+    } catch {
+      setAdvertisers([]);
+    }
+  };
+  useEffect(() => {
     fetchAdvertisers();
   }, [userId]);
   const filteredData = advertisers.filter((row) => {
@@ -165,11 +166,12 @@ const AdvertiserEditForm = () => {
         const data = await res.json();
         if (res.ok) {
           setSubAdmins(
-            data.data.filter((a) =>
-              ["advertiser_manager", "advertiser", "operations"].includes(
-                a.role
-              )
-            )
+            data.data.filter(
+              (a) =>
+                ["advertiser_manager", "advertiser", "operations"].includes(
+                  a.role,
+                ) && a.id !== userId,
+            ),
           );
         }
       } catch (err) {
@@ -260,7 +262,7 @@ const AdvertiserEditForm = () => {
     const searchVal = filterSearch[key] || "";
 
     const visibleValues = allValues.filter((v) =>
-      v.toLowerCase().includes(searchVal.toLowerCase())
+      v.toLowerCase().includes(searchVal.toLowerCase()),
     );
 
     const isAllSelected = selectedValues.length === allValues.length;
@@ -501,6 +503,85 @@ const AdvertiserEditForm = () => {
       dataIndex: "postback_url",
       key: "postback_url",
     },
+    /* ✅ CONDITIONAL COLUMN */
+    ...(isAdvertiserManager
+      ? [
+          {
+            title: "Transfer Adv AM",
+            key: "user_id",
+            render: (_, record) => {
+              const isEditing = editingAssignRowId === record.adv_id;
+
+              if (isEditing) {
+                return (
+                  <Select
+                    autoFocus
+                    value={record.username}
+                    onChange={async (newUserId) => {
+                      try {
+                        const response = await axios.put(
+                          `${apiUrl}/update-advid`,
+                          {
+                            ...record,
+                            user_id: newUserId,
+                          },
+                        );
+                        if (response.data.success) {
+                          Swal.fire(
+                            "Success",
+                            "User transferred successfully!",
+                            "success",
+                          );
+
+                          // ✅ Update local tableData to reflect changes
+                          setTableData((prev) =>
+                            prev.map((item) =>
+                              item.adv_id === record.adv_id
+                                ? {
+                                    ...item,
+                                    user_id: newUserId,
+                                  }
+                                : item,
+                            ),
+                          );
+                        } else {
+                          Swal.fire(
+                            "Error",
+                            "Failed to transfer user",
+                            "error",
+                          );
+                        }
+                      } catch (error) {
+                        console.error("User transfer error:", error);
+                        Swal.fire("Error", "Something went wrong", "error");
+                      } finally {
+                        setEditingAssignRowId(null);
+                      }
+                    }}
+                    onBlur={() => setEditingAssignRowId(null)} // Close if user clicks away
+                    className="min-w-[150px]">
+                    {subAdmins.map((admin) => (
+                      <Option key={admin.id} value={admin.id.toString()}>
+                        {admin.username}
+                      </Option>
+                    ))}
+                  </Select>
+                );
+              }
+
+              // Show normal text, and enter edit mode on click
+              return (
+                <span
+                  onClick={() => setEditingAssignRowId(record.adv_id)}
+                  className="cursor-pointer hover:underline"
+                  title="Click to change user">
+                  {"-"}
+                </span>
+              );
+            },
+          },
+        ]
+      : []),
     {
       title: "Actions",
       key: "actions",
@@ -650,7 +731,7 @@ const AdvertiserEditForm = () => {
                 onChange={(e) => {
                   const selectedId = e.target.value;
                   const selectedUser = subAdmins.find(
-                    (a) => a.id.toString() === selectedId
+                    (a) => a.id.toString() === selectedId,
                   );
                   setAssign_id(selectedId);
                   setAssign_user(selectedUser?.username || "");

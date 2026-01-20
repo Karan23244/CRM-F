@@ -20,6 +20,9 @@ import { createNotification } from "../../Utils/Notification";
 import StyledTable from "../../Utils/StyledTable";
 import { RiFileExcel2Line } from "react-icons/ri";
 import { FaFilterCircleXmark } from "react-icons/fa6";
+import dayjs from "dayjs";
+import { DatePicker } from "antd";
+const { RangePicker } = DatePicker;
 const { Option } = Select;
 
 const apiUrl = import.meta.env.VITE_API_URL1;
@@ -61,6 +64,11 @@ const NewRequest = () => {
   const [selectedCampaignId, setSelectedCampaignId] = useState(null);
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [selectedRequestId, setSelectedRequestId] = useState(null);
+  // 📅 Date range filter state
+  const [dateRange, setDateRange] = useState(() => {
+    return [dayjs().startOf("month"), dayjs().endOf("month")];
+  });
+
   // const [stickyColumns, setStickyColumns] = useState([]); // for pin/unpin columns
   const [hiddenColumns, setHiddenColumns] = useState(() => {
     const saved = localStorage.getItem("hiddenCampaignColumns");
@@ -100,12 +108,18 @@ const NewRequest = () => {
   // ✅ Fetch campaigns list (for shared popup)
   const fetchCampaignList = async () => {
     try {
-      const res = await axios.get(`${apiUrl}/api/campaigns_list`);
-      if (res.data && Array.isArray(res.data)) {
+      const res = await axios.get(`${apiUrl1}/campaigns`, {
+        params: {
+          user_id: user?.id || user?._id, // <-- sending user ID here
+        },
+      });
+      console.log(res.data.data);
+      if (res?.data && Array.isArray(res?.data?.data)) {
         // Filter out campaigns with null names
-        const validCampaigns = res.data.filter(
+        const validCampaigns = res.data.data.filter(
           (c) => c.campaign_name && c.campaign_name.trim() !== ""
         );
+        console.log(validCampaigns);
         setCampaignList(validCampaigns);
       } else {
         setCampaignList([]);
@@ -121,6 +135,8 @@ const NewRequest = () => {
     setSortInfo({}); // FIX: remove sorting
     setPinnedColumns({}); // FIX: remove pinning
     setHiddenColumns([]);
+    // 🔁 Reset to current month again
+    setDateRange([dayjs().startOf("month"), dayjs().endOf("month")]);
     localStorage.removeItem("hiddenCampaignColumns");
   }, []);
 
@@ -132,16 +148,31 @@ const NewRequest = () => {
         fetchRequests();
       }
     });
-  }, []);
+  }, [dateRange]);
 
   const fetchRequests = async () => {
     try {
-      const res = await axios.get(`${apiUrl1}/newPrmadvRequests`, {
-        params: { id: userId }, // <-- userId sent in params
-      });
-      console.log(res);
-      const result = res.data?.data;
+      const [startDate, endDate] = dateRange;
+      const params = {
+        id: userId,
+        start_Date: startDate.format("YYYY-MM-DD"),
+        end_Date: endDate.format("YYYY-MM-DD"),
+      };
+      const fullUrl = `${apiUrl1}/newPrmadvRequests?${new URLSearchParams(
+        params
+      ).toString()}`;
 
+      console.log("API URL:", fullUrl);
+      const res = await axios.get(`${apiUrl1}/newPrmadvRequests`, {
+        params: {
+          id: userId,
+          start_date: startDate.format("YYYY-MM-DD"),
+          end_date: endDate.format("YYYY-MM-DD"),
+        }, // <-- userId sent in params
+      });
+
+      const result = res.data?.data;
+      console.log(res);
       // Sort by id DESC (newest first)
       let sortedData = (Array.isArray(result) ? result : []).sort(
         (a, b) => b.id - a.id
@@ -202,13 +233,24 @@ const NewRequest = () => {
 
       if (!matchesSearch) return false;
 
-      // 🎯 Excel-style filters
+      // 📅 Date range filter (created_at)
+      if (dateRange?.length === 2 && row.created_at) {
+        const rowDate = dayjs(row.created_at);
+        if (
+          !rowDate.isAfter(dateRange[0].startOf("day")) ||
+          !rowDate.isBefore(dateRange[1].endOf("day"))
+        ) {
+          return false;
+        }
+      }
+
+      // 🎯 Excel-style column filters
       return Object.entries(filters).every(([key, values]) => {
         if (!values || values.length === 0) return true;
         return values.includes(normalize(row[key]));
       });
     });
-  }, [requests, filters, searchText]);
+  }, [requests, filters, searchText, dateRange]);
 
   // Unique values based on filtered data (except first filtered column)
   const uniqueValuesFiltered = useMemo(() => {
@@ -513,7 +555,6 @@ const NewRequest = () => {
       return;
     }
     const sharedRecord = requests.find((r) => r.id === selectedRequestId);
-    console.log(sharedRecord);
     try {
       const res = await axios.post(
         `${apiUrl}/api/campaigns/copynew/${selectedCampaignId}`,
@@ -615,15 +656,23 @@ const NewRequest = () => {
       {/* Header Section */}
       <div className="bg-white rounded-xl shadow-lg p-5 mb-6 flex flex-wrap items-end justify-between gap-4 md:gap-6 lg:gap-4">
         {/* Left Section - Search + Filters */}
-        <div className="flex flex-wrap items-end gap-3">
+        <div className="flex flex-row items-end gap-3">
           {/* Search Input */}
           <Input
             placeholder="Search across all fields..."
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
             allowClear
-            className="w-[260px] px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="max-w-[260px] px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             prefix={<span className="text-gray-400">🔍</span>}
+          />
+          {/* 📅 Created At Date Range */}
+          <RangePicker
+            value={dateRange}
+            onChange={(dates) => setDateRange(dates)}
+            allowClear
+            format="DD MMM YYYY"
+            className="rounded-lg shadow-sm"
           />
         </div>
 
