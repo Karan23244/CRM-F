@@ -39,22 +39,21 @@ const SubAdminPubnameData = () => {
     if (val === null || val === undefined || val === "") return "-";
     return val.toString().trim();
   };
+  const fetchData = async () => {
+    try {
+      const response = await axios.get(`${apiUrl}/get-Namepub/`);
+      if (response.data && Array.isArray(response.data.data)) {
+        setTableData(response.data.data);
+      } else {
+        console.error("Unexpected response format:", response.data);
+        setTableData([]);
+      }
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
+  };
   // Fetch publisher data
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await axios.get(`${apiUrl}/get-Namepub/`);
-        if (response.data && Array.isArray(response.data.data)) {
-          setTableData(response.data.data);
-        } else {
-          console.error("Unexpected response format:", response.data);
-          setTableData([]);
-        }
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-    };
-
     fetchData();
   }, []);
   useEffect(() => {
@@ -64,7 +63,7 @@ const SubAdminPubnameData = () => {
         const data = await response.json();
         if (response.ok) {
           const filtered = data.data.filter((subAdmin) =>
-            ["publisher_manager","publisher"].includes(subAdmin.role)
+            ["publisher_manager", "publisher"].includes(subAdmin.role),
           );
           setSubAdmins(filtered);
         } else {
@@ -83,7 +82,7 @@ const SubAdminPubnameData = () => {
         if (key === columnKey) return true;
         if (!values || values.length === 0) return true;
         return values.includes(normalize(row[key]));
-      })
+      }),
     );
   };
   useEffect(() => {
@@ -210,7 +209,7 @@ const SubAdminPubnameData = () => {
           pub_id: record.pub_id,
           user_id: userid,
           place_link: trimmedValue,
-        }
+        },
       );
       console.log("Place link save response:", res);
       if (res.data.success) {
@@ -254,7 +253,7 @@ const SubAdminPubnameData = () => {
     const searchVal = filterSearch[key] || "";
 
     const visibleValues = allValues.filter((v) =>
-      v.toLowerCase().includes(searchVal.toLowerCase())
+      v.toLowerCase().includes(searchVal.toLowerCase()),
     );
 
     const isAllSelected = selectedValues.length === allValues.length;
@@ -558,7 +557,7 @@ const SubAdminPubnameData = () => {
               onChange={async (newUserId) => {
                 try {
                   const selectedAdmin = subAdmins.find(
-                    (admin) => admin.id.toString() === newUserId
+                    (admin) => admin.id.toString() === newUserId,
                   );
                   if (!selectedAdmin) {
                     Swal.fire("Error", "Invalid user selected", "error");
@@ -573,7 +572,7 @@ const SubAdminPubnameData = () => {
                     Swal.fire(
                       "Success",
                       "User transferred successfully!",
-                      "success"
+                      "success",
                     );
                     fetchData();
                   } else {

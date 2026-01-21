@@ -28,6 +28,7 @@ const CreateOffer = () => {
   const [existingLogo, setExistingLogo] = useState("");
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [logoPreview, setLogoPreview] = useState(null);
   const handleUpload = (file) => {
     setLogo(file);
     return false; // stop auto upload
@@ -50,27 +51,27 @@ const CreateOffer = () => {
       const res = await axios.get(`${apiUrl}/api/deals/${id}`, {
         withCredentials: true,
       });
-
+      console.log(res);
       const offer = res.data.data;
 
       form.setFieldsValue({
         type: offer.type,
         title: offer.title,
         description: offer.description,
-        categories: offer.categories,
-        tracking_link: offer.tracking_link,
+        categories: offer.category,
+        tracking_link: offer.url,
         code: offer.code,
         about: offer.about,
         payout: offer.payout,
         discount_payout: offer.discount_payout,
         currency: offer.currency,
-        countries: offer.countries,
+        countries: offer.geo,
       });
 
       setType(offer.type);
 
       // ✅ store existing logo
-      setExistingLogo(offer.logo_url);
+      setExistingLogo(offer.img);
     } catch {
       Swal.fire("Error", "Failed to load offer data", "error");
     }
@@ -101,7 +102,7 @@ const CreateOffer = () => {
 
     formData.append("type", type);
     formData.append("slider", 0);
-
+    console.log(isEdit);
     try {
       const url = isEdit
         ? `${apiUrl}/api/deals/${id}`
@@ -120,13 +121,14 @@ const CreateOffer = () => {
       Swal.fire(
         "Success",
         isEdit ? "Offer updated successfully" : "Offer created successfully",
-        "success"
+        "success",
       );
 
       if (!isEdit) {
         form.resetFields();
         setLogo(null);
         setExistingLogo("");
+        setLogoPreview(null)
       }
     } catch (err) {
       Swal.fire("Error", "Something went wrong", "error");
@@ -271,9 +273,9 @@ const CreateOffer = () => {
             {/* Logo Upload */}
             <Col xs={24}>
               <Form.Item label="Logo" required={!isEdit}>
-                {existingLogo && (
+                {(logoPreview || existingLogo) && (
                   <img
-                    src={`${apiUrl}${existingLogo}`}
+                    src={logoPreview || existingLogo}
                     alt="Offer Logo"
                     className="mb-3 h-20 object-contain border rounded"
                   />
@@ -282,12 +284,16 @@ const CreateOffer = () => {
                 <Upload
                   beforeUpload={(file) => {
                     setLogo(file);
+                    setLogoPreview(URL.createObjectURL(file)); // 👈 instant preview
                     return false;
                   }}
                   maxCount={1}
-                  showUploadList={false}>
+                  showUploadList={false}
+                  accept="image/*">
                   <Button icon={<UploadOutlined />}>
-                    {existingLogo ? "Change Logo" : "Upload Logo"}
+                    {existingLogo || logoPreview
+                      ? "Change Logo"
+                      : "Upload Logo"}
                   </Button>
                 </Upload>
               </Form.Item>
