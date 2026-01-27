@@ -13,6 +13,7 @@ import {
   getZoneReason,
   calculatePercentages,
 } from "./zoneUtils";
+import Swal from "sweetalert2";
 import { Pie, Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -51,9 +52,10 @@ ChartJS.register(
   LinearScale,
   PointElement,
   LineElement,
-  Title
+  Title,
 );
 import { InfoCircleOutlined } from "@ant-design/icons";
+import EditConditionsModal from "./EditConditionModal";
 const { Panel } = Collapse;
 const apiUrl = import.meta.env.VITE_API_URL2; // Update with your actual API URL
 const apiUrl1 = import.meta.env.VITE_API_URL;
@@ -96,36 +98,59 @@ export default function OptimizationCampaignAnalysis({
     setSelectedFilters({});
     setSorter(null);
   }, []);
+  const [noConditionMode, setNoConditionMode] = useState(false);
   // whenever selectedDateRange changes → reset modalData
   useEffect(() => {
     setModalData({ open: false, rows: [], color: "" });
     setSelectedFilters({});
   }, [selectedDateRange]);
-  // Step 1 – Compute metrics + zone
-  const processed = data.map((row) => {
-    const cti = calculateCTI(row.clicks, row.noi);
-    const ite = calculateITE(row.noe, row.noi);
-    const etc = calculateETC(row.nocrm, row.noe);
-    const fraud = calculateFraudScore(row.pe, row.rti, row.pi);
-    const zone = getZoneDynamic(
-      fraud,
-      cti,
-      ite,
-      etc,
-      conditions,
-      globalIgnores
-    );
-    const reasons = getZoneReason(
-      fraud,
-      cti,
-      ite,
-      etc,
-      conditions,
-      globalIgnores
-    );
 
-    return { ...row, cti, ite, etc, fraud, zone, reasons };
-  });
+  // Step 1 – Compute metrics + zone
+  const processed = useMemo(() => {
+    if (!conditions.length && !noConditionMode) return [];
+
+    return data.map((row) => {
+      const cti = calculateCTI(row.clicks, row.noi);
+      const ite = calculateITE(row.noe, row.noi);
+      const etc = calculateETC(row.nocrm, row.noe);
+
+      const fraud = calculateFraudScore(row.rti, row.pi, row.noi);
+
+      // ✅ FALLBACK MODE
+      if (noConditionMode) {
+        return {
+          ...row,
+          cti,
+          ite,
+          etc,
+          fraud,
+          zone: "Red",
+          reasons: ["No campaign conditions configured"],
+        };
+      }
+
+      // ✅ NORMAL MODE
+      const zone = getZoneDynamic(
+        fraud,
+        cti,
+        ite,
+        etc,
+        conditions,
+        globalIgnores,
+      );
+
+      const reasons = getZoneReason(
+        fraud,
+        cti,
+        ite,
+        etc,
+        conditions,
+        globalIgnores,
+      );
+
+      return { ...row, cti, ite, etc, fraud, zone, reasons };
+    });
+  }, [data, conditions, globalIgnores]);
 
   // 🔥 Role-based filtering
   let filteredData = [];
@@ -204,7 +229,7 @@ export default function OptimizationCampaignAnalysis({
       }
 
       return acc;
-    }, {})
+    }, {}),
   );
 
   // Step 4 – Totals
@@ -238,7 +263,7 @@ export default function OptimizationCampaignAnalysis({
         yellowEvents: 0,
         green: 0,
         greenEvents: 0,
-      }
+      },
     );
   }, [grouped]);
 
@@ -249,7 +274,7 @@ export default function OptimizationCampaignAnalysis({
         acc[row.zone.toLowerCase()] += 1;
         return acc;
       },
-      { red: 0, orange: 0, yellow: 0, green: 0 }
+      { red: 0, orange: 0, yellow: 0, green: 0 },
     );
   }, [filteredData]);
 
@@ -336,7 +361,7 @@ export default function OptimizationCampaignAnalysis({
   // // Step 5 – Inactive PIDs
   const inactivePIDs = useMemo(
     () => filteredData.filter((row) => row.noi < 200),
-    [filteredData]
+    [filteredData],
   );
 
   const colorMap = {
@@ -347,7 +372,7 @@ export default function OptimizationCampaignAnalysis({
   };
   const assignedSubAdmins = useMemo(
     () => user?.assigned_subadmins || [],
-    [user]
+    [user],
   );
   const fetchSubAdmins = async () => {
     try {
@@ -366,70 +391,40 @@ export default function OptimizationCampaignAnalysis({
       console.error("Error fetching sub-admins:", error);
     }
   };
-  useEffect(() => {
-    const fetchConditions = async () => {
-      try {
-        // Call the correct endpoint
-        const res = await axios.get(
-          `${apiUrl}/api/zone-conditions/${encodeURIComponent(campaignName)}`
-        );
-
-        let rows = res.data;
-        if (rows && rows.length > 0) {
-          setConditions(rows);
-
-          // ✅ Set globalIgnores if data exists
-          const { fraud_ignore, cti_ignore, ite_ignore, etc_ignore } = rows[0];
-          setGlobalIgnores({
-            fraud: !!fraud_ignore,
-            cti: !!cti_ignore,
-            ite: !!ite_ignore,
-            etc: !!etc_ignore,
-          });
-        } else {
-          // Otherwise fetch the default ones
-          const defaultRes = await axios.get(
-            `${apiUrl}/api/zone-conditions/__DEFAULT__`
-          );
-          setConditions(defaultRes.data);
-
-          if (defaultRes.data.length > 0) {
-            const { fraud_ignore, cti_ignore, ite_ignore, etc_ignore } =
-              defaultRes.data[0];
-            setGlobalIgnores({
-              fraud: !!fraud_ignore,
-              cti: !!cti_ignore,
-              ite: !!ite_ignore,
-              etc: !!etc_ignore,
-            });
-          }
-        }
-      } catch (err) {
-        console.error("Error fetching conditions:", err);
-
-        // As a safety fallback, try default
-        try {
-          const defaultRes = await axios.get(
-            `${apiUrl}/api/zone-conditions/__DEFAULT__`
-          );
-          setConditions(defaultRes.data);
-
-          if (defaultRes.data.length > 0) {
-            const { fraud_ignore, cti_ignore, ite_ignore, etc_ignore } =
-              defaultRes.data[0];
-            setGlobalIgnores({
-              fraud: !!fraud_ignore,
-              cti: !!cti_ignore,
-              ite: !!ite_ignore,
-              etc: !!etc_ignore,
-            });
-          }
-        } catch (err2) {
-          console.error("Error fetching default conditions:", err2);
-        }
+  const fetchConditions = useCallback(async () => {
+    if (!campaignName) return; // 🚫 extra safety
+    try {
+      // Call the correct endpoint
+      const res = await axios.get(
+        `${apiUrl}/api/zone-conditions/${encodeURIComponent(campaignName)}`,
+      );
+      let rows = res.data;
+      if (rows && rows.length > 0) {
+        setConditions(rows);
+        setNoConditionMode(false);
+        // ✅ Set globalIgnores if data exists
+        const { fraud_ignore, cti_ignore, ite_ignore, etc_ignore } = rows[0];
+        setGlobalIgnores({
+          fraud: !!fraud_ignore,
+          cti: !!cti_ignore,
+          ite: !!ite_ignore,
+          etc: !!etc_ignore,
+        });
       }
-    };
-
+    } catch (err) {
+      if (err.response?.status === 404) {
+        setConditions([]);
+        setNoConditionMode(true); // ✅ enable fallback mode
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "Failed to fetch zone conditions",
+        });
+      }
+    }
+  }, [campaignName, apiUrl]);
+  useEffect(() => {
     fetchSubAdmins();
     fetchConditions();
   }, [campaignName, JSON.stringify(assignedSubAdmins)]);
@@ -450,7 +445,7 @@ export default function OptimizationCampaignAnalysis({
             ite_max: row.ite_max || 9999,
             etc_min: row.etc_min || 0,
             etc_max: row.etc_max || 9999,
-          }
+          },
         );
       }
 
@@ -540,7 +535,7 @@ export default function OptimizationCampaignAnalysis({
   // Extract unique values for each column
   const getUniqueValues = (key) => {
     return [...new Set(modalData.rows.map((row) => row[key]))].filter(
-      (val) => val !== null && val !== undefined && val !== ""
+      (val) => val !== null && val !== undefined && val !== "",
     );
   };
 
@@ -549,8 +544,9 @@ export default function OptimizationCampaignAnalysis({
   };
   // Enhance rows with percentage calculations
   const enhancedRows = useMemo(() => {
-    return modalData.rows.map((row) => {
-      const perc = calculatePercentages(
+    return modalData.rows.map((row) => ({
+      ...row,
+      percentages: calculatePercentages(
         {
           clicks: row.clicks,
           installs: row.noi,
@@ -559,17 +555,17 @@ export default function OptimizationCampaignAnalysis({
           pi: row.pi,
           pe: row.pe,
         },
-        conditions // ✅ second argument
-      );
-
-      return { ...row, percentages: perc };
-    });
+        conditions,
+        globalIgnores,
+      ),
+    }));
   }, [modalData.rows, conditions, globalIgnores]);
+  console.log("enhance", enhancedRows);
   const filteredDataModal = useMemo(() => {
     return enhancedRows.filter((row) =>
       Object.entries(selectedFilters).every(([key, values]) =>
-        values && values.length > 0 ? values.includes(row[key]) : true
-      )
+        values && values.length > 0 ? values.includes(row[key]) : true,
+      ),
     );
   }, [enhancedRows, selectedFilters]);
 
@@ -670,9 +666,7 @@ export default function OptimizationCampaignAnalysis({
           <>
             {displayValue(val)}{" "}
             {val !== null && val !== undefined && perc && (
-              <span className={`${colorClass} text-xs`}>
-                ({perc?.value.toFixed(2)}%)
-              </span>
+              <span className={`${colorClass} text-xs`}>({perc?.value}%)</span>
             )}
           </>
         );
@@ -690,9 +684,7 @@ export default function OptimizationCampaignAnalysis({
           <>
             {displayValue(val)}{" "}
             {val !== null && val !== undefined && perc && (
-              <span className={`${colorClass} text-xs`}>
-                ({perc?.value.toFixed(2)}%)
-              </span>
+              <span className={`${colorClass} text-xs`}>({perc?.value}%)</span>
             )}
           </>
         );
@@ -710,9 +702,7 @@ export default function OptimizationCampaignAnalysis({
           <>
             {displayValue(val)}{" "}
             {val !== null && val !== undefined && perc && (
-              <span className={`${colorClass} text-xs`}>
-                ({perc?.value.toFixed(2)}%)
-              </span>
+              <span className={`${colorClass} text-xs`}>({perc?.value}%)</span>
             )}
           </>
         );
@@ -730,9 +720,7 @@ export default function OptimizationCampaignAnalysis({
           <>
             {displayValue(val)}{" "}
             {val !== null && val !== undefined && perc && (
-              <span className={`${colorClass} text-xs`}>
-                ({perc?.value.toFixed(2)}%)
-              </span>
+              <span className={`${colorClass} text-xs`}>({perc?.value}%)</span>
             )}
           </>
         );
@@ -750,9 +738,7 @@ export default function OptimizationCampaignAnalysis({
           <>
             {displayValue(val)}{" "}
             {val !== null && val !== undefined && perc && (
-              <span className={`${colorClass} text-xs`}>
-                ({perc?.value.toFixed(2)}%)
-              </span>
+              <span className={`${colorClass} text-xs`}>({perc?.value}%)</span>
             )}
           </>
         );
@@ -761,6 +747,52 @@ export default function OptimizationCampaignAnalysis({
 
     getColumnWithFilter("NOCRM", "nocrm"),
     getColumnWithFilter("CLICKS", "clicks"),
+    // ✅ REASON COLUMN
+    {
+      title: "REASON",
+      dataIndex: "reasons",
+      key: "reasons",
+      align: "center",
+      render: (reasons, record) => {
+        if (!reasons || !reasons.length) {
+          return <span className="text-gray-400">—</span>;
+        }
+
+        const tooltipContent = (
+          <div className="space-y-1 max-w-xs">
+            {reasons.map((reason, idx) => {
+              const isCurrentZone = reason
+                .toLowerCase()
+                .includes(record.zone.toLowerCase());
+
+              return (
+                <div
+                  key={idx}
+                  className={`text-xs px-2 py-1 rounded-md ${
+                    isCurrentZone
+                      ? "bg-red-100 text-red-700 font-semibold"
+                      : "bg-gray-100 text-gray-700"
+                  }`}>
+                  {reason}
+                </div>
+              );
+            })}
+          </div>
+        );
+
+        return (
+          <AntTooltip
+            title={tooltipContent}
+            placement="right"
+            overlayClassName="reason-tooltip">
+            <span className="flex items-center justify-center gap-1 cursor-pointer text-blue-600 font-medium">
+              <InfoCircleOutlined />
+              {reasons.length} reason{reasons.length > 1 ? "s" : ""}
+            </span>
+          </AntTooltip>
+        );
+      },
+    },
   ];
   return (
     <div className="min-h-screen space-y-6">
@@ -769,6 +801,12 @@ export default function OptimizationCampaignAnalysis({
         <AntTitle level={4} className="text-gray-800">
           Campaign Dashboard
         </AntTitle>
+        {noConditionMode && (
+          <div className="bg-red-100 text-red-700 p-3 rounded-lg mb-3">
+            ⚠ No zone conditions found for this campaign. All traffic is marked
+            RED.
+          </div>
+        )}
         {canEdit && (
           <Button
             type="primary"
@@ -982,120 +1020,13 @@ export default function OptimizationCampaignAnalysis({
       )}
 
       {/* Edit Conditions Modal */}
-      <Modal
-        title={
-          <div className="text-lg font-semibold text-gray-800">
-            Edit Conditions
-          </div>
-        }
-        open={showModal}
-        onCancel={() => setShowModal(false)}
-        onOk={handleSave}
-        width={750}
-        className=" max-h-[60vh] custom-modal bg-gradient-to-br from-[#EAF1FA] via-[#F6F9FC] to-[#FFFFFF]"
-        bodyStyle={{
-          backgroundColor: "#f9fafb",
-          borderRadius: "0.75rem",
-          padding: "1.5rem",
-        }}>
-        {/* Scrollable Body */}
-        <div className="max-h-[60vh] overflow-y-auto pr-2 space-y-6 ">
-          {/* Global Ignore Section */}
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-            <p className="text-base font-semibold text-gray-800 mb-3">
-              Global Ignore
-            </p>
-            <div className="flex flex-wrap gap-4">
-              {["fraud", "cti", "ite", "etc"].map((metric) => (
-                <label
-                  key={metric}
-                  className="flex items-center gap-2 text-gray-700 text-sm font-medium">
-                  <input
-                    type="checkbox"
-                    checked={globalIgnores[metric]}
-                    onChange={async (e) => {
-                      const newValue = e.target.checked;
-                      const updated = { ...globalIgnores, [metric]: newValue };
-                      setGlobalIgnores(updated);
-
-                      await fetch(
-                        `${apiUrl}/api/zone-conditions/${encodeURIComponent(
-                          campaignName
-                        )}/set-ignores`,
-                        {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({
-                            fraud_ignore: updated.fraud ? 1 : 0,
-                            cti_ignore: updated.cti ? 1 : 0,
-                            ite_ignore: updated.ite ? 1 : 0,
-                            etc_ignore: updated.etc ? 1 : 0,
-                          }),
-                        }
-                      );
-                    }}
-                    className="w-4 h-4 accent-blue-600"
-                  />
-                  <span className="capitalize">{metric}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Editable Zones */}
-          <Collapse
-            accordion
-            defaultActiveKey={["1"]}
-            bordered={false}
-            className="bg-transparent">
-            {editValues.map((cond, idx) => (
-              <Collapse.Panel
-                key={cond.id}
-                header={
-                  <div className="flex items-center gap-2 font-semibold text-gray-800">
-                    <span
-                      className={`w-3 h-3 rounded-full ${
-                        cond.zone_color === "Green"
-                          ? "bg-green-500"
-                          : cond.zone_color === "Orange"
-                          ? "bg-orange-500"
-                          : cond.zone_color === "Yellow"
-                          ? "bg-yellow-400"
-                          : "bg-red-500"
-                      }`}></span>
-                    {cond.zone_color} Zone
-                  </div>
-                }
-                className="bg-white rounded-lg shadow-sm border border-gray-100">
-                <Row gutter={[16, 16]}>
-                  {fields.map((field) => (
-                    <Col span={12} key={field}>
-                      <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase">
-                        {field.replace("_", " ")}
-                        <AntTooltip
-                          title={`Enter value for ${field.replace("_", " ")}`}>
-                          <InfoCircleOutlined className="ml-1 text-gray-400" />
-                        </AntTooltip>
-                      </label>
-                      <Input
-                        type="number"
-                        step="0.0001"
-                        value={cond[field]}
-                        onChange={(e) => {
-                          const updated = [...editValues];
-                          updated[idx][field] = e.target.value;
-                          setEditValues(updated);
-                        }}
-                        className="!rounded-lg !border-gray-300 hover:!border-blue-400 focus:!border-blue-500 focus:!ring-1 focus:!ring-blue-300 transition-all"
-                      />
-                    </Col>
-                  ))}
-                </Row>
-              </Collapse.Panel>
-            ))}
-          </Collapse>
-        </div>
-      </Modal>
+      <EditConditionsModal
+        showModal={showModal}
+        setShowModal={setShowModal}
+        campaignName={campaignName}
+        apiUrl={apiUrl}
+        onSaved={fetchConditions}
+      />
     </div>
   );
 }
