@@ -6,6 +6,7 @@ import { SearchOutlined } from "@ant-design/icons";
 import { useSelector } from "react-redux";
 import geoData from "../../Data/geoData.json";
 const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl2 = import.meta.env.VITE_API_URL3;
 
 const AdvertiserCreateForm = () => {
   const user = useSelector((state) => state.auth.user);
@@ -29,7 +30,7 @@ const AdvertiserCreateForm = () => {
       Object.entries(obj).map(([k, v]) => [
         k,
         typeof v === "string" ? v.trim() : v,
-      ])
+      ]),
     );
   };
   // Fetch available advertiser IDs (GLOBAL – no user_id)
@@ -84,6 +85,57 @@ const AdvertiserCreateForm = () => {
   }, [userId]);
 
   // Handle form submission
+  // const handleSubmit = async (e) => {
+  //   e.preventDefault();
+
+  //   // ✅ trim input values
+  //   const newAdv = trimValues({
+  //     adv_name: name,
+  //     adv_id: selectedId,
+  //     geo,
+  //     user_id: editingAdv
+  //       ? user?.role === "advertiser_manager"
+  //         ? editingAdv.user_id
+  //         : userId
+  //       : userId,
+  //   });
+
+  //   if (!newAdv.adv_name || !newAdv.adv_id || !newAdv.geo) {
+  //     return Swal.fire({
+  //       icon: "warning",
+  //       title: "Missing Fields",
+  //       text: "Please fill all required fields.",
+  //     });
+  //   }
+
+  //   try {
+  //     const response = await axios.post(`${apiUrl}/create-advid`, newAdv);
+
+  //     if (response.data.success) {
+  //       Swal.fire({
+  //         icon: "success",
+  //         title: "Created",
+  //         text: response.data.message || "Operation successful!",
+  //       });
+  //     }
+  //     await refreshAvailableIds();
+  //     // Refresh advertisers
+  //     const { data } = await axios.get(`${apiUrl}/advid-data/${userId}`);
+  //     if (data.success && Array.isArray(data.advertisements)) {
+  //       setAdvertisers(data.advertisements);
+  //     }
+
+  //     resetForm();
+  //   } catch (err) {
+  //     console.error(err);
+  //     Swal.fire({
+  //       icon: "error",
+  //       title: "Error",
+  //       text: err.message || "Something went wrong.",
+  //     });
+  //   }
+  // };
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -108,17 +160,46 @@ const AdvertiserCreateForm = () => {
     }
 
     try {
+      // =====================================
+      // 1️⃣ CREATE ADVERTISER
+      // =====================================
       const response = await axios.post(`${apiUrl}/create-advid`, newAdv);
 
-      if (response.data.success) {
-        Swal.fire({
-          icon: "success",
-          title: "Created",
-          text: response.data.message || "Operation successful!",
-        });
+      if (!response.data.success) {
+        throw new Error(response.data.message || "Failed to create advertiser");
       }
+
+      const createdAdvId = selectedId; // 👈 from backend
+
+      Swal.fire({
+        icon: "success",
+        title: "Created",
+        text: response.data.message || "Advertiser created successfully!",
+      });
+
+      // =====================================
+      // 2️⃣ GENERATE ADVERTISER LINK
+      // =====================================
+      const advertiserPayload = {
+        campaign_id: null,
+        advertiser_link: "", // optional
+        adv_id: createdAdvId,
+        click_id_param: "click_id",
+      };
+
+      console.log("Sending Advertiser Payload:", advertiserPayload);
+
+      try {
+        await axios.post(`${apiUrl2}/link/advertiser`, advertiserPayload);
+      } catch (linkErr) {
+        console.warn("Advertiser created but link generation failed", linkErr);
+      }
+
+      // =====================================
+      // 3️⃣ REFRESH DATA
+      // =====================================
       await refreshAvailableIds();
-      // Refresh advertisers
+
       const { data } = await axios.get(`${apiUrl}/advid-data/${userId}`);
       if (data.success && Array.isArray(data.advertisements)) {
         setAdvertisers(data.advertisements);
@@ -134,6 +215,7 @@ const AdvertiserCreateForm = () => {
       });
     }
   };
+
   const resetForm = () => {
     setName("");
     setSelectedId("");
