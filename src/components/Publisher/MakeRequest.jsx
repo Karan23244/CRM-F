@@ -84,7 +84,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
   useEffect(() => {
     localStorage.setItem(
       "hiddenCampaignColumns",
-      JSON.stringify(hiddenColumns)
+      JSON.stringify(hiddenColumns),
     );
   }, [hiddenColumns]);
   useEffect(() => {
@@ -135,7 +135,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
       debounce((val) => {
         setSearchText(val);
       }, 400),
-    []
+    [],
   );
 
   // 🚀 Fetchers
@@ -171,7 +171,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
 
             // Check if any role matches desired roles
             return roles.some((r) =>
-              ["advertiser_manager", "advertiser", "operations"].includes(r)
+              ["advertiser_manager", "advertiser", "operations"].includes(r),
             );
           })
           ?.map((a) => a.username) || [];
@@ -201,7 +201,6 @@ const PublisherRequest = ({ senderId, receiverId }) => {
           id: userId,
         },
       });
-
       const sortedData = (res.data?.data || []).sort((a, b) => b.id - a.id);
       setRequests(sortedData);
     } catch (err) {
@@ -255,7 +254,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
         });
       });
     },
-    [requests, filters]
+    [requests, filters],
   );
   useEffect(() => {
     const valuesObj = {};
@@ -322,7 +321,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
       console.log("Submitting Request Data:", requestData);
       const response = await axios.post(
         `${apiUrl}/addPubRequestnew`,
-        requestData
+        requestData,
       );
 
       if (response.status === 201) {
@@ -379,8 +378,8 @@ const PublisherRequest = ({ senderId, receiverId }) => {
             values.prm === 1
               ? "✅ Allow"
               : values.prm === 2
-              ? "❌ Disallow"
-              : "🟡 Hold"
+                ? "❌ Disallow"
+                : "🟡 Hold"
           }`,
           url: "/dashboard/view-request",
         });
@@ -393,8 +392,8 @@ const PublisherRequest = ({ senderId, receiverId }) => {
             prev.map((item) =>
               item.id === record.id
                 ? { ...item, priority: values.priority, prm: values.prm }
-                : item
-            )
+                : item,
+            ),
           );
 
           Swal.fire({
@@ -419,7 +418,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
         });
       }
     },
-    [apiUrl]
+    [apiUrl],
   );
   const buildColumns = ({
     filters,
@@ -512,8 +511,8 @@ const PublisherRequest = ({ senderId, receiverId }) => {
 
         const visibleValues = sortDropdownValues(
           allValues.filter((val) =>
-            val.toString().toLowerCase().includes(searchText.toLowerCase())
-          )
+            val.toString().toLowerCase().includes(searchText.toLowerCase()),
+          ),
         );
         const isAllSelected = selectedValues.length === allValues.length;
         const isIndeterminate = selectedValues.length > 0 && !isAllSelected;
@@ -650,14 +649,14 @@ const PublisherRequest = ({ senderId, receiverId }) => {
                   record.prm === 1
                     ? "#e6ffed" // ✅ Allow
                     : record.prm === 2
-                    ? "#ffe6e6" // ❌ Disallow
-                    : "#fff3cd", // 🟡 Hold
+                      ? "#ffe6e6" // ❌ Disallow
+                      : "#fff3cd", // 🟡 Hold
                 color:
                   record.prm === 1
                     ? "green"
                     : record.prm === 2
-                    ? "red"
-                    : "#b8860b",
+                      ? "red"
+                      : "#b8860b",
               }}
               onChange={(val) =>
                 handleUpdatePrm(record, { priority: record.priority, prm: val })
@@ -673,18 +672,18 @@ const PublisherRequest = ({ senderId, receiverId }) => {
                   record.prm === 1
                     ? "green"
                     : record.prm === 2
-                    ? "red"
-                    : "#b8860b",
+                      ? "red"
+                      : "#b8860b",
                 fontWeight: 600,
               }}>
               {record.prm === 1
                 ? "✅ Allow"
                 : record.prm === 2
-                ? "❌ Disallow"
-                : "🟡 Hold"}
+                  ? "❌ Disallow"
+                  : "🟡 Hold"}
             </span>
           ),
-      }
+      },
     );
 
     return cols;
@@ -923,12 +922,29 @@ const PublisherRequest = ({ senderId, receiverId }) => {
                   {/* PAYOUT */}
                   <div className="md:col-span-4">
                     <Form.Item label="Payout" required>
-                      <Input
+                      <InputNumber
                         placeholder="Enter payout"
                         value={row.payout}
-                        onChange={(e) => {
+                        min={0}
+                        step={0.01}
+                        style={{ width: "100%" }}
+                        controls={false}
+                        // 🔒 Only allow numbers and decimal
+                        formatter={(value) =>
+                          value?.toString().replace(/[^0-9.]/g, "")
+                        }
+                        parser={(value) => value?.replace(/[^0-9.]/g, "")}
+                        // Mobile numeric keyboard
+                        inputMode="decimal"
+                        // Block wrong keys
+                        onKeyPress={(e) => {
+                          if (!/[0-9.]/.test(e.key)) {
+                            e.preventDefault();
+                          }
+                        }}
+                        onChange={(value) => {
                           const updated = [...geoRows];
-                          updated[index].payout = e.target.value;
+                          updated[index].payout = value;
                           setGeoRows(updated);
                         }}
                       />

@@ -5,13 +5,14 @@ import geoData from "../../Data/geoData.json";
 import { useSelector } from "react-redux";
 import Swal from "sweetalert2";
 import StyledTable from "../../Utils/StyledTable";
-import { EditOutlined } from "@ant-design/icons";
+import { EditOutlined, CopyOutlined, EyeOutlined } from "@ant-design/icons";
 const { Option } = Select;
 const apiUrl = import.meta.env.VITE_API_URL;
 
 const SubAdminPubnameData = () => {
   const user = useSelector((state) => state.auth.user);
   const userId = user?.id || null;
+  const isPublisherManager = user?.role === "publisher_manager";
   const [tableData, setTableData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchTextPub, setSearchTextPub] = useState("");
@@ -42,6 +43,7 @@ const SubAdminPubnameData = () => {
   const fetchData = async () => {
     try {
       const response = await axios.get(`${apiUrl}/get-Namepub/`);
+      console.log(response);
       if (response.data && Array.isArray(response.data.data)) {
         setTableData(response.data.data);
       } else {
@@ -345,7 +347,7 @@ const SubAdminPubnameData = () => {
           });
         },
       }),
-      filterDropdown: excelFilterDropdown("pub_id"),
+      filterDropdown: excelFilterDropdown("username"),
       onFilter: (value, record) => record.username === value,
     },
     {
@@ -479,7 +481,7 @@ const SubAdminPubnameData = () => {
       onFilter: (value, record) => record.target === value,
     },
     {
-      title: "Rating",
+      title: <div style={{ textAlign: "center" }}>Rating</div>,
       dataIndex: "level",
       key: "level",
       render: (text) => {
@@ -500,7 +502,7 @@ const SubAdminPubnameData = () => {
       },
     },
     {
-      title: "Postback URL",
+      title: <div style={{ textAlign: "center" }}>Postback URL</div>,
       dataIndex: "postback_url",
       key: "postback_url",
       width: 300,
@@ -543,76 +545,88 @@ const SubAdminPubnameData = () => {
         );
       },
     },
-    {
-      title: "Transfer PUB AM",
-      key: "user_id",
-      render: (_, record) => {
-        const isEditing = editingAssignRowId === record.pub_id;
+    /* ✅ CONDITIONAL COLUMN */
+    ...(isPublisherManager
+      ? [
+          {
+            title: "Transfer PUB AM",
+            key: "user_id",
+            render: (_, record) => {
+              const isEditing = editingAssignRowId === record.pub_id;
 
-        if (isEditing) {
-          return (
-            <Select
-              autoFocus
-              value={record.user_id?.toString()}
-              onChange={async (newUserId) => {
-                try {
-                  const selectedAdmin = subAdmins.find(
-                    (admin) => admin.id.toString() === newUserId,
-                  );
-                  if (!selectedAdmin) {
-                    Swal.fire("Error", "Invalid user selected", "error");
-                    return;
-                  }
-                  const response = await axios.put(`${apiUrl}/update-pubid`, {
-                    ...record,
-                    user_id: selectedAdmin.id,
-                    username: selectedAdmin.username,
-                  });
-                  if (response.data.success) {
-                    Swal.fire(
-                      "Success",
-                      "User transferred successfully!",
-                      "success",
-                    );
-                    fetchData();
-                  } else {
-                    Swal.fire("Error", "Failed to transfer user", "error");
-                  }
-                  console.log({
-                    ...record,
-                    user_id: selectedAdmin.id,
-                    username: selectedAdmin.username,
-                  });
-                } catch (error) {
-                  console.error("User transfer error:", error);
-                  Swal.fire("Error", "Something went wrong", "error");
-                } finally {
-                  setEditingAssignRowId(null);
-                }
-              }}
-              onBlur={() => setEditingAssignRowId(null)}
-              className="min-w-[150px]">
-              {subAdmins.map((admin) => (
-                <Option key={admin.id} value={admin.id.toString()}>
-                  {admin.username}
-                </Option>
-              ))}
-            </Select>
-          );
-        }
+              if (isEditing) {
+                return (
+                  <Select
+                    autoFocus
+                    value={record.user_id?.toString()}
+                    onChange={async (newUserId) => {
+                      try {
+                        const selectedAdmin = subAdmins.find(
+                          (admin) => admin.id.toString() === newUserId,
+                        );
+                        if (!selectedAdmin) {
+                          Swal.fire("Error", "Invalid user selected", "error");
+                          return;
+                        }
+                        const response = await axios.put(
+                          `${apiUrl}/update-pubid`,
+                          {
+                            ...record,
+                            user_id: selectedAdmin.id,
+                            username: selectedAdmin.username,
+                          },
+                        );
+                        if (response.data.success) {
+                          Swal.fire(
+                            "Success",
+                            "User transferred successfully!",
+                            "success",
+                          );
+                          fetchData();
+                        } else {
+                          Swal.fire(
+                            "Error",
+                            "Failed to transfer user",
+                            "error",
+                          );
+                        }
+                        console.log({
+                          ...record,
+                          user_id: selectedAdmin.id,
+                          username: selectedAdmin.username,
+                        });
+                      } catch (error) {
+                        console.error("User transfer error:", error);
+                        Swal.fire("Error", "Something went wrong", "error");
+                      } finally {
+                        setEditingAssignRowId(null);
+                      }
+                    }}
+                    onBlur={() => setEditingAssignRowId(null)}
+                    className="min-w-[150px]">
+                    {subAdmins.map((admin) => (
+                      <Option key={admin.id} value={admin.id.toString()}>
+                        {admin.username}
+                      </Option>
+                    ))}
+                  </Select>
+                );
+              }
 
-        return (
-          <span
-            onClick={() => setEditingAssignRowId(record.pub_id)}
-            className="cursor-pointer hover:underline"
-            title="Click to change user">
-            {record.username || "Select Sub Admin"}
-          </span>
-        );
-      },
-    },
+              return (
+                <span
+                  onClick={() => setEditingAssignRowId(record.pub_id)}
+                  className="cursor-pointer hover:underline"
+                  title="Click to change user">
+                  {record.username || "Select Sub Admin"}
+                </span>
+              );
+            },
+          },
+        ]
+      : []),
     {
-      title: "Actions",
+      title: <div style={{ textAlign: "center" }}>Action</div>,
       key: "actions",
       render: (_, record) => (
         <Space size="middle">
@@ -626,6 +640,53 @@ const SubAdminPubnameData = () => {
           </Tooltip>
         </Space>
       ),
+    },
+    {
+      title: <div style={{ textAlign: "center" }}>Details</div>,
+      key: "details",
+      align: "center",
+      render: (_, record) => {
+        const username = record.publisher_username || "-";
+        const password = record.password || "-";
+
+        const copyToClipboard = () => {
+          const text = `Username: ${username}\nPassword: ${password}`;
+          navigator.clipboard.writeText(text);
+          message.success("Details copied!");
+        };
+
+        const hoverContent = (
+          <div className="text-xs space-y-2 max-w-[250px]">
+            <div>
+              <strong>Username:</strong> {username}
+            </div>
+            <div className="break-all">
+              <strong>Password:</strong> {password}
+            </div>
+
+            <Button
+              type="primary"
+              size="small"
+              icon={<CopyOutlined />}
+              onClick={copyToClipboard}
+              block>
+              Copy Details
+            </Button>
+          </div>
+        );
+
+        return (
+          <Tooltip
+            title={hoverContent}
+            trigger="hover"
+            placement="right"
+            overlayInnerStyle={{ padding: "10px" }}>
+            <Button type="default" size="small" icon={<EyeOutlined />}>
+              View
+            </Button>
+          </Tooltip>
+        );
+      },
     },
   ];
 

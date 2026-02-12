@@ -18,6 +18,8 @@ import {
   UserOutlined,
   DatabaseOutlined,
   EditOutlined,
+  CopyOutlined,
+  EyeOutlined,
 } from "@ant-design/icons";
 import geoData from "../../Data/geoData.json";
 import SubAdminPubnameData from "./SubAdminPubnameData";
@@ -124,7 +126,7 @@ const PublisherEditForm = () => {
           const filtered = data.data.filter(
             (subAdmin) =>
               ["publisher_manager", "publisher"].includes(subAdmin.role) &&
-              subAdmin.id !== userIdt,
+              subAdmin.id !== userId,
           );
 
           setSubAdmins(filtered);
@@ -144,8 +146,8 @@ const PublisherEditForm = () => {
     try {
       const { data } = await axios.get(`${apiUrl}/pubid-data/${userId}`);
       console.log("Fetched publishers data:", data);
-      if (data.success && Array.isArray(data.Publisher)) {
-        setPublishers(data.Publisher);
+      if (data.success && Array.isArray(data.publishers)) {
+        setPublishers(data.publishers);
       }
     } catch (err) {
       console.error("Error fetching publishers:", err);
@@ -181,7 +183,7 @@ const PublisherEditForm = () => {
 
     setUniqueValues(valuesObj);
   }, [publishers, filters]);
-  const filteredData = publishers.filter((row) => {
+  const filteredData = publishers?.filter((row) => {
     // 🔍 Global search
     const matchesSearch = [
       row.pub_name,
@@ -536,7 +538,7 @@ const PublisherEditForm = () => {
       onFilter: (value, record) => record.target === value,
     },
     {
-      title: "Rating",
+      title: <div style={{ textAlign: "center" }}>Rating</div>,
       dataIndex: "level",
       key: "level",
       render: (text) => {
@@ -558,7 +560,7 @@ const PublisherEditForm = () => {
       },
     },
     {
-      title: "Postback URL",
+      title: <div style={{ textAlign: "center" }}>Postback URL</div>,
       dataIndex: "postback_url",
       key: "postback_url",
       width: 300,
@@ -682,7 +684,7 @@ const PublisherEditForm = () => {
         ]
       : []),
     {
-      title: "Actions",
+      title: <div style={{ textAlign: "center" }}>Action</div>,
       key: "actions",
       render: (_, record) => (
         <Space size="middle">
@@ -695,6 +697,53 @@ const PublisherEditForm = () => {
           </Tooltip>
         </Space>
       ),
+    },
+    {
+      title: <div style={{ textAlign: "center" }}>Details</div>,
+      key: "details",
+      align: "center",
+      render: (_, record) => {
+        const username = record.publisher_username || "-";
+        const password = record.password || "-";
+
+        const copyToClipboard = () => {
+          const text = `Username: ${username}\nPassword: ${password}`;
+          navigator.clipboard.writeText(text);
+          message.success("Details copied!");
+        };
+
+        const hoverContent = (
+          <div className="text-xs space-y-2 max-w-[250px]">
+            <div>
+              <strong>Username:</strong> {username}
+            </div>
+            <div className="break-all">
+              <strong>Password:</strong> {password}
+            </div>
+
+            <Button
+              type="primary"
+              size="small"
+              icon={<CopyOutlined />}
+              onClick={copyToClipboard}
+              block>
+              Copy Details
+            </Button>
+          </div>
+        );
+
+        return (
+          <Tooltip
+            title={hoverContent}
+            trigger="hover"
+            placement="right"
+            overlayInnerStyle={{ padding: "10px" }}>
+            <Button type="default" size="small" icon={<EyeOutlined />}>
+              View
+            </Button>
+          </Tooltip>
+        );
+      },
     },
   ];
   return (
