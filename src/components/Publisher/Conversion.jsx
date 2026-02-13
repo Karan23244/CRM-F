@@ -4,50 +4,17 @@ import { PushpinOutlined, PushpinFilled } from "@ant-design/icons";
 import StyledTable from "../../Utils/StyledTable";
 const apiUrl = import.meta.env.VITE_API_URL;
 
-/* ---------------- DEMO DATA ---------------- */
-const demoData = [
-  {
-    id: 1,
-    pub_name: "John",
-    campaign_name: "Android CPI",
-    geo: "IN",
-    os: "Android",
-    status: "Live",
-    payout: "0.5",
-  },
-  {
-    id: 2,
-    pub_name: "Alex",
-    campaign_name: "iOS Finance",
-    geo: "US",
-    os: "iOS",
-    status: "Pause",
-    payout: "1.2",
-  },
-  {
-    id: 3,
-    pub_name: "John",
-    campaign_name: "Gaming BR",
-    geo: "BR",
-    os: "Android",
-    status: "Live",
-    payout: "0.8",
-  },
-];
-
 /* ---------------- COLUMN HEADINGS ---------------- */
 const columnHeadings = {
   campaign_id: "Campaign ID",
-  publisher_id: "Publisher ID",
-  adv_id: "Advertiser ID",
-  click_id: "Click ID",
-  conversion: "Conversions",
-  payout: "Payout $",
+  total_clicks: "Total Clicks",
+  total_conversions: "Total Conversions",
+  conversion_rate: "Conversion Rate (%)",
 };
 
 const Conversion = () => {
-  const [data, setData] = useState(demoData);
-  const [filteredData, setFilteredData] = useState(demoData);
+  const [data, setData] = useState([]);
+  const [filteredData, setFilteredData] = useState([]);
   const [filters, setFilters] = useState({});
   const [uniqueValues, setUniqueValues] = useState({});
   const [firstFilteredColumn, setFirstFilteredColumn] = useState(null);
@@ -67,13 +34,12 @@ const Conversion = () => {
       const transformData = (data) => {
         return data.map((item) => ({
           campaign_id: item.campaign_id,
-          publisher_id: item.publisher_id,
-          adv_id: item.adv_id,
-          click_id: item.click_id,
-          conversion: item.conversion,
-          payout: item.payout,
+          total_clicks: item.total_clicks,
+          total_conversions: item.total_conversions,
+          conversion_rate: item.conversion_rate,
         }));
       };
+
       const formatted = transformData(json.data);
       setData(formatted);
       setFilteredData(formatted);
@@ -85,7 +51,7 @@ const Conversion = () => {
   /* ---------------- PIN COLUMN ---------------- */
   const toggleStickyColumn = (key) => {
     setStickyColumns((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
     );
   };
 
@@ -140,7 +106,7 @@ const Conversion = () => {
     const values = {};
     Object.keys(columnHeadings).forEach((col) => {
       values[col] = Array.from(
-        new Set(getDataForDropdown(col).map((r) => r[col] ?? "-"))
+        new Set(getDataForDropdown(col).map((r) => r[col] ?? "-")),
       );
     });
     setUniqueValues(values);
@@ -180,8 +146,14 @@ const Conversion = () => {
       key,
       fixed: stickyColumns.includes(key) ? "left" : undefined,
 
-      sorter: (a, b) =>
-        (a[key] || "").toString().localeCompare((b[key] || "").toString()),
+      sorter: (a, b) => {
+        if (!isNaN(a[key]) && !isNaN(b[key])) {
+          return Number(a[key]) - Number(b[key]);
+        }
+        return (a[key] || "")
+          .toString()
+          .localeCompare((b[key] || "").toString());
+      },
 
       sortOrder: sortInfo.columnKey === key ? sortInfo.order : null,
 
@@ -208,7 +180,7 @@ const Conversion = () => {
               onChange={(e) =>
                 handleFilterChange(
                   e.target.checked ? [...uniqueValues[key]] : [],
-                  key
+                  key,
                 )
               }>
               Select All
@@ -281,7 +253,7 @@ const Conversion = () => {
 
       <StyledTable
         bordered
-        rowKey="id"
+        rowKey="campaign_id"
         columns={columns}
         dataSource={filteredData}
         pagination={{
