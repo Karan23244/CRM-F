@@ -15,6 +15,14 @@ import { UploadOutlined } from "@ant-design/icons";
 import axios from "axios";
 import Swal from "sweetalert2";
 import { useParams } from "react-router-dom";
+import countries from "../../Data/geoData.json";
+import { CurrencySymbolMap } from "./Currency.js";
+const currencyOptions = Object.entries(CurrencySymbolMap).map(
+  ([code, symbol]) => ({
+    label: `${code} (${symbol})`,
+    value: symbol, // backend gets only symbol
+  }),
+);
 const apiUrl = import.meta.env.VITE_API_URL4;
 
 const { TextArea } = Input;
@@ -38,7 +46,6 @@ const CreateOffer = () => {
       const res = await axios.get(`${apiUrl}/api/categories`, {
         withCredentials: true,
       });
-      console.log(res);
       setCategories(res.data.data || []);
     } catch (error) {
       Swal.fire("Error", "Failed to load categories", "error");
@@ -51,7 +58,6 @@ const CreateOffer = () => {
       const res = await axios.get(`${apiUrl}/api/deals/${id}`, {
         withCredentials: true,
       });
-      console.log(res);
       const offer = res.data.data;
 
       form.setFieldsValue({
@@ -109,7 +115,6 @@ const CreateOffer = () => {
         : `${apiUrl}/api/create-deal`;
 
       const method = isEdit ? "put" : "post";
-
       await axios({
         method,
         url,
@@ -128,9 +133,10 @@ const CreateOffer = () => {
         form.resetFields();
         setLogo(null);
         setExistingLogo("");
-        setLogoPreview(null)
+        setLogoPreview(null);
       }
     } catch (err) {
+      console.log(err);
       Swal.fire("Error", "Something went wrong", "error");
     }
   };
@@ -251,21 +257,30 @@ const CreateOffer = () => {
             {/* Currency */}
             <Col xs={24} md={12}>
               <Form.Item label="Currency" name="currency">
-                <Select>
-                  <Select.Option value="₹">INR</Select.Option>
-                  <Select.Option value="$">USD</Select.Option>
-                  <Select.Option value="%">%</Select.Option>
-                </Select>
+                <Select
+                  showSearch
+                  placeholder="Select Currency"
+                  options={currencyOptions}
+                  optionFilterProp="label"
+                  filterOption={(input, option) =>
+                    option.label.toLowerCase().includes(input.toLowerCase())
+                  }
+                />
               </Form.Item>
             </Col>
 
             {/* Country */}
             <Col xs={24} md={12}>
               <Form.Item label="Country" name="countries">
-                <Select>
-                  <Select.Option value="IN">IN</Select.Option>
-                  <Select.Option value="US">US</Select.Option>
-                  <Select.Option value="UK">UK</Select.Option>
+                <Select
+                  showSearch
+                  placeholder="Select Country"
+                  optionFilterProp="children">
+                  {countries.geo.map((country) => (
+                    <Select.Option key={country.code} value={country.code}>
+                      {country.name} ({country.code})
+                    </Select.Option>
+                  ))}
                 </Select>
               </Form.Item>
             </Col>
