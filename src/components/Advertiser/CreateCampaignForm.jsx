@@ -18,7 +18,7 @@ import geoData from "../../Data/geoData.json";
 import { useLocation } from "react-router-dom";
 import StyledTable from "../../Utils/StyledTable";
 import { useNavigate } from "react-router-dom";
-
+import SettingsPage from "./SettingsPage";
 const apiUrl = import.meta.env.VITE_API_URL;
 const apiUrl2 = import.meta.env.VITE_API_URL3;
 const { Option } = Select;
@@ -220,19 +220,16 @@ const CreateCampaignForm = () => {
     };
 
     delete finalPayload.geo_details;
-    console.log(finalPayload);
     try {
       // ============================================================
       // 1️⃣ CREATE CAMPAIGN
       // ============================================================
       const res = await axios.post(`${apiUrl}/campaignsnew`, finalPayload);
 
-      console.log("Create Campaign Response:", res.data);
 
       if (res.data?.message === "Campaign(s) created successfully") {
         const campaignId = res.data.campaign_id; // ⚠ MUST be returned from backend
 
-        console.log("Received Campaign ID:", campaignId);
 
         if (!campaignId) {
           console.error(
@@ -249,14 +246,12 @@ const CreateCampaignForm = () => {
             click_id_param: "click_id",
           };
 
-          console.log("Sending Advertiser Payload:", advertiserPayload);
 
           const advRes = await axios.post(
             `${apiUrl2}/link/advertiser`,
             advertiserPayload
           );
 
-          console.log("Advertiser API Response:", advRes.data);
         }
 
         Swal.fire({
@@ -313,10 +308,8 @@ const CreateCampaignForm = () => {
       da: values.da,
       status: values.status,
     };
-    console.log(finalPayload);
     try {
       const res = await axios.post(`${apiUrl}/campaign-update`, finalPayload);
-      console.log(res);
       const msg = res?.data?.message;
       if (msg && msg.includes("updated")) {
         Swal.fire({
@@ -361,7 +354,6 @@ const CreateCampaignForm = () => {
 
   useEffect(() => {
     if (!editRecord) return;
-    console.log("Editing Record:", editRecord);
     // --- SAFE GEO PARSING ---
     let parsedGeo = [];
 
@@ -455,7 +447,6 @@ const CreateCampaignForm = () => {
   // Fetch PID info when editRecord changes
   useEffect(() => {
     if (!editRecord) return;
-    console.log(editRecord);
     // 🔥 SEND campaign_name & OS to backend to fetch PID info
     const fetchPidInfo = async () => {
       try {
@@ -842,6 +833,7 @@ const CreateCampaignForm = () => {
         <>
           {/* Top Bar */}
           <div className="mt-8 w-full max-w-8xl">
+            <SettingsPage campaignId={editRecord.id} adv_id={editRecord.adv_d} />
             <GenrateLink
               campaignId={editRecord.id}
               trackingurl={editRecord.tracking_url}
@@ -946,18 +938,12 @@ const GenrateLink = ({ campaignId, trackingurl }) => {
 
     try {
       setSubmitting(true);
-      console.log({
-        publisher_id: selectedPub,
-        campaign_id: campaignId,
-        hide_referrer: hideReferrer ? 1 : 0,
-      });
 
       const res = await axios.post(`${apiUrl2}/link/publisher`, {
         publisher_id: selectedPub,
         campaign_id: campaignId,
         hide_referrer: hideReferrer ? 1 : 0,
       });
-      console.log("Generate Link Response:", res);
       // ⬇ THIS should be returned by your backend
       // Example: { link: "https://track.com/campaign/5543?pub=100" }
       const url = res.data?.publisher_link;
