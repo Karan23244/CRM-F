@@ -1,5 +1,20 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Table, Select, Input, Checkbox, Tooltip, Button } from "antd";
+import {
+  Table,
+  Select,
+  Input,
+  Checkbox,
+  Tooltip,
+  Button,
+  DatePicker,
+  Modal,
+  Spin,
+  Descriptions,
+} from "antd";
+import dayjs from "dayjs";
+
+const { RangePicker } = DatePicker;
+
 import { PushpinOutlined, PushpinFilled } from "@ant-design/icons";
 import StyledTable from "../../Utils/StyledTable";
 const apiUrl = import.meta.env.VITE_API_URL;
@@ -25,28 +40,60 @@ const Conversion = () => {
     columnKey: null,
     order: null,
   });
-  useEffect(() => {
-    const fetchConversions = async () => {
-      const res = await fetch(`${apiUrl}/get-conversions`);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [popupData, setPopupData] = useState(null);
+  const [popupLoading, setPopupLoading] = useState(false);
+  const [dateRange, setDateRange] = useState([
+    dayjs().startOf("month"),
+    dayjs().endOf("month"),
+  ]);
+  const fetchConversions = async (startDate, endDate) => {
+    const res = await fetch(
+      `${apiUrl}/get-conversions?startDate=${startDate}&endDate=${endDate}`,
+    );
+
+    const json = await res.json();
+    console.log("Fetched Conversions:", json);
+    const transformData = (data) =>
+      data.map((item) => ({
+        campaign_id: item.campaign_id,
+        total_clicks: item.total_clicks,
+        total_conversions: item.total_conversions,
+        conversion_rate: item.conversion_rate,
+      }));
+
+    const formatted = transformData(json.data || []);
+    setData(formatted);
+    setFilteredData(formatted);
+  };
+  const fetchConversionPopup = async (campaignId) => {
+    setPopupLoading(true);
+    setModalOpen(true);
+
+    try {
+      const startDate = dateRange[0].format("YYYY-MM-DD");
+      const endDate = dateRange[1].format("YYYY-MM-DD");
+
+      const res = await fetch(
+        `${apiUrl}/conversions/?campaign_id=${campaignId}&startDate=${startDate}&endDate=${endDate}`,
+      );
       const json = await res.json();
-      console.log("Fetched Conversions:", json);
+      setPopupData(json.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setPopupLoading(false);
+    }
+  };
 
-      const transformData = (data) => {
-        return data.map((item) => ({
-          campaign_id: item.campaign_id,
-          total_clicks: item.total_clicks,
-          total_conversions: item.total_conversions,
-          conversion_rate: item.conversion_rate,
-        }));
-      };
+  useEffect(() => {
+    if (!dateRange?.length) return;
 
-      const formatted = transformData(json.data);
-      setData(formatted);
-      setFilteredData(formatted);
-    };
-
-    fetchConversions();
-  }, []);
+    fetchConversions(
+      dateRange[0].format("YYYY-MM-DD"),
+      dateRange[1].format("YYYY-MM-DD"),
+    );
+  }, [dateRange]);
 
   /* ---------------- PIN COLUMN ---------------- */
   const toggleStickyColumn = (key) => {
@@ -205,7 +252,18 @@ const Conversion = () => {
       ),
       filtered: filters[key]?.length > 0,
 
-      render: (text) => text ?? "-",
+      render: (text, record) => {
+        if (key === "total_conversions") {
+          return (
+            <span
+              style={{ color: "#1677ff", cursor: "pointer", fontWeight: 600 }}
+              onClick={() => fetchConversionPopup(record.campaign_id)}>
+              {text}
+            </span>
+          );
+        }
+        return text ?? "-";
+      },
     }));
 
   /* ---------------- UI ---------------- */
@@ -218,6 +276,16 @@ const Conversion = () => {
         </p>
       </div>
       <div className="flex gap-3 mb-4">
+        <RangePicker
+          value={dateRange}
+          onChange={(dates) => {
+            if (!dates) return;
+            setDateRange(dates);
+          }}
+          allowClear={false}
+          style={{ width: 260 }}
+        />
+
         <Input
           placeholder="Search anything..."
           value={searchTerm}
@@ -266,6 +334,32 @@ const Conversion = () => {
         className="mt-5"
         scroll={{ x: "max-content" }}
       />
+      <Modal
+        open={modalOpen}
+        title="Conversion Details"
+        footer={null}
+        onCancel={() => {
+          setModalOpen(false);
+          setPopupData(null);
+        }}>
+        {popupLoading ? (
+          <Spin />
+        ) : popupData ? (
+          <Descriptions bordered column={1} size="small">
+            <Descriptions.Item label="Campaign ID">
+              {popupData.campaign_id}
+            </Descriptions.Item>
+            <Descriptions.Item label="Installs">
+              {popupData.installs}
+            </Descriptions.Item>
+            <Descriptions.Item label="Events">
+              {popupData.events}
+            </Descriptions.Item>
+          </Descriptions>
+        ) : (
+          <p>No data found</p>
+        )}
+      </Modal>
     </div>
   );
 };
