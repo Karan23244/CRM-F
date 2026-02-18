@@ -28,6 +28,7 @@ const apiUrl = import.meta.env.VITE_API_URL3;
 const { Option } = Select;
 const { Title, Text } = Typography;
 const SettingsPage = ({ campaignId, adv_id }) => {
+  const [form] = Form.useForm();
   const [eventsData, setEventsData] = useState([]);
   const [samplingData, setSamplingData] = useState([]);
   const [postbackData, setPostbackData] = useState([]);
@@ -118,8 +119,17 @@ const SettingsPage = ({ campaignId, adv_id }) => {
     };
 
     try {
-      await axios.post(`${apiUrl}/events`, payload);
-      Swal.fire("Saved", "Event settings saved", "success");
+      const res = await axios.post(`${apiUrl}/events`, payload);
+
+      if (res.data?.success) {
+        Swal.fire("Saved", "Event settings saved", "success");
+        // ✅ reset form
+        form.resetFields();
+        // ✅ AUTO FETCH EVERYTHING AFTER EVENT ADD
+        await fetchEvents();
+        await fetchSampling();
+        await fetchPostbacks();
+      }
     } catch {
       Swal.fire("Error", "Failed to save events", "error");
     }
@@ -219,7 +229,10 @@ const SettingsPage = ({ campaignId, adv_id }) => {
             label: <span>Events</span>,
             children: (
               <Card bordered={false}>
-                <Form layout="vertical" onFinish={handleEventSubmit}>
+                <Form
+                  form={form}
+                  layout="vertical"
+                  onFinish={handleEventSubmit}>
                   <Form.List name="events">
                     {(fields, { add, remove }) => (
                       <>
