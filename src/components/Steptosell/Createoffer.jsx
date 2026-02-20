@@ -26,6 +26,14 @@ const currencyOptions = Object.entries(CurrencySymbolMap).map(
 const apiUrl = import.meta.env.VITE_API_URL4;
 
 const { TextArea } = Input;
+const trimValues = (values) => {
+  const trimmed = {};
+  Object.keys(values).forEach((key) => {
+    trimmed[key] =
+      typeof values[key] === "string" ? values[key].trim() : values[key];
+  });
+  return trimmed;
+};
 
 const CreateOffer = () => {
   const { id } = useParams();
@@ -58,25 +66,27 @@ const CreateOffer = () => {
       const res = await axios.get(`${apiUrl}/api/deals/${id}`, {
         withCredentials: true,
       });
-      const offer = res.data.data;
 
+      const offer = res.data.data;
+      const isCoupon = !!offer.coupon_code; // 👈 detect coupon
+      console.log(offer);
       form.setFieldsValue({
         type: offer.type,
         title: offer.title,
         description: offer.description,
         categories: offer.category,
         tracking_link: offer.url,
-        code: offer.code,
+        code: offer.coupon_code, // 👈 set coupon code
         about: offer.about,
-        payout: offer.payout,
+        payout: offer.offer,
         discount_payout: offer.discount_payout,
         currency: offer.currency,
         countries: offer.geo,
       });
 
-      setType(offer.type);
+      // 👇 FORCE coupon UI if coupon exists
+      setType(isCoupon ? "coupon" : "deal");
 
-      // ✅ store existing logo
       setExistingLogo(offer.img);
     } catch {
       Swal.fire("Error", "Failed to load offer data", "error");
@@ -90,6 +100,7 @@ const CreateOffer = () => {
     }
   }, [id]);
   const handleSubmit = async (values) => {
+    values = trimValues(values);
     if (!isEdit && !logo) {
       message.error("Logo is required");
       return;
@@ -153,16 +164,17 @@ const CreateOffer = () => {
             countries: "IN",
           }}>
           <Row gutter={24}>
-            {/* Offer Type */}
-            <Col xs={24} md={12}>
-              <Form.Item label="Offer Type" name="type">
-                <Select onChange={setType}>
-                  <Select.Option value="deal">Deal</Select.Option>
-                  <Select.Option value="coupon">Coupon</Select.Option>
-                </Select>
-              </Form.Item>
-            </Col>
-
+            {/* Offer Type (only on create) */}
+            {!isEdit && (
+              <Col xs={24} md={12}>
+                <Form.Item label="Offer Type" name="type">
+                  <Select onChange={setType}>
+                    <Select.Option value="deal">Deal</Select.Option>
+                    <Select.Option value="coupon">Coupon</Select.Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+            )}
             {/* Title */}
             <Col xs={24} md={12}>
               <Form.Item
