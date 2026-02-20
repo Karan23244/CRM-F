@@ -1,4 +1,7 @@
+import { PercentageOutlined } from "@ant-design/icons";
+
 export const CurrencySymbolMap = {
+Percentage:"%",
 USD: "$",
 CAD: "CA$",
 EUR: "€",
