@@ -12,7 +12,7 @@ const apiUrl = import.meta.env.VITE_API_URL;
 const SubAdminPubnameData = () => {
   const user = useSelector((state) => state.auth.user);
   const userId = user?.id || null;
-  const isPublisherManager = user?.role === "publisher_manager";
+  const isPublisherManager = user?.role?.includes("publisher_manager");
   const [tableData, setTableData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchTextPub, setSearchTextPub] = useState("");

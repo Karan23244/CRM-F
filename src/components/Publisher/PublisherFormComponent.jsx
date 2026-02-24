@@ -91,7 +91,7 @@ export default PublisherIDDashboard;
 const PublisherEditForm = () => {
   const user = useSelector((state) => state.auth.user);
   const userId = user?.id || null;
-  const isPublisherManager = user?.role === "publisher_manager";
+  const isPublisherManager = user?.role?.includes("publisher_manager");
   const [publishers, setPublishers] = useState([]);
   const [editingPub, setEditingPub] = useState(null);
   const [loading, setLoading] = useState(false);
