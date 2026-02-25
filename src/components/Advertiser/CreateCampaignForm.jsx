@@ -22,7 +22,19 @@ import SettingsPage from "./SettingsPage";
 const apiUrl = import.meta.env.VITE_API_URL;
 const apiUrl2 = import.meta.env.VITE_API_URL3;
 const { Option } = Select;
-
+const VERTICALS = [
+  "Finance & Insurance",
+  "Betting / Gambling",
+  "Utilities & Services",
+  "Dating & Social",
+  "Business / Education Services",
+  "E-commerce",
+  "Travel & Transport",
+  "Health & Pharmacy",
+  "Entertainment & Subscription",
+  "Gaming",
+  "Food & Delivery",
+];
 const CreateCampaignForm = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -89,14 +101,14 @@ const CreateCampaignForm = () => {
                 (item) =>
                   (item.role === "publisher_manager" ||
                     item.role === "publisher") &&
-                  !["AtiqueADV", "AnveshaADV"].includes(item.username)
+                  !["AtiqueADV", "AnveshaADV"].includes(item.username),
               )
-              .map((item) => item.username)
+              .map((item) => item.username),
           ),
         ],
         payable_event: [
           ...new Set(
-            payableEvent?.data?.data?.map((i) => i.payble_event) || []
+            payableEvent?.data?.data?.map((i) => i.payble_event) || [],
           ),
         ],
         mmp_tracker: [
@@ -118,67 +130,6 @@ const CreateCampaignForm = () => {
     fetchDropdowns();
   }, [fetchDropdowns]);
 
-  // const onFinish = async (values) => {
-  //   trimAll(values);
-  //   if (isSubmitting) return; // ⛔ Prevent double click
-  //   setIsSubmitting(true); // 🔒 Lock submit
-  //   if (editRecord) {
-  //     await handleEditCampaign(values);
-  //     setIsSubmitting(false);
-  //     return;
-  //   }
-
-  //   // Extract ONLY the IDs
-  //   const adv_id = values.advertiser?.value || values.advertiser;
-  //   const adv_d = values.adv_d?.value || values.adv_d;
-  //   const geoArray = values.geo_details.map((item) => item.geo);
-  //   const payoutValue = values.geo_details.map((item) => [item.payout]);
-  //   const osValue = values.geo_details.map((item) => [item.os]);
-  //   const payableEvents = values.geo_details.map((item) => [
-  //     item.payable_event,
-  //   ]);
-
-  //   const finalPayload = {
-  //     Adv_name: values.Adv_name,
-  //     campaign_name: values.campaign_name,
-  //     Vertical: values.Vertical,
-  //     geo: geoArray,
-  //     adv_payout: payoutValue, // FIXED
-  //     os: osValue, // FIXED (no array)
-  //     state_city: values.state_city,
-  //     payable_event: payableEvents,
-  //     mmp_tracker: values.mmp_tracker,
-  //     adv_d: adv_d,
-  //     kpi: values.kpi || "",
-  //     tracking_url: values.tracking_url || "",
-  //     preview_url: values.preview_url || "",
-  //     da: values.da,
-  //     status: values.status,
-  //     user_id: userId,
-  //   };
-  //   console.log("Final Payload:", finalPayload);
-  //   // remove nested structure (optional but recommended)
-  //   delete finalPayload.geo_details;
-
-  //   try {
-  //     const res = await axios.post(`${apiUrl}/campaignsnew`, finalPayload);
-  //     console.log(res);
-  //     if (res.data?.message === "Campaign(s) created successfully") {
-  //       Swal.fire({
-  //         icon: "success",
-  //         title: "Created!",
-  //         text: res.data.message,
-  //         timer: 1200,
-  //         showConfirmButton: false,
-  //       });
-  //       form.resetFields();
-  //     }
-  //   } catch (error) {
-  //     console.error(error);
-  //     Swal.fire("Error", "Error creating campaign", "error");
-  //   }
-  //   setIsSubmitting(false);
-  // };
   const onFinish = async (values) => {
     trimAll(values);
     if (isSubmitting) return;
@@ -226,14 +177,12 @@ const CreateCampaignForm = () => {
       // ============================================================
       const res = await axios.post(`${apiUrl}/campaignsnew`, finalPayload);
 
-
       if (res.data?.message === "Campaign(s) created successfully") {
         const campaignId = res.data.campaign_id; // ⚠ MUST be returned from backend
 
-
         if (!campaignId) {
           console.error(
-            "❌ campaign_id missing from backend. Cannot save advertiser link."
+            "❌ campaign_id missing from backend. Cannot save advertiser link.",
           );
         } else {
           // ============================================================
@@ -246,12 +195,10 @@ const CreateCampaignForm = () => {
             click_id_param: "click_id",
           };
 
-
           const advRes = await axios.post(
             `${apiUrl2}/link/advertiser`,
-            advertiserPayload
+            advertiserPayload,
           );
-
         }
 
         Swal.fire({
@@ -383,8 +330,8 @@ const CreateCampaignForm = () => {
       editRecord.os?.toLowerCase() === "ios"
         ? "iOS"
         : editRecord.os?.toLowerCase() === "android"
-        ? "Android"
-        : editRecord.os;
+          ? "Android"
+          : editRecord.os;
 
     // --- PREPARE GEO DETAILS ROW ---
     const geoDetailsRow = [
@@ -427,7 +374,7 @@ const CreateCampaignForm = () => {
   useEffect(() => {
     if (editRecord && dropdownOptions.adv_list.length > 0) {
       const match = dropdownOptions.adv_list.find(
-        (i) => Number(i.adv_id) === Number(editRecord.adv_d)
+        (i) => Number(i.adv_id) === Number(editRecord.adv_d),
       );
 
       form.setFieldsValue({
@@ -439,7 +386,7 @@ const CreateCampaignForm = () => {
       // 🔥 Force the Select to display "Adv_name (adv_d)"
       form.setFieldValue(
         "advertiser_label",
-        `${match?.adv_name} (${match?.adv_id})`
+        `${match?.adv_name} (${match?.adv_id})`,
       );
     }
   }, [dropdownOptions.adv_list, editRecord, form]);
@@ -459,14 +406,14 @@ const CreateCampaignForm = () => {
           (res.data.live_pids || []).map((item) => ({
             ...item,
             status: "live",
-          }))
+          })),
         );
 
         setPausedPids(
           (res.data.paused_pids || []).map((item) => ({
             ...item,
             status: "pause",
-          }))
+          })),
         );
       } catch (error) {
         console.error("PID Fetch Error:", error);
@@ -515,14 +462,14 @@ const CreateCampaignForm = () => {
   };
   const filteredLivePids = livePids?.filter((item) =>
     Object.values(item).some((val) =>
-      String(val).toLowerCase().includes(searchText.toLowerCase())
-    )
+      String(val).toLowerCase().includes(searchText.toLowerCase()),
+    ),
   );
 
   const filteredPausedPids = pausedPids?.filter((item) =>
     Object.values(item).some((val) =>
-      String(val).toLowerCase().includes(searchText.toLowerCase())
-    )
+      String(val).toLowerCase().includes(searchText.toLowerCase()),
+    ),
   );
 
   return (
@@ -608,16 +555,15 @@ const CreateCampaignForm = () => {
             name="Vertical"
             rules={[{ required: true, message: "Please select vertical" }]}>
             <Select
+              showSearch
+              optionFilterProp="label"
               placeholder="Select Vertical"
-              className="rounded-lg !h-11 border-gray-200 bg-gray-50">
-              <Option value="Finance">Finance</Option>
-              <Option value="Gaming">Gaming</Option>
-              <Option value="E-commerce">E-commerce</Option>
-              <Option value="Utilities">Utilities</Option>
-              <Option value="Health">Health</Option>
-              <Option value="Betting Sports">Betting Sports</Option>
-              <Option value="Betting Casino">Betting Casino</Option>
-            </Select>
+              className="rounded-lg !h-11 border-gray-200 bg-gray-50"
+              options={VERTICALS.map((vertical) => ({
+                value: vertical,
+                label: vertical,
+              }))}
+            />
           </Form.Item>
 
           <Form.Item
@@ -833,7 +779,10 @@ const CreateCampaignForm = () => {
         <>
           {/* Top Bar */}
           <div className="mt-8 w-full max-w-8xl">
-            <SettingsPage campaignId={editRecord.id} adv_id={editRecord.adv_d} />
+            <SettingsPage
+              campaignId={editRecord.id}
+              adv_id={editRecord.adv_d}
+            />
             <GenrateLink
               campaignId={editRecord.id}
               trackingurl={editRecord.tracking_url}
