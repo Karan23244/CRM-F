@@ -41,6 +41,7 @@ import CustomRangePicker from "../../Utils/CustomRangePicker";
 dayjs.extend(isBetween);
 const { Option } = Select;
 const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl1 = import.meta.env.VITE_API_URL1;  
 
 const AdvertiserData = () => {
   const user = useSelector((state) => state.auth?.user);
@@ -311,6 +312,75 @@ const AdvertiserData = () => {
       message.error("Failed to fetch dropdown options");
     }
   }, [userId]);
+  // 🔹 Fix empty validation fields for current date range
+  const handleFixEmptyAdvFields = async () => {
+    if (
+      !selectedDateRange ||
+      selectedDateRange.length !== 2 ||
+      !selectedDateRange[0] ||
+      !selectedDateRange[1]
+    ) {
+      message.warning("Please select a valid date range first.");
+      return;
+    }
+
+    const startDate = selectedDateRange[0].format("YYYY-MM-DD");
+    const endDate = selectedDateRange[1].format("YYYY-MM-DD");
+
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      html: `
+      <div style="font-size:14px">
+        This will make all validation values ZERO<br/><br/>
+        <b>Date Range:</b><br/>
+        ${startDate} → ${endDate}
+      </div>
+    `,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, Make Zero",
+      cancelButtonText: "Cancel",
+      confirmButtonColor: "#d33",
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      const res = await axios.post(`${apiUrl1}/api/fix-empty-adv-fields`, {
+        startDate,
+        endDate,
+      });
+      console.log("fix-empty-adv-fields response:", res); 
+      // ✅ Check backend success flag
+      if (res?.data?.success) {
+        await Swal.fire({
+          icon: "success",
+          title: "Success!",
+          text: res.data.message || "Validation fields updated successfully.",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+
+        fetchData(); // refresh table
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Failed",
+          text: res?.data?.message || "Something went wrong.",
+        });
+      }
+    } catch (error) {
+      console.error(error);
+
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text:
+          error?.response?.data?.message ||
+          "Server error while updating validation fields.",
+      });
+    }
+  };
   // Check if all values in a row are empty
   const handleFilterChange = (values, key) => {
     setFilters((prev) => {
@@ -1365,10 +1435,10 @@ const AdvertiserData = () => {
 
               {/* Date Range Picker */}
               {!showValidation && (
-                  <CustomRangePicker
-                    value={selectedDateRange}
-                    onChange={setSelectedDateRange}
-                  />
+                <CustomRangePicker
+                  value={selectedDateRange}
+                  onChange={setSelectedDateRange}
+                />
               )}
 
               {/* Back Button (When Validation Active) */}
@@ -1397,7 +1467,17 @@ const AdvertiserData = () => {
                   updatePreset={updatePreset}
                   deletePreset={deletePreset}
                 />
-
+                {/* Make Validation Zero */}
+                <Tooltip
+                  title="Make All Validation Values Zero"
+                  placement="top">
+                  <Button
+                    onClick={handleFixEmptyAdvFields}
+                    type="primary"
+                    className="!bg-orange-600 hover:!bg-orange-700 !text-white !rounded-xl !px-3 !py-[10px] shadow-md flex items-center justify-center transition-all duration-200">
+                    Make Zero
+                  </Button>
+                </Tooltip>
                 {/* Subadmins Dropdown */}
                 {user?.role?.includes("advertiser_manager") && (
                   <Tooltip title="Select Sub-Admins" placement="top">

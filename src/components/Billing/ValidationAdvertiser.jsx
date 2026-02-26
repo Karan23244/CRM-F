@@ -22,16 +22,16 @@ const centerStyle = {
 const displayValue = (v) =>
   v === null || v === undefined ? "Pending" : Number(v) === 0 ? 0 : v;
 
-const SummaryItem = ({ label, value, highlight }) => (
+const SummaryItem = ({ label, value, highlight, disabled }) => (
   <div
     className={`rounded-lg p-3 ${
       highlight ? "bg-blue-50 border border-blue-200" : "bg-gray-50 border"
-    }`}>
+    } ${disabled ? "opacity-50" : ""}`}>
     <div className="text-xs text-gray-500 mb-1">{label}</div>
     <div className="text-sm font-semibold text-gray-800">{value}</div>
   </div>
 );
-const EditableCampaignCell = ({ row, rowIndex, onChange }) => {
+const EditableCampaignCell = ({ row, rowIndex, onChange, disabled }) => {
   const [editing, setEditing] = useState(false);
   const [local, setLocal] = useState({
     campaign_name: row.campaign_name || "",
@@ -55,8 +55,8 @@ const EditableCampaignCell = ({ row, rowIndex, onChange }) => {
   if (!editing) {
     return (
       <div
-        onClick={() => setEditing(true)}
-        className="campaign-cell"
+        onClick={() => !disabled && setEditing(true)}
+        className={`campaign-cell ${disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-gray-100"}`}
         title={`${row.campaign_name} - ${row.geo} - ${row.os}`}>
         <span className="truncate">
           {row.campaign_name || "—"} <span className="text-gray-400">•</span>{" "}
@@ -104,6 +104,7 @@ const EditableTextCell = ({
   onSave,
   width = 160,
   placeholder = "—",
+  disabled,
 }) => {
   const [editing, setEditing] = useState(false);
   const [local, setLocal] = useState(value || "");
@@ -131,7 +132,7 @@ const EditableTextCell = ({
     />
   ) : (
     <div
-      onClick={() => setEditing(true)}
+      onClick={() => !disabled && setEditing(true)}
       style={{
         width,
         padding: "4px 6px",
@@ -146,7 +147,7 @@ const EditableTextCell = ({
   );
 };
 
-const EditableCell = ({ value, onSave, width = 100 }) => {
+const EditableCell = ({ value, onSave, width = 100, disabled }) => {
   const [editing, setEditing] = useState(false);
   const [localValue, setLocalValue] = useState(value ?? "");
 
@@ -173,12 +174,13 @@ const EditableCell = ({ value, onSave, width = 100 }) => {
     />
   ) : (
     <div
-      onClick={() => setEditing(true)}
+      onClick={() => !disabled && setEditing(true)}
       style={{
         minWidth: width,
         padding: "4px 6px",
         borderRadius: 6,
-        cursor: "pointer",
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.6 : 1,
       }}>
       {displayValue(value)}
     </div>
@@ -231,6 +233,7 @@ export default function BillingAdvertiser() {
   const [selectedAdvId, setSelectedAdvId] = useState(null);
   const [month, setMonth] = useState(null);
   const [rows, setRows] = useState([]);
+  const isLocked = rows.some((r) => r.status === "locked");
   const [loading, setLoading] = useState(false);
   const updateCampaignComposite = (rowIndex, values) => {
     setRows((prev) => {
@@ -264,6 +267,7 @@ export default function BillingAdvertiser() {
       id: selectedAdvId,
       month,
     });
+    console.log("Fetched billing data:", res.data); // Debug log
     setRows(res.data.data || []);
     setLoading(false);
   };
@@ -368,6 +372,7 @@ export default function BillingAdvertiser() {
             row={row}
             rowIndex={index}
             onChange={updateCampaignComposite}
+            disabled={isLocked}
           />
         </div>
       ),
@@ -387,6 +392,7 @@ export default function BillingAdvertiser() {
                 return copy;
               })
             }
+            disabled={isLocked}
           />
         </div>
       ),
@@ -407,6 +413,7 @@ export default function BillingAdvertiser() {
                 return copy;
               })
             }
+            disabled={isLocked}
           />
         </div>
       ),
@@ -502,7 +509,7 @@ export default function BillingAdvertiser() {
           />
 
           <Button
-            disabled={!rows.length || !selectedAdvId || !month}
+            disabled={!rows.length || !selectedAdvId || !month || isLocked}
             onClick={addCampaign}>
             + Add Campaign
           </Button>
@@ -545,23 +552,23 @@ export default function BillingAdvertiser() {
                 return (
                   <Table.Summary fixed>
                     <Table.Summary.Row style={{ background: "#fafafa" }}>
-                      <Table.Summary.Cell index={0} colSpan={3}>
+                      <Table.Summary.Cell index={0} colSpan={3} align="center">
                         <strong>Total</strong>
                       </Table.Summary.Cell>
 
-                      <Table.Summary.Cell index={3}>
+                      <Table.Summary.Cell index={3} align="center">
                         <strong>{totalAdv}</strong>
                       </Table.Summary.Cell>
 
-                      <Table.Summary.Cell index={4}>
+                      <Table.Summary.Cell index={4} align="center">
                         <strong>{totalDeduction}</strong>
                       </Table.Summary.Cell>
 
-                      <Table.Summary.Cell index={5}>
+                      <Table.Summary.Cell index={5} align="center">
                         <strong>{totalApproved}</strong>
                       </Table.Summary.Cell>
 
-                      <Table.Summary.Cell index={6}>
+                      <Table.Summary.Cell index={6} align="center">
                         <strong>{totalPayout.toFixed(2)}</strong>
                       </Table.Summary.Cell>
 
@@ -576,7 +583,7 @@ export default function BillingAdvertiser() {
               <Button
                 danger
                 type="primary"
-                disabled={!rows.length || !selectedAdvId || !month}
+                disabled={!rows.length || !selectedAdvId || !month || isLocked}
                 onClick={async () => {
                   const result = await Swal.fire({
                     title: "Close Billing?",
@@ -603,10 +610,13 @@ export default function BillingAdvertiser() {
                     }
 
                     // 2️⃣ Lock billing
-                    const res = await axios.post(`${API}/billing/advertiser-lock`, {
-                      adv_id: selectedAdvId,
-                      month,
-                    });
+                    const res = await axios.post(
+                      `${API}/billing/advertiser-lock`,
+                      {
+                        adv_id: selectedAdvId,
+                        month,
+                      },
+                    );
 
                     if (res.data?.affected === 0 && !res.data?.created) {
                       Swal.fire(
@@ -685,7 +695,8 @@ export default function BillingAdvertiser() {
                 <Button
                   size="small"
                   type="dashed"
-                  onClick={() => addPid(detailsIndex)}>
+                  onClick={() => addPid(detailsIndex)}
+                  disabled={activeRow.status === "locked"}>
                   + Add PID
                 </Button>
               </div>
@@ -711,6 +722,7 @@ export default function BillingAdvertiser() {
                             return copy;
                           });
                         }}
+                        disabled={activeRow.status === "locked"}
                       />
                     ),
                   },
@@ -723,6 +735,7 @@ export default function BillingAdvertiser() {
                         onSave={(v) =>
                           updatePid(detailsIndex, i, "total_no", v)
                         }
+                        disabled={activeRow.status === "locked"}
                       />
                     ),
                   },
@@ -735,6 +748,7 @@ export default function BillingAdvertiser() {
                         onSave={(v) =>
                           updatePid(detailsIndex, i, "deductions", v)
                         }
+                        disabled={activeRow.status === "locked"}
                       />
                     ),
                   },
@@ -747,6 +761,7 @@ export default function BillingAdvertiser() {
                         onSave={(v) =>
                           updatePid(detailsIndex, i, "approved_no", v)
                         }
+                        disabled={activeRow.status === "locked"}
                       />
                     ),
                   },

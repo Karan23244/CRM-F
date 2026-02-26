@@ -19,14 +19,14 @@ const API = import.meta.env.VITE_API_URL5;
 const displayValue = (v) =>
   v === null || v === undefined ? "Pending" : Number(v) === 0 ? 0 : v;
 
-const SummaryItem = ({ label, value, highlight }) => (
+const SummaryItem = ({ label, value, highlight, disabled }) => (
   <div
-    className={`rounded-lg p-3 ${highlight ? "bg-blue-50 border border-blue-200" : "bg-gray-50 border"}`}>
+    className={`rounded-lg p-3 ${highlight ? "bg-blue-50 border border-blue-200" : "bg-gray-50 border"} ${disabled ? "opacity-50" : ""}`}>
     <div className="text-xs text-gray-500 mb-1">{label}</div>
     <div className="text-sm font-semibold text-gray-800">{value}</div>
   </div>
 );
-const EditableCampaignCell = ({ row, rowIndex, onChange }) => {
+const EditableCampaignCell = ({ row, rowIndex, onChange, disabled }) => {
   const [editing, setEditing] = useState(false);
   const [local, setLocal] = useState({
     campaign_name: row.campaign_name || "",
@@ -50,8 +50,8 @@ const EditableCampaignCell = ({ row, rowIndex, onChange }) => {
   if (!editing) {
     return (
       <div
-        onClick={() => setEditing(true)}
-        className="campaign-cell"
+        onClick={() => !disabled && setEditing(true)}
+        className={`campaign-cell ${disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-gray-100"}`}
         title={`${row.campaign_name} - ${row.geo} - ${row.os}`}>
         <span className="truncate">
           {row.campaign_name || "—"} <span className="text-gray-400">•</span>{" "}
@@ -99,6 +99,7 @@ const EditableTextCell = ({
   onSave,
   width = 160,
   placeholder = "—",
+  disabled,
 }) => {
   const [editing, setEditing] = useState(false);
   const [local, setLocal] = useState(value || "");
@@ -123,14 +124,15 @@ const EditableTextCell = ({
       onChange={(e) => setLocal(e.target.value)}
       onBlur={save}
       onPressEnter={save}
+      disabled={disabled}
     />
   ) : (
     <div
-      onClick={() => setEditing(true)}
+      onClick={() => !disabled && setEditing(true)}
       style={{
         width,
         padding: "4px 6px",
-        cursor: "pointer",
+        cursor: disabled ? "not-allowed" : "pointer",
         whiteSpace: "nowrap",
         overflow: "hidden",
         textOverflow: "ellipsis",
@@ -141,7 +143,7 @@ const EditableTextCell = ({
   );
 };
 
-const EditableCell = ({ value, onSave, width = 100 }) => {
+const EditableCell = ({ value, onSave, width = 100, disabled }) => {
   const [editing, setEditing] = useState(false);
   const [localValue, setLocalValue] = useState(value ?? "");
 
@@ -168,12 +170,12 @@ const EditableCell = ({ value, onSave, width = 100 }) => {
     />
   ) : (
     <div
-      onClick={() => setEditing(true)}
+      onClick={() => !disabled && setEditing(true)}
       style={{
         minWidth: width,
         padding: "4px 6px",
         borderRadius: 6,
-        cursor: "pointer",
+        cursor: disabled ? "not-allowed" : "pointer",
       }}>
       {displayValue(value)}
     </div>
@@ -227,6 +229,7 @@ export default function BillingAdvertiser() {
   const [month, setMonth] = useState(null);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
+  const isLocked = rows.some((r) => r.status === "locked");
   const updateCampaignComposite = (rowIndex, values) => {
     setRows((prev) => {
       const copy = [...prev];
@@ -358,6 +361,7 @@ export default function BillingAdvertiser() {
           row={row}
           rowIndex={index}
           onChange={updateCampaignComposite}
+          disabled={row.status === "locked"}
         />
       ),
     },
@@ -375,6 +379,7 @@ export default function BillingAdvertiser() {
               return copy;
             })
           }
+          disabled={row.status === "locked"}
         />
       ),
     },
@@ -393,6 +398,7 @@ export default function BillingAdvertiser() {
               return copy;
             })
           }
+          disabled={row.status === "locked"}
         />
       ),
     },
@@ -446,7 +452,7 @@ export default function BillingAdvertiser() {
                 }
 
                 // 2️⃣ Verify row
-                await axios.post(`${API}/publisher-verify-row`, {
+                await axios.post(`${API}/billing/publisher-verify-row`, {
                   billing_id: row.billing_id,
                 });
 
@@ -570,7 +576,7 @@ export default function BillingAdvertiser() {
 
           <Button
             onClick={addCampaign}
-            disabled={!rows.length || !selectedPubId || !month}>
+            disabled={!rows.length || !selectedPubId || !month || isLocked}>
             + Add Campaign
           </Button>
         </div>
@@ -588,7 +594,7 @@ export default function BillingAdvertiser() {
             <div className="flex justify-end mt-4">
               <Button
                 danger
-                disabled={!rows.length || !selectedPubId || !month}
+                disabled={!rows.length || !selectedPubId || !month || isLocked}
                 onClick={async () => {
                   try {
                     const needsSnapshot = rows.some((r) => !r.billing_id);
@@ -672,7 +678,8 @@ export default function BillingAdvertiser() {
                 <Button
                   size="small"
                   type="dashed"
-                  onClick={() => addPid(detailsIndex)}>
+                  onClick={() => addPid(detailsIndex)}
+                  disabled={activeRow.status === "locked"}>
                   + Add PID
                 </Button>
               </div>
@@ -698,6 +705,7 @@ export default function BillingAdvertiser() {
                             return copy;
                           });
                         }}
+                        disabled={activeRow.status === "locked"}
                       />
                     ),
                   },
@@ -710,6 +718,7 @@ export default function BillingAdvertiser() {
                         onSave={(v) =>
                           updatePid(detailsIndex, i, "adv_total_number", v)
                         }
+                        disabled={activeRow.status === "locked"}
                       />
                     ),
                   },
@@ -722,6 +731,7 @@ export default function BillingAdvertiser() {
                         onSave={(v) =>
                           updatePid(detailsIndex, i, "pub_apno", v)
                         }
+                        disabled={activeRow.status === "locked"}
                       />
                     ),
                   },
