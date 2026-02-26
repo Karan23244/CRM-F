@@ -7,6 +7,8 @@ import {
   SearchOutlined,
   ReloadOutlined,
   PushpinOutlined,
+  CopyOutlined,
+  EyeOutlined
 } from "@ant-design/icons";
 import geoData from "../../Data/geoData.json";
 import Swal from "sweetalert2";
@@ -19,7 +21,7 @@ const PubnameData = () => {
   const [tableData, setTableData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingPub, setEditingPub] = useState(null);
-  console.log(tableData)
+  console.log(tableData);
   // Form State for Editing
   const [name, setName] = useState("");
   const [selectedId, setSelectedId] = useState("");
@@ -50,7 +52,7 @@ const PubnameData = () => {
         if (key === columnKey) return true;
         if (!values || values.length === 0) return true;
         return values.includes(normalize(row[key]));
-      })
+      }),
     );
   };
   useEffect(() => {
@@ -121,7 +123,7 @@ const PubnameData = () => {
         const data = await response.json();
         if (response.ok) {
           const filtered = data.data.filter((subAdmin) =>
-            ["publisher_manager", "publisher"].includes(subAdmin.role)
+            ["publisher_manager", "publisher"].includes(subAdmin.role),
           );
           setSubAdmins(filtered);
         } else {
@@ -299,7 +301,7 @@ const PubnameData = () => {
         const searchVal = filterSearch[key] || "";
 
         const visibleValues = allValues.filter((v) =>
-          v.toLowerCase().includes(searchVal.toLowerCase())
+          v.toLowerCase().includes(searchVal.toLowerCase()),
         );
 
         const isAllSelected = selectedValues.length === allValues.length;
@@ -380,7 +382,7 @@ const PubnameData = () => {
 
   const columns = [
     ...Object.entries(columnConfig).map(([key, label]) =>
-      createExcelColumn({ key, title: label })
+      createExcelColumn({ key, title: label }),
     ),
 
     {
@@ -482,7 +484,7 @@ const PubnameData = () => {
               onChange={async (newUserId) => {
                 try {
                   const selectedAdmin = subAdmins.find(
-                    (admin) => admin.id.toString() === newUserId
+                    (admin) => admin.id.toString() === newUserId,
                   );
                   if (!selectedAdmin) {
                     Swal.fire("Error", "Invalid user selected", "error");
@@ -497,7 +499,7 @@ const PubnameData = () => {
                     Swal.fire(
                       "Success",
                       "User transferred successfully!",
-                      "success"
+                      "success",
                     );
                     fetchData();
                   } else {
@@ -549,6 +551,53 @@ const PubnameData = () => {
           </Tooltip>
         </Space>
       ),
+    },
+    {
+      title: <div style={{ textAlign: "center" }}>Details</div>,
+      key: "details",
+      align: "center",
+      render: (_, record) => {
+        const username = record.publisher_username || "-";
+        const password = record.password || "-";
+
+        const copyToClipboard = () => {
+          const text = `Username: ${username}\nPassword: ${password}`;
+          navigator.clipboard.writeText(text);
+          message.success("Details copied!");
+        };
+
+        const hoverContent = (
+          <div className="text-xs space-y-2 max-w-[250px]">
+            <div>
+              <strong>Username:</strong> {username}
+            </div>
+            <div className="break-all">
+              <strong>Password:</strong> {password}
+            </div>
+
+            <Button
+              type="primary"
+              size="small"
+              icon={<CopyOutlined />}
+              onClick={copyToClipboard}
+              block>
+              Copy Details
+            </Button>
+          </div>
+        );
+
+        return (
+          <Tooltip
+            title={hoverContent}
+            trigger="hover"
+            placement="right"
+            overlayInnerStyle={{ padding: "10px" }}>
+            <Button type="default" size="small" icon={<EyeOutlined />}>
+              View
+            </Button>
+          </Tooltip>
+        );
+      },
     },
   ];
 

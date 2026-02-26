@@ -61,6 +61,19 @@ const EditConditionsModal = ({
 
   /* ------------------ CONDITIONS ------------------ */
   const [editValues, setEditValues] = useState(buildInitialState());
+  useEffect(() => {
+    if (!showModal) return;
+
+    // Reset everything first
+    setEditValues(buildInitialState());
+    setGlobalIgnores({
+      fraud: false,
+      cti: false,
+      ite: false,
+      etc: false,
+    });
+    setSelectedMetric("cti");
+  }, [showModal, campaignName]);
   /* ------------------ LOAD EXISTING DATA ------------------ */
   useEffect(() => {
     if (!showModal || !campaignName) return;

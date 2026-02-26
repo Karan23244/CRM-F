@@ -31,10 +31,14 @@ export const sidebarLinks = [
   },
   {
     label: "Users",
-    roles: ["admin","advertiser_manager","publisher_manager"],
+    roles: ["admin", "advertiser_manager", "publisher_manager"],
     sublinks: [
       { to: "listsubadmin", label: "Existing Users", roles: ["admin"] },
-      { to: "createsubadmin", label: "Create User", roles: ["admin","advertiser_manager","publisher_manager"] },
+      {
+        to: "createsubadmin",
+        label: "Create User",
+        roles: ["admin", "advertiser_manager", "publisher_manager"],
+      },
     ],
   },
   // { to: "review", label: "Review", roles: ["admin"] },
@@ -94,6 +98,7 @@ export const sidebarLinks = [
       "publisher",
       "publisher_manager",
       "operations",
+      "publisher_external",
     ],
     sublinks: [
       // --- Campaign Data Submenu ---
@@ -106,6 +111,7 @@ export const sidebarLinks = [
           "publisher",
           "publisher_manager",
           "operations",
+          "publisher_external",
         ],
         sublinks: [
           {
@@ -118,6 +124,7 @@ export const sidebarLinks = [
               "publisher",
               "publisher_manager",
               "operations",
+              "publisher_external",
             ],
           },
           // Separate PID Data routes for different roles
@@ -130,7 +137,7 @@ export const sidebarLinks = [
           {
             to: "currentpubdata",
             label: "PID Data",
-            roles: ["publisher", "publisher_manager"],
+            roles: ["publisher", "publisher_manager", "publisher_external"],
           },
           {
             to: "campaignlist",
@@ -209,6 +216,7 @@ export const sidebarLinks = [
       "advertiser_manager",
       "publisher_manager",
       "operations",
+      "publisher_external",
     ],
     sublinks: [
       {
@@ -231,6 +239,7 @@ export const sidebarLinks = [
           "publisher",
           "publisher_manager",
           "operations",
+          "publisher_external",
         ],
       },
     ],
@@ -256,7 +265,7 @@ export const sidebarLinks = [
     ],
   },
   {
-    label: "Step To Sell",
+    label: "Step To Sale",
     roles: [
       "admin",
       "advertiser",
@@ -341,6 +350,40 @@ export const sidebarLinks = [
       },
     ],
   },
+  {
+    to: "billing",
+    label: "Validation",
+    roles: [
+      "admin",
+      "advertiser",
+      "publisher",
+      "advertiser_manager",
+      "publisher_manager",
+      "operations",
+      ,
+      "publisher_external",
+    ],
+  },
+  {
+    to: "advertiserbill",
+    label: "Advertiser Billing",
+    roles: ["admin", "advertiser", "advertiser_manager", "operations"],
+  },
+  {
+    to: "publisherbill",
+    label: "Publisher Billing",
+    roles: ["admin", "publisher", "publisher_manager", "publisher_external"],
+  },
+  {
+    to: "accountsadvbill",
+    label: "Advertiser Account",
+    roles: ["admin", "accounts"],
+  },
+  {
+    to: "accountspubbill",
+    label: "Publisher Account",
+    roles: ["admin", "accounts"],
+  },
   // ==========================
   // 🔹 ACCOUNT SETTINGS
   // ==========================
@@ -354,6 +397,7 @@ export const sidebarLinks = [
       "advertiser_manager",
       "publisher_manager",
       "operations",
+      "publisher_external",
     ],
   },
 ];

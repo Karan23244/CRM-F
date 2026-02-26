@@ -17,7 +17,6 @@ import {
   Tooltip,
 } from "antd";
 import dayjs from "dayjs";
-const { RangePicker } = DatePicker;
 import Swal from "sweetalert2";
 import { exportToExcel } from "../exportExcel";
 import { debounce } from "lodash";
@@ -31,6 +30,7 @@ import { RiFileExcel2Line } from "react-icons/ri";
 import { FaFilterCircleXmark } from "react-icons/fa6";
 import { sortDropdownValues } from "../../Utils/sortDropdownValues";
 import geoData from "../../Data/geoData.json";
+import CustomRangePicker from "../../Utils/CustomRangePicker";
 
 const { Option } = Select;
 const apiUrl = import.meta.env.VITE_API_URL1;
@@ -76,9 +76,13 @@ const PublisherRequest = ({ senderId, receiverId }) => {
     return val.toString().trim();
   };
   // Default: start = first day of current month, end = today
-  const [dateRange, setDateRange] = useState([
+  // const [dateRange, setDateRange] = useState([
+  //   dayjs().startOf("month"),
+  //   dayjs(),
+  // ]);
+  const [selectedDateRange, setSelectedDateRange] = useState([
     dayjs().startOf("month"),
-    dayjs(),
+    dayjs().endOf("month"),
   ]);
   // persist hidden columns
   useEffect(() => {
@@ -102,7 +106,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
     localStorage.removeItem("hiddenCampaignColumns");
 
     // Reset date range to default Month Start → Today
-    setDateRange([dayjs().startOf("month"), dayjs()]);
+    setSelectedDateRange([dayjs().startOf("month"), dayjs()]);
   }, []);
 
   const togglePin = useCallback((key) => {
@@ -193,7 +197,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
 
   const fetchRequests = useCallback(async () => {
     try {
-      const [startDate, endDate] = dateRange;
+      const [startDate, endDate] = selectedDateRange;
       const res = await axios.get(`${apiUrl}/getAllPubRequests12`, {
         params: {
           startDate: startDate.format("YYYY-MM-DD"),
@@ -208,7 +212,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
       message.error("Failed to load requests");
       setRequests([]);
     }
-  }, [apiUrl, dateRange]);
+  }, [apiUrl, selectedDateRange]);
   const showModal = () => {
     setIsModalVisible(true);
   };
@@ -718,26 +722,34 @@ const PublisherRequest = ({ senderId, receiverId }) => {
       {/* Header / Controls Section */}
       <div className="bg-white rounded-xl shadow-lg p-5 mb-6 flex flex-wrap items-end justify-between gap-4 md:gap-6 lg:gap-4">
         {/* Left Section - Search + Date Range */}
-        <div className="flex gap-3">
+        <div className="flex flex-col lg:flex-row gap-3">
           {/* Search Input */}
-          <Input
-            placeholder="Search by Advertiser, Campaign, PID, etc."
-            allowClear
-            onChange={(e) => debouncedSearch(e.target.value)}
-            className="w-[100px] px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            prefix={<span className="text-gray-400">🔍</span>}
-          />
+          <div>
+            <Input
+              placeholder="Search by Advertiser, Campaign, PID, etc."
+              allowClear
+              onChange={(e) => debouncedSearch(e.target.value)}
+              className="lg:w-[100px] w-full lg:px-4 lg:py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              prefix={<span className="text-gray-400">🔍</span>}
+            />
+          </div>
 
           {/* Date Range Picker */}
-          <RangePicker
+          {/* <RangePicker
             value={dateRange}
             format="YYYY-MM-DD"
             onChange={(values) => {
-              if (values) setDateRange(values);
+              if (values) setSelectedDateRange(values);
             }}
             allowClear
             className="w-[300px] rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition"
-          />
+          /> */}
+          <div>
+            <CustomRangePicker
+              value={selectedDateRange}
+              onChange={setSelectedDateRange}
+            />
+          </div>
         </div>
 
         {/* Right Section - Actions */}

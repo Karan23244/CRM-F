@@ -344,7 +344,7 @@ const SubAdminEdit = () => {
       ),
     },
     {
-      title: <div style={{ textAlign: "center" }}>Name</div>,
+      title: <div style={{ textAlign: "center" }}>Edit Permission</div>,
       key: "editPermission",
       align: "center",
       render: (_, record) =>

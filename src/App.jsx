@@ -45,10 +45,22 @@ import Listoffer from "./components/Steptosell/Listoffer";
 import Listdeals from "./components/Steptosell/Listdeals";
 import Listcategory from "./components/Steptosell/Listcategory";
 import Createcategory from "./components/Steptosell/Createcategory";
+import AdvertiserBilling from "./components/Billing/AdvertiserBilling";
+import PublisherBilling from "./components/Billing/PublisherBilling";
+import ValidationAdv from "./components/Billing/ValidationAdvertiser";
+import ValidationPub from "./components/Billing/ValidationPublisher";
+import AdvertiserAccount from "./components/Accounts/AdvertiserAccount";
+import PublisherAccount from "./components/Accounts/PublisherAccount";
+import PublisherLogin from "./components/PublisherAM/PublisherLogin";
+import Billing from "./components/Billing/Billing";
+import ForgotPassword from "./components/ForgetPassword";
+
 const AppRoutes = () => (
   <Router>
     <Routes>
       <Route path="/" element={<LoginForm />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/publisherlogin" element={<PublisherLogin />} />
       <Route
         element={
           <ProtectedRoute
@@ -59,6 +71,8 @@ const AppRoutes = () => (
               "advertiser_manager",
               "publisher_manager",
               "operations",
+              "accounts",
+              "publisher_external",
             ]}
           />
         }>
@@ -100,6 +114,12 @@ const AppRoutes = () => (
           <Route path="listoffer" element={<Listoffer />} />
           <Route path="listcategory" element={<Listcategory />} />
           <Route path="createcategory" element={<Createcategory />} />
+          <Route path="billing" element={<Billing />} />
+          <Route path="advertiserbill" element={<AdvertiserBilling />} />
+          <Route path="publisherbill" element={<PublisherBilling />} />
+          <Route path="accountsadvbill" element={<AdvertiserAccount />} />
+          <Route path="accountspubbill" element={<PublisherAccount />} />
+
           <Route path="myaccount" element={<MyAccount />} />
           {/* default redirect */}
           <Route index element={<Navigate to="home" replace />} />

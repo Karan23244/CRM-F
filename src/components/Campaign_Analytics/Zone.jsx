@@ -1021,6 +1021,7 @@ export default function OptimizationCampaignAnalysis({
 
       {/* Edit Conditions Modal */}
       <EditConditionsModal
+        key={campaignName}
         showModal={showModal}
         setShowModal={setShowModal}
         campaignName={campaignName}

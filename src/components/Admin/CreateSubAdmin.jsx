@@ -219,6 +219,7 @@ const SubAdminForm = () => {
             <Option value="operations">Operations</Option>
             <Option value="advertiser_manager">Advertiser Manager</Option>
             <Option value="publisher_manager">Publisher Manager</Option>
+            <Option value="accounts">Accounts</Option>
           </Select>
         </div>
 

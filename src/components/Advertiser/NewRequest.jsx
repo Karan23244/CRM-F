@@ -22,7 +22,7 @@ import { RiFileExcel2Line } from "react-icons/ri";
 import { FaFilterCircleXmark } from "react-icons/fa6";
 import dayjs from "dayjs";
 import { DatePicker } from "antd";
-const { RangePicker } = DatePicker;
+import CustomRangePicker from "../../Utils/CustomRangePicker";
 const { Option } = Select;
 
 const apiUrl = import.meta.env.VITE_API_URL1;
@@ -65,10 +65,13 @@ const NewRequest = () => {
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [selectedRequestId, setSelectedRequestId] = useState(null);
   // 📅 Date range filter state
-  const [dateRange, setDateRange] = useState(() => {
-    return [dayjs().startOf("month"), dayjs().endOf("month")];
-  });
-
+  // const [dateRange, setDateRange] = useState(() => {
+  //   return [dayjs().startOf("month"), dayjs().endOf("month")];
+  // });
+  const [selectedDateRange, setSelectedDateRange] = useState([
+    dayjs().startOf("month"),
+    dayjs().endOf("month"),
+  ]);
   // const [stickyColumns, setStickyColumns] = useState([]); // for pin/unpin columns
   const [hiddenColumns, setHiddenColumns] = useState(() => {
     const saved = localStorage.getItem("hiddenCampaignColumns");
@@ -101,7 +104,7 @@ const NewRequest = () => {
   useEffect(() => {
     localStorage.setItem(
       "hiddenCampaignColumns",
-      JSON.stringify(hiddenColumns)
+      JSON.stringify(hiddenColumns),
     );
   }, [hiddenColumns]);
 
@@ -117,7 +120,7 @@ const NewRequest = () => {
       if (res?.data && Array.isArray(res?.data?.data)) {
         // Filter out campaigns with null names
         const validCampaigns = res.data.data.filter(
-          (c) => c.campaign_name && c.campaign_name.trim() !== ""
+          (c) => c.campaign_name && c.campaign_name.trim() !== "",
         );
         console.log(validCampaigns);
         setCampaignList(validCampaigns);
@@ -136,7 +139,7 @@ const NewRequest = () => {
     setPinnedColumns({}); // FIX: remove pinning
     setHiddenColumns([]);
     // 🔁 Reset to current month again
-    setDateRange([dayjs().startOf("month"), dayjs().endOf("month")]);
+    setSelectedDateRange([dayjs().startOf("month"), dayjs().endOf("month")]);
     localStorage.removeItem("hiddenCampaignColumns");
   }, []);
 
@@ -148,18 +151,18 @@ const NewRequest = () => {
         fetchRequests();
       }
     });
-  }, [dateRange]);
+  }, [selectedDateRange]);
 
   const fetchRequests = async () => {
     try {
-      const [startDate, endDate] = dateRange;
+      const [startDate, endDate] = selectedDateRange;
       const params = {
         id: userId,
         start_Date: startDate.format("YYYY-MM-DD"),
         end_Date: endDate.format("YYYY-MM-DD"),
       };
       const fullUrl = `${apiUrl1}/newPrmadvRequests?${new URLSearchParams(
-        params
+        params,
       ).toString()}`;
 
       console.log("API URL:", fullUrl);
@@ -175,7 +178,7 @@ const NewRequest = () => {
       console.log(res);
       // Sort by id DESC (newest first)
       let sortedData = (Array.isArray(result) ? result : []).sort(
-        (a, b) => b.id - a.id
+        (a, b) => b.id - a.id,
       );
 
       // advertiser_manager → no filter
@@ -234,11 +237,11 @@ const NewRequest = () => {
       if (!matchesSearch) return false;
 
       // 📅 Date range filter (created_at)
-      if (dateRange?.length === 2 && row.created_at) {
+      if (selectedDateRange?.length === 2 && row.created_at) {
         const rowDate = dayjs(row.created_at);
         if (
-          !rowDate.isAfter(dateRange[0].startOf("day")) ||
-          !rowDate.isBefore(dateRange[1].endOf("day"))
+          !rowDate.isAfter(selectedDateRange[0].startOf("day")) ||
+          !rowDate.isBefore(selectedDateRange[1].endOf("day"))
         ) {
           return false;
         }
@@ -250,7 +253,7 @@ const NewRequest = () => {
         return values.includes(normalize(row[key]));
       });
     });
-  }, [requests, filters, searchText, dateRange]);
+  }, [requests, filters, searchText, selectedDateRange]);
 
   // Unique values based on filtered data (except first filtered column)
   const uniqueValuesFiltered = useMemo(() => {
@@ -267,7 +270,7 @@ const NewRequest = () => {
     }
 
     return Object.fromEntries(
-      Object.entries(values).map(([k, v]) => [k, [...v]])
+      Object.entries(values).map(([k, v]) => [k, [...v]]),
     );
   }, [filteredRequests, columnHeadings]);
   // Compose columns with filterDropdown, filter icon state, sorting & column pinning
@@ -378,7 +381,7 @@ const NewRequest = () => {
           const searchText = filterSearch[key] || "";
 
           const visibleValues = allValues.filter((val) =>
-            val.toLowerCase().includes(searchText.toLowerCase())
+            val.toLowerCase().includes(searchText.toLowerCase()),
           );
 
           const isAllSelected = selectedValues.length === allValues.length;
@@ -564,7 +567,7 @@ const NewRequest = () => {
           pub_id: sharedRecord?.pub_id,
           pub_name: sharedRecord?.pub_name,
           pay_out: sharedRecord?.payout,
-        }
+        },
       );
       // ✅ Dynamic sender (logged-in user)
       const senderName = username; // from Redux
@@ -613,7 +616,7 @@ const NewRequest = () => {
     }
   };
   const visibleColumns = getColumns(columnHeadings).filter(
-    (col) => !hiddenColumns.includes(col.key)
+    (col) => !hiddenColumns.includes(col.key),
   );
   return (
     <div className="p-6 max-w-full bg-gray-50 rounded-lg shadow-lg">
@@ -656,24 +659,26 @@ const NewRequest = () => {
       {/* Header Section */}
       <div className="bg-white rounded-xl shadow-lg p-5 mb-6 flex flex-wrap items-end justify-between gap-4 md:gap-6 lg:gap-4">
         {/* Left Section - Search + Filters */}
-        <div className="flex flex-row items-end gap-3">
+        <div className="flex lg:flex-row flex-col gap-3">
+          <div>
+
           {/* Search Input */}
           <Input
             placeholder="Search across all fields..."
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
             allowClear
-            className="max-w-[260px] px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="lg:max-w-[260px] w-auto px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             prefix={<span className="text-gray-400">🔍</span>}
           />
+          </div> 
           {/* 📅 Created At Date Range */}
-          <RangePicker
-            value={dateRange}
-            onChange={(dates) => setDateRange(dates)}
-            allowClear
-            format="DD MMM YYYY"
-            className="rounded-lg shadow-sm"
-          />
+         <div>
+            <CustomRangePicker
+              value={selectedDateRange}
+              onChange={setSelectedDateRange}
+            />
+          </div>
         </div>
 
         {/* Right Section - Actions */}
@@ -706,7 +711,7 @@ const NewRequest = () => {
                   Object.keys(columnHeadings).forEach((key) => {
                     if (key === "created_at" && item[key]) {
                       filteredItem[columnHeadings[key]] = new Date(
-                        item[key]
+                        item[key],
                       ).toLocaleString("en-IN", {
                         year: "numeric",
                         month: "short",
@@ -789,7 +794,7 @@ const NewRequest = () => {
                       onChange={(e) =>
                         handleFilterChange(
                           e.target.checked ? [0, 1, 2] : [],
-                          "prm"
+                          "prm",
                         )
                       }>
                       Select All
@@ -846,7 +851,7 @@ const NewRequest = () => {
                             e.target.checked
                               ? [...uniqueValues["priority"]]
                               : [],
-                            "priority"
+                            "priority",
                           )
                         }>
                         Select All

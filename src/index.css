@@ -1,4 +1,7 @@
 @import "tailwindcss";
+html {
+  scroll-behavior: smooth;
+}
 .light-yellow-row {
   background-color: #fff9c4; /* light yellow */
 }
@@ -40,3 +43,35 @@
   flex-shrink: 0;
 }
 
+.campaign-cell {
+  cursor: pointer;
+  padding: 4px 6px;
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.campaign-cell::-webkit-scrollbar {
+  height: 4px;
+}
+
+.campaign-cell::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+.mobile-range-picker {
+  max-width: 95vw;
+}
+
+.mobile-range-picker .ant-picker-panel-container {
+  width: 85vw !important;
+  max-width: 95vw;
+}
+
+.mobile-range-picker .ant-picker-panels {
+  flex-direction: column !important;
+}
+
+.mobile-range-picker .ant-picker-panel {
+  width: 100% !important;
+}

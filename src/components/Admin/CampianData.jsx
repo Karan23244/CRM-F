@@ -28,10 +28,22 @@ import Swal from "sweetalert2";
 import { PushpinOutlined, PushpinFilled } from "@ant-design/icons";
 import { useSelector } from "react-redux";
 import { useColumnPresets } from "../../Utils/useColumnPresets";
+import CustomRangePicker from "../../Utils/CustomRangePicker";
 import { debounce } from "lodash";
 const { Option } = Select;
-const { RangePicker } = DatePicker;
-
+const VERTICALS = [
+  "Finance & Insurance",
+  "Betting / Gambling",
+  "Utilities & Services",
+  "Dating & Social",
+  "Business / Education Services",
+  "E-commerce",
+  "Travel & Transport",
+  "Health & Pharmacy",
+  "Entertainment & Subscription",
+  "Gaming",
+  "Food & Delivery",
+];
 const apiUrl = import.meta.env.VITE_API_URL;
 
 // Advertiser Column Headings
@@ -90,7 +102,7 @@ const CampianData = () => {
   });
   const getVisibleColumnKeys = (columnHeadings) => {
     return Object.keys(columnHeadings).filter(
-      (key) => !hiddenColumns.includes(key)
+      (key) => !hiddenColumns.includes(key),
     );
   };
 
@@ -109,7 +121,7 @@ const CampianData = () => {
       debounce((value) => {
         setSearchTerm(value);
       }, 300),
-    []
+    [],
   );
   useEffect(() => {
     return () => {
@@ -123,7 +135,7 @@ const CampianData = () => {
   };
   const toggleStickyColumn = (key) => {
     setStickyColumns((prev) =>
-      prev.includes(key) ? prev.filter((col) => col !== key) : [...prev, key]
+      prev.includes(key) ? prev.filter((col) => col !== key) : [...prev, key],
     );
   };
   // Fetch Advertiser Data
@@ -209,7 +221,7 @@ const CampianData = () => {
 
         if (Array.isArray(filterVal)) {
           return filterVal.some(
-            (val) => itemVal === val?.toString().trim().toLowerCase()
+            (val) => itemVal === val?.toString().trim().toLowerCase(),
           );
         }
 
@@ -223,7 +235,7 @@ const CampianData = () => {
       const lowerSearch = searchTerm.trim().toLowerCase();
 
       return Object.values(item).some((val) =>
-        val?.toString().trim().toLowerCase().includes(lowerSearch)
+        val?.toString().trim().toLowerCase().includes(lowerSearch),
       );
     });
   }, [advData, selectedType, filters, searchTerm, selectedDateRange]);
@@ -305,9 +317,9 @@ const CampianData = () => {
               return v === null || v === undefined || v === ""
                 ? "-"
                 : v.toString().trim();
-            })
-          )
-        )
+            }),
+          ),
+        ),
       );
     });
 
@@ -356,7 +368,7 @@ const CampianData = () => {
               }
 
               return roles.some((r) =>
-                ["advertiser_manager", "advertiser", "operations"].includes(r)
+                ["advertiser_manager", "advertiser", "operations"].includes(r),
               );
             })
             .map((item) => item.username) || [],
@@ -386,7 +398,7 @@ const CampianData = () => {
               }
 
               return roles.some((r) =>
-                ["publisher_manager", "publisher"].includes(r)
+                ["publisher_manager", "publisher"].includes(r),
               );
             })
             .map((item) => item.username) || [],
@@ -475,7 +487,7 @@ const CampianData = () => {
       } else {
         updated.adv_approved_no = null; // 👈 set to null if either value is missing
         console.warn(
-          "⚠️ Either total or deductions is invalid, so approved number set to null."
+          "⚠️ Either total or deductions is invalid, so approved number set to null.",
         );
       }
     }
@@ -501,22 +513,23 @@ const CampianData = () => {
       const response = await axios.post(updateUrl, updated, {
         headers: { "Content-Type": "application/json" },
       });
-      // const updatedRecord = data.updated_fields; // 👈 updated row
+      const updatedRecord = response.data.updated_fields; // 👈 updated row
 
-      // // ✅ Update only the row with matching id
-      // setAdvData((prevData) =>
-      //   prevData.map((item) =>
-      //     item.id === updatedRecord.id ? { ...item, ...updatedRecord } : item
-      //   )
-      // );
-
+      // ✅ Update only the row with matching id
+      setAdvData((prevData) =>
+        prevData.map((item) =>
+          item.id === updatedRecord.id ? { ...item, ...updatedRecord } : item,
+        ),
+      );
+      console.log("Auto-save response:", response);
       Swal.fire({
         icon: "success",
-        title: data.message || "Auto-Saved",
+        title: "Auto-Saved",
         timer: 1200,
         showConfirmButton: false,
       });
     } catch (err) {
+      console.error("Auto-save error:", err);
       Swal.fire({
         icon: "error",
         title: "Failed to Auto-Save",
@@ -585,8 +598,8 @@ const CampianData = () => {
 
           const visibleValues = sortDropdownValues(
             allValues.filter((val) =>
-              val.toString().toLowerCase().includes(searchText.toLowerCase())
-            )
+              val.toString().toLowerCase().includes(searchText.toLowerCase()),
+            ),
           );
           const isAllSelected = selectedValues.length === allValues.length;
           const isIndeterminate = selectedValues.length > 0 && !isAllSelected;
@@ -779,21 +792,15 @@ const CampianData = () => {
               // ✅ Vertical Dropdown
               return (
                 <Select
-                  defaultValue={value}
-                  autoFocus
-                  style={{ width: "100%" }}
-                  onChange={(val) => {
-                    handleAutoSave(val, record, key);
-                    setEditingCell({ key: null, field: null });
-                  }}
-                  onBlur={() => setEditingCell({ key: null, field: null })}>
-                  <Option value="E-commerce- E">E-commerce- E</Option>
-                  <Option value="Betting Casino- BC">Betting Casino- BC</Option>
-                  <Option value="Betting Sports- BS">Betting Sports- BS</Option>
-                  <Option value="Utilities- U">Utilities- U</Option>
-                  <Option value="Finance- F">Finance- F</Option>
-                  <Option value="Food Delivery- FD">Food Delivery- FD</Option>
-                </Select>
+                  showSearch
+                  optionFilterProp="label"
+                  placeholder="Select Vertical"
+                  className="rounded-lg !h-11 border-gray-200 bg-gray-50"
+                  options={VERTICALS.map((vertical) => ({
+                    value: vertical,
+                    label: vertical,
+                  }))}
+                />
               );
             } else if (key.toLowerCase().includes("date")) {
               return (
@@ -848,7 +855,7 @@ const CampianData = () => {
       {!showValidation ? (
         <div className="bg-white rounded-xl shadow-lg p-5 mb-6 flex flex-wrap items-end justify-between gap-4 md:gap-6 lg:gap-4">
           {/* Left Section - Validation Button */}
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col lg:flex-row items-center gap-3">
             {/* Search Input */}
             <Input
               placeholder="Search Username, Pub Name, or Campaign"
@@ -863,20 +870,9 @@ const CampianData = () => {
 
             {/* Date Range Picker */}
             <div className="flex flex-col items-start gap-1">
-              <RangePicker
-                allowClear
+              <CustomRangePicker
                 value={selectedDateRange}
-                onChange={(dates) => {
-                  if (!dates || dates.length === 0) {
-                    const start = dayjs().startOf("month");
-                    const end = dayjs().endOf("month");
-                    setSelectedDateRange([start, end]);
-                  } else {
-                    setSelectedDateRange([dates[0].clone(), dates[1].clone()]);
-                  }
-                }}
-                placeholder={["Start Date", "End Date"]}
-                className="w-[250px] rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition"
+                onChange={setSelectedDateRange}
               />
             </div>
           </div>
@@ -1013,7 +1009,7 @@ const CampianData = () => {
                       totalAdvPayoutTotal +=
                         (Number(adv_payout) || 0) *
                         (Number(adv_approved_no) || 0);
-                    }
+                    },
                   );
 
                   return (

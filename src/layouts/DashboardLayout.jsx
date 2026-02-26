@@ -26,14 +26,19 @@ const bc = new BroadcastChannel("notifications");
 
 const DashboardLayout = () => {
   const [showMenu, setShowMenu] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1024);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [notificationCount, setNotificationCount] = useState(0);
   const [openMenus, setOpenMenus] = useState({});
+  const [sidebarDots, setSidebarDots] = useState({
+    advertiserRequests: false, // Requests
+    publisherRequests: false, // Request Links
+  });
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useSelector((state) => state.auth);
-  console.log(user);
   const userId = user?.id || JSON.parse(localStorage.getItem("user"))?.id;
   if (!userId) return null;
 
@@ -41,7 +46,13 @@ const DashboardLayout = () => {
     query: { userId },
     transports: ["websocket"],
   });
-
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
   // 🧠 Logout
   const handleLogout = () => {
     dispatch(logout());
@@ -59,8 +70,9 @@ const DashboardLayout = () => {
     const fetchUnreadCount = async () => {
       try {
         const res = await axios.get(
-          `https://apii.clickorbits.in/getNotifications/${userId}`
+          `https://apii.clickorbits.in/getNotifications/${userId}`,
         );
+        console.log("Notifications response:", res.data);
         const unread = res.data.filter((n) => n.is_read === 0).length;
         setNotificationCount(unread);
       } catch (err) {
@@ -71,32 +83,80 @@ const DashboardLayout = () => {
     fetchUnreadCount();
 
     // ✅ Handle new notifications from socket
+    // socket.on("new_notification", (notif) => {
+    //   if (notif.receiver_id === userId) {
+    //     setNotificationCount((prev) => prev + 1);
+
+    //     // Broadcast only for other tabs — not to update self again
+    //     if (bc) {
+    //       bc.postMessage({
+    //         type: "new_notification",
+    //         notif,
+    //         source: "socket", // mark source
+    //       });
+    //     }
+    //   }
+    // });
     socket.on("new_notification", (notif) => {
       if (notif.receiver_id === userId) {
         setNotificationCount((prev) => prev + 1);
 
-        // Broadcast only for other tabs — not to update self again
-        if (bc) {
-          bc.postMessage({
-            type: "new_notification",
-            notif,
-            source: "socket", // mark source
-          });
+        // 🔴 SET SIDEBAR DOTS BY TYPE
+        if (notif.type === "link_shared") {
+          setSidebarDots((prev) => ({
+            ...prev,
+            advertiserRequests: true,
+          }));
         }
+
+        if (notif.type === "status_update") {
+          setSidebarDots((prev) => ({
+            ...prev,
+            publisherRequests: true,
+          }));
+        }
+
+        bc?.postMessage({
+          type: "new_notification",
+          notif,
+          source: "socket",
+        });
       }
     });
 
     // ✅ Listen for updates from other tabs only
-    bc.onmessage = (event) => {
-      const { type, source } = event.data;
+    // bc.onmessage = (event) => {
+    //   const { type, source } = event.data;
 
-      // 🛑 Ignore messages we ourselves sent
+    //   // 🛑 Ignore messages we ourselves sent
+    //   if (source === "socket") return;
+
+    //   if (type === "new_notification") {
+    //     setNotificationCount((prev) => prev + 1);
+    //   } else if (type === "notification_read") {
+    //     setNotificationCount((prev) => Math.max(prev - 1, 0));
+    //   }
+    // };
+    bc.onmessage = (event) => {
+      const { type, notif, source } = event.data;
       if (source === "socket") return;
 
       if (type === "new_notification") {
         setNotificationCount((prev) => prev + 1);
-      } else if (type === "notification_read") {
-        setNotificationCount((prev) => Math.max(prev - 1, 0));
+
+        if (notif?.type === "link_shared") {
+          setSidebarDots((prev) => ({
+            ...prev,
+            advertiserRequests: true,
+          }));
+        }
+
+        if (notif?.type === "status_update") {
+          setSidebarDots((prev) => ({
+            ...prev,
+            publisherRequests: true,
+          }));
+        }
       }
     };
 
@@ -175,15 +235,45 @@ const DashboardLayout = () => {
         <div key={link.label} className={`mt-1 ${level > 0 ? "ml-4" : ""}`}>
           <a
             href={`/dashboard/${link.to}`}
-            onClick={(e) =>
-              hasChildren && (e.preventDefault(), toggleMenu(link.label))
-            }
+            onClick={(e) => {
+              if (hasChildren) {
+                e.preventDefault();
+                toggleMenu(link.label);
+                return;
+              }
+
+              // 🔕 CLEAR DOTS ON CLICK
+              if (link.to === "view-request") {
+                setSidebarDots((prev) => ({
+                  ...prev,
+                  advertiserRequests: false,
+                }));
+              }
+
+              if (link.to === "makerequest") {
+                setSidebarDots((prev) => ({
+                  ...prev,
+                  publisherRequests: false,
+                }));
+              }
+            }}
             className={`flex justify-between items-center px-3 py-2 rounded-md cursor-pointer transition-all ${
               isActive
                 ? "bg-[#79A2CE] text-white"
                 : "hover:bg-[#3f6faf] text-gray-100"
             }`}>
-            <span className="text-sm font-medium">{link.label}</span>
+            <span className="text-sm font-medium flex items-center gap-2">
+              {link.label}
+
+              {link.to === "view-request" && sidebarDots.advertiserRequests && (
+                <span className="w-2 h-2 bg-red-500 rounded-full" />
+              )}
+
+              {link.to === "makerequest" && sidebarDots.publisherRequests && (
+                <span className="w-2 h-2 bg-red-500 rounded-full" />
+              )}
+            </span>
+
             {hasChildren &&
               (isOpen ? (
                 <FaChevronUp className="text-xs" />
@@ -205,9 +295,9 @@ const DashboardLayout = () => {
     <>
       <div className="min-h-screen flex flex-col bg-white">
         {/* HEADER */}
-        <header className="fixed bg-white shadow-md py-3 px-10 flex justify-between items-center w-full z-50">
+        <header className="fixed bg-white shadow-md py-3 g:px-10 px-3 flex justify-between items-center w-full z-50">
           {/* Left: Dashboard Name */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center lg:gap-4">
             <Link to="/dashboard/home">
               <img
                 src="/logo.png"
@@ -219,14 +309,14 @@ const DashboardLayout = () => {
 
           {/* Center: Role + Dashboard */}
           <div className="text-[#2F5D99]">
-            <h1 className="text-lg font-bold tracking-wide pl-4">
+            <h1 className="text-lg font-bold tracking-wide lg:pl-4">
               {Array.isArray(user.role)
                 ? user.role
                     .map((r) =>
                       r
                         .split("_")
                         .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-                        .join(" ")
+                        .join(" "),
                     )
                     .join(", ")
                 : user.role}{" "}
@@ -235,15 +325,15 @@ const DashboardLayout = () => {
           </div>
 
           {/* Right: Icons */}
-          <div className="flex items-center gap-6 relative">
-            <NavLink to="notifications" className="relative">
+          <div className="flex items-center lg:gap-6 gap-3 relative">
+            {/* <NavLink to="notifications" className="relative">
               <FaBell className="text-2xl text-[#2F5D99]" />
               {notificationCount > 0 && (
                 <span className="absolute -top-1 -right-2 bg-red-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5">
                   {notificationCount}
                 </span>
               )}
-            </NavLink>
+            </NavLink> */}
 
             {/* User Icon + Dropdown */}
             <div
@@ -285,17 +375,22 @@ const DashboardLayout = () => {
           {/* SIDEBAR */}
           {sidebarOpen && (
             <aside
-              className="
-      fixed
-      left-0
-      top-[84px]           /* SAME as header height */
-      w-64
-      bg-gradient-to-b from-[#002F65] to-[#002F65]
-      text-white
-      flex flex-row
-      h-[calc(100vh-84px)] /* 👈 NOT full height */
-      z-40
-    ">
+              className={`
+  fixed
+  top-[84px]
+  left-0
+  w-64
+  bg-gradient-to-b from-[#002F65] to-[#002F65]
+  text-white
+  h-[calc(100vh-84px)]
+  z-50
+   flex flex-row
+  transform
+  transition-transform
+  duration-300
+  ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+  lg:translate-x-0
+`}>
               {/* SCROLLABLE LINKS */}
               <div className="flex-1 px-4 py-3 overflow-y-auto scrollbar-hide">
                 <nav className="space-y-2">{renderLinks(links)}</nav>
@@ -322,9 +417,9 @@ const DashboardLayout = () => {
           {/* MAIN CONTENT */}
           <main
             className={`flex-1 transition-all duration-700 ease-in-out ${
-              sidebarOpen ? "pl-64 w-[90%]" : "pl-0 w-full"
+              sidebarOpen ? "lg:pl-64 w-[90%]" : "pl-0 w-[90%]"
             }`}>
-            <div className="overflow-auto transition-all duration-300 bg-white h-screen">
+            <div className="overflow-x-auto overflow-y-visible transition-all duration-300 bg-white min-h-screen">
               <Outlet />
             </div>
           </main>
@@ -342,8 +437,5 @@ window.addEventListener("beforeunload", () => {
     console.warn("⚠️ Error closing BroadcastChannel:", err.message);
   }
 });
-
-
-
 
 export default DashboardLayout;

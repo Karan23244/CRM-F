@@ -1,14 +1,13 @@
 import { useState } from "react";
 import { useDispatch } from "react-redux";
-import { setUser } from "../redux/authSlice";
+import { setUser } from "../../redux/authSlice";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import { FaEye, FaEyeSlash, FaUser, FaLock } from "react-icons/fa";
 
-const apiUrl =
-  import.meta.env.VITE_API_URL;
+const apiUrl = import.meta.env.VITE_API_URL;
 
-const LoginForm = () => {
+const PublisherLogin = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -30,7 +29,7 @@ const LoginForm = () => {
     }
 
     try {
-      const response = await fetch(`${apiUrl}/login-subadmin`, {
+      const response = await fetch(`${apiUrl}/login-publisher`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -44,19 +43,19 @@ const LoginForm = () => {
       if (data.success) {
         dispatch(
           setUser({
-            ...data.subAdmin,
-            role: Array.isArray(data.subAdmin.role)
-              ? data.subAdmin.role
-              : typeof data.subAdmin.role === "string"
-              ? data.subAdmin.role.split(",").map((r) => r.trim())
-              : [],
-          })
+            ...data.user,
+            role: Array.isArray(data.user.role)
+              ? data.user.role
+              : typeof data.user.role === "string"
+                ? data.user.role.split(",").map((r) => r.trim())
+                : [],
+          }),
         );
 
         Swal.fire({
           icon: "success",
           title: "Logged in!",
-          text: `Welcome back, ${data.subAdmin.username || "User"}!`,
+          text: `Welcome back, ${data.user.username || "User"}!`,
           timer: 1500,
           showConfirmButton: false,
         });
@@ -86,7 +85,8 @@ const LoginForm = () => {
         {/* Left Side */}
         <div className="w-full md:w-2/5 bg-[#002F65] text-white flex flex-col justify-center px-8 py-10 md:px-14 relative">
           <h1 className="text-3xl md:text-5xl font-bold mb-6 leading-snug text-center md:text-left">
-            Welcome to <br/>Click Orbits
+            Welcome to <br />
+            Click Orbits
           </h1>
           <p className="text-base md:text-lg leading-relaxed opacity-90 text-center md:text-left">
             PID Metric: Powering seamless campaign management and precise
@@ -110,8 +110,8 @@ const LoginForm = () => {
         {/* Right Side */}
         <div className="w-full md:w-3/5 flex items-center justify-center bg-white px-6 py-10 md:px-16">
           <div className="w-full max-w-md">
-            <h2 className="text-3xl md:text-4xl font-semibold text-[#01509D] mb-8 text-center">
-              Login to Your Account
+            <h2 className="text-3xl font-semibold text-[#01509D] mb-8 text-center">
+              Login to Your Publisher Account
             </h2>
 
             <form onSubmit={handleLogin} className="space-y-6">
@@ -186,4 +186,4 @@ const LoginForm = () => {
   );
 };
 
-export default LoginForm;
+export default PublisherLogin;

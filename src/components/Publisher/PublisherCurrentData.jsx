@@ -24,7 +24,7 @@ import { sortDropdownValues } from "../../Utils/sortDropdownValues";
 import ColumnSettings from "../../Utils/ColumnSettings";
 import { useColumnPresets } from "../../Utils/useColumnPresets";
 import { debounce } from "lodash";
-
+import CustomRangePicker from "../../Utils/CustomRangePicker";
 dayjs.extend(isBetween);
 const { RangePicker } = DatePicker;
 const { Option } = Select;
@@ -59,7 +59,7 @@ const PublisherPayoutData = () => {
       debounce((value) => {
         setSearchTerm(value);
       }, 300),
-    []
+    [],
   );
 
   useEffect(() => {
@@ -84,7 +84,7 @@ const PublisherPayoutData = () => {
       if (data.success && data.data) {
         // ✅ Replace the row with fresh data from backend
         setAdvData((prev) =>
-          prev.map((item) => (item.id === record.id ? data.data : item))
+          prev.map((item) => (item.id === record.id ? data.data : item)),
         );
 
         Swal.fire({
@@ -124,7 +124,7 @@ const PublisherPayoutData = () => {
       const data = await resp.json();
       if (data.success && data.updatedRow) {
         setFilteredData((prev) =>
-          prev.map((item) => (item.id === record.id ? data.updatedRow : item))
+          prev.map((item) => (item.id === record.id ? data.updatedRow : item)),
         );
         Swal.fire({
           icon: "success",
@@ -135,14 +135,6 @@ const PublisherPayoutData = () => {
       }
     } catch (error) {
       console.error("Error updating FP:", error);
-    }
-  };
-  const handleDateRangeChange = (dates) => {
-    if (!dates || dates.length === 0) {
-      // Reset to current month
-      setSelectedDateRange([dayjs().startOf("month"), dayjs().endOf("month")]);
-    } else {
-      setSelectedDateRange(dates);
     }
   };
   const clearAllFilters = () => {
@@ -185,7 +177,7 @@ const PublisherPayoutData = () => {
   } = useColumnPresets({ userId, allColumns });
   const toggleStickyColumn = (key) => {
     setStickyColumns((prev) =>
-      prev.includes(key) ? prev.filter((col) => col !== key) : [...prev, key]
+      prev.includes(key) ? prev.filter((col) => col !== key) : [...prev, key],
     );
   };
   const fetchAdvData = async () => {
@@ -197,7 +189,6 @@ const PublisherPayoutData = () => {
           endDate: endDate.format("YYYY-MM-DD"),
         },
       });
-      console.log(response);
       setAdvData([...response.data.data].reverse());
     } catch (error) {
       console.error("Error fetching advertiser data:", error);
@@ -276,7 +267,7 @@ const PublisherPayoutData = () => {
       const matchesPub = [
         user?.username?.toString().trim().toLowerCase(),
         ...(selectedSubAdmins || []).map((sub) =>
-          sub?.toString().trim().toLowerCase()
+          sub?.toString().trim().toLowerCase(),
         ),
       ].includes(normalizedPubName);
 
@@ -303,7 +294,7 @@ const PublisherPayoutData = () => {
 
         if (Array.isArray(filterValues)) {
           return filterValues.some(
-            (filterVal) => itemVal === normalize(filterVal)
+            (filterVal) => itemVal === normalize(filterVal),
           );
         }
 
@@ -314,7 +305,7 @@ const PublisherPayoutData = () => {
       const matchesSearch = !searchTerm.trim()
         ? true
         : Object.values(item).some((val) =>
-            val?.toString().toLowerCase().includes(searchTerm.toLowerCase())
+            val?.toString().toLowerCase().includes(searchTerm.toLowerCase()),
           );
 
       return matchesPub && matchesFilters && matchesSearch;
@@ -367,9 +358,9 @@ const PublisherPayoutData = () => {
               return v === null || v === undefined || v === ""
                 ? "-"
                 : v.toString().trim();
-            })
-          )
-        )
+            }),
+          ),
+        ),
       );
     });
 
@@ -474,10 +465,9 @@ const PublisherPayoutData = () => {
 
           const visibleValues = sortDropdownValues(
             allValues.filter((val) =>
-              val.toString().toLowerCase().includes(searchText.toLowerCase())
-            )
+              val.toString().toLowerCase().includes(searchText.toLowerCase()),
+            ),
           );
-          console.log(visibleValues);
           const isAllSelected = selectedValues.length === allValues.length;
           const isIndeterminate = selectedValues.length > 0 && !isAllSelected;
 
@@ -684,7 +674,7 @@ const PublisherPayoutData = () => {
   return (
     <div className="bg-gray-50 min-h-screen flex flex-col items-center">
       <div className="w-full bg-white p-6 rounded-xl shadow-lg border border-gray-200">
-        <div className="sticky top-0 z-30 bg-white -mx-6 px-6 pt-4 pb-4 border-b border-gray-200">
+        <div className="sticky top-0 bg-white overflow-visible -mx-6 px-6 pt-2 pb-2 border-gray-200">
           <div className="bg-white rounded-xl shadow-md p-5 mb-6 flex flex-wrap items-end justify-between gap-4 md:gap-6 lg:gap-4">
             {/* Left Section - Filters and Dropdowns */}
             <div className="flex flex-wrap items-center gap-3">
@@ -701,13 +691,9 @@ const PublisherPayoutData = () => {
                 className="!w-[200px] px-4 py-2 border border-gray-300 rounded-lg shadow-sm
              focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-
-              {/* Date Range Picker */}
-              <RangePicker
-                onChange={handleDateRangeChange}
-                allowClear
-                placeholder={["Start Date", "End Date"]}
-                className="w-[250px] rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition"
+              <CustomRangePicker
+                value={selectedDateRange}
+                onChange={setSelectedDateRange}
               />
             </div>
 
@@ -790,7 +776,7 @@ const PublisherPayoutData = () => {
         </div>
         <StyledTable
           bordered
-          className="overflow-x-scroll"
+          className="w-full overflow-x-auto"
           columns={getColumns(columnHeadingsAdv)}
           dataSource={processedData}
           rowKey="id"
@@ -807,7 +793,7 @@ const PublisherPayoutData = () => {
                 acc.pub_Apno += Number(row.pub_Apno) || 0;
                 return acc;
               },
-              { adv_total_no: 0, pub_Apno: 0 }
+              { adv_total_no: 0, pub_Apno: 0 },
             );
 
             return (

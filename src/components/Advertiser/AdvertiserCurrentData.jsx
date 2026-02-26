@@ -36,9 +36,9 @@ import { sortDropdownValues } from "../../Utils/sortDropdownValues";
 import ColumnSettings from "../../Utils/ColumnSettings";
 import { useColumnPresets } from "../../Utils/useColumnPresets";
 import { debounce } from "lodash";
+import CustomRangePicker from "../../Utils/CustomRangePicker";
 
 dayjs.extend(isBetween);
-const { RangePicker } = DatePicker;
 const { Option } = Select;
 const apiUrl = import.meta.env.VITE_API_URL;
 
@@ -89,7 +89,7 @@ const AdvertiserData = () => {
       debounce((value) => {
         setSearchTerm(value);
       }, 300),
-    []
+    [],
   );
 
   useEffect(() => {
@@ -149,7 +149,7 @@ const AdvertiserData = () => {
 
       if (res.data && Array.isArray(res.data)) {
         const validCampaigns = res.data.filter(
-          (c) => c.campaign_name && c.campaign_name.trim() !== ""
+          (c) => c.campaign_name && c.campaign_name.trim() !== "",
         );
         setCampaignList(validCampaigns);
       } else {
@@ -173,7 +173,7 @@ const AdvertiserData = () => {
       }
 
       const promises = selectedAdmins.map((admin) =>
-        axios.get(`${apiUrl}/user-data/${admin.value}`)
+        axios.get(`${apiUrl}/user-data/${admin.value}`),
       );
       const responses = await Promise.all(promises);
 
@@ -190,7 +190,7 @@ const AdvertiserData = () => {
       const mergedData = [
         ...data,
         ...newRoleData.flatMap((r) =>
-          (r.data || []).map((item) => ({ ...item, subadminId: r.adminId }))
+          (r.data || []).map((item) => ({ ...item, subadminId: r.adminId })),
         ),
       ];
 
@@ -273,7 +273,7 @@ const AdvertiserData = () => {
               }
 
               return roles.some((r) =>
-                ["publisher_manager", "publisher"].includes(r)
+                ["publisher_manager", "publisher"].includes(r),
               );
             })
             .map((item) => item.username) || [],
@@ -281,20 +281,20 @@ const AdvertiserData = () => {
           ...new Set(
             payableEvent?.data?.data?.map((i) => i.payble_event) ||
               prev.payable_event ||
-              []
+              [],
           ),
         ],
         mmp_tracker: [
           ...new Set(
             mmpTracker?.data?.data?.map((i) => i.mmptext) ||
               prev.mmp_tracker ||
-              []
+              [],
           ),
         ],
         pid: [...new Set(pid?.data?.data?.map((i) => i.pid) || prev.pid || [])],
         pub_id: [
           ...new Set(
-            pub_id?.data?.data?.map((i) => i.pub_id) || prev.pub_id || []
+            pub_id?.data?.data?.map((i) => i.pub_id) || prev.pub_id || [],
           ),
         ],
         geo: [...new Set(geoData.geo?.map((i) => i.code) || prev.geo || [])],
@@ -302,7 +302,7 @@ const AdvertiserData = () => {
           ...new Set(
             adv_id?.data?.advertisements?.map((i) => i.adv_id) ||
               prev.adv_id ||
-              []
+              [],
           ),
         ],
       }));
@@ -339,7 +339,7 @@ const AdvertiserData = () => {
     ) {
       const [start, end] = selectedDateRange;
       filtered = filtered.filter((item) =>
-        dayjs(item.shared_date).isBetween(start, end, null, "[]")
+        dayjs(item.shared_date).isBetween(start, end, null, "[]"),
       );
     }
 
@@ -356,7 +356,7 @@ const AdvertiserData = () => {
       ) {
         const [start, end] = filterValue;
         filtered = filtered.filter((item) =>
-          dayjs(item[key]).isBetween(start, end, null, "[]")
+          dayjs(item[key]).isBetween(start, end, null, "[]"),
         );
         return;
       }
@@ -370,13 +370,14 @@ const AdvertiserData = () => {
         filtered = filtered.filter((item) =>
           filterValue.some(
             (val) =>
-              normalize(item[key]) === val.toString().trim().toLowerCase()
-          )
+              normalize(item[key]) === val.toString().trim().toLowerCase(),
+          ),
         );
       } else {
         filtered = filtered.filter(
           (item) =>
-            normalize(item[key]) === filterValue.toString().trim().toLowerCase()
+            normalize(item[key]) ===
+            filterValue.toString().trim().toLowerCase(),
         );
       }
     });
@@ -388,8 +389,8 @@ const AdvertiserData = () => {
         Object.values(item).some((v) =>
           String(v || "")
             .toLowerCase()
-            .includes(q)
-        )
+            .includes(q),
+        ),
       );
     }
 
@@ -463,9 +464,9 @@ const AdvertiserData = () => {
               return v === null || v === undefined || v === ""
                 ? "-"
                 : v.toString().trim();
-            })
-          )
-        )
+            }),
+          ),
+        ),
       );
     });
 
@@ -478,7 +479,7 @@ const AdvertiserData = () => {
 
   const toggleStickyColumn = useCallback((key) => {
     setStickyColumns((prev) =>
-      prev.includes(key) ? prev.filter((c) => c !== key) : [...prev, key]
+      prev.includes(key) ? prev.filter((c) => c !== key) : [...prev, key],
     );
   }, []);
 
@@ -532,7 +533,7 @@ const AdvertiserData = () => {
       "adv_deductions",
       "adv_approved_no",
     ],
-    []
+    [],
   );
   const fieldonlyeditable = useMemo(
     () => [
@@ -545,7 +546,7 @@ const AdvertiserData = () => {
       "adv_deductions",
       "adv_approved_no",
     ],
-    []
+    [],
   );
   // Columns and renderers memoized
   const columnHeadingsAdv = {
@@ -682,7 +683,7 @@ const AdvertiserData = () => {
           updated,
           {
             headers: { "Content-Type": "application/json" },
-          }
+          },
         );
 
         // log full response for debugging
@@ -694,8 +695,8 @@ const AdvertiserData = () => {
         // update only that row in state
         setData((prev) =>
           prev.map((r) =>
-            r.id === updatedRow.id ? { ...r, ...updatedRow } : r
-          )
+            r.id === updatedRow.id ? { ...r, ...updatedRow } : r,
+          ),
         );
 
         // message.success("Auto-saved");
@@ -706,7 +707,7 @@ const AdvertiserData = () => {
         setSavingTable(false);
       }
     },
-    [allowedFieldsAfter3Days, calculatePubApno, checkEditableAndAlert]
+    [allowedFieldsAfter3Days, calculatePubApno, checkEditableAndAlert],
   );
 
   // Add Row
@@ -769,7 +770,7 @@ const AdvertiserData = () => {
         });
       }
     },
-    [fetchData, userId]
+    [fetchData, userId],
   );
   // Delete
   const handleDelete = useCallback(async (id) => {
@@ -814,7 +815,7 @@ const AdvertiserData = () => {
       const res = await axios.post(
         `${apiUrl}/advdata-update/${selectedPauseRecord.id}`,
         payload,
-        { headers: { "Content-Type": "application/json" } }
+        { headers: { "Content-Type": "application/json" } },
       );
 
       message.success("Pause date linked successfully");
@@ -830,8 +831,8 @@ const AdvertiserData = () => {
       if (updatedRow) {
         setData((prev) =>
           prev.map((r) =>
-            r.id === updatedRow.id ? { ...r, ...updatedRow } : r
-          )
+            r.id === updatedRow.id ? { ...r, ...updatedRow } : r,
+          ),
         );
       }
     } catch (err) {
@@ -844,7 +845,7 @@ const AdvertiserData = () => {
   const columns = [
     ...desiredOrder
       .filter(
-        (key) => data[0] && key in data[0] && !hiddenColumns.includes(key)
+        (key) => data[0] && key in data[0] && !hiddenColumns.includes(key),
       )
       .map((key) => ({
         title: (
@@ -1171,8 +1172,8 @@ const AdvertiserData = () => {
 
           const visibleValues = sortDropdownValues(
             allValues.filter((val) =>
-              val.toString().toLowerCase().includes(searchText.toLowerCase())
-            )
+              val.toString().toLowerCase().includes(searchText.toLowerCase()),
+            ),
           );
           const isAllSelected = selectedValues.length === allValues.length;
           const isIndeterminate = selectedValues.length > 0 && !isAllSelected;
@@ -1293,7 +1294,7 @@ const AdvertiserData = () => {
           totalAdvDeductions += Number(adv_deductions) || 0;
           totalAdvApprovedNo += Number(adv_approved_no) || 0;
           totalAdvPayoutTotal += Number(adv_payout_total) || 0;
-        }
+        },
       );
 
       return (
@@ -1340,17 +1341,17 @@ const AdvertiserData = () => {
         </Table.Summary.Row>
       );
     },
-    [columns]
+    [columns],
   );
   return (
-    <div className="p-4 bg-gray-100 min-h-screen flex flex-col items-center">
+    <div className="bg-gray-100 min-h-screen flex flex-col items-center">
       <div className="w-full bg-white p-6 rounded shadow-md relative">
         <div className="sticky top-0 left-0 right-0 z-20 bg-white rounded-2xl shadow-lg p-5 mb-6 border border-gray-200">
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
             {/* Left Section */}
             <div className="flex flex-wrap items-center gap-3">
               <Input
-                placeholder="Search Publisher, Campaign, or Username"
+                placeholder="Search Advertiser, Campaign, or Username"
                 value={searchInput}
                 onChange={(e) => {
                   const value = e.target.value;
@@ -1364,24 +1365,10 @@ const AdvertiserData = () => {
 
               {/* Date Range Picker */}
               {!showValidation && (
-                <Tooltip title="Filter by Date Range" placement="top">
-                  <RangePicker
+                  <CustomRangePicker
                     value={selectedDateRange}
-                    onChange={(dates) => {
-                      if (!dates || dates.length === 0) {
-                        setSelectedDateRange([
-                          dayjs().startOf("month"),
-                          dayjs().endOf("month"),
-                        ]);
-                      } else {
-                        setSelectedDateRange(dates);
-                      }
-                    }}
-                    allowClear
-                    placeholder={["Start Date", "End Date"]}
-                    className="w-[250px] rounded-xl border border-gray-300 shadow-sm hover:shadow-md transition-all"
+                    onChange={setSelectedDateRange}
                   />
-                </Tooltip>
               )}
 
               {/* Back Button (When Validation Active) */}
@@ -1439,7 +1426,7 @@ const AdvertiserData = () => {
                             filteredItem[columnHeadingsAdv[key]] = item[key];
                           });
                           return filteredItem;
-                        }
+                        },
                       );
                       exportToExcel(tableDataToExport, "advertiser-data.xlsx");
                     }}

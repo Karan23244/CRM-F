@@ -52,9 +52,16 @@ export default function OptimizationPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${apiUrl}/api/campaign-metrics`);
-      const validData = Array.isArray(res.data) ? res.data : [];
+      const params = {};
 
+      // add condition ONLY for publisher_external
+      if (user?.role?.includes("publisher_external") && user?.username) {
+        params.username = user.username;
+      }
+
+      const res = await axios.get(`${apiUrl}/api/campaign-metrics`, { params });
+
+      const validData = Array.isArray(res.data) ? res.data : [];
       setRawData(validData);
     } catch (error) {
       message.error("Failed to fetch data");
@@ -68,7 +75,7 @@ export default function OptimizationPage() {
 
   const campaigns = useMemo(
     () => [...new Set(rawData.map((r) => r.campaign_name))],
-    [rawData]
+    [rawData],
   );
 
   const availableDates = useMemo(() => {
@@ -87,11 +94,11 @@ export default function OptimizationPage() {
 
   const minDate = useMemo(
     () => (availableDates.length ? dayjs.min(availableDates) : null),
-    [availableDates]
+    [availableDates],
   );
   const maxDate = useMemo(
     () => (availableDates.length ? dayjs.max(availableDates) : null),
-    [availableDates]
+    [availableDates],
   );
 
   const disabledDate = (current) => {
@@ -276,7 +283,7 @@ export default function OptimizationPage() {
               <AjustUploadForm onUploadSuccess={fetchData} />
             </div>
           )}
-              {selectedForm === "singular" && (
+          {selectedForm === "singular" && (
             <div style={{ marginTop: 20 }}>
               <SingularUploadForm onUploadSuccess={fetchData} />
             </div>

@@ -13,7 +13,7 @@ export const getKPIs = (data = []) => {
 
   // 🔹 Unique Campaigns (campaign_id preferred, fallback to campaign_name)
   const uniqueCampaigns = new Set(
-    data.map((d) => d.campaign_id || d.campaign_name).filter(Boolean)
+    data.map((d) => d.campaign_id || d.campaign_name).filter(Boolean),
   );
 
   // 🔹 Live Campaigns (no paused_date)
@@ -21,7 +21,7 @@ export const getKPIs = (data = []) => {
     data
       .filter((d) => !d.paused_date || d.paused_date === "")
       .map((d) => d.campaign_name)
-      .filter(Boolean)
+      .filter(Boolean),
   );
 
   // 🔹 Unique Advertisers
@@ -61,19 +61,27 @@ export const groupByAdvertiser = (data) => {
   const map = {};
 
   data.forEach((d) => {
-    if (!d.adv_name || !d.campaign_name) return;
+    if (!d.adv_id || !d.adv_name || !d.campaign_name) return;
 
-    if (!map[d.adv_name]) {
-      map[d.adv_name] = new Set();
+    const key = `${d.adv_id}__${d.adv_name}`;
+    const campaign = d.campaign_name.trim().toLowerCase();
+
+    if (!map[key]) {
+      map[key] = {
+        adv_id: d.adv_id,
+        adv_name: d.adv_name,
+        campaigns: new Set(),
+      };
     }
 
-    map[d.adv_name].add(d.campaign_name.trim().toLowerCase());
+    map[key].campaigns.add(campaign);
   });
 
-  return Object.entries(map)
-    .map(([name, campaigns]) => ({
-      name,
-      value: campaigns.size,
+  return Object.values(map)
+    .map((item) => ({
+      adv_id: item.adv_id,
+      name: item.adv_name,
+      value: item.campaigns.size,
     }))
     .sort((a, b) => b.value - a.value)
     .slice(0, 10);
@@ -84,22 +92,27 @@ export const groupByPublisher = (data) => {
   const map = {};
 
   data.forEach((d) => {
-    if (!d.pub_am || !d.campaign_name) return;
+    if (!d.pub_id || !d.pub_am || !d.campaign_name) return;
 
-    const publisher = d.pub_am.trim();
+    const key = `${d.pub_id}__${d.pub_am}`;
     const campaign = d.campaign_name.trim().toLowerCase();
 
-    if (!map[publisher]) {
-      map[publisher] = new Set();
+    if (!map[key]) {
+      map[key] = {
+        pub_id: d.pub_id,
+        pub_name: d.pub_am,
+        campaigns: new Set(),
+      };
     }
 
-    map[publisher].add(campaign);
+    map[key].campaigns.add(campaign);
   });
 
-  return Object.entries(map)
-    .map(([name, campaigns]) => ({
-      name,
-      value: campaigns.size,
+  return Object.values(map)
+    .map((item) => ({
+      pub_id: item.pub_id,
+      name: item.pub_name,
+      value: item.campaigns.size,
     }))
     .sort((a, b) => b.value - a.value)
     .slice(0, 10);

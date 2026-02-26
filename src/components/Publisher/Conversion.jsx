@@ -275,7 +275,7 @@ const Conversion = () => {
           View and manage conversion data for publishers and campaigns.
         </p>
       </div>
-      <div className="flex gap-3 mb-4">
+      <div className="flex flex-col md:flex-row md:flex-wrap gap-3 mb-4 w-full">
         <RangePicker
           value={dateRange}
           onChange={(dates) => {
@@ -299,7 +299,7 @@ const Conversion = () => {
           placeholder="Hide columns"
           value={hiddenColumns}
           onChange={setHiddenColumns}
-          style={{ minWidth: 250 }}>
+          style={{ width: 250 }}>
           {Object.keys(columnHeadings).map((key) => (
             <Select.Option key={key} value={key}>
               {columnHeadings[key]}
@@ -309,6 +309,7 @@ const Conversion = () => {
 
         <Button
           danger
+          className="w-[150px] lg:w-full"
           onClick={() => {
             setFilters({});
             setSortInfo({});

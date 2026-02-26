@@ -3,8 +3,7 @@ import { useSelector } from "react-redux";
 import Swal from "sweetalert2";
 import { FaEye, FaEyeSlash, FaUserCircle } from "react-icons/fa";
 
-const apiUrl =
-  import.meta.env.VITE_API_URL;
+const apiUrl = import.meta.env.VITE_API_URL;
 
 const MyAccount = () => {
   const user = useSelector((state) => state.auth.user);
@@ -109,8 +108,8 @@ const MyAccount = () => {
             Change Password
           </h3>
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Current Password */}
+            <div className="space-y-5">
+              {/* Current Password - Full Width */}
               <div className="relative">
                 <label className="block text-gray-700 text-sm font-medium mb-1">
                   Current Password
@@ -122,70 +121,73 @@ const MyAccount = () => {
                   onChange={handleChange}
                   required
                   placeholder="Enter current password"
-                  className="w-full p-3 pr-10 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#2F5D99] transition-all"
+                  className="w-full p-3 pr-10 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#2F5D99]"
                 />
                 <button
                   type="button"
                   onClick={() => togglePassword("current")}
-                  className="absolute inset-y-0 right-3 flex items-center top-5 text-gray-500 cursor-pointer">
+                  className="absolute inset-y-0 right-3 top-5 flex items-center text-gray-500">
                   {showPassword.current ? (
-                    <FaEyeSlash size={25} />
+                    <FaEyeSlash size={22} />
                   ) : (
-                    <FaEye size={25} />
+                    <FaEye size={22} />
                   )}
                 </button>
               </div>
 
-              {/* New Password */}
-              <div className="relative">
-                <label className="block text-gray-700 text-sm font-medium mb-1">
-                  New Password
-                </label>
-                <input
-                  type={showPassword.new ? "text" : "password"}
-                  name="newPassword"
-                  value={formData.newPassword}
-                  onChange={handleChange}
-                  required
-                  placeholder="Enter new password"
-                  className="w-full p-3 pr-10 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#2F5D99] transition-all"
-                />
-                <button
-                  type="button"
-                  onClick={() => togglePassword("new")}
-                  className="absolute inset-y-0 right-3 top-5 flex items-center text-gray-500 cursor-pointer">
-                  {showPassword.new ? (
-                    <FaEyeSlash size={25} />
-                  ) : (
-                    <FaEye size={25} />
-                  )}
-                </button>
-              </div>
+              {/* New + Confirm Password - Two Columns */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* New Password */}
+                <div className="relative">
+                  <label className="block text-gray-700 text-sm font-medium mb-1">
+                    New Password
+                  </label>
+                  <input
+                    type={showPassword.new ? "text" : "password"}
+                    name="newPassword"
+                    value={formData.newPassword}
+                    onChange={handleChange}
+                    required
+                    placeholder="Enter new password"
+                    className="w-full p-3 pr-10 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#2F5D99]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => togglePassword("new")}
+                    className="absolute inset-y-0 right-3 top-5 flex items-center text-gray-500">
+                    {showPassword.new ? (
+                      <FaEyeSlash size={22} />
+                    ) : (
+                      <FaEye size={22} />
+                    )}
+                  </button>
+                </div>
 
-              {/* Confirm New Password */}
-              <div className="relative md:col-span-2">
-                <label className="block text-gray-700 text-sm font-medium mb-1">
-                  Confirm New Password
-                </label>
-                <input
-                  type={showPassword.confirm ? "text" : "password"}
-                  name="confirmNewPassword"
-                  value={formData.confirmNewPassword}
-                  onChange={handleChange}
-                  required
-                  placeholder="Re-enter new password"
-                  className="w-full p-3 pr-10 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#2F5D99] transition-all"
-                />
-                <button
-                  type="button"
-                  onClick={() => togglePassword("confirm")}
-                  className="absolute inset-y-0 right-3 top-5 flex items-center text-gray-500 cursor-pointer">
-                  {showPassword.confirm ? (
-                    <FaEyeSlash size={25} />
-                  ) : (
-                    <FaEye size={25} />
-                  )}
-                </button>
+                {/* Confirm New Password */}
+                <div className="relative">
+                  <label className="block text-gray-700 text-sm font-medium mb-1">
+                    Confirm New Password
+                  </label>
+                  <input
+                    type={showPassword.confirm ? "text" : "password"}
+                    name="confirmNewPassword"
+                    value={formData.confirmNewPassword}
+                    onChange={handleChange}
+                    required
+                    placeholder="Re-enter new password"
+                    className="w-full p-3 pr-10 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#2F5D99]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => togglePassword("confirm")}
+                    className="absolute inset-y-0 right-3 top-5 flex items-center text-gray-500">
+                    {showPassword.confirm ? (
+                      <FaEyeSlash size={22} />
+                    ) : (
+                      <FaEye size={22} />
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
 

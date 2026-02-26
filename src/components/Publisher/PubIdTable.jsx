@@ -54,7 +54,6 @@ const PubIdTable = () => {
     roles.includes("advertiser") || roles.includes("advertiser_manager");
 
   const isAdmin = roles.includes("admin");
-  console.log(isAdmin);
   const advColumnKey = isAdmin || isAdvertiser ? "adv_display" : "adv_id";
   const pubColumnKey = isAdmin || isPublisher ? "pub_display" : "pub_id";
 
