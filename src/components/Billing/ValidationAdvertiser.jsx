@@ -283,28 +283,30 @@ export default function BillingAdvertiser() {
           month,
           data: nextRows,
         });
+        if (res.data.message) {
+          await fetchBilling();
 
-        if (res.data.rows) {
-          setRows((prev) =>
-            prev.map((r) => {
-              const fresh = res.data.rows.find((f) => f.id === r.billing_id);
+          if (res.data.rows) {
+            setRows((prev) =>
+              prev.map((r) => {
+                const fresh = res.data.rows.find((f) => f.id === r.billing_id);
 
-              if (!fresh) return r;
+                if (!fresh) return r;
 
-              return {
-                ...r,
-                billing_id: fresh.id,
-                total_no: fresh.total_no,
-                deductions: fresh.deductions,
-                approved_no: fresh.approved_no,
-                status: fresh.status,
-              };
-            }),
-          );
+                return {
+                  ...r,
+                  billing_id: fresh.id,
+                  total_no: fresh.total_no,
+                  deductions: fresh.deductions,
+                  approved_no: fresh.approved_no,
+                  status: fresh.status,
+                };
+              }),
+            );
+          }
         }
-
         message.success("Autosaved", 0.6);
-      } catch {
+      } catch (err) {
         message.error("Autosave failed");
       }
     }, 700);

@@ -280,22 +280,27 @@ export default function BillingAdvertiser() {
           month,
           data: nextRows,
         });
+        if (res.data?.success) {
+          // ✅ Refetch only when save is successful
+          await fetchBilling();
 
-        if (res.data.billingIdMap) {
-          setRows((prev) =>
-            prev.map((r) => {
-              const match = res.data.billingIdMap.find(
-                (b) =>
-                  (!r.billing_id && b.tmp_id === r._tmp_id) ||
-                  b.billing_id === r.billing_id,
-              );
-              return match ? { ...r, billing_id: match.billing_id } : r;
-            }),
-          );
+          if (res.data.billingIdMap) {
+            setRows((prev) =>
+              prev.map((r) => {
+                const match = res.data.billingIdMap.find(
+                  (b) =>
+                    (!r.billing_id && b.tmp_id === r._tmp_id) ||
+                    b.billing_id === r.billing_id,
+                );
+
+                return match ? { ...r, billing_id: match.billing_id } : r;
+              }),
+            );
+          }
         }
 
         message.success("Autosaved", 0.6);
-      } catch {
+      } catch (err) {
         message.error("Autosave failed");
       }
     }, 700);
