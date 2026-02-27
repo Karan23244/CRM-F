@@ -481,10 +481,10 @@ export default function BillingAdvertiser() {
                 }
 
                 // 2️⃣ Verify row
-                await axios.post(`${API}/billing/publisher-verify-row`, {
+               const res = await axios.post(`${API}/billing/publisher-verify-row`, {
                   billing_id: row.billing_id,
                 });
-
+                console.log("VERIFY RES:", res.data);
                 if (res.data?.success) {
                   Swal.fire({
                     icon: "success",
