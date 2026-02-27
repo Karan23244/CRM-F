@@ -481,9 +481,12 @@ export default function BillingAdvertiser() {
                 }
 
                 // 2️⃣ Verify row
-               const res = await axios.post(`${API}/billing/publisher-verify-row`, {
-                  billing_id: row.billing_id,
-                });
+                const res = await axios.post(
+                  `${API}/billing/publisher-verify-row`,
+                  {
+                    billing_id: row.billing_id,
+                  },
+                );
                 console.log("VERIFY RES:", res.data);
                 if (res.data?.success) {
                   Swal.fire({
@@ -525,26 +528,26 @@ export default function BillingAdvertiser() {
       let totalPubPayout = 0;
 
       pageData.forEach((row) => {
-        const pubTotal =
-          (Number(row.adv_total_number) || 0) +
-          (row.pid_data || []).reduce(
-            (s, p) => s + (Number(p.adv_total_number) || 0),
-            0,
-          );
+        // 1️⃣ Calculate from PID only
+        const pubTotal = (row.pid_data || []).reduce(
+          (sum, p) => sum + (Number(p.adv_total_number) || 0),
+          0,
+        );
+        console.log("Row:", row.campaign_name, "PID Total:", pubTotal);
+        const pubApproved = (row.pid_data || []).reduce(
+          (sum, p) => sum + (Number(p.pub_apno) || 0),
+          0,
+        );
 
-        const pubApproved =
-          (Number(row.pub_apno) || 0) +
-          (row.pid_data || []).reduce(
-            (s, p) => s + (Number(p.pub_apno) || 0),
-            0,
-          );
-
+        // 2️⃣ Calculate payout from approved * payout rate
         const payout =
           row.pub_payout && pubApproved
             ? pubApproved * Number(row.pub_payout)
-            : Number(row.payout_amount) || 0;
+            : 0;
 
         totalPubTotal += pubTotal;
+        console.log("Row:", row.campaign_name, "Pub Total:", pubTotal);
+        console.log("Total Pub Total:", totalPubTotal);
         totalPubApproved += pubApproved;
         totalPubPayout += payout;
       });
@@ -585,7 +588,10 @@ export default function BillingAdvertiser() {
     },
     [columns],
   );
-
+  const publisherOptions = publishers?.map((publisher) => ({
+    label: `${publisher.pub_id} (${publisher.pub_name})`,
+    value: publisher.pub_id,
+  }));
   const activeRow = detailsIndex !== null ? rows[detailsIndex] : null;
 
   return (
@@ -597,25 +603,19 @@ export default function BillingAdvertiser() {
             placeholder="Select Publisher"
             style={{ width: 260 }}
             value={selectedPubId ?? undefined}
-            optionFilterProp="children"
+            options={publisherOptions}
+            optionFilterProp="label"
             filterOption={(input, option) =>
-              option?.children?.toLowerCase().includes(input.toLowerCase())
+              option?.label?.toLowerCase().includes(input.toLowerCase())
             }
-            filterSort={(optionA, optionB) =>
-              optionA.children
-                ?.toLowerCase()
-                ?.localeCompare(optionB.children.toLowerCase())
+            filterSort={(a, b) =>
+              a?.label?.toLowerCase().localeCompare(b?.label?.toLowerCase())
             }
             onChange={(v) => {
               setSelectedPubId(v ?? null);
               setRows([]);
-            }}>
-            {publishers.map((a) => (
-              <Select.Option key={a.pub_id} value={a.pub_id}>
-                {a.pub_name}
-              </Select.Option>
-            ))}
-          </Select>
+            }}
+          />
 
           <DatePicker
             picker="month"
@@ -660,10 +660,13 @@ export default function BillingAdvertiser() {
                     }
 
                     // 2️⃣ Lock billing
-                    const res = await axios.post(`${API}/billing/publisher-lock`, {
-                      pub_id: selectedPubId,
-                      month,
-                    });
+                    const res = await axios.post(
+                      `${API}/billing/publisher-lock`,
+                      {
+                        pub_id: selectedPubId,
+                        month,
+                      },
+                    );
                     console.log("LOCK RES:", res.data);
                     if (res.data?.success) {
                       Swal.fire({

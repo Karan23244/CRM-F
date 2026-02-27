@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import {
   Select,
   DatePicker,
@@ -257,6 +257,7 @@ export default function BillingAdvertiser() {
       roles: user.role,
       user_id: user.id,
     });
+    console.log("Fetched advertisers:", res); // Debug log
     setAdvertisers(res.data.advertisers || []);
   };
 
@@ -487,7 +488,14 @@ export default function BillingAdvertiser() {
       ),
     },
   ];
-
+  const advertiserOptions = advertisers
+    ?.map((advertiser) => ({
+      label: `${advertiser.adv_id} (${advertiser.adv_name || "No Name"})`,
+      value: advertiser.adv_id,
+    }))
+    ?.sort((a, b) =>
+      a.label.toLowerCase().localeCompare(b.label.toLowerCase()),
+    );
   const activeRow = detailsIndex !== null ? rows[detailsIndex] : null;
 
   return (
@@ -499,25 +507,19 @@ export default function BillingAdvertiser() {
             placeholder="Select Advertiser"
             style={{ width: 260 }}
             value={selectedAdvId ?? undefined}
-            optionFilterProp="children"
+            options={advertiserOptions}
+            optionFilterProp="label"
             filterOption={(input, option) =>
-              option?.children?.toLowerCase().includes(input.toLowerCase())
+              option?.label?.toLowerCase().includes(input.toLowerCase())
             }
-            filterSort={(optionA, optionB) =>
-              optionA.children
-                .toLowerCase()
-                .localeCompare(optionB.children.toLowerCase())
+            filterSort={(a, b) =>
+              a?.label?.toLowerCase().localeCompare(b?.label?.toLowerCase())
             }
             onChange={(v) => {
               setSelectedAdvId(v ?? null);
               setRows([]);
-            }}>
-            {advertisers.map((a) => (
-              <Select.Option key={a.adv_id} value={a.adv_id}>
-                {a.adv_name}
-              </Select.Option>
-            ))}
-          </Select>
+            }}
+          />
 
           <DatePicker
             picker="month"

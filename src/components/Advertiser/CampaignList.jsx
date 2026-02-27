@@ -527,31 +527,9 @@ const CampaignList = () => {
       "Campaign Name",
       (text, record) => (
         <span
-          style={{
-            cursor: roles.some((r) =>
-              [
-                "advertiser",
-                "advertiser_manager",
-                "operations",
-                "admin",
-              ].includes(r)
-            )
-              ? "pointer"
-              : "not-allowed",
-          }}
+          style={{ color: "#2F5D99", cursor: "pointer" }}
           onClick={() => {
-            if (
-              roles.some((r) =>
-                [
-                  "advertiser",
-                  "advertiser_manager",
-                  "operations",
-                  "admin",
-                ].includes(r)
-              )
-            ) {
               navigate("/dashboard/createcampaign", { state: { record } });
-            }
           }}>
           {text}
         </span>

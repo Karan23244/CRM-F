@@ -1,93 +1,174 @@
-import { Table, Spin, message, Select } from "antd";
-import { useEffect, useState } from "react";
-import { fetchBilling } from "../../Utils/billingApi";
-import { useSelector } from "react-redux";
-import { DatePicker } from "antd";
+import React, { useEffect, useState } from "react";
+import { Table, Tooltip, message, DatePicker, Tag, Spin } from "antd";
 import dayjs from "dayjs";
+import axios from "axios";
 import StyledTable from "../../Utils/StyledTable";
-const { Option } = Select;
 
-export default function AdvertiserBillingTable() {
-  const user = useSelector((state) => state.auth?.user);
-  const [loading, setLoading] = useState(false);
-  const [data, setData] = useState([]);
-  const [selectedMonth, setSelectedMonth] = useState(
-    dayjs().format("YYYY-MM"), // ✅ default current month
+const API = import.meta.env.VITE_API_URL5;
+
+/* ============================= */
+/* Helper Display Function */
+/* ============================= */
+
+const displayValue = (val, placeholder = "—") =>
+  val === null || val === undefined || val === "" ? (
+    <span style={{ color: "#bbb" }}>{placeholder}</span>
+  ) : (
+    val
   );
 
-  useEffect(() => {
-    loadData();
-  }, [selectedMonth]);
+function AdvertiserAccount() {
+  const currentMonth = dayjs().format("YYYY-MM");
+  const [data, setData] = useState([]);
+  const [month, setMonth] = useState(currentMonth);
+  const [loading, setLoading] = useState(false);
 
-  async function loadData() {
-    setLoading(true);
+  /* Fetch Data */
+  const fetchData = async (selectedMonth) => {
     try {
-      const res = await fetchBilling("advertiser", {
-        user_id: user.id,
-        role: user.role,
-        assigned_subadmins: user.assigned_subadmins,
-        month: selectedMonth,
+      setLoading(true);
+      const res = await axios.get(`${API}/advertiser/account`, {
+        params: selectedMonth ? { month: selectedMonth } : {},
       });
-
-      setData(res.data || []);
-    } catch (e) {
-      message.error("Failed to load advertiser billing");
+      setData(res.data);
+    } catch (err) {
+      message.error("Failed to fetch data");
     } finally {
       setLoading(false);
     }
-  }
+  };
+
+  useEffect(() => {
+    fetchData(month);
+  }, [month]);
+
+  /* ============================= */
+  /* Status Cells */
+  /* ============================= */
+
+  const DueStatusCell = ({ record }) => {
+    if (record.payment_status === "Paid") {
+      return <Tag color="green">PAID</Tag>;
+    }
+
+    if (!record.invoice_date) {
+      return <Tag color="blue">NOT ISSUED</Tag>;
+    }
+
+    const isOverdue = dayjs().isAfter(dayjs(record.invoice_date));
+
+    return isOverdue ? (
+      <Tag color="red">OVERDUE</Tag>
+    ) : (
+      <Tag color="gold">NOT DUE</Tag>
+    );
+  };
+
+  const AmountUseCell = ({ record }) => {
+    const overdue =
+      record.payment_status !== "Paid" &&
+      record.invoice_date &&
+      dayjs().isAfter(dayjs(record.invoice_date));
+
+    return (
+      <span
+        style={{
+          fontWeight: 600,
+          color: overdue ? "#ff4d4f" : "#52c41a",
+        }}>
+        {Number(record.total_amount || 0).toFixed(2)}
+      </span>
+    );
+  };
+
+  /* ============================= */
+  /* Table Columns (READ ONLY) */
+  /* ============================= */
 
   const columns = [
-    { title: "Month", dataIndex: "month", align: "center" },
-    { title: "Advertiser ID", dataIndex: "adv_id", align: "center" },
-    { title: "Campaign", dataIndex: "campaign_name", align: "center" },
-    { title: "Geo", dataIndex: "geo", align: "center" },
-    { title: "OS", dataIndex: "os", align: "center" },
     {
-      title: "Payout",
-      dataIndex: "adv_payout",
-      align: "center",
-      render: (v) => v ?? "-",
+      title: <div style={{ textAlign: "center" }}>Advid (Adv Name)</div>,
+      render: (_, r) => (
+        <Tooltip title={r.note || "No Legal Billing Address"}>
+          <span style={{ color: "#1677ff", fontWeight: 500 }}>
+            {r.adv_id} ({r.adv_name})
+          </span>
+        </Tooltip>
+      ),
     },
-    { title: "Approved", dataIndex: "approved_no", align: "center" },
+    {
+      title: <div style={{ textAlign: "center" }}>Month</div>,
+      dataIndex: "month",
+    },
+    {
+      title: <div style={{ textAlign: "center" }}>Amount ($)</div>,
+      render: (_, r) => <AmountUseCell record={r} />,
+    },
+    {
+      title: <div style={{ textAlign: "center" }}>Due Status</div>,
+      render: (_, r) => <DueStatusCell record={r} />,
+    },
+    {
+      title: <div style={{ textAlign: "center" }}>Invoice</div>,
+      render: (_, r) => displayValue(r.invoice_number),
+    },
+    {
+      title: <div style={{ textAlign: "center" }}>Payment Status Date</div>,
+      render: (_, r) => displayValue(r.payment_date),
+    },
+        {
+      title: <div style={{ textAlign: "center" }}>Payment Recive Date</div>,
+      render: (_, r) => displayValue(r.payment_receive_date),
+    },
   ];
 
   return (
-    <Spin spinning={loading}>
-      <div className="p-4">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">
-          Advertiser Billing
-        </h2>
+    <div
+      style={{
+        padding: 24,
+        background: "#f5f7fa",
+        minHeight: "100vh",
+      }}>
+      <div
+        style={{
+          background: "#fff",
+          padding: 24,
+          borderRadius: 14,
+          boxShadow: "0 6px 25px rgba(0,0,0,0.05)",
+        }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 20,
+          }}>
+          <h2 className="text-xl font-bold">Advertiser Account Overview</h2>
 
-        {/* ✅ Month Picker */}
-        <div className="mb-4">
           <DatePicker
             picker="month"
-            format="YYYY-MM"
             allowClear={false}
-            value={dayjs(selectedMonth, "YYYY-MM")}
-            disabledDate={(current) =>
-              current && current > dayjs().endOf("month")
-            }
-            onChange={(date, dateString) => {
-              setSelectedMonth(dateString);
+            value={dayjs(month)}
+            onChange={(date) => setMonth(date.format("YYYY-MM"))}
+            style={{
+              borderRadius: 8,
+              padding: "6px 10px",
             }}
           />
         </div>
 
-        <StyledTable
-          rowKey="id"
-          columns={columns}
-          dataSource={data}
-          bordered
-          tableLayout="fixed"
-          pagination={{
-            pageSizeOptions: ["10", "20", "50", "100"],
-            showSizeChanger: true,
-            defaultPageSize: 10,
-          }}
-        />
+        <Spin spinning={loading}>
+          <StyledTable
+            rowKey={(r) => `${r.adv_id}-${r.month}`}
+            columns={columns}
+            dataSource={data}
+            bordered
+            pagination={{ pageSize: 8 }}
+          />
+        </Spin>
       </div>
-    </Spin>
+    </div>
   );
 }
+
+export default AdvertiserAccount;

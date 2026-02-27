@@ -37,6 +37,7 @@ const VERTICALS = [
 ];
 const CreateCampaignForm = () => {
   const location = useLocation();
+
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const editRecord = location.state?.record || null;
@@ -57,7 +58,10 @@ const CreateCampaignForm = () => {
   const [geoRows, setGeoRows] = useState([{ geo: "", payout: "", os: "" }]);
   const [updatedStatus, setUpdatedStatus] = useState({});
   const [searchText, setSearchText] = useState("");
-
+  const isPublisherRole =
+    Array.isArray(user?.role) &&
+    (user.role.includes("publisher_manager") ||
+      user.role.includes("publisher"));
   // const fetchCampaigns = useCallback(async () => {
   //   try {
   //     setLoading(true);
@@ -475,383 +479,384 @@ const CreateCampaignForm = () => {
   return (
     <div className="min-h-screen flex flex-col items-center p-6">
       {/* ====== FORM CARD ====== */}
-      <Card className="w-full max-w-8xl rounded-2xl shadow-md border border-gray-100">
-        <h2 className="text-2xl font-bold mb-6 text-gray-800">
-          {editRecord ? "Edit Campaign" : "Create New Campaign"}
-        </h2>
+      {!isPublisherRole && (
+        <Card className="w-full max-w-8xl rounded-2xl shadow-md border border-gray-100">
+          <h2 className="text-2xl font-bold mb-6 text-gray-800">
+            {editRecord ? "Edit Campaign" : "Create New Campaign"}
+          </h2>
 
-        <Form
-          form={form}
-          layout="vertical"
-          initialValues={{
-            advertiser: editRecord
-              ? {
-                  value: Number(editRecord?.adv_d),
-                  label: `${editRecord?.Adv_name} (${editRecord?.adv_d})`,
+          <Form
+            form={form}
+            layout="vertical"
+            initialValues={{
+              advertiser: editRecord
+                ? {
+                    value: Number(editRecord?.adv_d),
+                    label: `${editRecord?.Adv_name} (${editRecord?.adv_d})`,
+                  }
+                : null,
+
+              adv_d: editRecord?.adv_d || "",
+              Adv_name: editRecord?.Adv_name || "",
+
+              geo_details: editRecord ? editRecord.geo_details || [{}] : [{}],
+            }}
+            onFinish={onFinish}
+            className="grid grid-cols-1 md:grid-cols-2 gap-x-5">
+            <Form.Item
+              label="Advertiser"
+              name="advertiser"
+              rules={[{ required: true, message: "Please select advertiser" }]}>
+              <Select
+                showSearch
+                labelInValue
+                placeholder="Select Advertiser"
+                optionFilterProp="label"
+                optionLabelProp="label"
+                value={form.getFieldValue("advertiser")}
+                className="!h-11"
+                filterOption={(input, option) =>
+                  option?.label?.toLowerCase().includes(input.toLowerCase())
                 }
-              : null,
+                onChange={(val, option) => {
+                  form.setFieldsValue({
+                    adv_d: val,
+                    Adv_name: option?.adv_name,
+                  });
+                }}>
+                {dropdownOptions.adv_list.map((item) => (
+                  <Option
+                    key={item.adv_id}
+                    value={item.adv_id}
+                    label={`${item.adv_name} (${item.adv_id})`}
+                    adv_name={item.adv_name}>
+                    {item.adv_name} ({item.adv_id})
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
 
-            adv_d: editRecord?.adv_d || "",
-            Adv_name: editRecord?.Adv_name || "",
+            {/* 👇 REQUIRED HIDDEN FIELDS */}
+            <Form.Item name="adv_d" hidden>
+              <Input />
+            </Form.Item>
 
-            geo_details: editRecord ? editRecord.geo_details || [{}] : [{}],
-          }}
-          onFinish={onFinish}
-          className="grid grid-cols-1 md:grid-cols-2 gap-x-5">
-          <Form.Item
-            label="Advertiser"
-            name="advertiser"
-            rules={[{ required: true, message: "Please select advertiser" }]}>
-            <Select
-              showSearch
-              labelInValue
-              placeholder="Select Advertiser"
-              optionFilterProp="label"
-              optionLabelProp="label"
-              value={form.getFieldValue("advertiser")}
-              className="!h-11"
-              filterOption={(input, option) =>
-                option?.label?.toLowerCase().includes(input.toLowerCase())
-              }
-              onChange={(val, option) => {
-                form.setFieldsValue({
-                  adv_d: val,
-                  Adv_name: option?.adv_name,
-                });
-              }}>
-              {dropdownOptions.adv_list.map((item) => (
-                <Option
-                  key={item.adv_id}
-                  value={item.adv_id}
-                  label={`${item.adv_name} (${item.adv_id})`}
-                  adv_name={item.adv_name}>
-                  {item.adv_name} ({item.adv_id})
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
+            <Form.Item name="Adv_name" hidden>
+              <Input />
+            </Form.Item>
 
-          {/* 👇 REQUIRED HIDDEN FIELDS */}
-          <Form.Item name="adv_d" hidden>
-            <Input />
-          </Form.Item>
+            <Form.Item
+              label="Campaign Name"
+              name="campaign_name"
+              rules={[
+                { required: true, message: "Please enter campaign name" },
+              ]}>
+              <Input
+                placeholder="Enter Campaign Name"
+                className="h-11 rounded-lg border-gray-200 bg-gray-50"
+              />
+            </Form.Item>
 
-          <Form.Item name="Adv_name" hidden>
-            <Input />
-          </Form.Item>
+            <Form.Item
+              label="Vertical"
+              name="Vertical"
+              rules={[{ required: true, message: "Please select vertical" }]}>
+              <Select
+                showSearch
+                optionFilterProp="label"
+                placeholder="Select Vertical"
+                className="rounded-lg !h-11 border-gray-200 bg-gray-50"
+                options={VERTICALS.map((vertical) => ({
+                  value: vertical,
+                  label: vertical,
+                }))}
+              />
+            </Form.Item>
 
-          <Form.Item
-            label="Campaign Name"
-            name="campaign_name"
-            rules={[{ required: true, message: "Please enter campaign name" }]}>
-            <Input
-              placeholder="Enter Campaign Name"
-              className="h-11 rounded-lg border-gray-200 bg-gray-50"
-            />
-          </Form.Item>
+            <Form.Item
+              label="State/City"
+              name="state_city"
+              rules={[
+                { required: true, message: "Please enter state or city" },
+              ]}>
+              <Input
+                placeholder="Enter State or City"
+                className="h-11 rounded-lg border-gray-200 bg-gray-50"
+              />
+            </Form.Item>
+            {/* ======================= GEO + PAYOUT + OS MULTI-ROW UI ======================= */}
+            <Form.List name="geo_details">
+              {(fields, { add, remove }) => (
+                <div className="md:col-span-2">
+                  <h3 className="text-md mb-3">
+                    GEO • Payout • OS (Add Multiple Rows)
+                  </h3>
 
-          <Form.Item
-            label="Vertical"
-            name="Vertical"
-            rules={[{ required: true, message: "Please select vertical" }]}>
-            <Select
-              showSearch
-              optionFilterProp="label"
-              placeholder="Select Vertical"
-              className="rounded-lg !h-11 border-gray-200 bg-gray-50"
-              options={VERTICALS.map((vertical) => ({
-                value: vertical,
-                label: vertical,
-              }))}
-            />
-          </Form.Item>
+                  <div className="space-y-4 mb-4">
+                    {fields.map(({ key, name }, index) => (
+                      <div
+                        key={key}
+                        className="grid grid-cols-1 md:grid-cols-12 gap-x-5 p-3 rounded-xl border border-gray-200 bg-gray-50 shadow-sm">
+                        {/* GEO */}
+                        <div className="md:col-span-6">
+                          <Form.Item
+                            label={<span className="">Geo</span>}
+                            name={[name, "geo"]}
+                            rules={[
+                              { required: true, message: "Please select Geo" },
+                            ]}>
+                            <Select
+                              mode="multiple"
+                              placeholder="Select Geo"
+                              className="!h-11 rounded-lg border-gray-300 bg-white"
+                              showSearch>
+                              {dropdownOptions.geo.map((g) => (
+                                <Option key={g} value={g}>
+                                  {g}
+                                </Option>
+                              ))}
+                            </Select>
+                          </Form.Item>
+                        </div>
 
-          <Form.Item
-            label="State/City"
-            name="state_city"
-            rules={[{ required: true, message: "Please enter state or city" }]}>
-            <Input
-              placeholder="Enter State or City"
-              className="h-11 rounded-lg border-gray-200 bg-gray-50"
-            />
-          </Form.Item>
-          {/* ======================= GEO + PAYOUT + OS MULTI-ROW UI ======================= */}
-          <Form.List name="geo_details">
-            {(fields, { add, remove }) => (
-              <div className="md:col-span-2">
-                <h3 className="text-md mb-3">
-                  GEO • Payout • OS (Add Multiple Rows)
-                </h3>
+                        {/* PAYOUT */}
+                        <div className="md:col-span-6">
+                          <Form.Item
+                            label={<span className="">Payout</span>}
+                            name={[name, "payout"]}
+                            rules={[
+                              {
+                                required: true,
+                                message: "Please enter payout",
+                              },
+                            ]}>
+                            <Input
+                              type="number"
+                              placeholder="Enter payout"
+                              className="h-11 rounded-lg border-gray-300 bg-white"
+                            />
+                          </Form.Item>
+                        </div>
+                        {/* PAYABLE EVENT */}
+                        <div className="md:col-span-6">
+                          <Form.Item
+                            label="Payable Event"
+                            name={[name, "payable_event"]}
+                            rules={[
+                              {
+                                required: true,
+                                message: "Please select payable event",
+                              },
+                            ]}>
+                            <Select
+                              placeholder="Select Payable Event"
+                              className="!h-11 rounded-lg border-gray-300 bg-white"
+                              showSearch>
+                              {dropdownOptions.payable_event.map((event) => (
+                                <Option key={event} value={event}>
+                                  {event}
+                                </Option>
+                              ))}
+                            </Select>
+                          </Form.Item>
+                        </div>
 
-                <div className="space-y-4 mb-4">
-                  {fields.map(({ key, name }, index) => (
-                    <div
-                      key={key}
-                      className="grid grid-cols-1 md:grid-cols-12 gap-x-5 p-3 rounded-xl border border-gray-200 bg-gray-50 shadow-sm">
-                      {/* GEO */}
-                      <div className="md:col-span-6">
-                        <Form.Item
-                          label={<span className="">Geo</span>}
-                          name={[name, "geo"]}
-                          rules={[
-                            { required: true, message: "Please select Geo" },
-                          ]}>
-                          <Select
-                            mode="multiple"
-                            placeholder="Select Geo"
-                            className="!h-11 rounded-lg border-gray-300 bg-white"
-                            showSearch>
-                            {dropdownOptions.geo.map((g) => (
-                              <Option key={g} value={g}>
-                                {g}
-                              </Option>
-                            ))}
-                          </Select>
-                        </Form.Item>
+                        {/* OS */}
+                        <div className="md:col-span-6">
+                          <Form.Item
+                            label={<span className="">OS</span>}
+                            name={[name, "os"]}
+                            rules={[
+                              { required: true, message: "Please select OS" },
+                            ]}>
+                            <Select
+                              placeholder="Select OS"
+                              className="!h-11 rounded-lg border-gray-300 bg-white">
+                              <Option value="Android">Android</Option>
+                              <Option value="iOS">iOS</Option>
+                              <Option value="Web">Web</Option>
+                              <Option value="both">Both</Option>
+                            </Select>
+                          </Form.Item>
+                        </div>
+
+                        {/* DELETE BUTTON */}
+                        <div className="flex items-end">
+                          {fields.length > 1 && (
+                            <Button
+                              danger
+                              onClick={() => remove(name)}
+                              className="!h-11 !px-6 rounded-lg shadow-sm">
+                              Delete
+                            </Button>
+                          )}
+                        </div>
                       </div>
+                    ))}
 
-                      {/* PAYOUT */}
-                      <div className="md:col-span-6">
-                        <Form.Item
-                          label={<span className="">Payout</span>}
-                          name={[name, "payout"]}
-                          rules={[
-                            { required: true, message: "Please enter payout" },
-                          ]}>
-                          <Input
-                            type="number"
-                            placeholder="Enter payout"
-                            className="h-11 rounded-lg border-gray-300 bg-white"
-                          />
-                        </Form.Item>
-                      </div>
-                      {/* PAYABLE EVENT */}
-                      <div className="md:col-span-6">
-                        <Form.Item
-                          label="Payable Event"
-                          name={[name, "payable_event"]}
-                          rules={[
-                            {
-                              required: true,
-                              message: "Please select payable event",
-                            },
-                          ]}>
-                          <Select
-                            placeholder="Select Payable Event"
-                            className="!h-11 rounded-lg border-gray-300 bg-white"
-                            showSearch>
-                            {dropdownOptions.payable_event.map((event) => (
-                              <Option key={event} value={event}>
-                                {event}
-                              </Option>
-                            ))}
-                          </Select>
-                        </Form.Item>
-                      </div>
-
-                      {/* OS */}
-                      <div className="md:col-span-6">
-                        <Form.Item
-                          label={<span className="">OS</span>}
-                          name={[name, "os"]}
-                          rules={[
-                            { required: true, message: "Please select OS" },
-                          ]}>
-                          <Select
-                            placeholder="Select OS"
-                            className="!h-11 rounded-lg border-gray-300 bg-white">
-                            <Option value="Android">Android</Option>
-                            <Option value="iOS">iOS</Option>
-                            <Option value="Web">Web</Option>
-                            <Option value="both">Both</Option>
-                          </Select>
-                        </Form.Item>
-                      </div>
-
-                      {/* DELETE BUTTON */}
-                      <div className="flex items-end">
-                        {fields.length > 1 && (
-                          <Button
-                            danger
-                            onClick={() => remove(name)}
-                            className="!h-11 !px-6 rounded-lg shadow-sm">
-                            Delete
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* ADD MORE BUTTON */}
-                  {!editRecord && (
-                    <Button
-                      type="dashed"
-                      className="w-full !h-12 border-[#2F5D99] text-[#2F5D99] font-medium rounded-lg"
-                      onClick={() => add()}>
-                      + Add More Row
-                    </Button>
-                  )}
+                    {/* ADD MORE BUTTON */}
+                    {!editRecord && (
+                      <Button
+                        type="dashed"
+                        className="w-full !h-12 border-[#2F5D99] text-[#2F5D99] font-medium rounded-lg"
+                        onClick={() => add()}>
+                        + Add More Row
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
-          </Form.List>
+              )}
+            </Form.List>
 
-          <Form.Item
-            label="MMP Tracker"
-            name="mmp_tracker"
-            rules={[{ required: true, message: "Please select MMP tracker" }]}>
-            <Select
-              showSearch
-              placeholder="Select MMP Tracker"
-              className="rounded-lg !h-11 border-gray-200 bg-gray-50">
-              {dropdownOptions.mmp_tracker.map((e) => (
-                <Option key={e} value={e}>
-                  {e}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
+            <Form.Item
+              label="MMP Tracker"
+              name="mmp_tracker"
+              rules={[
+                { required: true, message: "Please select MMP tracker" },
+              ]}>
+              <Select
+                showSearch
+                placeholder="Select MMP Tracker"
+                className="rounded-lg !h-11 border-gray-200 bg-gray-50">
+                {dropdownOptions.mmp_tracker.map((e) => (
+                  <Option key={e} value={e}>
+                    {e}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
 
-          <Form.Item
-            label="KPI"
-            name="kpi"
-            rules={[{ required: true, message: "Please enter KPI" }]}>
-            <Input
-              placeholder="Enter KPI"
-              className="h-11 rounded-lg border-gray-200 bg-gray-50"
-            />
-          </Form.Item>
-          <Form.Item
-            label="Preview Link"
-            name="preview_url"
-            rules={[{ required: true, message: "Please enter KPI" }]}>
-            <Input
-              placeholder="Enter KPI"
-              className="h-11 rounded-lg border-gray-200 bg-gray-50"
-            />
-          </Form.Item>
-          <Form.Item label="Tracking Link" name="tracking_url">
-            <Input
-              placeholder="Enter Tracking Link"
-              className="h-11 rounded-lg border-gray-200 bg-gray-50"
-            />
-          </Form.Item>
-          <Form.Item
-            label="DA"
-            name="da"
-            rules={[{ required: true, message: "Please select DA type" }]}>
-            <Select
-              placeholder="Select DA"
-              className="rounded-lg !h-11 border-gray-200 bg-gray-50">
-              <Option value="Direct">Direct</Option>
-              <Option value="Agency">Agency</Option>
-            </Select>
-          </Form.Item>
+            <Form.Item
+              label="KPI"
+              name="kpi"
+              rules={[{ required: true, message: "Please enter KPI" }]}>
+              <Input
+                placeholder="Enter KPI"
+                className="h-11 rounded-lg border-gray-200 bg-gray-50"
+              />
+            </Form.Item>
+            <Form.Item
+              label="Preview Link"
+              name="preview_url"
+              rules={[{ required: true, message: "Please enter KPI" }]}>
+              <Input
+                placeholder="Enter KPI"
+                className="h-11 rounded-lg border-gray-200 bg-gray-50"
+              />
+            </Form.Item>
+            <Form.Item label="Tracking Link" name="tracking_url">
+              <Input
+                placeholder="Enter Tracking Link"
+                className="h-11 rounded-lg border-gray-200 bg-gray-50"
+              />
+            </Form.Item>
+            <Form.Item
+              label="DA"
+              name="da"
+              rules={[{ required: true, message: "Please select DA type" }]}>
+              <Select
+                placeholder="Select DA"
+                className="rounded-lg !h-11 border-gray-200 bg-gray-50">
+                <Option value="Direct">Direct</Option>
+                <Option value="Agency">Agency</Option>
+              </Select>
+            </Form.Item>
 
-          <Form.Item
-            label="Status"
-            name="status"
-            rules={[
-              { required: true, message: "Please select campaign status" },
-            ]}>
-            <Select
-              placeholder="Select Status"
-              className="rounded-lg !h-11 border-gray-200 bg-gray-50">
-              <Option value="Live">Live</Option>
-              <Option value="Pause">Pause</Option>
-            </Select>
-          </Form.Item>
+            <Form.Item
+              label="Status"
+              name="status"
+              rules={[
+                { required: true, message: "Please select campaign status" },
+              ]}>
+              <Select
+                placeholder="Select Status"
+                className="rounded-lg !h-11 border-gray-200 bg-gray-50">
+                <Option value="Live">Live</Option>
+                <Option value="Pause">Pause</Option>
+              </Select>
+            </Form.Item>
 
-          <Form.Item className="md:col-span-2 flex justify-end mt-4">
-            <Button
-              type="default"
-              htmlType="submit"
-              loading={loading || isSubmitting}
-              className="!bg-[#2F5D99] hover:!bg-[#24487A] !text-white !rounded-lg !px-10 !py-5 !h-12 !text-lg !border-none !shadow-md">
-              {editRecord ? "Edit Campaign" : "Create Campaign"}
-            </Button>
-          </Form.Item>
-        </Form>
-      </Card>
-
+            <Form.Item className="md:col-span-2 flex justify-end mt-4">
+              <Button
+                type="default"
+                htmlType="submit"
+                loading={loading || isSubmitting}
+                className="!bg-[#2F5D99] hover:!bg-[#24487A] !text-white !rounded-lg !px-10 !py-5 !h-12 !text-lg !border-none !shadow-md">
+                {editRecord ? "Edit Campaign" : "Create Campaign"}
+              </Button>
+            </Form.Item>
+          </Form>
+        </Card>
+      )}
       {/* ====== LIVE / PAUSED CAMPAIGNS ====== */}
       {editRecord && (
-        <>
-          {/* Top Bar */}
-          <div className="mt-8 w-full max-w-8xl">
-            <SettingsPage
-              campaignId={editRecord.id}
-              adv_id={editRecord.adv_d}
-            />
-            <GenrateLink
-              campaignId={editRecord.id}
-              trackingurl={editRecord.tracking_url}
-              className="w-full"
-            />
-            <div className="flex items-center justify-between m-4">
-              <h2 className="text-xl font-semibold text-gray-700">
-                Edit PID Status
-              </h2>
+        <div className="mt-8 w-full max-w-8xl">
+          {/* Always show SettingsPage */}
+          <SettingsPage campaignId={editRecord.id} adv_id={editRecord.adv_d} />
 
-              <div className="flex items-center gap-4 w-full max-w-sm ml-4">
-                <Input
-                  placeholder="Search PID..."
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  allowClear
-                />
-                <Button
-                  type="primary"
-                  disabled={Object.keys(updatedStatus).length === 0}
-                  onClick={handleSaveChanges}
-                  className="px-6">
-                  Save Changes
-                </Button>
+          {/* 👇 Only NON-publisher roles can see below components */}
+          {!isPublisherRole && (
+            <>
+              <GenrateLink
+                campaignId={editRecord.id}
+                trackingurl={editRecord.tracking_url}
+                className="w-full"
+              />
+
+              <div className="flex items-center justify-between m-4">
+                <h2 className="text-xl font-semibold text-gray-700">
+                  Edit PID Status
+                </h2>
+
+                <div className="flex items-center gap-4 w-full max-w-sm ml-4">
+                  <Input
+                    placeholder="Search PID..."
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                    allowClear
+                  />
+                  <Button
+                    type="primary"
+                    disabled={Object.keys(updatedStatus).length === 0}
+                    onClick={handleSaveChanges}
+                    className="px-6">
+                    Save Changes
+                  </Button>
+                </div>
               </div>
-            </div>
 
-            {/* PID Tables */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 ">
-              <Card
-                title="Live PID's"
-                className="shadow-md border-gray-100 rounded-2xl">
-                {loading ? (
-                  <Spin />
-                ) : (
-                  <StyledTable
-                    columns={columns}
-                    dataSource={filteredLivePids}
-                    rowKey="id"
-                    pagination={{
-                      pageSizeOptions: ["10", "20", "50"],
-                      showSizeChanger: true,
-                      defaultPageSize: 10,
-                    }}
-                  />
-                )}
-              </Card>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card
+                  title="Live PID's"
+                  className="shadow-md border-gray-100 rounded-2xl">
+                  {loading ? (
+                    <Spin />
+                  ) : (
+                    <StyledTable
+                      columns={columns}
+                      dataSource={filteredLivePids}
+                      rowKey="id"
+                    />
+                  )}
+                </Card>
 
-              <Card
-                title="Paused PID's"
-                className="shadow-md border-gray-100 rounded-2xl">
-                {loading ? (
-                  <Spin />
-                ) : (
-                  <StyledTable
-                    columns={columns}
-                    dataSource={filteredPausedPids}
-                    rowKey="id"
-                    pagination={{
-                      pageSizeOptions: ["10", "20", "50"],
-                      showSizeChanger: true,
-                      defaultPageSize: 10,
-                    }}
-                  />
-                )}
-              </Card>
-            </div>
-          </div>
-        </>
+                <Card
+                  title="Paused PID's"
+                  className="shadow-md border-gray-100 rounded-2xl">
+                  {loading ? (
+                    <Spin />
+                  ) : (
+                    <StyledTable
+                      columns={columns}
+                      dataSource={filteredPausedPids}
+                      rowKey="id"
+                    />
+                  )}
+                </Card>
+              </div>
+            </>
+          )}
+        </div>
       )}
     </div>
   );

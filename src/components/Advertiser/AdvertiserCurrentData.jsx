@@ -41,7 +41,7 @@ import CustomRangePicker from "../../Utils/CustomRangePicker";
 dayjs.extend(isBetween);
 const { Option } = Select;
 const apiUrl = import.meta.env.VITE_API_URL;
-const apiUrl1 = import.meta.env.VITE_API_URL1;  
+const apiUrl1 = import.meta.env.VITE_API_URL1;
 
 const AdvertiserData = () => {
   const user = useSelector((state) => state.auth?.user);
@@ -92,6 +92,12 @@ const AdvertiserData = () => {
       }, 300),
     [],
   );
+
+  const calculateAdvPayoutTotal = useCallback((row) => {
+    const payout = Number(row.adv_payout) || 0;
+    const approved = Number(row.adv_approved_no) || 0;
+    return payout * approved;
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -327,6 +333,30 @@ const AdvertiserData = () => {
     const startDate = selectedDateRange[0].format("YYYY-MM-DD");
     const endDate = selectedDateRange[1].format("YYYY-MM-DD");
 
+    // ✅ 1️⃣ USER IDS (own + selected subadmins)
+    const userIds = [userId, ...selectedSubAdmins.map((admin) => admin.value)];
+
+    // Remove duplicates just in case
+    const finalUserIds = [...new Set(userIds)];
+
+    // ✅ 2️⃣ ADV IDS from FILTERS (only selected ones)
+    let selectedAdvIds = [];
+
+    if (filters?.adv_display && filters.adv_display.length > 0) {
+      selectedAdvIds = filters.adv_display.map((val) => {
+        // If format is like "Betr (5547)"
+        const match = val.match(/\((\d+)\)/);
+        return match ? Number(match[1]) : Number(val);
+      });
+    }
+
+    const payload = {
+      startDate,
+      endDate,
+      user_id: finalUserIds,
+      adv_id: selectedAdvIds,
+    };
+    console.log("Payload for fixing empty fields:", payload);
     const result = await Swal.fire({
       title: "Are you sure?",
       html: `
@@ -346,12 +376,13 @@ const AdvertiserData = () => {
     if (!result.isConfirmed) return;
 
     try {
-      const res = await axios.post(`${apiUrl1}/api/fix-empty-adv-fields`, {
-        startDate,
-        endDate,
-      });
-      console.log("fix-empty-adv-fields response:", res); 
-      // ✅ Check backend success flag
+      console.log("Sending payload:", payload);
+
+      const res = await axios.post(
+        `${apiUrl1}/api/fix-empty-adv-fields`,
+        payload,
+      );
+
       if (res?.data?.success) {
         await Swal.fire({
           icon: "success",
@@ -986,10 +1017,8 @@ const AdvertiserData = () => {
           }
 
           if (key === "adv_payout_total") {
-            const total =
-              (Number(record.adv_payout) || 0) *
-              (Number(record.adv_approved_no) || 0);
-            return <span>{isNaN(total) ? "-" : total.toFixed(2)}</span>;
+            const total = calculateAdvPayoutTotal(record);
+            return <span>{total ? total.toFixed(2) : "-"}</span>;
           }
 
           // Editor UI
@@ -1353,20 +1382,30 @@ const AdvertiserData = () => {
       let totalAdvApprovedNo = 0;
       let totalAdvPayoutTotal = 0;
 
-      pageData.forEach(
-        ({
-          adv_total_no,
-          adv_deductions,
-          adv_approved_no,
-          adv_payout_total,
-        }) => {
-          totalAdvTotalNo += Number(adv_total_no) || 0;
-          totalAdvDeductions += Number(adv_deductions) || 0;
-          totalAdvApprovedNo += Number(adv_approved_no) || 0;
-          totalAdvPayoutTotal += Number(adv_payout_total) || 0;
-        },
-      );
+      // pageData.forEach(
+      //   ({
+      //     adv_total_no,
+      //     adv_deductions,
+      //     adv_approved_no,
+      //     adv_payout_total,
+      //   }) => {
+      //     totalAdvTotalNo += Number(adv_total_no) || 0;
+      //     totalAdvDeductions += Number(adv_deductions) || 0;
+      //     totalAdvApprovedNo += Number(adv_approved_no) || 0;
+      //     totalAdvPayoutTotal += calculateAdvPayoutTotal(row);
+      //   },
+      // );
+      pageData.forEach((row) => {
+        const totalNo = Number(row.adv_total_no) || 0;
+        const deductions = Number(row.adv_deductions) || 0;
+        const approved = Number(row.adv_approved_no) || 0;
+        const payout = Number(row.adv_payout) || 0;
 
+        totalAdvTotalNo += totalNo;
+        totalAdvDeductions += deductions;
+        totalAdvApprovedNo += approved;
+        totalAdvPayoutTotal += payout * approved;
+      });
       return (
         <Table.Summary.Row>
           {columns.map((col, index) => {
@@ -1411,7 +1450,7 @@ const AdvertiserData = () => {
         </Table.Summary.Row>
       );
     },
-    [columns],
+    [columns, calculateAdvPayoutTotal],
   );
   return (
     <div className="bg-gray-100 min-h-screen flex flex-col items-center">
