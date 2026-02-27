@@ -660,11 +660,11 @@ export default function BillingAdvertiser() {
                     }
 
                     // 2️⃣ Lock billing
-                    await axios.post(`${API}/billing/publisher-lock`, {
+                    const res = await axios.post(`${API}/billing/publisher-lock`, {
                       pub_id: selectedPubId,
                       month,
                     });
-
+                    console.log("LOCK RES:", res.data);
                     if (res.data?.success) {
                       Swal.fire({
                         icon: "success",
