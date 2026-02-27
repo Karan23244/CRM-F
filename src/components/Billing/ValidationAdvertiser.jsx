@@ -283,14 +283,14 @@ export default function BillingAdvertiser() {
           month,
           data: nextRows,
         });
-        if (res.data.message) {
+        // SUCCESS CONDITION
+        if (res.data?.success || res.data?.message) {
           await fetchBilling();
 
           if (res.data.rows) {
             setRows((prev) =>
               prev.map((r) => {
                 const fresh = res.data.rows.find((f) => f.id === r.billing_id);
-
                 if (!fresh) return r;
 
                 return {
@@ -304,10 +304,28 @@ export default function BillingAdvertiser() {
               }),
             );
           }
+
+          Swal.fire({
+            icon: "success",
+            title: res.data.title || "Saved",
+            text: res.data.message || "Changes saved successfully.",
+            timer: 1200,
+            showConfirmButton: false,
+          });
+        } else {
+          Swal.fire({
+            icon: "error",
+            title: res.data.title || "Save Failed",
+            text: res.data.message || "Unable to save data.",
+          });
         }
-        message.success("Autosaved", 0.6);
       } catch (err) {
-        message.error("Autosave failed");
+        Swal.fire({
+          icon: "error",
+          title: "Server Error",
+          text:
+            err.response?.data?.message || "Something went wrong while saving.",
+        });
       }
     }, 700);
   };
@@ -559,15 +577,15 @@ export default function BillingAdvertiser() {
                       </Table.Summary.Cell>
 
                       <Table.Summary.Cell index={3} align="center">
-                        <strong>{totalAdv}</strong>
+                        <strong>{totalAdv.toFixed(2)}</strong>
                       </Table.Summary.Cell>
 
                       <Table.Summary.Cell index={4} align="center">
-                        <strong>{totalDeduction}</strong>
+                        <strong>{totalDeduction.toFixed(2)}</strong>
                       </Table.Summary.Cell>
 
                       <Table.Summary.Cell index={5} align="center">
-                        <strong>{totalApproved}</strong>
+                        <strong>{totalApproved.toFixed(2)}</strong>
                       </Table.Summary.Cell>
 
                       <Table.Summary.Cell index={6} align="center">
@@ -632,7 +650,16 @@ export default function BillingAdvertiser() {
                     Swal.fire("Locked!", "Billing has been closed.", "success");
                     fetchBilling();
                   } catch (err) {
-                    Swal.fire("Error", "Failed to close billing", "error");
+                    console.log("SAVE ERROR:", err);
+
+                    Swal.fire({
+                      icon: "error",
+                      title: "Server Error",
+                      text:
+                        err.response?.data?.message || // backend message
+                        err.response?.data?.error || // sometimes error key
+                        "Internal Server Error (500)",
+                    });
                   }
                 }}>
                 Close Billing

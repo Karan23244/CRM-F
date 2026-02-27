@@ -10,6 +10,7 @@ import {
   message,
 } from "antd";
 import axios from "axios";
+import Swal from "sweetalert2";
 import { useSelector } from "react-redux";
 import StyledTable from "../../Utils/StyledTable";
 import { nanoid } from "nanoid";
@@ -298,10 +299,34 @@ export default function BillingAdvertiser() {
             );
           }
         }
+        if (res.data?.success) {
+          await fetchBilling();
 
-        message.success("Autosaved", 0.6);
+          Swal.fire({
+            icon: "success",
+            title: res.data.title || "Saved Successfully",
+            text: res.data.message || "Changes saved successfully.",
+            timer: 1200,
+            showConfirmButton: false,
+          });
+        } else {
+          Swal.fire({
+            icon: "error",
+            title: res.data.title || "Save Failed",
+            text: res.data.message || "Something went wrong.",
+          });
+        }
       } catch (err) {
-        message.error("Autosave failed");
+        console.log("SAVE ERROR:", err);
+
+        Swal.fire({
+          icon: "error",
+          title: "Server Error",
+          text:
+            err.response?.data?.message || // backend message
+            err.response?.data?.error || // sometimes error key
+            "Internal Server Error (500)",
+        });
       }
     }, 700);
   };
@@ -461,10 +486,32 @@ export default function BillingAdvertiser() {
                   billing_id: row.billing_id,
                 });
 
-                message.success("Row verified");
-                fetchBilling();
+                if (res.data?.success) {
+                  Swal.fire({
+                    icon: "success",
+                    title: res.data.title || "Row Verified",
+                    text: res.data.message || "Campaign verified successfully.",
+                    timer: 1500,
+                    showConfirmButton: false,
+                  });
+
+                  fetchBilling();
+                } else {
+                  Swal.fire({
+                    icon: "error",
+                    title: res.data.title || "Verification Failed",
+                    text: res.data.message || "Unable to verify row.",
+                  });
+                }
               } catch (err) {
-                message.error("Failed to verify row");
+                Swal.fire({
+                  icon: "error",
+                  title: "Server Error",
+                  text:
+                    err.response?.data?.message || // backend message
+                    err.response?.data?.error || // sometimes error key
+                    "Internal Server Error (500)",
+                });
               }
             }}>
             Verify
@@ -511,7 +558,7 @@ export default function BillingAdvertiser() {
             if (col.title === "PUB Total") {
               return (
                 <Table.Summary.Cell key={key} className="text-center">
-                  <b>{totalPubTotal}</b>
+                  <b>{totalPubTotal.toFixed(2)}</b>
                 </Table.Summary.Cell>
               );
             }
@@ -519,7 +566,7 @@ export default function BillingAdvertiser() {
             if (col.title === "PUB Approved") {
               return (
                 <Table.Summary.Cell key={key} className="text-center">
-                  <b>{totalPubApproved}</b>
+                  <b>{totalPubApproved.toFixed(2)}</b>
                 </Table.Summary.Cell>
               );
             }
@@ -619,10 +666,33 @@ export default function BillingAdvertiser() {
                       month,
                     });
 
-                    message.success("Billing locked");
-                    fetchBilling();
+                    if (res.data?.success) {
+                      Swal.fire({
+                        icon: "success",
+                        title: res.data.title || "Billing Closed",
+                        text:
+                          res.data.message || "Billing locked successfully.",
+                      });
+
+                      fetchBilling();
+                    } else {
+                      Swal.fire({
+                        icon: "error",
+                        title: res.data.title || "Lock Failed",
+                        text: res.data.message || "Unable to lock billing.",
+                      });
+                    }
                   } catch (err) {
-                    message.error("Failed to lock billing");
+                    console.log("SAVE ERROR:", err);
+
+                    Swal.fire({
+                      icon: "error",
+                      title: "Server Error",
+                      text:
+                        err.response?.data?.message || // backend message
+                        err.response?.data?.error || // sometimes error key
+                        "Internal Server Error (500)",
+                    });
                   }
                 }}>
                 Close Billing

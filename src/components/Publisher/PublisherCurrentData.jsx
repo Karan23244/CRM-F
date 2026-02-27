@@ -385,7 +385,7 @@ const PublisherPayoutData = () => {
           : item.pub_Apno?.trim() || "-",
     };
   });
-
+  console.log("Processed Data with Missing Labels:", processedData);
   const getColumns = (columnHeadings) => {
     const baseCols = Object.keys(columnHeadings)
       .filter((key) => !hiddenColumns.includes(key))
