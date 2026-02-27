@@ -362,7 +362,6 @@ export default function BillingAdvertiser() {
         : r,
     );
     setRows(updated);
-    triggerAutosave(updated);
   };
 
   const addCampaign = () => {
