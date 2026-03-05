@@ -50,6 +50,7 @@ const columnHeadingsMap = {
 };
 const PublisherRequest = ({ senderId, receiverId }) => {
   const user = useSelector((state) => state.auth.user);
+  console.log("Logged-in user from Redux:", user);
   const username = user?.username || null;
   const userRole = user?.role || []; // array of roles
   const userId = user?.id || null;

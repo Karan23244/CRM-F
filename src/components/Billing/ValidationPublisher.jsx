@@ -16,7 +16,6 @@ import StyledTable from "../../Utils/StyledTable";
 import { nanoid } from "nanoid";
 const { Option } = Select;
 const API = import.meta.env.VITE_API_URL5;
-
 const displayValue = (v) =>
   v === null || v === undefined ? "Pending" : Number(v) === 0 ? 0 : v;
 
@@ -232,12 +231,9 @@ export default function BillingAdvertiser() {
   const [loading, setLoading] = useState(false);
   const isLocked = rows.some((r) => r.status === "locked");
   const updateCampaignComposite = (rowIndex, values) => {
-    setRows((prev) => {
-      const copy = [...prev];
-      copy[rowIndex] = { ...copy[rowIndex], ...values };
-      triggerAutosave(copy);
-      return copy;
-    });
+    updateRowsSafely((prev) =>
+      prev.map((row, i) => (i === rowIndex ? { ...row, ...values } : row)),
+    );
   };
 
   useEffect(() => {
@@ -249,7 +245,6 @@ export default function BillingAdvertiser() {
       roles: user.role,
       user_id: user.id,
     });
-    console.log(res.data.publishers);
     setPublishers(res.data.publishers || []);
   };
 
@@ -269,7 +264,51 @@ export default function BillingAdvertiser() {
       fetchBilling();
     }
   }, [selectedPubId, month]);
-  const triggerAutosave = (nextRows) => {
+  // const triggerAutosave = (nextRows) => {
+  //   if (!selectedPubId || !month) return;
+
+  //   clearTimeout(autosaveTimer.current);
+
+  //   autosaveTimer.current = setTimeout(async () => {
+  //     try {
+  //       const res = await axios.post(`${API}/billing/publisher-save`, {
+  //         pub_id: selectedPubId,
+  //         month,
+  //         data: nextRows,
+  //       });
+  //       if (res.data?.success) {
+  //         // ✅ Refetch only when save is successful
+  //         await fetchBilling();
+
+  //         if (res.data.billingIdMap) {
+  //           setRows((prev) =>
+  //             prev.map((r) => {
+  //               const match = res.data.billingIdMap.find(
+  //                 (b) =>
+  //                   (!r.billing_id && b.tmp_id === r._tmp_id) ||
+  //                   b.billing_id === r.billing_id,
+  //               );
+
+  //               return match ? { ...r, billing_id: match.billing_id } : r;
+  //             }),
+  //           );
+  //         }
+  //       }
+  //     } catch (err) {
+  //       console.log("SAVE ERROR:", err);
+
+  //       Swal.fire({
+  //         icon: "error",
+  //         title: "Server Error",
+  //         text:
+  //           err.response?.data?.message || // backend message
+  //           err.response?.data?.error || // sometimes error key
+  //           "Internal Server Error (500)",
+  //       });
+  //     }
+  //   }, 700);
+  // };
+  const triggerAutosave = (nextRows, previousRows) => {
     if (!selectedPubId || !month) return;
 
     clearTimeout(autosaveTimer.current);
@@ -281,56 +320,41 @@ export default function BillingAdvertiser() {
           month,
           data: nextRows,
         });
-        if (res.data?.success) {
-          // ✅ Refetch only when save is successful
-          await fetchBilling();
-
-          if (res.data.billingIdMap) {
-            setRows((prev) =>
-              prev.map((r) => {
-                const match = res.data.billingIdMap.find(
-                  (b) =>
-                    (!r.billing_id && b.tmp_id === r._tmp_id) ||
-                    b.billing_id === r.billing_id,
-                );
-
-                return match ? { ...r, billing_id: match.billing_id } : r;
-              }),
-            );
-          }
-        }
+        console.log("SAVE RES:", res.data);
         if (res.data?.success) {
           await fetchBilling();
-
-          Swal.fire({
-            icon: "success",
-            title: res.data.title || "Saved Successfully",
-            text: res.data.message || "Changes saved successfully.",
-            timer: 1200,
-            showConfirmButton: false,
-          });
-        } else {
-          Swal.fire({
-            icon: "error",
-            title: res.data.title || "Save Failed",
-            text: res.data.message || "Something went wrong.",
-          });
         }
       } catch (err) {
         console.log("SAVE ERROR:", err);
+
+        // 🔥 ROLLBACK STATE
+        if (previousRows) {
+          console.log("Rolling back to previous state:", previousRows);
+          setRows(previousRows);
+        }
 
         Swal.fire({
           icon: "error",
           title: "Server Error",
           text:
-            err.response?.data?.message || // backend message
-            err.response?.data?.error || // sometimes error key
+            err.response?.data?.message ||
+            err.response?.data?.error ||
             "Internal Server Error (500)",
         });
       }
     }, 700);
   };
+  const updateRowsSafely = (updater) => {
+    setRows((prev) => {
+      const previous = JSON.parse(JSON.stringify(prev)); // deep copy
+      const updated = updater(prev);
+      console.log("Updated Rows:", updated);
+      console.log("Previous Rows:", previous);
+      triggerAutosave(updated, previous);
 
+      return updated;
+    });
+  };
   const updatePid = (parentIndex, pidIndex, field, value) => {
     setRows((prev) => {
       const copy = prev.map((r, i) =>
@@ -356,7 +380,13 @@ export default function BillingAdvertiser() {
             ...r,
             pid_data: [
               ...(r.pid_data || []),
-              { pid: "", total_no: null, deductions: null, approved_no: null },
+              {
+                os: "",
+                pid: "",
+                total_no: null,
+                deductions: null,
+                approved_no: null,
+              },
             ],
           }
         : r,
@@ -401,12 +431,11 @@ export default function BillingAdvertiser() {
         <EditableCell
           value={row.pub_payout}
           onSave={(v) =>
-            setRows((prev) => {
-              const copy = [...prev];
-              copy[index].pub_payout = v;
-              triggerAutosave(copy);
-              return copy;
-            })
+            updateRowsSafely((prev) =>
+              prev.map((row, i) =>
+                i === index ? { ...row, pub_payout: v } : row,
+              ),
+            )
           }
           disabled={row.status === "locked"}
         />
@@ -420,12 +449,11 @@ export default function BillingAdvertiser() {
           value={row.payable_event}
           width={180}
           onSave={(v) =>
-            setRows((prev) => {
-              const copy = [...prev];
-              copy[index].payable_event = v;
-              triggerAutosave(copy);
-              return copy;
-            })
+            updateRowsSafely((prev) =>
+              prev.map((row, i) =>
+                i === index ? { ...row, payable_event: v } : row,
+              ),
+            )
           }
           disabled={row.status === "locked"}
         />
@@ -487,7 +515,6 @@ export default function BillingAdvertiser() {
                     billing_id: row.billing_id,
                   },
                 );
-                console.log("VERIFY RES:", res.data);
                 if (res.data?.success) {
                   Swal.fire({
                     icon: "success",
@@ -533,7 +560,6 @@ export default function BillingAdvertiser() {
           (sum, p) => sum + (Number(p.adv_total_number) || 0),
           0,
         );
-        console.log("Row:", row.campaign_name, "PID Total:", pubTotal);
         const pubApproved = (row.pid_data || []).reduce(
           (sum, p) => sum + (Number(p.pub_apno) || 0),
           0,
@@ -546,8 +572,6 @@ export default function BillingAdvertiser() {
             : 0;
 
         totalPubTotal += pubTotal;
-        console.log("Row:", row.campaign_name, "Pub Total:", pubTotal);
-        console.log("Total Pub Total:", totalPubTotal);
         totalPubApproved += pubApproved;
         totalPubPayout += payout;
       });
@@ -769,18 +793,48 @@ export default function BillingAdvertiser() {
                 dataSource={activeRow.pid_data || []}
                 columns={[
                   {
+                    title: "OS",
+                    width: 220,
+                    render: (_, r, i) => (
+                      <EditablePidCell
+                        value={r.os}
+                        onCommit={(v) => {
+                          updateRowsSafely((prev) =>
+                            prev.map((row, rIndex) =>
+                              rIndex === detailsIndex
+                                ? {
+                                    ...row,
+                                    pid_data: row.pid_data.map((p, pIndex) =>
+                                      pIndex === i ? { ...p, os: v } : p,
+                                    ),
+                                  }
+                                : row,
+                            ),
+                          );
+                        }}
+                        disabled={activeRow.status === "locked"}
+                      />
+                    ),
+                  },
+                  {
                     title: "PID",
                     width: 220,
                     render: (_, r, i) => (
                       <EditablePidCell
                         value={r.pid}
                         onCommit={(v) => {
-                          setRows((prev) => {
-                            const copy = [...prev];
-                            copy[detailsIndex].pid_data[i].pid = v;
-                            triggerAutosave(copy);
-                            return copy;
-                          });
+                          updateRowsSafely((prev) =>
+                            prev.map((row, rIndex) =>
+                              rIndex === detailsIndex
+                                ? {
+                                    ...row,
+                                    pid_data: row.pid_data.map((p, pIndex) =>
+                                      pIndex === i ? { ...p, pid: v } : p,
+                                    ),
+                                  }
+                                : row,
+                            ),
+                          );
                         }}
                         disabled={activeRow.status === "locked"}
                       />

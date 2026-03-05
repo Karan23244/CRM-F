@@ -739,6 +739,24 @@ export default function BillingAdvertiser() {
                 dataSource={activeRow.pid_data || []}
                 columns={[
                   {
+                    title: "OS",
+                    width: 220,
+                    render: (_, r, i) => (
+                      <EditablePidCell
+                        value={r.os}
+                        onCommit={(v) => {
+                          setRows((prev) => {
+                            const copy = [...prev];
+                            copy[detailsIndex].pid_data[i].os = v;
+                            triggerAutosave(copy);
+                            return copy;
+                          });
+                        }}
+                        disabled={activeRow.status === "locked"}
+                      />
+                    ),
+                  },
+                  {
                     title: "PID",
                     width: 220,
                     render: (_, r, i) => (
