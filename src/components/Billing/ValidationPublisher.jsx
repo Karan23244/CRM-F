@@ -229,6 +229,7 @@ export default function BillingAdvertiser() {
   const [month, setMonth] = useState(null);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [detailsRowId, setDetailsRowId] = useState(null);
   const isLocked = rows.some((r) => r.status === "locked");
   const updateCampaignComposite = (rowIndex, values) => {
     updateRowsSafely((prev) =>
@@ -367,7 +368,7 @@ export default function BillingAdvertiser() {
             }
           : r,
       );
-
+      console.log("PID Updated Rows:", copy);
       triggerAutosave(copy);
       return copy;
     });
@@ -472,15 +473,14 @@ export default function BillingAdvertiser() {
       title: "Total Payout",
       render: (_, row) => displayValue(row.payout_amount),
     },
-
     {
       title: "Details",
-      render: (_, __, index) => (
+      render: (_, row) => (
         <Button
           size="small"
           type="link"
           onClick={() => {
-            setDetailsIndex(index);
+            setDetailsRowId(row.billing_id || row._tmp_id);
             setDetailsOpen(true);
           }}>
           View
@@ -616,8 +616,12 @@ export default function BillingAdvertiser() {
     label: `${publisher.pub_id} (${publisher.pub_name})`,
     value: publisher.pub_id,
   }));
-  const activeRow = detailsIndex !== null ? rows[detailsIndex] : null;
-
+  const activeRow = rows.find(
+    (r) => (r.billing_id || r._tmp_id) === detailsRowId,
+  );
+  const index = rows.findIndex(
+    (r) => (r.billing_id || r._tmp_id) === detailsRowId,
+  );
   return (
     <>
       <div className="p-5">
@@ -730,9 +734,10 @@ export default function BillingAdvertiser() {
 
       <Modal
         open={detailsOpen}
+        key={detailsRowId}
         onCancel={() => {
           setDetailsOpen(false);
-          setDetailsIndex(null);
+          setDetailsRowId(null);
         }}
         footer={null}
         width={920}
@@ -779,7 +784,12 @@ export default function BillingAdvertiser() {
                 <Button
                   size="small"
                   type="dashed"
-                  onClick={() => addPid(detailsIndex)}
+                  onClick={() => {
+                    const index = rows.findIndex(
+                      (r) => (r.billing_id || r._tmp_id) === detailsRowId,
+                    );
+                    addPid(index);
+                  }}
                   disabled={activeRow.status === "locked"}>
                   + Add PID
                 </Button>
@@ -794,14 +804,18 @@ export default function BillingAdvertiser() {
                 columns={[
                   {
                     title: "OS",
-                    width: 220,
+                    width: 180,
                     render: (_, r, i) => (
-                      <EditablePidCell
-                        value={r.os}
-                        onCommit={(v) => {
+                      <Select
+                        size="small"
+                        style={{ width: "100%" }}
+                        value={r.os || undefined}
+                        placeholder="Select OS"
+                        disabled={activeRow.status === "locked"}
+                        onChange={(v) => {
                           updateRowsSafely((prev) =>
-                            prev.map((row, rIndex) =>
-                              rIndex === detailsIndex
+                            prev.map((row) =>
+                              (row.billing_id || row._tmp_id) === detailsRowId
                                 ? {
                                     ...row,
                                     pid_data: row.pid_data.map((p, pIndex) =>
@@ -811,9 +825,10 @@ export default function BillingAdvertiser() {
                                 : row,
                             ),
                           );
-                        }}
-                        disabled={activeRow.status === "locked"}
-                      />
+                        }}>
+                        <Option value="Android">Android</Option>
+                        <Option value="iOS">iOS</Option>
+                      </Select>
                     ),
                   },
                   {
@@ -824,8 +839,8 @@ export default function BillingAdvertiser() {
                         value={r.pid}
                         onCommit={(v) => {
                           updateRowsSafely((prev) =>
-                            prev.map((row, rIndex) =>
-                              rIndex === detailsIndex
+                            prev.map((row) =>
+                              (row.billing_id || row._tmp_id) === detailsRowId
                                 ? {
                                     ...row,
                                     pid_data: row.pid_data.map((p, pIndex) =>
@@ -847,7 +862,7 @@ export default function BillingAdvertiser() {
                       <EditableCell
                         value={r.adv_total_number}
                         onSave={(v) =>
-                          updatePid(detailsIndex, i, "adv_total_number", v)
+                          updatePid(index, i, "adv_total_number", v)
                         }
                         disabled={activeRow.status === "locked"}
                       />
@@ -859,9 +874,7 @@ export default function BillingAdvertiser() {
                     render: (_, r, i) => (
                       <EditableCell
                         value={r.pub_apno}
-                        onSave={(v) =>
-                          updatePid(detailsIndex, i, "pub_apno", v)
-                        }
+                        onSave={(v) => updatePid(index, i, "pub_apno", v)}
                         disabled={activeRow.status === "locked"}
                       />
                     ),

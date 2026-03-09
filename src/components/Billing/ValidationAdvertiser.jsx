@@ -740,20 +740,25 @@ export default function BillingAdvertiser() {
                 columns={[
                   {
                     title: "OS",
-                    width: 220,
+                    width: 180,
                     render: (_, r, i) => (
-                      <EditablePidCell
-                        value={r.os}
-                        onCommit={(v) => {
+                      <Select
+                        size="small"
+                        style={{ width: "100%" }}
+                        value={r.os || undefined}
+                        placeholder="Select OS"
+                        disabled={activeRow.status === "locked"}
+                        onChange={(v) => {
                           setRows((prev) => {
                             const copy = [...prev];
                             copy[detailsIndex].pid_data[i].os = v;
                             triggerAutosave(copy);
                             return copy;
                           });
-                        }}
-                        disabled={activeRow.status === "locked"}
-                      />
+                        }}>
+                        <Option value="Android">Android</Option>
+                        <Option value="iOS">iOS</Option>
+                      </Select>
                     ),
                   },
                   {
