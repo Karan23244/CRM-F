@@ -395,9 +395,25 @@ export default function BillingAdvertiser() {
     setRows(updated);
   };
 
+  // const addCampaign = () => {
+  //   setRows((r) => [
+  //     ...r,
+  //     {
+  //       _tmp_id: nanoid(),
+  //       campaign_name: "",
+  //       geo: "",
+  //       os: "",
+  //       payable_event: "",
+  //       payout_rate: 0,
+  //       total_no: null,
+  //       deductions: null,
+  //       approved_no: null,
+  //       pid_data: [],
+  //     },
+  //   ]);
+  // };
   const addCampaign = () => {
     setRows((r) => [
-      ...r,
       {
         _tmp_id: nanoid(),
         campaign_name: "",
@@ -410,6 +426,7 @@ export default function BillingAdvertiser() {
         approved_no: null,
         pid_data: [],
       },
+      ...r,
     ]);
   };
 

@@ -31,7 +31,7 @@ import OSDistributionChart from "./Charts/OSDistributionChart";
 import VerticalDistributionChart from "./Charts/VerticalDistributionChart";
 const { RangePicker } = DatePicker;
 const apiUrl = import.meta.env.VITE_API_URL;
-const apiUrl3 = import.meta.env.VITE_API_URL;
+const API = import.meta.env.VITE_API_URL5;
 export default function Dashboard() {
   const { user } = useSelector((state) => state.auth);
   const { notifications } = useNotifications(15);
@@ -308,11 +308,9 @@ const DashboardOverview = ({ user }) => {
       console.log("Sending payload:", payload);
 
       const response = await axios.post(
-        "http://localhost:2001/api/dashboard-adv-data",
+        `${API}/api/dashboard-adv-data`,
         payload,
       );
-
-      console.log("API Response:", response.data);
 
       if (response.data?.success) {
         setData(response.data.data || []);
