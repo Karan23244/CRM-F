@@ -608,7 +608,7 @@ export default function BillingAdvertiser() {
     },
     {
       title: "Adv Payout",
-      ...getColumnFilter("adv_payout"),
+      align: "center",
       render: (_, row, index) => (
         <div style={centerStyle}>
           <EditableCell
@@ -649,28 +649,27 @@ export default function BillingAdvertiser() {
     },
     {
       title: "Adv Total",
-      ...getColumnFilter("total_no"),
+      align: "center",
       render: (_, row) => (
         <div style={centerStyle}>{displayValue(row.total_no)}</div>
       ),
     },
     {
       title: "Deduction",
-      ...getColumnFilter("deductions"),
+      align: "center",
       render: (_, row) => (
         <div style={centerStyle}>{displayValue(row.deductions)}</div>
       ),
     },
     {
       title: "Approved",
-      ...getColumnFilter("approved_no"),
+      align: "center",
       render: (_, row) => (
         <div style={centerStyle}>{displayValue(row.approved_no)}</div>
       ),
     },
     {
       title: "Total Payout",
-      ...getColumnFilter("total_payout", true),
       align: "center",
       render: (_, row) => (
         <div style={centerStyle}>
@@ -988,7 +987,7 @@ export default function BillingAdvertiser() {
                   },
                   {
                     title: "Total",
-                    ...getColumnFilter("total_no", true),
+                    align: "center",
                     width: 90,
                     render: (_, r, i) => (
                       <EditableCell
@@ -1003,7 +1002,7 @@ export default function BillingAdvertiser() {
                   {
                     title: "Deductions",
                     width: 110,
-                    ...getColumnFilter("deductions", true),
+                    align: "center",
                     render: (_, r, i) => (
                       <EditableCell
                         value={r.deductions}
@@ -1017,7 +1016,7 @@ export default function BillingAdvertiser() {
                   {
                     title: "Approved",
                     width: 110,
-                    ...getColumnFilter("approved_no", true),
+                    align: "center",
                     render: (_, r, i) => (
                       <EditableCell
                         value={r.approved_no}
@@ -1030,6 +1029,7 @@ export default function BillingAdvertiser() {
                   },
                   {
                     title: "Total Payout",
+                    align: "center",
                     width: 120,
                     render: (_, r) =>
                       r.approved_no == null
