@@ -8,6 +8,7 @@ import {
   Input,
   Modal,
   message,
+  Checkbox,
 } from "antd";
 import axios from "axios";
 import { useSelector } from "react-redux";
@@ -233,8 +234,31 @@ export default function BillingAdvertiser() {
   const [selectedAdvId, setSelectedAdvId] = useState(null);
   const [month, setMonth] = useState(null);
   const [rows, setRows] = useState([]);
+  const [detailsRowId, setDetailsRowId] = useState(null);
+
+  const [filters, setFilters] = useState({});
+  const [pidFilters, setPidFilters] = useState({});
+  const [filterSearch, setFilterSearch] = useState({});
+  const [uniqueValues, setUniqueValues] = useState({});
+  const normalize = (val) => {
+    if (val === null || val === undefined || val === "") return "-";
+    return val.toString().trim();
+  };
   const isLocked = rows.some((r) => r.status === "locked");
+  const activeRow = rows.find(
+    (r) => (r.billing_id || r._tmp_id) === detailsRowId,
+  );
   const [loading, setLoading] = useState(false);
+  const updateRowsSafely = (updater) => {
+    setRows((prev) => {
+      const previous = JSON.parse(JSON.stringify(prev));
+      const updated = updater(prev);
+
+      triggerAutosave(updated, previous);
+
+      return updated;
+    });
+  };
   const updateCampaignComposite = (rowIndex, values) => {
     setRows((prev) => {
       const copy = [...prev];
@@ -269,10 +293,73 @@ export default function BillingAdvertiser() {
       month,
     });
     console.log("Fetched billing data:", res.data); // Debug log
-    setRows(res.data.data || []);
+    setRows(
+      (res.data.data || []).map((r) => ({
+        ...r,
+        _tmp_id: r.billing_id ? null : nanoid(),
+      })),
+    );
     setLoading(false);
   };
-  const triggerAutosave = (nextRows) => {
+  // const triggerAutosave = (nextRows) => {
+  //   if (!selectedAdvId || !month) return;
+
+  //   clearTimeout(autosaveTimer.current);
+
+  //   autosaveTimer.current = setTimeout(async () => {
+  //     try {
+  //       const res = await axios.post(`${API}/billing/advertiser-save`, {
+  //         adv_id: selectedAdvId,
+  //         month,
+  //         data: nextRows,
+  //       });
+  //       // SUCCESS CONDITION
+  //       if (res.data?.success || res.data?.message) {
+  //         await fetchBilling();
+
+  //         if (res.data.rows) {
+  //           setRows((prev) =>
+  //             prev.map((r) => {
+  //               const fresh = res.data.rows.find((f) => f.id === r.billing_id);
+  //               if (!fresh) return r;
+
+  //               return {
+  //                 ...r,
+  //                 billing_id: fresh.id,
+  //                 total_no: fresh.total_no,
+  //                 deductions: fresh.deductions,
+  //                 approved_no: fresh.approved_no,
+  //                 status: fresh.status,
+  //               };
+  //             }),
+  //           );
+  //         }
+
+  //         Swal.fire({
+  //           icon: "success",
+  //           title: res.data.title || "Saved",
+  //           text: res.data.message || "Changes saved successfully.",
+  //           timer: 1200,
+  //           showConfirmButton: false,
+  //         });
+  //       } else {
+  //         Swal.fire({
+  //           icon: "error",
+  //           title: res.data.title || "Save Failed",
+  //           text: res.data.message || "Unable to save data.",
+  //         });
+  //       }
+  //     } catch (err) {
+  //       Swal.fire({
+  //         icon: "error",
+  //         title: "Server Error",
+  //         text:
+  //           err.response?.data?.message || "Something went wrong while saving.",
+  //       });
+  //     }
+  //   }, 700);
+  // };
+  const triggerAutosave = (nextRows, previousRows) => {
     if (!selectedAdvId || !month) return;
 
     clearTimeout(autosaveTimer.current);
@@ -284,53 +371,26 @@ export default function BillingAdvertiser() {
           month,
           data: nextRows,
         });
-        // SUCCESS CONDITION
-        if (res.data?.success || res.data?.message) {
+
+        if (res.data?.success) {
           await fetchBilling();
-
-          if (res.data.rows) {
-            setRows((prev) =>
-              prev.map((r) => {
-                const fresh = res.data.rows.find((f) => f.id === r.billing_id);
-                if (!fresh) return r;
-
-                return {
-                  ...r,
-                  billing_id: fresh.id,
-                  total_no: fresh.total_no,
-                  deductions: fresh.deductions,
-                  approved_no: fresh.approved_no,
-                  status: fresh.status,
-                };
-              }),
-            );
-          }
-
-          Swal.fire({
-            icon: "success",
-            title: res.data.title || "Saved",
-            text: res.data.message || "Changes saved successfully.",
-            timer: 1200,
-            showConfirmButton: false,
-          });
-        } else {
-          Swal.fire({
-            icon: "error",
-            title: res.data.title || "Save Failed",
-            text: res.data.message || "Unable to save data.",
-          });
         }
       } catch (err) {
+        if (previousRows) {
+          setRows(previousRows);
+        }
+
         Swal.fire({
           icon: "error",
           title: "Server Error",
           text:
-            err.response?.data?.message || "Something went wrong while saving.",
+            err.response?.data?.message ||
+            err.response?.data?.error ||
+            "Internal Server Error (500)",
         });
       }
     }, 700);
   };
-
   const updatePid = (parentIndex, pidIndex, field, value) => {
     setRows((prev) => {
       const copy = prev.map((r, i) =>
@@ -366,26 +426,175 @@ export default function BillingAdvertiser() {
 
   const addCampaign = () => {
     setRows((r) => [
-      ...r,
       {
         _tmp_id: nanoid(),
         campaign_name: "",
         geo: "",
         os: "",
         payable_event: "",
-        payout_rate: 0,
+        adv_payout: 0,
         total_no: null,
         deductions: null,
         approved_no: null,
         pid_data: [],
       },
+      ...r,
     ]);
   };
+  useEffect(() => {
+    const valuesObj = {};
 
+    const keys = ["campaign_name", "geo", "os", "payable_event"];
+
+    keys.forEach((key) => {
+      valuesObj[key] = [...new Set(rows.map((row) => normalize(row[key])))];
+    });
+
+    setUniqueValues(valuesObj);
+  }, [rows]);
+  useEffect(() => {
+    if (!activeRow) return;
+
+    const pidValues = {};
+    const keys = ["os", "pid", "total_no", "approved_no"];
+
+    keys.forEach((key) => {
+      pidValues[key] = [
+        ...new Set((activeRow.pid_data || []).map((p) => normalize(p[key]))),
+      ];
+    });
+
+    setUniqueValues((prev) => ({
+      ...prev,
+      ...pidValues,
+    }));
+  }, [activeRow]);
+  const filteredRows = rows.filter((row) => {
+    return Object.entries(filters).every(([key, values]) => {
+      if (!values || values.length === 0) return true;
+      return values.includes(normalize(row[key]));
+    });
+  });
+  const filteredPidData = (activeRow?.pid_data || []).filter((row) => {
+    return Object.entries(pidFilters).every(([key, values]) => {
+      if (!values || values.length === 0) return true;
+      return values.includes(normalize(row[key]));
+    });
+  });
+  const getColumnFilter = (dataIndex, isPid = false) => ({
+    filterDropdown: () => {
+      const allValues = uniqueValues[dataIndex] || [];
+
+      const selectedValues = isPid
+        ? (pidFilters[dataIndex] ?? allValues)
+        : (filters[dataIndex] ?? allValues);
+
+      const searchText = filterSearch[dataIndex] || "";
+
+      const visibleValues = allValues.filter((val) =>
+        val.toString().toLowerCase().includes(searchText.toLowerCase()),
+      );
+
+      const isAllSelected = selectedValues.length === allValues.length;
+      const isIndeterminate = selectedValues.length > 0 && !isAllSelected;
+
+      const updateFilters = (next) => {
+        if (isPid) {
+          setPidFilters((prev) => ({
+            ...prev,
+            [dataIndex]: next,
+          }));
+        } else {
+          setFilters((prev) => ({
+            ...prev,
+            [dataIndex]: next,
+          }));
+        }
+      };
+
+      return (
+        <div
+          className="w-[260px] rounded-xl"
+          onClick={(e) => e.stopPropagation()}>
+          {/* 🔍 Search */}
+          <div className="sticky top-0 bg-white p-2 border-b">
+            <Input
+              allowClear
+              placeholder="Search values"
+              value={searchText}
+              onChange={(e) =>
+                setFilterSearch((prev) => ({
+                  ...prev,
+                  [dataIndex]: e.target.value,
+                }))
+              }
+            />
+          </div>
+
+          {/* ☑ Select All */}
+          <div className="px-3 py-2">
+            <Checkbox
+              indeterminate={isIndeterminate}
+              checked={isAllSelected}
+              onChange={(e) => {
+                const checked = e.target.checked;
+
+                if (checked) {
+                  if (isPid) {
+                    setPidFilters((prev) => {
+                      const updated = { ...prev };
+                      delete updated[dataIndex];
+                      return updated;
+                    });
+                  } else {
+                    setFilters((prev) => {
+                      const updated = { ...prev };
+                      delete updated[dataIndex];
+                      return updated;
+                    });
+                  }
+                } else {
+                  updateFilters([]);
+                }
+              }}>
+              Select All
+            </Checkbox>
+          </div>
+
+          {/* 📋 Values */}
+          <div className="max-h-[220px] overflow-y-auto px-2 pb-2 space-y-1">
+            {visibleValues.map((val) => (
+              <label
+                key={val}
+                className="flex items-center gap-2 px-2 py-1 rounded cursor-pointer hover:bg-blue-50">
+                <Checkbox
+                  checked={selectedValues.includes(val)}
+                  onChange={(e) => {
+                    const next = e.target.checked
+                      ? [...selectedValues, val]
+                      : selectedValues.filter((v) => v !== val);
+
+                    updateFilters(next);
+                  }}
+                />
+                <span className="truncate">{val}</span>
+              </label>
+            ))}
+
+            {visibleValues.length === 0 && (
+              <div className="py-4 text-center text-gray-400 text-sm">
+                No matching values
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    },
+  });
   const columns = [
     {
       title: "Campaign",
-      align: "center",
+      ...getColumnFilter("campaign_name"),
       render: (_, row, index) => (
         <div style={centerStyle}>
           <EditableCampaignCell
@@ -399,7 +608,7 @@ export default function BillingAdvertiser() {
     },
     {
       title: "Adv Payout",
-      align: "center",
+      ...getColumnFilter("adv_payout"),
       render: (_, row, index) => (
         <div style={centerStyle}>
           <EditableCell
@@ -419,7 +628,7 @@ export default function BillingAdvertiser() {
     },
     {
       title: "Payable Event",
-      align: "center",
+      ...getColumnFilter("payable_event"),
       render: (_, row, index) => (
         <div style={centerStyle}>
           <EditableTextCell
@@ -440,27 +649,28 @@ export default function BillingAdvertiser() {
     },
     {
       title: "Adv Total",
-      align: "center",
+      ...getColumnFilter("total_no"),
       render: (_, row) => (
         <div style={centerStyle}>{displayValue(row.total_no)}</div>
       ),
     },
     {
       title: "Deduction",
-      align: "center",
+      ...getColumnFilter("deductions"),
       render: (_, row) => (
         <div style={centerStyle}>{displayValue(row.deductions)}</div>
       ),
     },
     {
       title: "Approved",
-      align: "center",
+      ...getColumnFilter("approved_no"),
       render: (_, row) => (
         <div style={centerStyle}>{displayValue(row.approved_no)}</div>
       ),
     },
     {
       title: "Total Payout",
+      ...getColumnFilter("total_payout", true),
       align: "center",
       render: (_, row) => (
         <div style={centerStyle}>
@@ -473,13 +683,13 @@ export default function BillingAdvertiser() {
     {
       title: "Details",
       align: "center",
-      render: (_, __, index) => (
+      render: (_, row, index) => (
         <div style={centerStyle}>
           <Button
             size="small"
             type="link"
             onClick={() => {
-              setDetailsIndex(index);
+              setDetailsRowId(row.billing_id || row._tmp_id);
               setDetailsOpen(true);
             }}>
             View
@@ -496,7 +706,6 @@ export default function BillingAdvertiser() {
     ?.sort((a, b) =>
       a.label.toLowerCase().localeCompare(b.label.toLowerCase()),
     );
-  const activeRow = detailsIndex !== null ? rows[detailsIndex] : null;
 
   return (
     <>
@@ -541,12 +750,8 @@ export default function BillingAdvertiser() {
         ) : (
           <>
             <StyledTable
-              rowKey={(r) =>
-                r.billing_id ||
-                r._tmp_id ||
-                `${r.campaign_name}-${r.geo}-${r.os}-${r.adv_payout}`
-              }
-              dataSource={rows}
+              rowKey={(r) => r.billing_id || r._tmp_id}
+              dataSource={filteredRows}
               columns={columns}
               summary={() => {
                 const totalAdv = rows.reduce(
@@ -674,7 +879,7 @@ export default function BillingAdvertiser() {
         open={detailsOpen}
         onCancel={() => {
           setDetailsOpen(false);
-          setDetailsIndex(null);
+          setDetailsRowId(null);
         }}
         footer={null}
         width={920}
@@ -736,11 +941,12 @@ export default function BillingAdvertiser() {
                 pagination={false}
                 tableLayout="fixed"
                 rowKey={(r, i) => `${r.pid}-${i}`}
-                dataSource={activeRow.pid_data || []}
+                dataSource={filteredPidData}
                 columns={[
                   {
                     title: "OS",
                     width: 180,
+                    ...getColumnFilter("os", true),
                     render: (_, r, i) => (
                       <Select
                         size="small"
@@ -764,6 +970,7 @@ export default function BillingAdvertiser() {
                   {
                     title: "PID",
                     width: 220,
+                    ...getColumnFilter("pid", true),
                     render: (_, r, i) => (
                       <EditablePidCell
                         value={r.pid}
@@ -781,6 +988,7 @@ export default function BillingAdvertiser() {
                   },
                   {
                     title: "Total",
+                    ...getColumnFilter("total_no", true),
                     width: 90,
                     render: (_, r, i) => (
                       <EditableCell
@@ -795,6 +1003,7 @@ export default function BillingAdvertiser() {
                   {
                     title: "Deductions",
                     width: 110,
+                    ...getColumnFilter("deductions", true),
                     render: (_, r, i) => (
                       <EditableCell
                         value={r.deductions}
@@ -808,6 +1017,7 @@ export default function BillingAdvertiser() {
                   {
                     title: "Approved",
                     width: 110,
+                    ...getColumnFilter("approved_no", true),
                     render: (_, r, i) => (
                       <EditableCell
                         value={r.approved_no}

@@ -8,6 +8,7 @@ import {
   Input,
   Modal,
   message,
+  Checkbox,
 } from "antd";
 import axios from "axios";
 import Swal from "sweetalert2";
@@ -230,7 +231,16 @@ export default function BillingAdvertiser() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [detailsRowId, setDetailsRowId] = useState(null);
+  const [filters, setFilters] = useState({});
+  const [filterSearch, setFilterSearch] = useState({});
+  const [uniqueValues, setUniqueValues] = useState({});
+  const [pidFilters, setPidFilters] = useState({});
   const isLocked = rows.some((r) => r.status === "locked");
+  console.log("Fetched Billing Data:", rows);
+  const normalize = (val) => {
+    if (val === null || val === undefined || val === "") return "-";
+    return val.toString().trim();
+  };
   const updateCampaignComposite = (rowIndex, values) => {
     updateRowsSafely((prev) =>
       prev.map((row, i) => (i === rowIndex ? { ...row, ...values } : row)),
@@ -257,7 +267,13 @@ export default function BillingAdvertiser() {
       month,
     });
     console.log(res.data.data);
-    setRows(res.data.data || []);
+    setRows(
+      (res.data.data || []).map((r) => ({
+        ...r,
+        _tmp_id: r.billing_id ? null : nanoid(),
+      })),
+    );
+
     setLoading(false);
   };
   useEffect(() => {
@@ -429,10 +445,157 @@ export default function BillingAdvertiser() {
       ...r,
     ]);
   };
+  const activeRow = rows.find(
+    (r) => (r.billing_id || r._tmp_id) === detailsRowId,
+  );
+  useEffect(() => {
+    const valuesObj = {};
 
+    const keys = ["campaign_name", "geo", "os", "payable_event", "pub_payout"];
+
+    keys.forEach((key) => {
+      valuesObj[key] = [...new Set(rows.map((row) => normalize(row[key])))];
+    });
+
+    setUniqueValues(valuesObj);
+  }, [rows]);
+  useEffect(() => {
+    if (!activeRow) return;
+
+    const pidValues = {};
+    const keys = ["os", "pid", "adv_total_number", "pub_apno"];
+
+    keys.forEach((key) => {
+      pidValues[key] = [
+        ...new Set((activeRow.pid_data || []).map((p) => normalize(p[key]))),
+      ];
+    });
+
+    setUniqueValues((prev) => ({
+      ...prev,
+      ...pidValues,
+    }));
+  }, [activeRow]);
+  const getColumnFilter = (dataIndex, isPid = false) => ({
+    filterDropdown: () => {
+      const allValues = uniqueValues[dataIndex] || [];
+
+      const selectedValues = isPid
+        ? (pidFilters[dataIndex] ?? allValues)
+        : (filters[dataIndex] ?? allValues);
+
+      const searchText = filterSearch[dataIndex] || "";
+
+      const visibleValues = allValues.filter((val) =>
+        val.toString().toLowerCase().includes(searchText.toLowerCase()),
+      );
+
+      const isAllSelected = selectedValues.length === allValues.length;
+      const isIndeterminate = selectedValues.length > 0 && !isAllSelected;
+
+      const updateFilters = (next) => {
+        if (isPid) {
+          setPidFilters((prev) => ({
+            ...prev,
+            [dataIndex]: next,
+          }));
+        } else {
+          setFilters((prev) => ({
+            ...prev,
+            [dataIndex]: next,
+          }));
+        }
+      };
+
+      return (
+        <div
+          className="w-[260px] rounded-xl"
+          onClick={(e) => e.stopPropagation()}>
+          {/* 🔍 Search */}
+          <div className="sticky top-0 bg-white p-2 border-b">
+            <Input
+              allowClear
+              placeholder="Search values"
+              value={searchText}
+              onChange={(e) =>
+                setFilterSearch((prev) => ({
+                  ...prev,
+                  [dataIndex]: e.target.value,
+                }))
+              }
+            />
+          </div>
+
+          {/* ☑ Select All */}
+          <div className="px-3 py-2">
+            <Checkbox
+              indeterminate={isIndeterminate}
+              checked={isAllSelected}
+              onChange={(e) => {
+                const checked = e.target.checked;
+
+                if (checked) {
+                  if (isPid) {
+                    setPidFilters((prev) => {
+                      const updated = { ...prev };
+                      delete updated[dataIndex];
+                      return updated;
+                    });
+                  } else {
+                    setFilters((prev) => {
+                      const updated = { ...prev };
+                      delete updated[dataIndex];
+                      return updated;
+                    });
+                  }
+                } else {
+                  updateFilters([]);
+                }
+              }}>
+              Select All
+            </Checkbox>
+          </div>
+
+          {/* 📋 Values */}
+          <div className="max-h-[220px] overflow-y-auto px-2 pb-2 space-y-1">
+            {visibleValues.map((val) => (
+              <label
+                key={val}
+                className="flex items-center gap-2 px-2 py-1 rounded cursor-pointer hover:bg-blue-50">
+                <Checkbox
+                  checked={selectedValues.includes(val)}
+                  onChange={(e) => {
+                    const next = e.target.checked
+                      ? [...selectedValues, val]
+                      : selectedValues.filter((v) => v !== val);
+
+                    updateFilters(next);
+                  }}
+                />
+                <span className="truncate">{val}</span>
+              </label>
+            ))}
+
+            {visibleValues.length === 0 && (
+              <div className="py-4 text-center text-gray-400 text-sm">
+                No matching values
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    },
+  });
+  const filteredRows = rows.filter((row) => {
+    return Object.entries(filters).every(([key, values]) => {
+      if (!values || values.length === 0) return true;
+      return values.includes(normalize(row[key]));
+    });
+  });
   const columns = [
     {
       title: "Campaign",
+      ...getColumnFilter("campaign_name"),
       render: (_, row, index) => (
         <EditableCampaignCell
           row={row}
@@ -462,6 +625,7 @@ export default function BillingAdvertiser() {
 
     {
       title: "Payable Event",
+      ...getColumnFilter("payable_event"),
       render: (_, row, index) => (
         <EditableTextCell
           value={row.payable_event}
@@ -565,6 +729,7 @@ export default function BillingAdvertiser() {
         ),
     },
   ];
+
   const tableSummary = useCallback(
     (pageData) => {
       let totalPubTotal = 0;
@@ -633,9 +798,13 @@ export default function BillingAdvertiser() {
     label: `${publisher.pub_id} (${publisher.pub_name})`,
     value: publisher.pub_id,
   }));
-  const activeRow = rows.find(
-    (r) => (r.billing_id || r._tmp_id) === detailsRowId,
-  );
+
+  const filteredPidData = (activeRow?.pid_data || []).filter((row) => {
+    return Object.entries(pidFilters).every(([key, values]) => {
+      if (!values || values.length === 0) return true;
+      return values.includes(normalize(row[key]));
+    });
+  });
   const index = rows.findIndex(
     (r) => (r.billing_id || r._tmp_id) === detailsRowId,
   );
@@ -683,7 +852,7 @@ export default function BillingAdvertiser() {
           <>
             <StyledTable
               rowKey={(r) => r.billing_id || r._tmp_id}
-              dataSource={rows}
+              dataSource={filteredRows}
               columns={columns}
               summary={tableSummary}
             />
@@ -817,11 +986,12 @@ export default function BillingAdvertiser() {
                 pagination={false}
                 tableLayout="fixed"
                 rowKey={(r, i) => `${r.pid}-${i}`}
-                dataSource={activeRow.pid_data || []}
+                dataSource={filteredPidData}
                 columns={[
                   {
                     title: "OS",
                     width: 180,
+                    ...getColumnFilter("os", true),
                     render: (_, r, i) => (
                       <Select
                         size="small"
@@ -851,6 +1021,7 @@ export default function BillingAdvertiser() {
                   {
                     title: "PID",
                     width: 220,
+                    ...getColumnFilter("pid", true),
                     render: (_, r, i) => (
                       <EditablePidCell
                         value={r.pid}
