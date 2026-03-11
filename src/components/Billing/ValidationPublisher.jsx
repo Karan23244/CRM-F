@@ -238,8 +238,8 @@ export default function BillingAdvertiser() {
   const isLocked = rows.some((r) => r.status === "locked");
   console.log("Fetched Billing Data:", rows);
   const normalize = (val) => {
-    if (val === null || val === undefined || val === "") return "-";
-    return val.toString().trim();
+    if (val === null || val === undefined || val === "") return "Pending";
+    return String(val).trim();
   };
   const updateCampaignComposite = (rowIndex, values) => {
     updateRowsSafely((prev) =>
@@ -451,7 +451,16 @@ export default function BillingAdvertiser() {
   useEffect(() => {
     const valuesObj = {};
 
-    const keys = ["campaign_name", "geo", "os", "payable_event", "pub_payout"];
+    const keys = [
+      "campaign_name",
+      "geo",
+      "os",
+      "payable_event",
+      "pub_payout",
+      "adv_total_number",
+      "pub_apno",
+      "payout_amount",
+    ];
 
     keys.forEach((key) => {
       valuesObj[key] = [...new Set(rows.map((row) => normalize(row[key])))];
@@ -463,7 +472,7 @@ export default function BillingAdvertiser() {
     if (!activeRow) return;
 
     const pidValues = {};
-    const keys = ["os", "pid", "adv_total_number", "pub_apno"];
+    const keys = ["os", "pid", "adv_total_number", "pub_apno", "payout_amount"];
 
     keys.forEach((key) => {
       pidValues[key] = [
@@ -607,6 +616,7 @@ export default function BillingAdvertiser() {
     },
     {
       title: "Pub Payout",
+      ...getColumnFilter("pub_payout"),
       width: 120,
       render: (_, row, index) => (
         <EditableCell
@@ -644,14 +654,17 @@ export default function BillingAdvertiser() {
 
     {
       title: "PUB Total",
+      ...getColumnFilter("adv_total_number"),
       render: (_, row) => displayValue(row.adv_total_number),
     },
     {
       title: "PUB Approved",
+      ...getColumnFilter("pub_apno"),
       render: (_, row) => displayValue(row.pub_apno),
     },
     {
       title: "Total Payout",
+      ...getColumnFilter("payout_amount"),
       render: (_, row) => displayValue(row.payout_amount),
     },
     {
@@ -1046,6 +1059,7 @@ export default function BillingAdvertiser() {
                   {
                     title: "Total",
                     width: 90,
+                    ...getColumnFilter("adv_total_number", true),
                     render: (_, r, i) => (
                       <EditableCell
                         value={r.adv_total_number}
@@ -1059,6 +1073,7 @@ export default function BillingAdvertiser() {
                   {
                     title: "Approved",
                     width: 110,
+                    ...getColumnFilter("pub_apno", true),
                     render: (_, r, i) => (
                       <EditableCell
                         value={r.pub_apno}
@@ -1069,6 +1084,7 @@ export default function BillingAdvertiser() {
                   },
                   {
                     title: "Total Payout",
+                    ...getColumnFilter("payout_amount", true),
                     width: 120,
                     render: (_, r) =>
                       r.payout_amount == null

@@ -241,8 +241,8 @@ export default function BillingAdvertiser() {
   const [filterSearch, setFilterSearch] = useState({});
   const [uniqueValues, setUniqueValues] = useState({});
   const normalize = (val) => {
-    if (val === null || val === undefined || val === "") return "-";
-    return val.toString().trim();
+    if (val === null || val === undefined || val === "") return "Pending";
+    return String(val).trim();
   };
   const isLocked = rows.some((r) => r.status === "locked");
   const activeRow = rows.find(
@@ -444,7 +444,16 @@ export default function BillingAdvertiser() {
   useEffect(() => {
     const valuesObj = {};
 
-    const keys = ["campaign_name", "geo", "os", "payable_event"];
+    const keys = [
+      "campaign_name",
+      "geo",
+      "os",
+      "adv_payout",
+      "total_no",
+      "deductions",
+      "approved_no",
+      "payout_amount",
+    ];
 
     keys.forEach((key) => {
       valuesObj[key] = [...new Set(rows.map((row) => normalize(row[key])))];
@@ -456,7 +465,16 @@ export default function BillingAdvertiser() {
     if (!activeRow) return;
 
     const pidValues = {};
-    const keys = ["os", "pid", "total_no", "approved_no"];
+    const keys = [
+      "os",
+      "pid",
+      "total_no",
+      "adv_payout",
+      "total_no",
+      "deductions",
+      "approved_no",
+      "payout_amount",
+    ];
 
     keys.forEach((key) => {
       pidValues[key] = [
@@ -609,6 +627,7 @@ export default function BillingAdvertiser() {
     {
       title: "Adv Payout",
       align: "center",
+      ...getColumnFilter("adv_payout"),
       render: (_, row, index) => (
         <div style={centerStyle}>
           <EditableCell
@@ -650,12 +669,14 @@ export default function BillingAdvertiser() {
     {
       title: "Adv Total",
       align: "center",
+      ...getColumnFilter("total_no"),
       render: (_, row) => (
         <div style={centerStyle}>{displayValue(row.total_no)}</div>
       ),
     },
     {
       title: "Deduction",
+      ...getColumnFilter("deductions"),
       align: "center",
       render: (_, row) => (
         <div style={centerStyle}>{displayValue(row.deductions)}</div>
@@ -663,6 +684,7 @@ export default function BillingAdvertiser() {
     },
     {
       title: "Approved",
+      ...getColumnFilter("approved_no"),
       align: "center",
       render: (_, row) => (
         <div style={centerStyle}>{displayValue(row.approved_no)}</div>
@@ -671,6 +693,7 @@ export default function BillingAdvertiser() {
     {
       title: "Total Payout",
       align: "center",
+      ...getColumnFilter("payout_amount"),
       render: (_, row) => (
         <div style={centerStyle}>
           {row.approved_no == null
@@ -989,6 +1012,7 @@ export default function BillingAdvertiser() {
                     title: "Total",
                     align: "center",
                     width: 90,
+                    ...getColumnFilter("total_no", true),
                     render: (_, r, i) => (
                       <EditableCell
                         value={r.total_no}
@@ -1003,6 +1027,7 @@ export default function BillingAdvertiser() {
                     title: "Deductions",
                     width: 110,
                     align: "center",
+                    ...getColumnFilter("deductions", true),
                     render: (_, r, i) => (
                       <EditableCell
                         value={r.deductions}
@@ -1017,6 +1042,7 @@ export default function BillingAdvertiser() {
                     title: "Approved",
                     width: 110,
                     align: "center",
+                    ...getColumnFilter("approved_no", true),
                     render: (_, r, i) => (
                       <EditableCell
                         value={r.approved_no}
@@ -1031,6 +1057,7 @@ export default function BillingAdvertiser() {
                     title: "Total Payout",
                     align: "center",
                     width: 120,
+                    ...getColumnFilter("payout_amount", true),
                     render: (_, r) =>
                       r.approved_no == null
                         ? "Pending"

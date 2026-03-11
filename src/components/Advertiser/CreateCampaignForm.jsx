@@ -871,7 +871,7 @@ const GenrateLink = ({ campaignId, trackingurl }) => {
   const [submitting, setSubmitting] = useState(false);
   const [trackingUrl, setTrackingUrl] = useState("");
   const [hideReferrer, setHideReferrer] = useState(false);
-
+  const [publisherOfferApi, setPublisherOfferApi] = useState("");
   useEffect(() => {
     fetchPublisherIds();
   }, []);
@@ -898,12 +898,16 @@ const GenrateLink = ({ campaignId, trackingurl }) => {
         campaign_id: campaignId,
         hide_referrer: hideReferrer ? 1 : 0,
       });
+      console.log("Link Generation Response:", res.data);
       // ⬇ THIS should be returned by your backend
       // Example: { link: "https://track.com/campaign/5543?pub=100" }
       const url = res.data?.publisher_link;
-
+      const offerApi = res.data?.publisher_offer_api;
       if (url) {
         setTrackingUrl(url);
+      }
+      if (offerApi) {
+        setPublisherOfferApi(offerApi);
       }
     } catch (err) {
       alert("Error generating link");
@@ -912,12 +916,13 @@ const GenrateLink = ({ campaignId, trackingurl }) => {
     }
   };
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(trackingUrl);
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+
     Swal.fire({
       icon: "success",
       title: "Copied!",
-      text: "Tracking URL copied to clipboard.",
+      text: "Copied to clipboard.",
       timer: 1500,
       showConfirmButton: false,
     });
@@ -992,24 +997,49 @@ const GenrateLink = ({ campaignId, trackingurl }) => {
             </div>
           </div>
 
-          {/* Result Box */}
           {trackingUrl && (
-            <div className="mt-6 p-4 border border-gray-300 rounded-xl bg-gray-50 shadow-sm">
-              <p className="text-gray-700 font-medium mb-2">Generated Link:</p>
-
-              <div className="flex items-center gap-3">
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 border rounded-lg bg-white text-gray-700"
-                  value={trackingUrl}
-                  readOnly
-                />
-                <Button
-                  className="!bg-green-600 hover:!bg-green-700 !text-white !rounded-lg"
-                  onClick={copyToClipboard}>
-                  Copy
-                </Button>
+            <div className="mt-6 p-4 border border-gray-300 rounded-xl bg-gray-50 shadow-sm space-y-4">
+              {/* Publisher Tracking Link */}
+              <div>
+                <p className="text-gray-700 font-medium mb-2">
+                  Publisher Tracking Link:
+                </p>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 border rounded-lg bg-white text-gray-700"
+                    value={trackingUrl}
+                    readOnly
+                  />
+                  <Button
+                    className="!bg-green-600 hover:!bg-green-700 !text-white !rounded-lg"
+                    onClick={() => copyToClipboard(trackingUrl)}>
+                    Copy
+                  </Button>
+                </div>
               </div>
+
+              {/* Publisher Offer API */}
+              {publisherOfferApi && (
+                <div>
+                  <p className="text-gray-700 font-medium mb-2">
+                    Publisher Offer API:
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border rounded-lg bg-white text-gray-700"
+                      value={publisherOfferApi}
+                      readOnly
+                    />
+                    <Button
+                      className="!bg-blue-600 hover:!bg-blue-700 !text-white !rounded-lg"
+                      onClick={() => copyToClipboard(publisherOfferApi)}>
+                      Copy
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </>
