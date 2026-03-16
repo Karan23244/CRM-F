@@ -898,7 +898,6 @@ const GenrateLink = ({ campaignId, trackingurl }) => {
         campaign_id: campaignId,
         hide_referrer: hideReferrer ? 1 : 0,
       });
-      console.log("Link Generation Response:", res.data);
       // ⬇ THIS should be returned by your backend
       // Example: { link: "https://track.com/campaign/5543?pub=100" }
       const url = res.data?.publisher_link;

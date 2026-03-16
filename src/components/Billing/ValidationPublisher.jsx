@@ -337,9 +337,21 @@ export default function BillingAdvertiser() {
           month,
           data: nextRows,
         });
-        console.log("SAVE RES:", res.data);
+        console.log("Autosave Response:", res);
         if (res.data?.success) {
-          await fetchBilling();
+          if (res.data.billingIdMap) {
+            setRows((prev) =>
+              prev.map((r) => {
+                const match = res.data.billingIdMap.find(
+                  (b) =>
+                    (!r.billing_id && b.tmp_id === r._tmp_id) ||
+                    b.billing_id === r.billing_id,
+                );
+
+                return match ? { ...r, billing_id: match.billing_id } : r;
+              }),
+            );
+          }
         }
       } catch (err) {
         console.log("SAVE ERROR:", err);
@@ -693,22 +705,48 @@ export default function BillingAdvertiser() {
             disabled={row.status === "locked"}
             onClick={async () => {
               try {
-                // 1️⃣ Ensure snapshot exists for this row
-                if (!row.billing_id) {
-                  await axios.post(`${API}/billing/publisher-save`, {
-                    pub_id: selectedPubId,
-                    month,
-                    data: rows,
-                  });
+                let billingId = row.billing_id;
+
+                // 1️⃣ Ensure snapshot exists
+                if (!billingId) {
+                  const saveRes = await axios.post(
+                    `${API}/billing/publisher-save`,
+                    {
+                      pub_id: selectedPubId,
+                      month,
+                      data: rows,
+                    },
+                  );
+
+                  if (saveRes.data?.billingIdMap) {
+                    setRows((prev) =>
+                      prev.map((r) => {
+                        const match = saveRes.data.billingIdMap.find(
+                          (b) =>
+                            (!r.billing_id && b.tmp_id === r._tmp_id) ||
+                            b.billing_id === r.billing_id,
+                        );
+
+                        if (match && r._tmp_id === row._tmp_id) {
+                          billingId = match.billing_id;
+                        }
+
+                        return match
+                          ? { ...r, billing_id: match.billing_id }
+                          : r;
+                      }),
+                    );
+                  }
                 }
 
                 // 2️⃣ Verify row
                 const res = await axios.post(
                   `${API}/billing/publisher-verify-row`,
                   {
-                    billing_id: row.billing_id,
+                    billing_id: billingId,
                   },
                 );
+
                 if (res.data?.success) {
                   Swal.fire({
                     icon: "success",
@@ -718,7 +756,15 @@ export default function BillingAdvertiser() {
                     showConfirmButton: false,
                   });
 
-                  fetchBilling();
+                  // ✅ Update row locally (NO refetch)
+                  setRows((prev) =>
+                    prev.map((r) =>
+                      (r.billing_id || r._tmp_id) ===
+                      (row.billing_id || row._tmp_id)
+                        ? { ...r, status: "verified" }
+                        : r,
+                    ),
+                  );
                 } else {
                   Swal.fire({
                     icon: "error",
@@ -731,8 +777,8 @@ export default function BillingAdvertiser() {
                   icon: "error",
                   title: "Server Error",
                   text:
-                    err.response?.data?.message || // backend message
-                    err.response?.data?.error || // sometimes error key
+                    err.response?.data?.message ||
+                    err.response?.data?.error ||
                     "Internal Server Error (500)",
                 });
               }
