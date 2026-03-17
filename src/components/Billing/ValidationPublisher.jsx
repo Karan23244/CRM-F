@@ -15,6 +15,8 @@ import Swal from "sweetalert2";
 import { useSelector } from "react-redux";
 import StyledTable from "../../Utils/StyledTable";
 import { nanoid } from "nanoid";
+import { FilterFilled } from "@ant-design/icons";
+
 const { Option } = Select;
 const API = import.meta.env.VITE_API_URL5;
 const displayValue = (v) =>
@@ -281,50 +283,6 @@ export default function BillingAdvertiser() {
       fetchBilling();
     }
   }, [selectedPubId, month]);
-  // const triggerAutosave = (nextRows) => {
-  //   if (!selectedPubId || !month) return;
-
-  //   clearTimeout(autosaveTimer.current);
-
-  //   autosaveTimer.current = setTimeout(async () => {
-  //     try {
-  //       const res = await axios.post(`${API}/billing/publisher-save`, {
-  //         pub_id: selectedPubId,
-  //         month,
-  //         data: nextRows,
-  //       });
-  //       if (res.data?.success) {
-  //         // ✅ Refetch only when save is successful
-  //         await fetchBilling();
-
-  //         if (res.data.billingIdMap) {
-  //           setRows((prev) =>
-  //             prev.map((r) => {
-  //               const match = res.data.billingIdMap.find(
-  //                 (b) =>
-  //                   (!r.billing_id && b.tmp_id === r._tmp_id) ||
-  //                   b.billing_id === r.billing_id,
-  //               );
-
-  //               return match ? { ...r, billing_id: match.billing_id } : r;
-  //             }),
-  //           );
-  //         }
-  //       }
-  //     } catch (err) {
-  //       console.log("SAVE ERROR:", err);
-
-  //       Swal.fire({
-  //         icon: "error",
-  //         title: "Server Error",
-  //         text:
-  //           err.response?.data?.message || // backend message
-  //           err.response?.data?.error || // sometimes error key
-  //           "Internal Server Error (500)",
-  //       });
-  //     }
-  //   }, 700);
-  // };
   const triggerAutosave = (nextRows, previousRows) => {
     if (!selectedPubId || !month) return;
 
@@ -338,20 +296,43 @@ export default function BillingAdvertiser() {
           data: nextRows,
         });
         console.log("Autosave Response:", res);
-        if (res.data?.success) {
-          if (res.data.billingIdMap) {
-            setRows((prev) =>
-              prev.map((r) => {
-                const match = res.data.billingIdMap.find(
-                  (b) =>
-                    (!r.billing_id && b.tmp_id === r._tmp_id) ||
-                    b.billing_id === r.billing_id,
-                );
+        // if (res.data?.success) {
+        //   if (res.data.billingIdMap) {
+        //     setRows((prev) =>
+        //       prev.map((r) => {
+        //         const match = res.data.billingIdMap.find(
+        //           (b) =>
+        //             (!r.billing_id && b.tmp_id === r._tmp_id) ||
+        //             b.billing_id === r.billing_id,
+        //         );
 
-                return match ? { ...r, billing_id: match.billing_id } : r;
-              }),
-            );
-          }
+        //         return match ? { ...r, billing_id: match.billing_id } : r;
+        //       }),
+        //     );
+        //   }
+        // }
+        if (res.data?.success) {
+          setRows((prev) =>
+            prev.map((r) => {
+              // 1️⃣ Match billingIdMap (for new IDs)
+              const idMatch = res.data.billingIdMap?.find(
+                (b) =>
+                  (!r.billing_id && b.tmp_id === r._tmp_id) ||
+                  b.billing_id === r.billing_id,
+              );
+
+              // 2️⃣ Match updated row data
+              const updatedMatch = res.data.data?.find(
+                (d) => d.billing_id === (idMatch?.billing_id || r.billing_id),
+              );
+
+              return {
+                ...r,
+                ...(idMatch ? { billing_id: idMatch.billing_id } : {}),
+                ...(updatedMatch || {}),
+              };
+            }),
+          );
         }
       } catch (err) {
         console.log("SAVE ERROR:", err);
@@ -410,6 +391,7 @@ export default function BillingAdvertiser() {
             pid_data: [
               ...(r.pid_data || []),
               {
+                _id: nanoid(), // ✅ unique id
                 os: "",
                 pid: "",
                 total_no: null,
@@ -422,24 +404,6 @@ export default function BillingAdvertiser() {
     );
     setRows(updated);
   };
-
-  // const addCampaign = () => {
-  //   setRows((r) => [
-  //     ...r,
-  //     {
-  //       _tmp_id: nanoid(),
-  //       campaign_name: "",
-  //       geo: "",
-  //       os: "",
-  //       payable_event: "",
-  //       payout_rate: 0,
-  //       total_no: null,
-  //       deductions: null,
-  //       approved_no: null,
-  //       pid_data: [],
-  //     },
-  //   ]);
-  // };
   const addCampaign = () => {
     setRows((r) => [
       {
@@ -497,6 +461,121 @@ export default function BillingAdvertiser() {
       ...pidValues,
     }));
   }, [activeRow]);
+  // const getColumnFilter = (dataIndex, isPid = false) => ({
+  //   filterDropdown: () => {
+  //     const allValues = uniqueValues[dataIndex] || [];
+  //     const isFiltered = !!filters[dataIndex];
+
+  //     const selectedValues = isPid
+  //       ? (pidFilters[dataIndex] ?? allValues)
+  //       : (filters[dataIndex] ?? allValues);
+
+  //     const searchText = filterSearch[dataIndex] || "";
+
+  //     const visibleValues = allValues.filter((val) =>
+  //       val.toString().toLowerCase().includes(searchText.toLowerCase()),
+  //     );
+
+  //     const isAllSelected = selectedValues.length === allValues.length;
+  //     const isIndeterminate = selectedValues.length > 0 && !isAllSelected;
+
+  //     const updateFilters = (next) => {
+  //       if (isPid) {
+  //         setPidFilters((prev) => ({
+  //           ...prev,
+  //           [dataIndex]: next,
+  //         }));
+  //       } else {
+  //         setFilters((prev) => ({
+  //           ...prev,
+  //           [dataIndex]: next,
+  //         }));
+  //       }
+  //     };
+
+  //     return (
+  //       <div
+  //         className="w-[260px] rounded-xl"
+  //         style={{
+  //           color: isFiltered ? "#1677ff" : "inherit",
+  //         }}
+  //         onClick={(e) => e.stopPropagation()}>
+  //         {/* 🔍 Search */}
+  //         <div className="sticky top-0 bg-white p-2 border-b">
+  //           <Input
+  //             allowClear
+  //             placeholder="Search values"
+  //             value={searchText}
+  //             onChange={(e) =>
+  //               setFilterSearch((prev) => ({
+  //                 ...prev,
+  //                 [dataIndex]: e.target.value,
+  //               }))
+  //             }
+  //           />
+  //         </div>
+
+  //         {/* ☑ Select All */}
+  //         <div className="px-3 py-2">
+  //           <Checkbox
+  //             indeterminate={isIndeterminate}
+  //             checked={isAllSelected}
+  //             onChange={(e) => {
+  //               const checked = e.target.checked;
+
+  //               if (checked) {
+  //                 if (isPid) {
+  //                   setPidFilters((prev) => {
+  //                     const updated = { ...prev };
+  //                     delete updated[dataIndex];
+  //                     return updated;
+  //                   });
+  //                 } else {
+  //                   setFilters((prev) => {
+  //                     const updated = { ...prev };
+  //                     delete updated[dataIndex];
+  //                     return updated;
+  //                   });
+  //                 }
+  //               } else {
+  //                 updateFilters([]);
+  //               }
+  //             }}>
+  //             Select All
+  //           </Checkbox>
+  //         </div>
+
+  //         {/* 📋 Values */}
+  //         <div className="max-h-[220px] overflow-y-auto px-2 pb-2 space-y-1">
+  //           {visibleValues.map((val) => (
+  //             <label
+  //               key={val}
+  //               className="flex items-center gap-2 px-2 py-1 rounded cursor-pointer hover:bg-blue-50">
+  //               <Checkbox
+  //                 checked={selectedValues.includes(val)}
+  //                 onChange={(e) => {
+  //                   const next = e.target.checked
+  //                     ? [...selectedValues, val]
+  //                     : selectedValues.filter((v) => v !== val);
+
+  //                   updateFilters(next);
+  //                 }}
+  //               />
+  //               <span className="truncate">{val}</span>
+  //             </label>
+  //           ))}
+
+  //           {visibleValues.length === 0 && (
+  //             <div className="py-4 text-center text-gray-400 text-sm">
+  //               No matching values
+  //             </div>
+  //           )}
+  //         </div>
+  //       </div>
+  //     );
+  //   },
+  // });
+
   const getColumnFilter = (dataIndex, isPid = false) => ({
     filterDropdown: () => {
       const allValues = uniqueValues[dataIndex] || [];
@@ -504,6 +583,8 @@ export default function BillingAdvertiser() {
       const selectedValues = isPid
         ? (pidFilters[dataIndex] ?? allValues)
         : (filters[dataIndex] ?? allValues);
+
+      const isFiltered = selectedValues.length !== allValues.length; // ✅ correct check
 
       const searchText = filterSearch[dataIndex] || "";
 
@@ -604,6 +685,25 @@ export default function BillingAdvertiser() {
             )}
           </div>
         </div>
+      );
+    },
+
+    // ✅ THIS controls icon color
+    filterIcon: () => {
+      const allValues = uniqueValues[dataIndex] || [];
+
+      const selectedValues = isPid
+        ? (pidFilters[dataIndex] ?? allValues)
+        : (filters[dataIndex] ?? allValues);
+
+      const isFiltered = selectedValues.length !== allValues.length;
+
+      return (
+        <FilterFilled
+          style={{
+            color: isFiltered ? "#1677ff" : "#bfbfbf",
+          }}
+        />
       );
     },
   });
@@ -717,7 +817,7 @@ export default function BillingAdvertiser() {
                       data: rows,
                     },
                   );
-
+                  console.log("Save before verify:", saveRes);
                   if (saveRes.data?.billingIdMap) {
                     setRows((prev) =>
                       prev.map((r) => {
@@ -887,6 +987,11 @@ export default function BillingAdvertiser() {
             onChange={(v) => {
               setSelectedPubId(v ?? null);
               setRows([]);
+
+              // ✅ reset filters
+              setFilters({});
+              setPidFilters({});
+              setFilterSearch({});
             }}
           />
 
@@ -895,6 +1000,11 @@ export default function BillingAdvertiser() {
             onChange={(d, s) => {
               setMonth(s);
               setRows([]);
+
+              // ✅ reset filters
+              setFilters({});
+              setPidFilters({});
+              setFilterSearch({});
             }}
           />
 
@@ -902,6 +1012,17 @@ export default function BillingAdvertiser() {
             onClick={addCampaign}
             disabled={!selectedPubId || !month || isLocked}>
             + Add Campaign
+          </Button>
+          <Button
+            onClick={() => {
+              setFilters({});
+              setPidFilters({});
+              setFilterSearch({});
+            }}
+            disabled={
+              !Object.keys(filters).length && !Object.keys(pidFilters).length
+            }>
+            Clear Filters
           </Button>
         </div>
 
@@ -983,6 +1104,23 @@ export default function BillingAdvertiser() {
         onCancel={() => {
           setDetailsOpen(false);
           setDetailsRowId(null);
+
+          // ✅ reset PID filters
+          setPidFilters({});
+          setFilterSearch((prev) => {
+            const updated = { ...prev };
+
+            // remove only pid-related search keys (optional clean)
+            [
+              "os",
+              "pid",
+              "adv_total_number",
+              "pub_apno",
+              "payout_amount",
+            ].forEach((k) => delete updated[k]);
+
+            return updated;
+          });
         }}
         footer={null}
         width={920}
