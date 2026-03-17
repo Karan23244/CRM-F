@@ -900,7 +900,7 @@ export default function BillingAdvertiser() {
 
           <Button
             onClick={addCampaign}
-            disabled={!rows.length || !selectedPubId || !month || isLocked}>
+            disabled={!selectedPubId || !month || isLocked}>
             + Add Campaign
           </Button>
         </div>
