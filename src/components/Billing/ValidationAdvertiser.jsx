@@ -15,6 +15,8 @@ import { useSelector } from "react-redux";
 import StyledTable from "../../Utils/StyledTable";
 import { nanoid } from "nanoid";
 import Swal from "sweetalert2";
+import { FilterFilled } from "@ant-design/icons";
+
 const { Option } = Select;
 const API = import.meta.env.VITE_API_URL5;
 const centerStyle = {
@@ -370,19 +372,24 @@ export default function BillingAdvertiser() {
         });
 
         if (res.data?.success) {
-          const updatedRows = res.data.rows || [];
-
           setRows((prev) =>
             prev.map((r) => {
-              const fresh = updatedRows.find(
-                (f) => f.billing_id === r.billing_id,
+              // 1️⃣ Match new IDs
+              const idMatch = res.data.billingIdMap?.find(
+                (b) =>
+                  (!r.billing_id && b.tmp_id === r._tmp_id) ||
+                  b.billing_id === r.billing_id,
               );
 
-              if (!fresh) return r;
+              // 2️⃣ Match updated row
+              const updatedMatch = res.data.data?.find(
+                (d) => d.billing_id === (idMatch?.billing_id || r.billing_id),
+              );
 
               return {
                 ...r,
-                ...fresh,
+                ...(idMatch ? { billing_id: idMatch.billing_id } : {}),
+                ...(updatedMatch || {}),
               };
             }),
           );
@@ -627,6 +634,23 @@ export default function BillingAdvertiser() {
         </div>
       );
     },
+    filterIcon: () => {
+      const allValues = uniqueValues[dataIndex] || [];
+
+      const selectedValues = isPid
+        ? (pidFilters[dataIndex] ?? allValues)
+        : (filters[dataIndex] ?? allValues);
+
+      const isFiltered = selectedValues.length !== allValues.length;
+
+      return (
+        <FilterFilled
+          style={{
+            color: isFiltered ? "#1677ff" : "#bfbfbf",
+          }}
+        />
+      );
+    },
   });
   const columns = [
     {
@@ -768,6 +792,9 @@ export default function BillingAdvertiser() {
             onChange={(v) => {
               setSelectedAdvId(v ?? null);
               setRows([]);
+              setFilters({});
+              setPidFilters({});
+              setFilterSearch({});
             }}
           />
 
@@ -776,6 +803,9 @@ export default function BillingAdvertiser() {
             onChange={(d, s) => {
               setMonth(s);
               setRows([]);
+              setFilters({});
+              setPidFilters({});
+              setFilterSearch({});
             }}
           />
 
@@ -783,6 +813,14 @@ export default function BillingAdvertiser() {
             disabled={!selectedAdvId || !month || isLocked}
             onClick={addCampaign}>
             + Add Campaign
+          </Button>
+          <Button
+            onClick={() => {
+              setFilters({});
+              setPidFilters({});
+              setFilterSearch({});
+            }}>
+            Clear Filters
           </Button>
         </div>
 
@@ -1066,9 +1104,7 @@ export default function BillingAdvertiser() {
                     render: (_, r, i) => (
                       <EditableCell
                         value={r.deductions}
-                        onSave={(v) =>
-                          updatePid(index, i, "deductions", v)
-                        }
+                        onSave={(v) => updatePid(index, i, "deductions", v)}
                         disabled={activeRow.status === "locked"}
                       />
                     ),
@@ -1081,9 +1117,7 @@ export default function BillingAdvertiser() {
                     render: (_, r, i) => (
                       <EditableCell
                         value={r.approved_no}
-                        onSave={(v) =>
-                          updatePid(index, i, "approved_no", v)
-                        }
+                        onSave={(v) => updatePid(index, i, "approved_no", v)}
                         disabled={activeRow.status === "locked"}
                       />
                     ),

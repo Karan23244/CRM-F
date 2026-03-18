@@ -29,7 +29,7 @@ const SummaryItem = ({ label, value, highlight, disabled }) => (
     <div className="text-sm font-semibold text-gray-800">{value}</div>
   </div>
 );
-const EditableCampaignCell = ({ row, rowIndex, onChange, disabled }) => {
+const EditableCampaignCell = ({ row, record, onChange, disabled }) => {
   const [editing, setEditing] = useState(false);
   const [local, setLocal] = useState({
     campaign_name: row.campaign_name || "",
@@ -47,7 +47,7 @@ const EditableCampaignCell = ({ row, rowIndex, onChange, disabled }) => {
 
   const save = () => {
     setEditing(false);
-    onChange(rowIndex, local);
+    onChange(record, local);
   };
 
   if (!editing) {
@@ -243,9 +243,14 @@ export default function BillingAdvertiser() {
     if (val === null || val === undefined || val === "") return "Pending";
     return String(val).trim();
   };
-  const updateCampaignComposite = (rowIndex, values) => {
+  const updateCampaignComposite = (record, values) => {
     updateRowsSafely((prev) =>
-      prev.map((row, i) => (i === rowIndex ? { ...row, ...values } : row)),
+      prev.map((row) =>
+        (row.billing_id || row._tmp_id) ===
+        (record.billing_id || record._tmp_id)
+          ? { ...row, ...values }
+          : row,
+      ),
     );
   };
 
@@ -461,120 +466,6 @@ export default function BillingAdvertiser() {
       ...pidValues,
     }));
   }, [activeRow]);
-  // const getColumnFilter = (dataIndex, isPid = false) => ({
-  //   filterDropdown: () => {
-  //     const allValues = uniqueValues[dataIndex] || [];
-  //     const isFiltered = !!filters[dataIndex];
-
-  //     const selectedValues = isPid
-  //       ? (pidFilters[dataIndex] ?? allValues)
-  //       : (filters[dataIndex] ?? allValues);
-
-  //     const searchText = filterSearch[dataIndex] || "";
-
-  //     const visibleValues = allValues.filter((val) =>
-  //       val.toString().toLowerCase().includes(searchText.toLowerCase()),
-  //     );
-
-  //     const isAllSelected = selectedValues.length === allValues.length;
-  //     const isIndeterminate = selectedValues.length > 0 && !isAllSelected;
-
-  //     const updateFilters = (next) => {
-  //       if (isPid) {
-  //         setPidFilters((prev) => ({
-  //           ...prev,
-  //           [dataIndex]: next,
-  //         }));
-  //       } else {
-  //         setFilters((prev) => ({
-  //           ...prev,
-  //           [dataIndex]: next,
-  //         }));
-  //       }
-  //     };
-
-  //     return (
-  //       <div
-  //         className="w-[260px] rounded-xl"
-  //         style={{
-  //           color: isFiltered ? "#1677ff" : "inherit",
-  //         }}
-  //         onClick={(e) => e.stopPropagation()}>
-  //         {/* 🔍 Search */}
-  //         <div className="sticky top-0 bg-white p-2 border-b">
-  //           <Input
-  //             allowClear
-  //             placeholder="Search values"
-  //             value={searchText}
-  //             onChange={(e) =>
-  //               setFilterSearch((prev) => ({
-  //                 ...prev,
-  //                 [dataIndex]: e.target.value,
-  //               }))
-  //             }
-  //           />
-  //         </div>
-
-  //         {/* ☑ Select All */}
-  //         <div className="px-3 py-2">
-  //           <Checkbox
-  //             indeterminate={isIndeterminate}
-  //             checked={isAllSelected}
-  //             onChange={(e) => {
-  //               const checked = e.target.checked;
-
-  //               if (checked) {
-  //                 if (isPid) {
-  //                   setPidFilters((prev) => {
-  //                     const updated = { ...prev };
-  //                     delete updated[dataIndex];
-  //                     return updated;
-  //                   });
-  //                 } else {
-  //                   setFilters((prev) => {
-  //                     const updated = { ...prev };
-  //                     delete updated[dataIndex];
-  //                     return updated;
-  //                   });
-  //                 }
-  //               } else {
-  //                 updateFilters([]);
-  //               }
-  //             }}>
-  //             Select All
-  //           </Checkbox>
-  //         </div>
-
-  //         {/* 📋 Values */}
-  //         <div className="max-h-[220px] overflow-y-auto px-2 pb-2 space-y-1">
-  //           {visibleValues.map((val) => (
-  //             <label
-  //               key={val}
-  //               className="flex items-center gap-2 px-2 py-1 rounded cursor-pointer hover:bg-blue-50">
-  //               <Checkbox
-  //                 checked={selectedValues.includes(val)}
-  //                 onChange={(e) => {
-  //                   const next = e.target.checked
-  //                     ? [...selectedValues, val]
-  //                     : selectedValues.filter((v) => v !== val);
-
-  //                   updateFilters(next);
-  //                 }}
-  //               />
-  //               <span className="truncate">{val}</span>
-  //             </label>
-  //           ))}
-
-  //           {visibleValues.length === 0 && (
-  //             <div className="py-4 text-center text-gray-400 text-sm">
-  //               No matching values
-  //             </div>
-  //           )}
-  //         </div>
-  //       </div>
-  //     );
-  //   },
-  // });
 
   const getColumnFilter = (dataIndex, isPid = false) => ({
     filterDropdown: () => {
@@ -717,12 +608,12 @@ export default function BillingAdvertiser() {
     {
       title: "Campaign",
       ...getColumnFilter("campaign_name"),
-      render: (_, row, index) => (
+      render: (_, record) => (
         <EditableCampaignCell
-          row={row}
-          rowIndex={index}
+          row={record}
+          record={record}
           onChange={updateCampaignComposite}
-          disabled={row.status === "locked"}
+          disabled={record.status === "locked"}
         />
       ),
     },
@@ -730,17 +621,20 @@ export default function BillingAdvertiser() {
       title: "Pub Payout",
       ...getColumnFilter("pub_payout"),
       width: 120,
-      render: (_, row, index) => (
+      render: (_, record) => (
         <EditableCell
-          value={row.pub_payout}
+          value={record.pub_payout}
           onSave={(v) =>
             updateRowsSafely((prev) =>
-              prev.map((row, i) =>
-                i === index ? { ...row, pub_payout: v } : row,
+              prev.map((row) =>
+                (row.billing_id || row._tmp_id) ===
+                (record.billing_id || record._tmp_id)
+                  ? { ...row, pub_payout: v }
+                  : row,
               ),
             )
           }
-          disabled={row.status === "locked"}
+          disabled={record.status === "locked"}
         />
       ),
     },
@@ -748,18 +642,21 @@ export default function BillingAdvertiser() {
     {
       title: "Payable Event",
       ...getColumnFilter("payable_event"),
-      render: (_, row, index) => (
+      render: (_, record) => (
         <EditableTextCell
-          value={row.payable_event}
+          value={record.payable_event}
           width={180}
           onSave={(v) =>
             updateRowsSafely((prev) =>
-              prev.map((row, i) =>
-                i === index ? { ...row, payable_event: v } : row,
+              prev.map((row) =>
+                (row.billing_id || row._tmp_id) ===
+                (record.billing_id || record._tmp_id)
+                  ? { ...row, payable_event: v }
+                  : row,
               ),
             )
           }
-          disabled={row.status === "locked"}
+          disabled={record.status === "locked"}
         />
       ),
     },
