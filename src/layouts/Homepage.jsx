@@ -29,6 +29,7 @@ import TopAdvertisersChart from "./Charts/TopAdvertisersChart";
 import TopPublishersChart from "./Charts/TopPublishersChart";
 import OSDistributionChart from "./Charts/OSDistributionChart";
 import VerticalDistributionChart from "./Charts/VerticalDistributionChart";
+import RevenueDashboard from "./Revenu/RevenueDashboard";
 const { RangePicker } = DatePicker;
 const apiUrl = import.meta.env.VITE_API_URL;
 const API = import.meta.env.VITE_API_URL5;
@@ -282,6 +283,9 @@ export default function Dashboard() {
           </div>
         )}
       </section>
+      <div>
+        <RevenueDashboard />
+      </div>
     </div>
   );
 }
