@@ -17,7 +17,7 @@ import {
 import dayjs from "dayjs";
 import axios from "axios";
 import StyledTable from "../../Utils/StyledTable";
-
+import { useSelector } from "react-redux";
 const API = import.meta.env.VITE_API_URL5;
 
 /* ============================= */
@@ -32,6 +32,7 @@ const displayValue = (val, placeholder = "—") =>
   );
 
 function AdvertiserAccount() {
+  const { user } = useSelector((state) => state.auth);
   const currentMonth = dayjs().format("YYYY-MM");
   const [data, setData] = useState([]);
   const [month, setMonth] = useState(currentMonth);
@@ -58,11 +59,17 @@ function AdvertiserAccount() {
   const fetchData = async (selectedMonth) => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API}/advertiser/account`, {
-        params: selectedMonth ? { month: selectedMonth } : {},
+
+      const res = await axios.post(`${API}/advertiser/account`, {
+        user_id: user?.id,
+        role: user?.role || [],
+        assigned_subadmins: user?.assigned_subadmins || [],
+        month: selectedMonth,
       });
-      setData(res.data);
+
+      setData(res.data.data); // ✅ important
     } catch (err) {
+      console.error(err);
       message.error("Failed to fetch data");
     } finally {
       setLoading(false);

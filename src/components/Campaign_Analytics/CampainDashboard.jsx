@@ -18,6 +18,7 @@ import {
 import UploadForm from "./UploadForm";
 import AjustUploadForm from "./AdjustForm";
 import SingularUploadForm from "./SingularForm";
+import RetargettingForm from "./RetargettingForm";
 import { useSelector } from "react-redux";
 import PerformanceComparison from "./PerformanceComparison";
 import dayjs from "dayjs";
@@ -268,6 +269,7 @@ export default function OptimizationPage() {
               <Option value="upload">Appslyer Upload Form</Option>
               <Option value="adjust">Adjust Upload Form</Option>
               <Option value="singular">Singular Upload Form</Option>
+              <Option value="retargetting">Retargetting Upload Form</Option>
             </Select>
           </div>
 
@@ -286,6 +288,11 @@ export default function OptimizationPage() {
           {selectedForm === "singular" && (
             <div style={{ marginTop: 20 }}>
               <SingularUploadForm onUploadSuccess={fetchData} />
+            </div>
+          )}
+          {selectedForm === "retargetting" && (
+            <div style={{ marginTop: 20 }}>
+              <RetargettingForm onUploadSuccess={fetchData} />
             </div>
           )}
         </Card>

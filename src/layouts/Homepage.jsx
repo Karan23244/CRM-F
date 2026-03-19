@@ -315,7 +315,7 @@ const DashboardOverview = ({ user }) => {
       console.log("Sending payload:", payload);
 
       const response = await axios.post(
-        `${API}/api/dashboard-adv-data`,
+        `${API}/dashboard-adv-data`,
         payload,
       );
 

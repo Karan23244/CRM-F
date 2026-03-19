@@ -11,6 +11,7 @@ import {
 } from "antd";
 import dayjs from "dayjs";
 import axios from "axios";
+import { useSelector } from "react-redux";
 import StyledTable from "../../Utils/StyledTable";
 import {
   PushpinOutlined,
@@ -70,6 +71,7 @@ const SystemAmountCell = ({ record }) => {
 /* ============================= */
 
 export default function PublisherAccount() {
+  const { user } = useSelector((state) => state.auth);
   const currentMonth = dayjs().format("YYYY-MM");
   const [data, setData] = useState([]);
   const [month, setMonth] = useState(currentMonth);
@@ -93,11 +95,17 @@ export default function PublisherAccount() {
   const fetchData = async (m) => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API}/publisher/account`, {
-        params: m ? { month: m } : {},
+
+      const res = await axios.post(`${API}/publisher/account`, {
+        user_id: user?.id,
+        role: user?.role || [],
+        assigned_subadmins: user?.assigned_subadmins || [],
+        month: m,
       });
-      setData(res.data);
-    } catch {
+
+      setData(res.data.data); // ⚠️ important (your backend sends { success, data })
+    } catch (err) {
+      console.error(err);
       message.error("Failed to fetch data");
     } finally {
       setLoading(false);
