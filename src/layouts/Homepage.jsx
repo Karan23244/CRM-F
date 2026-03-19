@@ -47,7 +47,12 @@ export default function Dashboard() {
   const [liveCount, setLiveCount] = useState(0);
   const [advCount, setAdvCount] = useState(0);
   const [pubCount, setPubCount] = useState(0);
+  const isRestricted =
+    user?.role?.includes("advertiser") ||
+    user?.role?.includes("advertiser_manager") ||
+    user?.role?.includes("operations");
 
+  console.log(isRestricted, user?.role);
   const fetchCounts = async () => {
     try {
       console.log("Sending →", {
@@ -283,9 +288,7 @@ export default function Dashboard() {
           </div>
         )}
       </section>
-      <div>
-        <RevenueDashboard />
-      </div>
+      <div>{!isRestricted && <RevenueDashboard />}</div>
     </div>
   );
 }
