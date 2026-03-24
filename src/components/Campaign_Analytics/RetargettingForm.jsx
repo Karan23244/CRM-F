@@ -17,12 +17,13 @@ const { Title } = Typography;
 const { Option } = Select;
 
 const RetargettingForm = () => {
-  const [file, setFile] = useState(null);
+  const [form] = Form.useForm(); // ✅ FIX: form instance
+  const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const onFinish = async (values) => {
-    if (!file) {
-      Swal.fire("Error", "Please upload a file", "error");
+    if (!files.length) {
+      Swal.fire("Error", "Please upload at least one file", "error");
       return;
     }
 
@@ -37,7 +38,11 @@ const RetargettingForm = () => {
         `${values.daterange[0].format("YYYY-MM-DD")} to ${values.daterange[1].format("YYYY-MM-DD")}`,
       );
       formData.append("geo", values.geo);
-      formData.append("file", file);
+
+      // ✅ Append multiple files
+      files.forEach((file) => {
+        formData.append("files", file);
+      });
 
       const res = await fetch("http://localhost:2001/api/upload", {
         method: "POST",
@@ -50,13 +55,11 @@ const RetargettingForm = () => {
         Swal.fire({
           icon: "success",
           title: "Upload Successful",
-          text: `Inserted ${data.inserted} rows`,
+          text: `Data Inserted Successful`,
         });
-        // ✅ Reset form fields
-        form.resetFields();
 
-        // ✅ Clear uploaded file
-        setFile(null);
+        form.resetFields(); // reset inputs
+        setFiles([]);
       } else {
         Swal.fire("Error", data.error || "Upload failed", "error");
       }
@@ -68,16 +71,20 @@ const RetargettingForm = () => {
   };
 
   const uploadProps = {
+    multiple: true, // ✅ allow multiple files
     beforeUpload: (file) => {
-      setFile(file);
+      setFiles((prev) => [...prev, file]);
       return false; // prevent auto upload
     },
-    maxCount: 1,
+    onRemove: (file) => {
+      setFiles((prev) => prev.filter((f) => f.uid !== file.uid));
+    },
+    fileList: files, // ✅ control file list UI
     accept: ".xlsx,.xls,.csv",
   };
 
   return (
-    <div className=" flex items-center justify-center bg-gradient-to-br from-[#EAF1FA] via-[#F6F9FC] to-[#FFFFFF] p-8">
+    <div className="flex items-center justify-center bg-gradient-to-br from-[#EAF1FA] via-[#F6F9FC] to-[#FFFFFF] p-8">
       <Card
         className="w-full max-w-6xl rounded-2xl shadow-2xl border border-gray-100 bg-white/90 backdrop-blur-sm"
         bodyStyle={{ padding: "2.5rem" }}>
@@ -85,7 +92,7 @@ const RetargettingForm = () => {
           Retargetting Form Upload
         </Title>
 
-        <Form layout="vertical" onFinish={onFinish}>
+        <Form form={form} layout="vertical" onFinish={onFinish}>
           {/* Campaign Name */}
           <Form.Item
             label="Campaign Name"
@@ -122,9 +129,9 @@ const RetargettingForm = () => {
           </Form.Item>
 
           {/* File Upload */}
-          <Form.Item label="Upload Excel File" required>
+          <Form.Item label="Upload Excel Files" required>
             <Upload {...uploadProps}>
-              <Button icon={<UploadOutlined />}>Select File</Button>
+              <Button icon={<UploadOutlined />}>Select Multiple Files</Button>
             </Upload>
           </Form.Item>
 
