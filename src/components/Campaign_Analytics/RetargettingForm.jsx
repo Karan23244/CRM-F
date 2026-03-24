@@ -11,6 +11,7 @@ import {
 } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import Swal from "sweetalert2";
+const apiUrl = import.meta.env.VITE_API_URL2;
 
 const { RangePicker } = DatePicker;
 const { Title } = Typography;
@@ -44,7 +45,7 @@ const RetargettingForm = () => {
         formData.append("files", file);
       });
 
-      const res = await fetch("http://localhost:2001/api/upload", {
+      const res = await fetch(`${apiUrl}/api/upload`, {
         method: "POST",
         body: formData,
       });

@@ -1035,159 +1035,159 @@ export default function OptimizationCampaignAnalysis({
   );
 }
 
-const CampaignTable = () => {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(false);
+// const CampaignTable = () => {
+//   const [data, setData] = useState([]);
+//   const [loading, setLoading] = useState(false);
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const res = await axios.get("http://localhost:2001/api/campaign-data");
-      console.log("Fetched campaign data:", res.data);
-      // Add unique key for table
-      const formatted = res.data.data.map((item) => ({
-        ...item,
-        key: item.id,
-      }));
+//   const fetchData = async () => {
+//     try {
+//       setLoading(true);
+//       const res = await axios.get("http://localhost:2001/api/campaign-data");
+//       console.log("Fetched campaign data:", res.data);
+//       // Add unique key for table
+//       const formatted = res.data.data.map((item) => ({
+//         ...item,
+//         key: item.id,
+//       }));
 
-      setData(formatted);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+//       setData(formatted);
+//     } catch (err) {
+//       console.error(err);
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+//   useEffect(() => {
+//     fetchData();
+//   }, []);
 
-  // ✅ Helper for YES/NO color
-  const renderStatus = (value) => (
-    <Tag color={value === "yes" ? "green" : "red"}>{value?.toUpperCase()}</Tag>
-  );
+//   // ✅ Helper for YES/NO color
+//   const renderStatus = (value) => (
+//     <Tag color={value === "yes" ? "green" : "red"}>{value?.toUpperCase()}</Tag>
+//   );
 
-  // ✅ Table Columns
-  const columns = [
-    {
-      title: "ID",
-      dataIndex: "id",
-      width: 70,
-    },
-    {
-      title: "Campaign",
-      dataIndex: "campaign_name",
-    },
-    {
-      title: "OS",
-      dataIndex: "os",
-      filters: [
-        { text: "Android", value: "android" },
-        { text: "iOS", value: "ios" },
-      ],
-      onFilter: (value, record) => record.os === value,
-    },
-    {
-      title: "Geo",
-      dataIndex: "geo",
-    },
-    {
-      title: "Advertising ID",
-      dataIndex: "advertising_id",
-      width: 250,
-      ellipsis: true,
-      render: (_, record) => {
-        const value = record.advertising_id || record.idfa;
+//   // ✅ Table Columns
+//   const columns = [
+//     {
+//       title: "ID",
+//       dataIndex: "id",
+//       width: 70,
+//     },
+//     {
+//       title: "Campaign",
+//       dataIndex: "campaign_name",
+//     },
+//     {
+//       title: "OS",
+//       dataIndex: "os",
+//       filters: [
+//         { text: "Android", value: "android" },
+//         { text: "iOS", value: "ios" },
+//       ],
+//       onFilter: (value, record) => record.os === value,
+//     },
+//     {
+//       title: "Geo",
+//       dataIndex: "geo",
+//     },
+//     {
+//       title: "Advertising ID",
+//       dataIndex: "advertising_id",
+//       width: 250,
+//       ellipsis: true,
+//       render: (_, record) => {
+//         const value = record.advertising_id || record.idfa;
 
-        return (
-          <div
-            style={{
-              maxWidth: 220,
-              overflow: "hidden",
-              whiteSpace: "nowrap",
-              textOverflow: "ellipsis",
-            }}
-            title={value} // 👈 shows full on hover
-          >
-            {value}
-          </div>
-        );
-      },
-    },
-    {
-      title: "Country Code",
-      dataIndex: "country_code",
-    },
-    {
-      title: "State",
-      dataIndex: "state",
-    },
-    {
-      title: "Install Time",
-      dataIndex: "install_time",
-      sorter: (a, b) => new Date(a.install_time) - new Date(b.install_time),
-    },
+//         return (
+//           <div
+//             style={{
+//               maxWidth: 220,
+//               overflow: "hidden",
+//               whiteSpace: "nowrap",
+//               textOverflow: "ellipsis",
+//             }}
+//             title={value} // 👈 shows full on hover
+//           >
+//             {value}
+//           </div>
+//         );
+//       },
+//     },
+//     {
+//       title: "Country Code",
+//       dataIndex: "country_code",
+//     },
+//     {
+//       title: "State",
+//       dataIndex: "state",
+//     },
+//     {
+//       title: "Install Time",
+//       dataIndex: "install_time",
+//       sorter: (a, b) => new Date(a.install_time) - new Date(b.install_time),
+//     },
 
-    // ✅ FLAGS
-    {
-      title: "NOI",
-      dataIndex: "noi",
-      render: renderStatus,
-    },
-    {
-      title: "RTI",
-      dataIndex: "rti",
-      render: renderStatus,
-    },
-    {
-      title: "PI",
-      dataIndex: "pi",
-      render: renderStatus,
-    },
-    {
-      title: "NOE",
-      dataIndex: "noe",
-      render: renderStatus,
-    },
-    {
-      title: "PE",
-      dataIndex: "pe",
-      render: renderStatus,
-    },
+//     // ✅ FLAGS
+//     {
+//       title: "NOI",
+//       dataIndex: "noi",
+//       render: renderStatus,
+//     },
+//     {
+//       title: "RTI",
+//       dataIndex: "rti",
+//       render: renderStatus,
+//     },
+//     {
+//       title: "PI",
+//       dataIndex: "pi",
+//       render: renderStatus,
+//     },
+//     {
+//       title: "NOE",
+//       dataIndex: "noe",
+//       render: renderStatus,
+//     },
+//     {
+//       title: "PE",
+//       dataIndex: "pe",
+//       render: renderStatus,
+//     },
 
-    // ✅ TIMES
-    {
-      title: "RTI Time",
-      dataIndex: "rti_time",
-    },
-    {
-      title: "PI Time",
-      dataIndex: "pi_time",
-    },
-    {
-      title: "NOE Time",
-      dataIndex: "noe_time",
-    },
-    {
-      title: "PE Time",
-      dataIndex: "pe_time",
-    },
-  ];
+//     // ✅ TIMES
+//     {
+//       title: "RTI Time",
+//       dataIndex: "rti_time",
+//     },
+//     {
+//       title: "PI Time",
+//       dataIndex: "pi_time",
+//     },
+//     {
+//       title: "NOE Time",
+//       dataIndex: "noe_time",
+//     },
+//     {
+//       title: "PE Time",
+//       dataIndex: "pe_time",
+//     },
+//   ];
 
-  return (
-    <div style={{ padding: 20 }}>
-      <h2>Campaign Data</h2>
+//   return (
+//     <div style={{ padding: 20 }}>
+//       <h2>Campaign Data</h2>
 
-      {loading ? (
-        <Spin size="large" />
-      ) : (
-        <StyledTable
-          columns={columns}
-          dataSource={data}
-          bordered
-          scroll={{ x: 1500 }}
-        />
-      )}
-    </div>
-  );
-};
+//       {loading ? (
+//         <Spin size="large" />
+//       ) : (
+//         <StyledTable
+//           columns={columns}
+//           dataSource={data}
+//           bordered
+//           scroll={{ x: 1500 }}
+//         />
+//       )}
+//     </div>
+//   );
+// };
