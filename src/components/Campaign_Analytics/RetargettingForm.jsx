@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Form,
   Input,
@@ -11,6 +11,9 @@ import {
 } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import Swal from "sweetalert2";
+import { joinRoom, joinUserRoom, socket } from "../Socket/Socket.jsx";
+import { useSelector } from "react-redux";
+
 const apiUrl = import.meta.env.VITE_API_URL2;
 
 const { RangePicker } = DatePicker;
@@ -18,58 +21,132 @@ const { Title } = Typography;
 const { Option } = Select;
 
 const RetargettingForm = () => {
-  const [form] = Form.useForm(); // ✅ FIX: form instance
+  const joinedRef = useRef(false);
+  const user = useSelector((state) => state.auth?.user);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    if (joinedRef.current) return;
+
+    joinedRef.current = true;
+    joinUserRoom(user.id);
+  }, [user]);
+
+  const [form] = Form.useForm();
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false); // ✅ prevent double submit
+  const [socketId, setSocketId] = useState(null);
 
+  // ✅ Socket connect
+  useEffect(() => {
+    const handleConnect = () => {
+      console.log("Socket connected:", socket.id);
+      setSocketId(socket.id);
+    };
+
+    if (socket.connected) {
+      handleConnect();
+    } else {
+      socket.on("connect", handleConnect);
+    }
+
+    return () => {
+      socket.off("connect", handleConnect);
+    };
+  }, []);
+
+  // ✅ HANDLE SUBMIT
   const onFinish = async (values) => {
+    if (submitted) return;
+
     if (!files.length) {
       Swal.fire("Error", "Please upload at least one file", "error");
       return;
     }
 
+    setLoading(true);
+    setSubmitted(true);
+
+    const formData = new FormData();
+
+    formData.append("campaignname", values.campaignname.trim());
+    formData.append("os", values.os);
+
+    formData.append(
+      "daterange",
+      `${values.daterange[0].format("YYYY-MM-DD")} to ${values.daterange[1].format("YYYY-MM-DD")}`,
+    );
+
+    formData.append("geo", values.geo);
+
+    // ✅ FIXED (was wrong earlier)
+    if (socketId) {
+      formData.append("socketId", socketId);
+    }
+
+    files.forEach((file) => {
+      formData.append("files", file);
+    });
+
+    // ✅ SHOW PROCESSING SWAL
+    Swal.fire({
+      title: "⏳ Processing...",
+      text: "Your file is being processed. You'll be notified once it's done.",
+      icon: "info",
+      allowOutsideClick: true,
+      showConfirmButton: false,
+      didOpen: () => {
+        Swal.showLoading();
+      },
+    });
+
     try {
-      setLoading(true);
-
-      const formData = new FormData();
-      formData.append("campaignname", values.campaignname);
-      formData.append("os", values.os);
-      formData.append(
-        "daterange",
-        `${values.daterange[0].format("YYYY-MM-DD")} to ${values.daterange[1].format("YYYY-MM-DD")}`,
-      );
-      formData.append("geo", values.geo);
-
-      // ✅ Append multiple files
-      files.forEach((file) => {
-        formData.append("files", file);
-      });
-
-      const res = await fetch(`${apiUrl}/api/upload`, {
+      await fetch(`${apiUrl}/api/upload`, {
         method: "POST",
         body: formData,
       });
 
-      const data = await res.json();
-
-      if (data.success) {
-        Swal.fire({
-          icon: "success",
-          title: "Upload Successful",
-          text: `Data Inserted Successful`,
-        });
-
-        form.resetFields(); // reset inputs
-        setFiles([]);
-      } else {
-        Swal.fire("Error", data.error || "Upload failed", "error");
-      }
+      // ❗ DO NOT reset here (wait for socket event)
     } catch (err) {
-      Swal.fire("Error", "Something went wrong", "error");
-    } finally {
+      Swal.close();
+      Swal.fire("Error", "Upload failed", "error");
+      setSubmitted(false);
       setLoading(false);
     }
   };
+
+  // ✅ SOCKET LISTENER (MOST IMPORTANT PART)
+  useEffect(() => {
+    const handler = (data) => {
+      Swal.close();
+
+      if (data.status === "success") {
+        Swal.fire({
+          title: "✅ Upload Completed!",
+          text: `${data.message} for ${data.campaignName}`,
+          icon: "success",
+        });
+
+        // ✅ RESET FORM HERE
+        form.resetFields();
+        setFiles([]);
+      } else {
+        Swal.fire({
+          title: "❌ Upload Failed",
+          text: `${data.message} for ${data.campaignName}`,
+          icon: "error",
+        });
+      }
+
+      setSubmitted(false);
+      setLoading(false);
+    };
+
+    socket.on("uploadComplete", handler);
+
+    return () => socket.off("uploadComplete", handler);
+  }, []);
 
   const uploadProps = {
     multiple: true, // ✅ allow multiple files
