@@ -12,6 +12,7 @@ import {
   Modal,
   Tag,
   Tooltip,
+  Switch,
 } from "antd";
 import {
   MinusCircleOutlined,
@@ -71,7 +72,7 @@ const SubAdminEdit = () => {
     try {
       const response = await fetch(`${apiUrl}/get-subadmin`);
       const data = await response.json();
-
+      console.log("Fetched Sub-Admins:", data); // Debug log
       if (response.ok) {
         // Exclude only those with role "admin"
         setSubAdmins(data.data.filter((subAdmin) => subAdmin.role !== "admin"));
@@ -108,7 +109,7 @@ const SubAdminEdit = () => {
             "publisher",
             "publisher_manager",
             "advertiser_manager",
-          ].includes(user.role)
+          ].includes(user.role),
         );
 
       setSubAdminOptions(cleanedOptions);
@@ -204,7 +205,7 @@ const SubAdminEdit = () => {
         if (oldRangeStr !== newRangeStr) changedFields.push("ranges");
 
         const oldAssignedStr = JSON.stringify(
-          oldSubAdmin.assigned_subadmins || []
+          oldSubAdmin.assigned_subadmins || [],
         );
         const newAssignedStr = JSON.stringify(payload.assigned_subadmins || []);
         if (oldAssignedStr !== newAssignedStr)
@@ -318,25 +319,89 @@ const SubAdminEdit = () => {
     setPermissionUploadFiles(false);
     setPermissionAddStore(false);
   };
+  const handleTogglePause = async (record, checked) => {
+    const actionText = checked ? "pause" : "activate";
 
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: `Do you want to ${actionText} this account?`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: checked ? "#d33" : "#3085d6",
+      cancelButtonColor: "#6c757d",
+      confirmButtonText: `Yes, ${actionText} it!`,
+      cancelButtonText: "Cancel",
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      const response = await fetch(
+        `${apiUrl}/subadmin-status/${record.id}`, // ✅ FIXED ENDPOINT
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            pause: checked ? 1 : 0, // ✅ FIXED BODY
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        await Swal.fire({
+          icon: "success",
+          title: "Success!",
+          text: data.message, // ✅ use API message
+          timer: 1500,
+          showConfirmButton: false,
+        });
+
+        // ✅ Update UI instantly
+        setSubAdmins((prev) =>
+          prev.map((u) =>
+            u.id === record.id
+              ? {
+                  ...u,
+                  is_paused: checked ? 1 : 0,
+                  status: data.data?.status, // optional (live/paused)
+                }
+              : u,
+          ),
+        );
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Error!",
+          text: data.message || "Failed to update status",
+        });
+      }
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "Error!",
+        text: "Something went wrong while updating account status.",
+      });
+    }
+  };
   const columns = [
     {
-      title: <div style={{ textAlign: "center" }}>ID</div>,
+      title: <div>ID</div>,
       dataIndex: "id",
       key: "id",
-      align: "center",
     },
     {
-      title: <div style={{ textAlign: "center" }}>Username</div>,
+      title: <div>Username</div>,
       dataIndex: "username",
       key: "username",
-      align: "center",
     },
     {
-      title: <div style={{ textAlign: "center" }}>Role</div>,
+      title: <div>Role</div>,
       dataIndex: "role",
       key: "role",
-      align: "center",
       render: (role) => (
         <span className="text-gray-800 font-medium">
           {typeof role === "string" ? role.replace(/^["']|["']$/g, "") : role}
@@ -344,9 +409,8 @@ const SubAdminEdit = () => {
       ),
     },
     {
-      title: <div style={{ textAlign: "center" }}>Edit Permission</div>,
+      title: <div>Edit Permission</div>,
       key: "editPermission",
-      align: "center",
       render: (_, record) =>
         record.permissions?.can_see_button1 ? (
           <Tooltip title="Has Edit Permission">
@@ -359,9 +423,8 @@ const SubAdminEdit = () => {
         ),
     },
     {
-      title: <div style={{ textAlign: "center" }}>Upload Permission</div>,
+      title: <div>Upload Permission</div>,
       key: "uploadPermission",
-      align: "center",
       render: (_, record) =>
         record.permissions?.can_see_input1 ? (
           <Tooltip title="Has Upload Permission">
@@ -374,9 +437,8 @@ const SubAdminEdit = () => {
         ),
     },
     {
-      title: <div style={{ textAlign: "center" }}>Add Store Permission</div>,
+      title: <div>Add Store Permission</div>,
       key: "addStorePermission",
-      align: "center",
       render: (_, record) =>
         record.permissions?.can_add_store ? (
           <Tooltip title="Can Add Store">
@@ -389,9 +451,8 @@ const SubAdminEdit = () => {
         ),
     },
     {
-      title: <div style={{ textAlign: "center" }}>Actions</div>,
+      title: <div>Actions</div>,
       key: "actions",
-      align: "center",
       render: (record) => (
         <div className="flex justify-center gap-3">
           <Tooltip title="Edit User">
@@ -407,6 +468,26 @@ const SubAdminEdit = () => {
               type="text"
               icon={<DeleteOutlined style={{ color: "red", fontSize: 18 }} />}
               onClick={() => handleDeleteSubAdmin(record.id)}
+            />
+          </Tooltip>
+        </div>
+      ),
+    },
+    {
+      title: <div>Account Status</div>,
+      key: "status",
+      render: (_, record) => (
+        <div className="flex justify-center">
+          <Tooltip
+            title={record.is_paused ? "Account Paused" : "Account Active"}>
+            <Switch
+              checked={record.is_paused === 1}
+              onChange={(checked) => handleTogglePause(record, checked)}
+              checkedChildren="Paused"
+              unCheckedChildren="Active"
+              style={{
+                backgroundColor: record.is_paused ? "#ff4d4f" : "#52c41a",
+              }}
             />
           </Tooltip>
         </div>
@@ -610,13 +691,15 @@ const SubAdminEdit = () => {
 
                     // For advertiser manager → only advertiser + advertiser_manager (except him)
                     if (role.includes("advertiser_manager")) {
-                      return ["advertiser"].includes(s.role);
+                      return ["advertiser", "advertiser_manager"].includes(
+                        s.role,
+                      );
                     }
 
                     // For publisher manager → only publisher + publisher_manager (except him)
                     if (role.includes("publisher_manager")) {
                       return ["publisher", "publisher_manager"].includes(
-                        s.role
+                        s.role,
                       );
                     }
 

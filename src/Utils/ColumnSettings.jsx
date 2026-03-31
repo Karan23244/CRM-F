@@ -28,14 +28,37 @@ const ColumnSettings = ({
 
   const allColumns = useMemo(() => Object.keys(columnMap), [columnMap]);
 
-  const filteredColumns = useMemo(
-    () =>
-      allColumns.filter((key) =>
-        columnMap[key].toLowerCase().includes(search.toLowerCase())
-      ),
-    [allColumns, search, columnMap]
-  );
+  // const filteredColumns = useMemo(
+  //   () =>
+  //     allColumns.filter((key) =>
+  //       columnMap[key].toLowerCase().includes(search.toLowerCase())
+  //     ),
+  //   [allColumns, search, columnMap]
+  // );
+  const filteredColumns = useMemo(() => {
+    return allColumns.filter((key) => {
+      const label = columnMap[key];
 
+      // ✅ Convert label safely to string
+      let text = "";
+
+      if (typeof label === "string") {
+        text = label;
+      } else if (typeof label === "number") {
+        text = label.toString();
+      } else if (React.isValidElement(label)) {
+        // extract text from JSX like <span>Campaign Name</span>
+        text =
+          label?.props?.children?.toString?.() ||
+          label?.props?.children?.[0]?.toString?.() ||
+          "";
+      } else {
+        text = String(label || "");
+      }
+
+      return text.toLowerCase().includes(search.toLowerCase());
+    });
+  }, [allColumns, search, columnMap]);
   const toggleColumn = (key, visible) => {
     if (!visible) {
       setHiddenColumns((prev) => [...new Set([...prev, key])]);

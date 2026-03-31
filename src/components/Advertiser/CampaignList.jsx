@@ -25,14 +25,16 @@ import Swal from "sweetalert2";
 import StyledTable from "../../Utils/StyledTable";
 import { useNavigate } from "react-router-dom";
 import { sortDropdownValues } from "../../Utils/sortDropdownValues";
+import ColumnSettings from "../../Utils/ColumnSettings";
+import { useColumnPresets } from "../../Utils/useColumnPresets";
 
-const apiUrl =
-  import.meta.env.VITE_API_URL;
+const apiUrl = import.meta.env.VITE_API_URL;
 
 const CampaignList = () => {
   const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
   const role = user?.role;
+  const userId = useSelector((state) => state.auth.user.id);
   const [campaigns, setCampaigns] = useState([]);
   const [filters, setFilters] = useState({});
   const [pinnedColumns, setPinnedColumns] = useState({});
@@ -40,10 +42,6 @@ const CampaignList = () => {
   const [filterSearch, setFilterSearch] = useState({});
   const [uniqueValues, setUniqueValues] = useState({});
   const [editingCell, setEditingCell] = useState({ id: null, key: null });
-  const [hiddenColumns, setHiddenColumns] = useState(() => {
-    const saved = localStorage.getItem("hiddenCampaignColumns");
-    return saved ? JSON.parse(saved) : [];
-  });
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
   const [selectedLinks, setSelectedLinks] = useState([]);
   const [selectedCampaignName, setSelectedCampaignName] = useState("");
@@ -55,14 +53,6 @@ const CampaignList = () => {
     if (val === null || val === undefined || val === "") return "-";
     return val.toString().trim();
   };
-
-  // persist hidden columns
-  useEffect(() => {
-    localStorage.setItem(
-      "hiddenCampaignColumns",
-      JSON.stringify(hiddenColumns)
-    );
-  }, [hiddenColumns]);
   const handleViewLinks = (record) => {
     setSelectedCampaignName(record.campaign_name);
     setSelectedLinks(record.links || []); // <-- update according to your API field
@@ -359,7 +349,7 @@ const CampaignList = () => {
         const searchText = filterSearch[dataIndex] || "";
 
         const visibleValues = allValues.filter((val) =>
-          val.toString().toLowerCase().includes(searchText.toLowerCase())
+          val.toString().toLowerCase().includes(searchText.toLowerCase()),
         );
 
         const isAllSelected = selectedValues.length === allValues.length;
@@ -474,8 +464,8 @@ const CampaignList = () => {
       typeof role === "string"
         ? JSON.parse(role)
         : Array.isArray(role)
-        ? role
-        : [role];
+          ? role
+          : [role];
   } catch {
     roles = [role];
   }
@@ -485,7 +475,7 @@ const CampaignList = () => {
 
   if (
     roles.some((r) =>
-      ["advertiser", "advertiser_manager", "operations", "admin"].includes(r)
+      ["advertiser", "advertiser_manager", "operations", "admin"].includes(r),
     )
   ) {
     editableFields.push("adv_note", "status");
@@ -507,7 +497,7 @@ const CampaignList = () => {
     setHiddenColumns([]);
     localStorage.removeItem("hiddenCampaignColumns");
     message.success(
-      "✅ All filters, sorts, pins, and hidden columns have been cleared"
+      "✅ All filters, sorts, pins, and hidden columns have been cleared",
     );
   };
   const allowedRoles = ["publisher", "publisher_manager"];
@@ -529,11 +519,11 @@ const CampaignList = () => {
         <span
           style={{ color: "#2F5D99", cursor: "pointer" }}
           onClick={() => {
-              navigate("/dashboard/createcampaign", { state: { record } });
+            navigate("/dashboard/createcampaign", { state: { record } });
           }}>
           {text}
         </span>
-      )
+      ),
     ),
     getColumnWithFilterAndPin("id", "Campaign ID"),
     getColumnWithFilterAndPin("geo", "Geo", (geo) => {
@@ -560,30 +550,31 @@ const CampaignList = () => {
 
     getColumnWithFilterAndPin("os", "OS"),
     getColumnWithFilterAndPin("payable_event", "Payable Event"),
+    getColumnWithFilterAndPin("adv_payout", "ADV Payout"),
     getColumnWithFilterAndPin(
       "category",
       "Category",
-      getEditableCell("category").render
+      getEditableCell("category").render,
     ),
     getColumnWithFilterAndPin(
       "Target",
       "Target",
-      getEditableCell("Target", "number").render
+      getEditableCell("Target", "number").render,
     ),
     getColumnWithFilterAndPin(
       "achieve_number",
       "Achieve Number",
-      getEditableCell("achieve_number", "number").render
+      getEditableCell("achieve_number", "number").render,
     ),
     getColumnWithFilterAndPin(
       "adv_note",
       "Advertiser Note",
-      getEditableCell("adv_note").render
+      getEditableCell("adv_note").render,
     ),
     getColumnWithFilterAndPin(
       "status",
       "Status",
-      getEditableCell("status").render
+      getEditableCell("status").render,
     ),
     //     getColumnWithFilterAndPin(
     //   "postback_url",
@@ -625,18 +616,27 @@ const CampaignList = () => {
     },
   ];
 
-  // Filter out hidden columns before rendering
-  const visibleColumns = allColumns.filter(
-    (col) => !hiddenColumns.includes(col.key)
-  );
-
   const columnHeadings = allColumns.reduce((acc, col) => {
     acc[col.key] = col.title.props?.children?.[0] || col.title || col.key;
     return acc;
   }, {});
 
   const desiredOrder = allColumns.map((col) => col.key);
+  const {
+    presets,
+    hiddenColumns,
+    setHiddenColumns,
+    activePreset,
+    applyPreset,
+    savePreset,
+    updatePreset,
+    deletePreset,
+  } = useColumnPresets({ userId, allColumns });
 
+  // Filter out hidden columns before rendering
+  const visibleColumns = allColumns.filter(
+    (col) => !hiddenColumns.includes(col.key),
+  );
   return (
     <div className="p-4">
       <Card
@@ -650,24 +650,21 @@ const CampaignList = () => {
             onChange={(e) => setSearchText(e.target.value)}
             style={{ width: 250 }}
           />
-          <Select
-            mode="multiple"
-            allowClear
-            placeholder="Select columns to hide"
-            style={{ minWidth: 250 }}
-            value={hiddenColumns}
-            onChange={(values) => setHiddenColumns(values)}
-            maxTagCount="responsive">
-            {desiredOrder.map((key) => (
-              <Select.Option key={key} value={key}>
-                {columnHeadings[key] || key}
-              </Select.Option>
-            ))}
-          </Select>
 
           <Button icon={<ClearOutlined />} onClick={clearAllFilters}>
             Clear All Filters
           </Button>
+          <ColumnSettings
+            columnMap={columnHeadings}
+            hiddenColumns={hiddenColumns}
+            setHiddenColumns={setHiddenColumns}
+            presets={presets}
+            activePreset={activePreset}
+            applyPreset={applyPreset}
+            savePreset={savePreset}
+            updatePreset={updatePreset}
+            deletePreset={deletePreset}
+          />
         </div>
 
         {/* 🧾 Table */}

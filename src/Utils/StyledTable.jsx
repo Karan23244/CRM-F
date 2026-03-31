@@ -23,7 +23,7 @@ const StyledTable = ({
     return columns.map((col) => {
       const width = Math.min(
         Math.max(col.width ?? defaultColWidth, minColWidth),
-        maxColWidth
+        maxColWidth,
       );
 
       return {
@@ -68,12 +68,12 @@ const StyledTable = ({
           color: #2f5d99 !important;
           font-weight: 600;
           font-size: 14px;
-          text-align: center;
+          text-align: left !important;
           white-space: nowrap;
         }
 
         .custom-table .ant-table-tbody > tr > td {
-          text-align: center;
+          text-align: left !important;
           font-size: 13px;
           white-space: nowrap;
           overflow: hidden;

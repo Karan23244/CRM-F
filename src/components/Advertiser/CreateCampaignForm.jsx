@@ -285,6 +285,10 @@ const CreateCampaignForm = () => {
       dataIndex: "pid",
     },
     {
+      title: "Shared Date",
+      dataIndex: "shared_date",
+    },
+    {
       title: "Status",
       render: (text, record) => {
         const originalStatus = (record.status || "").toLowerCase();
