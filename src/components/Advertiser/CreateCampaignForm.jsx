@@ -137,9 +137,10 @@ const CreateCampaignForm = () => {
   }, [fetchDropdowns]);
   const fetchCampaignById = async (id) => {
     try {
-      const res = await axios.get(`${apiUrl3}/campaign/${id}`);
-      const data = res.data;
-
+      const res = await axios.get(`${apiUrl}/campaign/${id}`);
+      console.log("Fetched campaign for editing:", res.data);
+      const data = res.data.data;
+      console.log("Fetched campaign data:", data);
       // 👉 Instead of setFieldsValue
       navigate(location.pathname, {
         state: { record: data },
