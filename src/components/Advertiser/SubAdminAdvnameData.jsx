@@ -12,6 +12,7 @@ const apiUrl = import.meta.env.VITE_API_URL;
 
 const AdvnameData = () => {
   const user = useSelector((state) => state.auth.user);
+  console.log("Current user from Redux:", user);
   const userId = user?.id || null;
   const [tableData, setTableData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -40,8 +41,8 @@ const AdvnameData = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get(`${apiUrl}/get-NameAdv/`);
-
+        const response = await axios.get(`${apiUrl}/advertisers/${userId}`);
+        console.log("Fetched advertiser data:", response.data);
         if (response.data && Array.isArray(response.data.data)) {
           setTableData(response.data.data);
         } else {
@@ -64,8 +65,8 @@ const AdvnameData = () => {
         if (response.ok) {
           const filtered = data.data.filter((subAdmin) =>
             ["advertiser_manager", "advertiser", "operations"].includes(
-              subAdmin.role
-            )
+              subAdmin.role,
+            ),
           );
           console.log(filtered);
           setSubAdmins(filtered);
@@ -85,7 +86,7 @@ const AdvnameData = () => {
         if (key === columnKey) return true;
         if (!values || values.length === 0) return true;
         return values.includes(normalize(row[key]));
-      })
+      }),
     );
   };
   useEffect(() => {
@@ -230,7 +231,7 @@ const AdvnameData = () => {
     const searchVal = filterSearch[key] || "";
 
     const visibleValues = allValues.filter((v) =>
-      v.toLowerCase().includes(searchVal.toLowerCase())
+      v.toLowerCase().includes(searchVal.toLowerCase()),
     );
 
     const isAllSelected = selectedValues.length === allValues.length;
@@ -515,7 +516,7 @@ const AdvnameData = () => {
                   //   ...record,
                   //   user_id: newUserId,
                   // });
-                  console.log({ user_id: newUserId,...record, });
+                  console.log({ user_id: newUserId, ...record });
                   // if (response.data.success) {
                   //   Swal.fire(
                   //     "Success",

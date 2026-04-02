@@ -125,12 +125,14 @@ const AdvertiserData = () => {
   const fetchData = useCallback(async () => {
     try {
       const [startDate, endDate] = selectedDateRange;
+      console.log(`${apiUrl}/advdata-byuser/${userId}`);
       const response = await axios.get(`${apiUrl}/advdata-byuser/${userId}`, {
         params: {
           startDate: startDate.format("YYYY-MM-DD"),
           endDate: endDate.format("YYYY-MM-DD"),
         },
       });
+      console.log("Fetched data:", response.data);
       if (response?.data.data && Array.isArray(response.data.data)) {
         const formatted = [...(response?.data?.data || [])]
           .reverse()
@@ -172,6 +174,44 @@ const AdvertiserData = () => {
   }, []);
 
   // 🔹 Fetch and merge subadmin data dynamically
+  // const fetchSubAdminData = async (selectedAdmins) => {
+  //   try {
+  //     if (selectedAdmins.length === 0) {
+  //       setRoleData([]);
+  //       return;
+  //     }
+
+  //     const promises = selectedAdmins.map((admin) =>
+  //       axios.get(`${apiUrl}/user-data/${admin.value}`),
+  //     );
+  //     const responses = await Promise.all(promises);
+  //     console.log(responses);
+  //     const newRoleData = responses.map((res, index) => ({
+  //       adminId: selectedAdmins[index].value,
+  //       name: selectedAdmins[index].label,
+  //       role: selectedAdmins[index].role,
+  //       data: res.data.data,
+  //     }));
+
+  //     setRoleData(newRoleData);
+
+  //     // 🔹 Merge all fetched subadmin data into main table
+  //     const mergedData = [
+  //       ...data,
+  //       ...newRoleData.flatMap((r) =>
+  //         (r.data?.advertiser_data || []).map((item) => ({
+  //           ...item,
+  //           subadminId: r.adminId,
+  //         })),
+  //       ),
+  //     ];
+
+  //     setData(mergedData);
+  //   } catch (error) {
+  //     console.error("Error fetching subadmin data:", error);
+  //     message.error("Failed to fetch subadmin data");
+  //   }
+  // };
   const fetchSubAdminData = async (selectedAdmins) => {
     try {
       if (selectedAdmins.length === 0) {
@@ -179,9 +219,18 @@ const AdvertiserData = () => {
         return;
       }
 
+      const start_date = selectedDateRange[0].format("YYYY-MM-DD");
+      const end_date = selectedDateRange[1].format("YYYY-MM-DD");
+
       const promises = selectedAdmins.map((admin) =>
-        axios.get(`${apiUrl}/user-data/${admin.value}`),
+        axios.get(`${apiUrl}/user-data/${admin.value}`, {
+          params: {
+            start_date,
+            end_date,
+          },
+        }),
       );
+
       const responses = await Promise.all(promises);
 
       const newRoleData = responses.map((res, index) => ({
@@ -193,11 +242,13 @@ const AdvertiserData = () => {
 
       setRoleData(newRoleData);
 
-      // 🔹 Merge all fetched subadmin data into main table
       const mergedData = [
         ...data,
         ...newRoleData.flatMap((r) =>
-          (r.data || []).map((item) => ({ ...item, subadminId: r.adminId })),
+          (r.data?.advertiser_data || []).map((item) => ({
+            ...item,
+            subadminId: r.adminId,
+          })),
         ),
       ];
 

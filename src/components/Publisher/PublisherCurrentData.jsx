@@ -52,6 +52,7 @@ const PublisherPayoutData = () => {
     columnKey: null,
     order: null,
   });
+  console.log("Assigned Sub-admins for user:", advData);
   const [editingKey, setEditingKey] = useState(""); // which row is being edited
   const isEditing = (record) => record.id === editingKey;
   const debouncedSearch = useMemo(
