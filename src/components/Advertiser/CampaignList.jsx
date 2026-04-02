@@ -519,7 +519,7 @@ const CampaignList = () => {
         <span
           style={{ color: "#2F5D99", cursor: "pointer" }}
           onClick={() => {
-            navigate("/dashboard/createcampaign", { state: { record } });
+            window.open(`/dashboard/createcampaign?id=${record.id}`, "_blank");
           }}>
           {text}
         </span>

@@ -21,6 +21,7 @@ import { useNavigate } from "react-router-dom";
 import SettingsPage from "./SettingsPage";
 const apiUrl = import.meta.env.VITE_API_URL;
 const apiUrl2 = import.meta.env.VITE_API_URL3;
+const apiUrl3 = import.meta.env.VITE_API_URL1;
 const { Option } = Select;
 const VERTICALS = [
   "Finance & Insurance",
@@ -37,7 +38,8 @@ const VERTICALS = [
 ];
 const CreateCampaignForm = () => {
   const location = useLocation();
-
+  const queryParams = new URLSearchParams(location.search);
+  const campaignId = queryParams.get("id");
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const editRecord = location.state?.record || null;
@@ -133,7 +135,25 @@ const CreateCampaignForm = () => {
   useEffect(() => {
     fetchDropdowns();
   }, [fetchDropdowns]);
+  const fetchCampaignById = async (id) => {
+    try {
+      const res = await axios.get(`${apiUrl3}/campaign/${id}`);
+      const data = res.data;
 
+      // 👉 Instead of setFieldsValue
+      navigate(location.pathname, {
+        state: { record: data },
+        replace: true,
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  useEffect(() => {
+    if (campaignId) {
+      fetchCampaignById(campaignId);
+    }
+  }, [campaignId]);
   const onFinish = async (values) => {
     trimAll(values);
     if (isSubmitting) return;
@@ -404,6 +424,7 @@ const CreateCampaignForm = () => {
     if (!editRecord) return;
     // 🔥 SEND campaign_name & OS to backend to fetch PID info
     const fetchPidInfo = async () => {
+      console.log(editRecord.id, editRecord.campaign_name, editRecord.os);
       try {
         const res = await axios.post(`${apiUrl}/pid-update`, {
           campaign_id: editRecord.id,

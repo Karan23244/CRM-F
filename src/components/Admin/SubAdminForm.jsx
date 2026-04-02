@@ -639,25 +639,23 @@ const SubAdminEdit = () => {
           </div>
 
           {/* Assign Sub-Admins */}
-          {(role.includes("publisher_manager") ||
-            role.includes("advertiser_manager")) && (
-            <div className="mb-6">
-              <label className="block font-semibold mb-2">
-                Assign Sub-Admins
-              </label>
-              <Select
-                mode="multiple"
-                showSearch
-                value={assignedSubAdmins}
-                onChange={setAssignedSubAdmins}
-                placeholder="Select sub-admins"
-                className="w-full rounded-lg border-gray-200 bg-gray-50"
-                filterOption={(input, option) =>
-                  String(option?.label || option?.children || "")
-                    .toLowerCase()
-                    .includes(input.toLowerCase())
-                }>
-                {/* {subAdminOptions
+          <div className="mb-6">
+            <label className="block font-semibold mb-2">
+              Assign Sub-Admins
+            </label>
+            <Select
+              mode="multiple"
+              showSearch
+              value={assignedSubAdmins}
+              onChange={setAssignedSubAdmins}
+              placeholder="Select sub-admins"
+              className="w-full rounded-lg border-gray-200 bg-gray-50"
+              filterOption={(input, option) =>
+                String(option?.label || option?.children || "")
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
+              }>
+              {/* {subAdminOptions
                   .filter((s) => {
                     if (
                       role.includes("advertiser_manager") &&
@@ -676,43 +674,45 @@ const SubAdminEdit = () => {
                       {subAdmin.username} ({subAdmin.role})
                     </Option>
                   ))} */}
-                {subAdminOptions
-                  .filter((s) => {
-                    // ❌ Remove current editing user
-                    if (s.id === selectedSubAdmin) return false;
+              {subAdminOptions
+                .filter((s) => {
+                  // ❌ Remove current editing user
+                  if (s.id === selectedSubAdmin) return false;
 
-                    // If both manager roles selected → show both advertiser + publisher
-                    if (
-                      role.includes("advertiser_manager") &&
-                      role.includes("publisher_manager")
-                    ) {
-                      return ["advertiser", "publisher"].includes(s.role);
-                    }
+                  // If both manager roles selected → show both advertiser + publisher
+                  if (
+                    role.includes("advertiser_manager") &&
+                    role.includes("publisher_manager")
+                  ) {
+                    return ["advertiser", "publisher"].includes(s.role);
+                  }
 
-                    // For advertiser manager → only advertiser + advertiser_manager (except him)
-                    if (role.includes("advertiser_manager")) {
-                      return ["advertiser", "advertiser_manager"].includes(
-                        s.role,
-                      );
-                    }
+                  // For advertiser manager → only advertiser + advertiser_manager (except him)
+                  if (role.includes("advertiser_manager")) {
+                    return ["advertiser", "advertiser_manager"].includes(
+                      s.role,
+                    );
+                  }
 
-                    // For publisher manager → only publisher + publisher_manager (except him)
-                    if (role.includes("publisher_manager")) {
-                      return ["publisher", "publisher_manager"].includes(
-                        s.role,
-                      );
-                    }
-
-                    return false;
-                  })
-                  .map((subAdmin) => (
-                    <Option key={subAdmin.id} value={subAdmin.id}>
-                      {subAdmin.username} ({subAdmin.role})
-                    </Option>
-                  ))}
-              </Select>
-            </div>
-          )}
+                  // For publisher manager → only publisher + publisher_manager (except him)
+                  if (role.includes("publisher_manager")) {
+                    return ["publisher", "publisher_manager"].includes(s.role);
+                  }
+                  if (role.includes("publisher")) {
+                    return ["publisher"].includes(s.role);
+                  }
+                    if (role.includes("advertiser")) {
+                    return ["advertiser"].includes(s.role);
+                  }
+                  return false;
+                })
+                .map((subAdmin) => (
+                  <Option key={subAdmin.id} value={subAdmin.id}>
+                    {subAdmin.username} ({subAdmin.role})
+                  </Option>
+                ))}
+            </Select>
+          </div>
 
           {/* Ranges
           <div className="mb-6">
