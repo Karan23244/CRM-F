@@ -217,6 +217,7 @@ const SubAdminForm = () => {
             <Option value="publisher">Publisher</Option>
             <Option value="advertiser">Advertiser</Option>
             <Option value="operations">Operations</Option>
+            <Option value="optimization">Optimization</Option>
             <Option value="advertiser_manager">Advertiser Manager</Option>
             <Option value="publisher_manager">Publisher Manager</Option>
             <Option value="accounts">Accounts</Option>

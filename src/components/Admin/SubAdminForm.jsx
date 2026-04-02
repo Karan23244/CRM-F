@@ -614,6 +614,7 @@ const SubAdminEdit = () => {
               <Option value="publisher">Publisher</Option>
               <Option value="advertiser">Advertiser</Option>
               <Option value="operations">Operations</Option>
+              <Option value="optimization">Optimization</Option>
               <Option value="advertiser_manager">Advertiser Manager</Option>
               <Option value="publisher_manager">Publisher Manager</Option>
             </Select>
@@ -701,7 +702,7 @@ const SubAdminEdit = () => {
                   if (role.includes("publisher")) {
                     return ["publisher"].includes(s.role);
                   }
-                    if (role.includes("advertiser")) {
+                  if (role.includes("advertiser")) {
                     return ["advertiser"].includes(s.role);
                   }
                   return false;

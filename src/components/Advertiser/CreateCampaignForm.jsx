@@ -60,6 +60,7 @@ const CreateCampaignForm = () => {
   const [geoRows, setGeoRows] = useState([{ geo: "", payout: "", os: "" }]);
   const [updatedStatus, setUpdatedStatus] = useState({});
   const [searchText, setSearchText] = useState("");
+  const campaignStatus = (editRecord?.status || "").toLowerCase();
   const isPublisherRole =
     Array.isArray(user?.role) &&
     (user.role.includes("publisher_manager") ||
@@ -306,10 +307,6 @@ const CreateCampaignForm = () => {
       dataIndex: "pid",
     },
     {
-      title: "Shared Date",
-      dataIndex: "shared_date",
-    },
-    {
       title: "Status",
       render: (text, record) => {
         const originalStatus = (record.status || "").toLowerCase();
@@ -320,6 +317,7 @@ const CreateCampaignForm = () => {
 
         return (
           <Switch
+            disabled={campaignStatus === "pause"}
             checked={currentStatus === "live"}
             onChange={() => handleToggle(record)}
           />
@@ -473,6 +471,14 @@ const CreateCampaignForm = () => {
   };
 
   const handleSaveChanges = async () => {
+    if (campaignStatus === "pause") {
+      Swal.fire(
+        "Campaign Paused",
+        "You cannot save PID changes while campaign is paused.",
+        "warning",
+      );
+      return;
+    }
     try {
       const payload = {
         data: Object.entries(updatedStatus).map(([id, status]) => ({
@@ -843,7 +849,10 @@ const CreateCampaignForm = () => {
                   />
                   <Button
                     type="primary"
-                    disabled={Object.keys(updatedStatus).length === 0}
+                    disabled={
+                      campaignStatus === "pause" ||
+                      Object.keys(updatedStatus).length === 0
+                    }
                     onClick={handleSaveChanges}
                     className="px-6">
                     Save Changes

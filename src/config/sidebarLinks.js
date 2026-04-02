@@ -60,7 +60,7 @@ export const sidebarLinks = [
       {
         to: "createadvform",
         label: "Add New Advertiser",
-        roles: ["advertiser", "advertiser_manager", "operations"],
+        roles: ["advertiser", "advertiser_manager"],
       },
     ],
   },
@@ -80,7 +80,7 @@ export const sidebarLinks = [
       {
         to: "createpubform",
         label: "Add New Publisher",
-        roles: ["publisher", "publisher_manager"],
+        roles: ["publisher_manager"],
       },
     ],
   },
@@ -158,7 +158,7 @@ export const sidebarLinks = [
       {
         to: "createcampaign",
         label: "Create Campaign",
-        roles: ["advertiser", "advertiser_manager", "operations", "admin"],
+        roles: ["advertiser", "advertiser_manager", "admin"],
       },
 
       // --- Add Parameters ---
@@ -203,7 +203,7 @@ export const sidebarLinks = [
     label: "Request Links",
     roles: ["publisher", "publisher_manager", "admin"],
   },
-
+  { to: "optimizationalldata", label: "PID Data", roles: ["optimization"] },
   // ==========================
   // 🔹 ANALYTICS / REPORTS
   // ==========================
@@ -217,17 +217,19 @@ export const sidebarLinks = [
       "publisher_manager",
       "operations",
       "publisher_external",
+      "optimization",
     ],
     sublinks: [
       {
         to: "reportform",
         label: "Reports",
-        roles: ["operations", "advertiser_manager", "advertiser", "admin"],
-      },
-      {
-        to: "genrategraph",
-        label: "Graph",
-        roles: ["operations", "advertiser_manager", "advertiser", "admin"],
+        roles: [
+          "operations",
+          "advertiser_manager",
+          "advertiser",
+          "admin",
+          "optimization",
+        ],
       },
       {
         to: "analytics",
@@ -240,6 +242,7 @@ export const sidebarLinks = [
           "publisher_manager",
           "operations",
           "publisher_external",
+          "optimization",
         ],
       },
     ],
@@ -247,6 +250,8 @@ export const sidebarLinks = [
   // ==========================
   // 🔹 PUBLISHER MANAGER SECTION
   // ==========================
+  // Separate PID Data routes for different roles
+
   {
     to: "blacklistpid",
     label: "Blacklist PID",
