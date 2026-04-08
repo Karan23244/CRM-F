@@ -27,6 +27,8 @@ export const sidebarLinks = [
       "operations",
       "publisher",
       "publisher_manager",
+      "pub_executive",
+      "adv_executive",
     ],
   },
   {
@@ -55,12 +57,17 @@ export const sidebarLinks = [
       {
         to: "listadvform",
         label: "Existing Advertisers",
-        roles: ["advertiser", "advertiser_manager", "operations"],
+        roles: [
+          "advertiser",
+          "advertiser_manager",
+          "adv_executive",
+          "operations",
+        ],
       },
       {
         to: "createadvform",
         label: "Add New Advertiser",
-        roles: ["advertiser", "advertiser_manager"],
+        roles: ["advertiser_manager"],
       },
     ],
   },
@@ -70,12 +77,12 @@ export const sidebarLinks = [
   // ==========================
   {
     label: "Publisher",
-    roles: ["publisher", "publisher_manager"],
+    roles: ["publisher", "publisher_manager", "pub_executive"],
     sublinks: [
       {
         to: "listpubform",
         label: "Existing Publishers",
-        roles: ["publisher", "publisher_manager"],
+        roles: ["publisher", "publisher_manager", "pub_executive"],
       },
       {
         to: "createpubform",
@@ -99,6 +106,8 @@ export const sidebarLinks = [
       "publisher_manager",
       "operations",
       "publisher_external",
+      "pub_executive",
+      "adv_executive",
     ],
     sublinks: [
       // --- Campaign Data Submenu ---
@@ -112,6 +121,8 @@ export const sidebarLinks = [
           "publisher_manager",
           "operations",
           "publisher_external",
+          "pub_executive",
+          "adv_executive",
         ],
         sublinks: [
           {
@@ -125,6 +136,8 @@ export const sidebarLinks = [
               "publisher_manager",
               "operations",
               "publisher_external",
+              "pub_executive",
+              "adv_executive",
             ],
           },
           // Separate PID Data routes for different roles
@@ -132,12 +145,22 @@ export const sidebarLinks = [
           {
             to: "currentadvdata",
             label: "PID Data",
-            roles: ["advertiser", "advertiser_manager", "operations"],
+            roles: [
+              "advertiser",
+              "advertiser_manager",
+              "adv_executive",
+              "operations",
+            ],
           },
           {
             to: "currentpubdata",
             label: "PID Data",
-            roles: ["publisher", "publisher_manager", "publisher_external"],
+            roles: [
+              "publisher",
+              "publisher_manager",
+              "publisher_external",
+              "pub_executive",
+            ],
           },
           {
             to: "campaignlist",
@@ -149,6 +172,8 @@ export const sidebarLinks = [
               "publisher",
               "publisher_manager",
               "operations",
+              "adv_executive",
+              "pub_executive",
             ],
           },
         ],
@@ -158,28 +183,52 @@ export const sidebarLinks = [
       {
         to: "createcampaign",
         label: "Create Campaign",
-        roles: ["advertiser", "advertiser_manager", "admin"],
+        roles: ["advertiser", "advertiser_manager", "adv_executive", "admin"],
       },
 
       // --- Add Parameters ---
       {
         label: "Add Parameter",
-        roles: ["admin", "advertiser", "advertiser_manager", "operations"],
+        roles: [
+          "admin",
+          "advertiser",
+          "advertiser_manager",
+          "adv_executive",
+          "operations",
+        ],
         sublinks: [
           {
             to: "pid",
             label: "PID Form",
-            roles: ["admin", "advertiser", "advertiser_manager", "operations"],
+            roles: [
+              "admin",
+              "advertiser",
+              "advertiser_manager",
+              "adv_executive",
+              "operations",
+            ],
           },
           {
             to: "payableevent",
             label: "Payable Events",
-            roles: ["admin", "advertiser", "advertiser_manager", "operations"],
+            roles: [
+              "admin",
+              "advertiser",
+              "advertiser_manager",
+              "adv_executive",
+              "operations",
+            ],
           },
           {
             to: "mmptracker",
             label: "MMP Tracker",
-            roles: ["admin", "advertiser", "advertiser_manager", "operations"],
+            roles: [
+              "admin",
+              "advertiser",
+              "advertiser_manager",
+              "adv_executive",
+              "operations",
+            ],
           },
         ],
       },
@@ -192,7 +241,13 @@ export const sidebarLinks = [
   {
     to: "view-request",
     label: "Requests",
-    roles: ["advertiser", "advertiser_manager", "operations", "admin"],
+    roles: [
+      "advertiser",
+      "advertiser_manager",
+      "adv_executive",
+      "operations",
+      "admin",
+    ],
   },
 
   // ==========================
@@ -201,8 +256,9 @@ export const sidebarLinks = [
   {
     to: "makerequest",
     label: "Request Links",
-    roles: ["publisher", "publisher_manager", "admin"],
+    roles: ["publisher", "pub_executive", "publisher_manager", "admin"],
   },
+  { to: "totalpiddata", label: "Recent PID", roles: ["optimization"] },
   { to: "optimizationalldata", label: "PID Data", roles: ["optimization"] },
   // ==========================
   // 🔹 ANALYTICS / REPORTS
@@ -218,6 +274,8 @@ export const sidebarLinks = [
       "operations",
       "publisher_external",
       "optimization",
+      "pub_executive",
+      "adv_executive",
     ],
     sublinks: [
       {
@@ -228,7 +286,8 @@ export const sidebarLinks = [
           "advertiser_manager",
           "advertiser",
           "admin",
-          "optimization",
+          "pub_executive",
+          "adv_executive",
         ],
       },
       {
@@ -243,6 +302,8 @@ export const sidebarLinks = [
           "operations",
           "publisher_external",
           "optimization",
+          "pub_executive",
+          "adv_executive",
         ],
       },
     ],
@@ -362,22 +423,35 @@ export const sidebarLinks = [
       "admin",
       "advertiser",
       "publisher",
+      "adv_executive",
       "advertiser_manager",
       "publisher_manager",
       "operations",
-      ,
+      "pub_executive",
       "publisher_external",
     ],
   },
   {
     to: "advertiserbill",
     label: "Advertiser Billing",
-    roles: ["admin", "advertiser", "advertiser_manager", "operations"],
+    roles: [
+      "admin",
+      "advertiser",
+      "advertiser_manager",
+      "adv_executive",
+      "operations",
+    ],
   },
   {
     to: "publisherbill",
     label: "Publisher Billing",
-    roles: ["admin", "publisher", "publisher_manager", "publisher_external"],
+    roles: [
+      "admin",
+      "publisher",
+      "publisher_manager",
+      "publisher_external",
+      "pub_executive",
+    ],
   },
   {
     to: "accountsadvbill",
@@ -403,6 +477,9 @@ export const sidebarLinks = [
       "publisher_manager",
       "operations",
       "publisher_external",
+      "optimization",
+      "pub_executive",
+      "adv_executive",
     ],
   },
 ];

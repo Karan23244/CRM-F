@@ -25,6 +25,7 @@ import dayjs from "dayjs";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import Swal from "sweetalert2";
+import EditConditionsModal from "./EditConditionModal";
 
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
@@ -44,6 +45,8 @@ const apiUrl = import.meta.env.VITE_API_URL2; // Replace with your actual API UR
 
 export default function OptimizationPage() {
   const user = useSelector((state) => state.auth.user);
+  const isOptimizationUser =
+    user?.role?.includes("optimization");
   const [rawData, setRawData] = useState([]);
   const [selectedCampaign, setSelectedCampaign] = useState("");
   const [selectedDateRange, setSelectedDateRange] = useState([null, null]);
@@ -233,188 +236,261 @@ export default function OptimizationPage() {
     });
   };
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      {/* Upload Form */}
-      {user?.permissions?.can_see_input1 === 1 && (
-        <Card
-          style={{
-            ...cardStyle,
-            padding: "24px",
-            borderRadius: "14px",
-            boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
-            background: "#ffffff",
-          }}
-          className="mb-6">
-          {/* Heading Section */}
-          <div style={{ marginBottom: 20 }}>
-            <Title level={4} style={{ margin: 0, color: "#1f1f1f" }}>
-              Upload Files
-            </Title>
-            <Text type="secondary">
-              Choose the type of File type you want to upload.
-            </Text>
-          </div>
-          <Divider />
+    <>
+      {isOptimizationUser ? (
+        // ✅ Optimization User View ONLY
+        <OptimizationUserView
+          rawData={rawData}
+          apiUrl={apiUrl}
+          fetchConditions={fetchData}
+        />
+      ) : (
+        <div className="p-6 bg-gray-50 min-h-screen">
+          {/* Upload Form */}
+          {user?.permissions?.can_see_input1 === 1 && (
+            <Card
+              style={{
+                ...cardStyle,
+                padding: "24px",
+                borderRadius: "14px",
+                boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
+                background: "#ffffff",
+              }}
+              className="mb-6">
+              {/* Heading Section */}
+              <div style={{ marginBottom: 20 }}>
+                <Title level={4} style={{ margin: 0, color: "#1f1f1f" }}>
+                  Upload Files
+                </Title>
+                <Text type="secondary">
+                  Choose the type of File type you want to upload.
+                </Text>
+              </div>
+              <Divider />
 
-          {/* Select Dropdown */}
-          <div style={{ marginBottom: 20 }}>
-            <Text strong style={{ marginRight: 10 }}>
-              Select Upload Type:
-            </Text>
-            <Select
-              value={selectedForm}
-              onChange={(value) => setSelectedForm(value)}
-              style={{ width: 260 }}
-              size="large">
-              <Option value="upload">Appslyer Upload Form</Option>
-              <Option value="adjust">Adjust Upload Form</Option>
-              <Option value="singular">Singular Upload Form</Option>
-              <Option value="retargetting">Retargetting Upload Form</Option>
-            </Select>
-          </div>
+              {/* Select Dropdown */}
+              <div style={{ marginBottom: 20 }}>
+                <Text strong style={{ marginRight: 10 }}>
+                  Select Upload Type:
+                </Text>
+                <Select
+                  value={selectedForm}
+                  onChange={(value) => setSelectedForm(value)}
+                  style={{ width: 260 }}
+                  size="large">
+                  <Option value="upload">Appslyer Upload Form</Option>
+                  <Option value="adjust">Adjust Upload Form</Option>
+                  <Option value="singular">Singular Upload Form</Option>
+                  <Option value="retargetting">Retargetting Upload Form</Option>
+                </Select>
+              </div>
 
-          {/* Conditionally show forms */}
-          {selectedForm === "upload" && (
-            <div style={{ marginTop: 20 }}>
-              <UploadForm onUploadSuccess={fetchData} />
-            </div>
-          )}
-
-          {selectedForm === "adjust" && (
-            <div style={{ marginTop: 20 }}>
-              <AjustUploadForm onUploadSuccess={fetchData} />
-            </div>
-          )}
-          {selectedForm === "singular" && (
-            <div style={{ marginTop: 20 }}>
-              <SingularUploadForm onUploadSuccess={fetchData} />
-            </div>
-          )}
-          {selectedForm === "retargetting" && (
-            <div style={{ marginTop: 20 }}>
-              <RetargettingForm onUploadSuccess={fetchData} />
-            </div>
-          )}
-        </Card>
-      )}
-
-      {/* Header & Filters */}
-      <div className="py-2">
-        {/* Title */}
-        <div className="my-2">
-          <Title level={3} className="text-[#2F5D99] font-bold tracking-wide">
-            Optimization Dashboard
-          </Title>
-        </div>
-
-        {/* Filter Card */}
-        <Card className="rounded-2xl shadow-2xl border border-gray-100 bg-white/90 backdrop-blur-sm transition-transform hover:scale-[1.01]">
-          <Row gutter={[24, 24]}>
-            {/* Campaign Selector */}
-            <Col xs={24} md={12}>
-              <label className="block mb-2 font-medium text-[#2F5D99]">
-                Select Campaign
-              </label>
-              <Select
-                value={selectedCampaign}
-                onChange={setSelectedCampaign}
-                size="large"
-                className="w-full rounded-lg"
-                placeholder="Choose a campaign"
-                allowClear
-                showSearch
-                optionFilterProp="children"
-                filterOption={(input, option) =>
-                  option?.children?.toLowerCase().includes(input.toLowerCase())
-                }
-                dropdownStyle={{
-                  borderRadius: "0.75rem",
-                  padding: "0.5rem",
-                }}>
-                {campaigns.map((c) => (
-                  <Option key={c} value={c}>
-                    {c}
-                  </Option>
-                ))}
-              </Select>
-            </Col>
-
-            {/* Date Range Selector */}
-            <Col xs={24} md={12}>
-              <label className="block mb-2 font-medium text-[#2F5D99]">
-                Select Date Range
-              </label>
-              <RangePicker
-                value={selectedDateRange}
-                size="large"
-                className="w-full rounded-lg hover:border-[#2F5D99] focus:border-[#2F5D99] focus:ring-[#2F5D99]/40 transition-all"
-                allowClear
-                inputReadOnly
-                onChange={handleDateChange}
-                format="YYYY-MM-DD"
-                disabledDate={disabledDate}
-              />
-              {minDate && maxDate && (
-                <div className="mt-2 text-sm text-gray-600">
-                  Available Range:{" "}
-                  <span className="font-medium text-[#2F5D99]">
-                    {minDate.format("YYYY-MM-DD")} →{" "}
-                    {maxDate.format("YYYY-MM-DD")}
-                  </span>
+              {/* Conditionally show forms */}
+              {selectedForm === "upload" && (
+                <div style={{ marginTop: 20 }}>
+                  <UploadForm onUploadSuccess={fetchData} />
                 </div>
               )}
+
+              {selectedForm === "adjust" && (
+                <div style={{ marginTop: 20 }}>
+                  <AjustUploadForm onUploadSuccess={fetchData} />
+                </div>
+              )}
+              {selectedForm === "singular" && (
+                <div style={{ marginTop: 20 }}>
+                  <SingularUploadForm onUploadSuccess={fetchData} />
+                </div>
+              )}
+              {selectedForm === "retargetting" && (
+                <div style={{ marginTop: 20 }}>
+                  <RetargettingForm onUploadSuccess={fetchData} />
+                </div>
+              )}
+            </Card>
+          )}
+
+          {/* Header & Filters */}
+          <div className="py-2">
+            {/* Title */}
+            <div className="my-2">
+              <Title
+                level={3}
+                className="text-[#2F5D99] font-bold tracking-wide">
+                Optimization Dashboard
+              </Title>
+            </div>
+
+            {/* Filter Card */}
+            <Card className="rounded-2xl shadow-2xl border border-gray-100 bg-white/90 backdrop-blur-sm transition-transform hover:scale-[1.01]">
+              <Row gutter={[24, 24]}>
+                {/* Campaign Selector */}
+                <Col xs={24} md={12}>
+                  <label className="block mb-2 font-medium text-[#2F5D99]">
+                    Select Campaign
+                  </label>
+                  <Select
+                    value={selectedCampaign}
+                    onChange={setSelectedCampaign}
+                    size="large"
+                    className="w-full rounded-lg"
+                    placeholder="Choose a campaign"
+                    allowClear
+                    showSearch
+                    optionFilterProp="children"
+                    filterOption={(input, option) =>
+                      option?.children
+                        ?.toLowerCase()
+                        .includes(input.toLowerCase())
+                    }
+                    dropdownStyle={{
+                      borderRadius: "0.75rem",
+                      padding: "0.5rem",
+                    }}>
+                    {campaigns.map((c) => (
+                      <Option key={c} value={c}>
+                        {c}
+                      </Option>
+                    ))}
+                  </Select>
+                </Col>
+
+                {/* Date Range Selector */}
+                <Col xs={24} md={12}>
+                  <label className="block mb-2 font-medium text-[#2F5D99]">
+                    Select Date Range
+                  </label>
+                  <RangePicker
+                    value={selectedDateRange}
+                    size="large"
+                    className="w-full rounded-lg hover:border-[#2F5D99] focus:border-[#2F5D99] focus:ring-[#2F5D99]/40 transition-all"
+                    allowClear
+                    inputReadOnly
+                    onChange={handleDateChange}
+                    format="YYYY-MM-DD"
+                    disabledDate={disabledDate}
+                  />
+                  {minDate && maxDate && (
+                    <div className="mt-2 text-sm text-gray-600">
+                      Available Range:{" "}
+                      <span className="font-medium text-[#2F5D99]">
+                        {minDate.format("YYYY-MM-DD")} →{" "}
+                        {maxDate.format("YYYY-MM-DD")}
+                      </span>
+                    </div>
+                  )}
+                </Col>
+              </Row>
+            </Card>
+          </div>
+
+          {user?.username === "Akshat" && (
+            <div className="mt-4">
+              <button
+                onClick={handleDelete}
+                className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-red-600 text-white px-5 py-2.5 rounded-xl shadow-md hover:from-red-600 hover:to-red-700 hover:scale-105 transition-all duration-200 ease-in-out">
+                Delete Selected Campaign
+              </button>
+            </div>
+          )}
+
+          {/* Data Sections */}
+          <Row gutter={[16, 16]} className="mt-6">
+            <Col span={24}>
+              <Card style={cardStyle} className="rounded-xl shadow-md">
+                <Zone
+                  data={filteredData}
+                  canEdit={user?.permissions?.can_see_button1 === 1}
+                  selectedDateRange={selectedDateRange}
+                />
+              </Card>
+            </Col>
+
+            <Col span={24}>
+              <PerformanceComparison
+                rawData={rawData}
+                selectedCampaign={selectedCampaign}
+              />
+            </Col>
+
+            <Col span={24}>
+              <Card
+                style={cardStyle}
+                className="rounded-xl shadow-md"
+                title="PIDs on Alert">
+                <PidsOnAlert />
+              </Card>
+            </Col>
+
+            <Col span={24}>
+              <Card
+                style={cardStyle}
+                className="rounded-xl shadow-md"
+                title="Stable PIDs">
+                <PidStable />
+              </Card>
             </Col>
           </Row>
-        </Card>
-      </div>
-
-      {user?.username === "Akshat" && (
-        <div className="mt-4">
-          <button
-            onClick={handleDelete}
-            className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-red-600 text-white px-5 py-2.5 rounded-xl shadow-md hover:from-red-600 hover:to-red-700 hover:scale-105 transition-all duration-200 ease-in-out">
-            Delete Selected Campaign
-          </button>
         </div>
       )}
-
-      {/* Data Sections */}
-      <Row gutter={[16, 16]} className="mt-6">
-        <Col span={24}>
-          <Card style={cardStyle} className="rounded-xl shadow-md">
-            <Zone
-              data={filteredData}
-              canEdit={user?.permissions?.can_see_button1 === 1}
-              selectedDateRange={selectedDateRange}
-            />
-          </Card>
-        </Col>
-
-        <Col span={24}>
-          <PerformanceComparison
-            rawData={rawData}
-            selectedCampaign={selectedCampaign}
-          />
-        </Col>
-
-        <Col span={24}>
-          <Card
-            style={cardStyle}
-            className="rounded-xl shadow-md"
-            title="PIDs on Alert">
-            <PidsOnAlert />
-          </Card>
-        </Col>
-
-        <Col span={24}>
-          <Card
-            style={cardStyle}
-            className="rounded-xl shadow-md"
-            title="Stable PIDs">
-            <PidStable />
-          </Card>
-        </Col>
-      </Row>
-    </div>
+    </>
   );
 }
+
+const OptimizationUserView = ({ rawData, apiUrl, fetchConditions }) => {
+  const [selectedCampaign, setSelectedCampaign] = useState("");
+  const [showModal, setShowModal] = useState(false);
+
+  const campaigns = useMemo(
+    () => [...new Set(rawData.map((r) => r.campaign_name))],
+    [rawData],
+  );
+
+  return (
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <Title level={3} className="text-[#2F5D99]">
+        Optimization Panel
+      </Title>
+
+      <Card className="rounded-xl shadow-md mt-4">
+        {/* Campaign Dropdown */}
+        <div>
+          <label className="block mb-2 font-medium text-[#2F5D99]">
+            Select Campaign
+          </label>
+
+          <Select
+            value={selectedCampaign}
+            onChange={(value) => {
+              setSelectedCampaign(value);
+              setShowModal(true);
+            }}
+            size="large"
+            className="w-full"
+            placeholder="Choose a campaign"
+            allowClear
+            showSearch
+            optionFilterProp="children">
+            {campaigns.map((c) => (
+              <Option key={c} value={c}>
+                {c}
+              </Option>
+            ))}
+          </Select>
+        </div>
+      </Card>
+
+      {/* Edit Conditions Modal */}
+      {selectedCampaign && (
+        <EditConditionsModal
+          key={selectedCampaign}
+          showModal={showModal}
+          setShowModal={setShowModal}
+          campaignName={selectedCampaign}
+          apiUrl={apiUrl}
+          onSaved={fetchConditions}
+        />
+      )}
+    </div>
+  );
+};

@@ -176,7 +176,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
 
             // Check if any role matches desired roles
             return roles.some((r) =>
-              ["advertiser_manager", "advertiser", "operations"].includes(r),
+              ["advertiser_manager", "advertiser", "operations","adv_executive"].includes(r),
             );
           })
           ?.map((a) => a.username) || [];

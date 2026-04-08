@@ -617,6 +617,8 @@ const SubAdminEdit = () => {
               <Option value="optimization">Optimization</Option>
               <Option value="advertiser_manager">Advertiser Manager</Option>
               <Option value="publisher_manager">Publisher Manager</Option>
+              <Option value="pub_executive">Publisher Executive</Option>
+              <Option value="adv_executive">Advertiser Executive</Option>
             </Select>
           </div>
 
@@ -690,14 +692,14 @@ const SubAdminEdit = () => {
 
                   // For advertiser manager → only advertiser + advertiser_manager (except him)
                   if (role.includes("advertiser_manager")) {
-                    return ["advertiser", "advertiser_manager"].includes(
+                    return ["advertiser", "advertiser_manager", "adv_executive"].includes(
                       s.role,
                     );
                   }
 
                   // For publisher manager → only publisher + publisher_manager (except him)
                   if (role.includes("publisher_manager")) {
-                    return ["publisher", "publisher_manager"].includes(s.role);
+                    return ["publisher", "publisher_manager", "pub_executive"].includes(s.role);
                   }
                   if (role.includes("publisher")) {
                     return ["publisher"].includes(s.role);
@@ -705,6 +707,12 @@ const SubAdminEdit = () => {
                   if (role.includes("advertiser")) {
                     return ["advertiser"].includes(s.role);
                   }
+                     if (role.includes("pub_executive")) {
+                  return ["publisher", "pub_executive"].includes(s.role);
+                }
+                if (role.includes("adv_executive")) {
+                  return ["advertiser", "adv_executive"].includes(s.role);
+                }
                   return false;
                 })
                 .map((subAdmin) => (

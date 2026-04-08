@@ -48,10 +48,10 @@ const PubIdTable = () => {
     order: null,
   });
   const isPublisher =
-    roles.includes("publisher") || roles.includes("publisher_manager");
+    roles.includes("publisher") || roles.includes("publisher_manager") || roles.includes("pub_executive");
 
   const isAdvertiser =
-    roles.includes("advertiser") || roles.includes("advertiser_manager");
+    roles.includes("advertiser") || roles.includes("advertiser_manager") || roles.includes("adv_executive") || roles.includes("operations");
 
   const isAdmin = roles.includes("admin");
   const advColumnKey = isAdmin || isAdvertiser ? "adv_display" : "adv_id";

@@ -55,6 +55,7 @@ import PublisherLogin from "./components/PublisherAM/PublisherLogin";
 import Billing from "./components/Billing/Billing";
 import ForgotPassword from "./components/ForgetPassword";
 import CampianDataOptimization from "./components/Optimization/piddata";
+import TotalPidData from "./components/Optimization/CampaignPid";
 const AppRoutes = () => (
   <Router>
     <Routes>
@@ -74,6 +75,8 @@ const AppRoutes = () => (
               "accounts",
               "publisher_external",
               "optimization",
+              "pub_executive",
+              "adv_executive",
             ]}
           />
         }>
@@ -120,7 +123,11 @@ const AppRoutes = () => (
           <Route path="publisherbill" element={<PublisherBilling />} />
           <Route path="accountsadvbill" element={<AdvertiserAccount />} />
           <Route path="accountspubbill" element={<PublisherAccount />} />
-          <Route path="optimizationalldata" element={<CampianDataOptimization />} />
+          <Route
+            path="optimizationalldata"
+            element={<CampianDataOptimization />}
+          />
+          <Route path="totalpiddata" element={<TotalPidData />} />
           <Route path="myaccount" element={<MyAccount />} />
           {/* default redirect */}
           <Route index element={<Navigate to="home" replace />} />

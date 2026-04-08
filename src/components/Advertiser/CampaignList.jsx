@@ -475,14 +475,14 @@ const CampaignList = () => {
 
   if (
     roles.some((r) =>
-      ["advertiser", "advertiser_manager", "operations", "admin"].includes(r),
+      ["advertiser", "advertiser_manager","adv_executive", "operations", "admin"].includes(r),
     )
   ) {
     editableFields.push("adv_note", "status");
   }
 
   if (
-    roles.some((r) => ["publisher", "publisher_manager", "admin"].includes(r))
+    roles.some((r) => ["publisher","pub_executive", "publisher_manager", "admin"].includes(r))
   ) {
     editableFields.push("category", "Target", "achieve_number");
   }

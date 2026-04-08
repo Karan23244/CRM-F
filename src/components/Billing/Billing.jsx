@@ -12,9 +12,9 @@ export default function Billing() {
 
   const isAdmin = roles.includes("admin");
   const isPublisher =
-    roles.includes("publisher") || roles.includes("publisher_manager");
+    roles.includes("publisher") || roles.includes("publisher_manager") || roles.includes("pub_executive");
   const isAdvertiser =
-    roles.includes("advertiser") || roles.includes("advertiser_manager");
+    roles.includes("advertiser") || roles.includes("advertiser_manager") || roles.includes("adv_executive");
   const isPublisherExternal = roles.includes("publisher_external");
   const [mode, setMode] = useState("publisher");
 

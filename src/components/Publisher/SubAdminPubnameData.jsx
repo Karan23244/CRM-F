@@ -65,7 +65,7 @@ const SubAdminPubnameData = () => {
         const data = await response.json();
         if (response.ok) {
           const filtered = data.data.filter((subAdmin) =>
-            ["publisher_manager", "publisher"].includes(subAdmin.role),
+            ["publisher_manager", "publisher","pub_executive"].includes(subAdmin.role),
           );
           setSubAdmins(filtered);
         } else {

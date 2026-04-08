@@ -168,7 +168,7 @@ const AdvertiserEditForm = () => {
           setSubAdmins(
             data.data.filter(
               (a) =>
-                ["advertiser_manager", "advertiser", "operations"].includes(
+                ["advertiser_manager", "advertiser","adv_executive", "operations"].includes(
                   a.role,
                 ) && a.id !== userId,
             ),

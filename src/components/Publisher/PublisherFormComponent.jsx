@@ -125,7 +125,7 @@ const PublisherEditForm = () => {
         if (response.ok) {
           const filtered = data.data.filter(
             (subAdmin) =>
-              ["publisher_manager", "publisher"].includes(subAdmin.role) &&
+              ["publisher_manager","pub_executive", "publisher"].includes(subAdmin.role) &&
               subAdmin.id !== userId,
           );
 

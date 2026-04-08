@@ -83,7 +83,9 @@ const SubAdminForm = () => {
             "publisher",
             "publisher_manager",
             "advertiser_manager",
-          ].includes(user.role)
+            "pub_executive",
+            "adv_executive",
+          ].includes(user.role),
         );
 
       setSubAdminOptions(cleanedOptions);
@@ -137,7 +139,7 @@ const SubAdminForm = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      console.log(response)
+      console.log(response);
       const data = await response.json();
 
       if (response.ok) {
@@ -220,6 +222,8 @@ const SubAdminForm = () => {
             <Option value="optimization">Optimization</Option>
             <Option value="advertiser_manager">Advertiser Manager</Option>
             <Option value="publisher_manager">Publisher Manager</Option>
+            <Option value="pub_executive">Publisher Executive</Option>
+            <Option value="adv_executive">Advertiser Executive</Option>
             <Option value="accounts">Accounts</Option>
           </Select>
         </div>
@@ -244,56 +248,70 @@ const SubAdminForm = () => {
         </div>
 
         {/* Assign Sub-Admins */}
-        {(role.includes("publisher_manager") ||
-          role.includes("advertiser_manager")) && (
-          <div className="mb-6">
-            <label className="block font-semibold mb-2">
-              Assign Sub-Admins
-            </label>
-            <Select
-              mode="multiple"
-              showSearch
-              value={assignedSubAdmins}
-              onChange={setAssignedSubAdmins}
-              placeholder="Select sub-admins"
-              className="w-full rounded-lg border-gray-200 bg-gray-50"
-              filterOption={(input, option) =>
-                option.children.toLowerCase().includes(input.toLowerCase())
-              }>
-              {subAdminOptions
-                .filter((s) => {
-                  // If both manager roles selected → show both advertiser + publisher
-                  if (
-                    role.includes("advertiser_manager") &&
-                    role.includes("publisher_manager")
-                  ) {
-                    return [
-                      "advertiser",
-                      "publisher",
-                      "publisher_manager",
-                    ].includes(s.role);
-                  }
+        <div className="mb-6">
+          <label className="block font-semibold mb-2">Assign Sub-Admins</label>
+          <Select
+            mode="multiple"
+            showSearch
+            value={assignedSubAdmins}
+            onChange={setAssignedSubAdmins}
+            placeholder="Select sub-admins"
+            className="w-full rounded-lg border-gray-200 bg-gray-50"
+            filterOption={(input, option) =>
+              option.children.toLowerCase().includes(input.toLowerCase())
+            }>
+            {subAdminOptions
+              .filter((s) => {
+                // If both manager roles selected → show both advertiser + publisher
+                if (
+                  role.includes("advertiser_manager") &&
+                  role.includes("publisher_manager")
+                ) {
+                  return [
+                    "advertiser",
+                    "publisher",
+                    "publisher_manager",
+                  ].includes(s.role);
+                }
 
-                  // For advertiser manager → only advertiser + advertiser_manager (except him)
-                  if (role.includes("advertiser_manager")) {
-                    return ["advertiser"].includes(s.role);
-                  }
+                // For advertiser manager → only advertiser + advertiser_manager (except him)
+                if (role.includes("advertiser_manager")) {
+                  return [
+                    "advertiser",
+                    "advertiser_manager",
+                    "adv_executive",
+                  ].includes(s.role);
+                }
 
-                  // For publisher manager → only publisher + publisher_manager (except him)
-                  if (role.includes("publisher_manager")) {
-                    return ["publisher", "publisher_manager"].includes(s.role);
-                  }
-
-                  return false;
-                })
-                .map((subAdmin) => (
-                  <Option key={subAdmin.id} value={subAdmin.id}>
-                    {subAdmin.username} ({subAdmin.role})
-                  </Option>
-                ))}
-            </Select>
-          </div>
-        )}
+                // For publisher manager → only publisher + publisher_manager (except him)
+                if (role.includes("publisher_manager")) {
+                  return [
+                    "publisher",
+                    "publisher_manager",
+                    "pub_executive",
+                  ].includes(s.role);
+                }
+                if (role.includes("pub_executive")) {
+                  return ["publisher", "pub_executive"].includes(s.role);
+                }
+                if (role.includes("adv_executive")) {
+                  return ["advertiser", "adv_executive"].includes(s.role);
+                }
+                if (role.includes("publisher")) {
+                  return ["publisher"].includes(s.role);
+                }
+                if (role.includes("advertiser")) {
+                  return ["advertiser"].includes(s.role);
+                }
+                return false;
+              })
+              .map((subAdmin) => (
+                <Option key={subAdmin.id} value={subAdmin.id}>
+                  {subAdmin.username} ({subAdmin.role})
+                </Option>
+              ))}
+          </Select>
+        </div>
 
         {/* Ranges
         <div className="mb-6">

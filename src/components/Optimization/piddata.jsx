@@ -23,8 +23,8 @@ const apiUrl = import.meta.env.VITE_API_URL;
 
 // Advertiser Column Headings
 const columnHeadingsAdv = {
-  da: "DA",
   pub_name: "PUB AM",
+  pub_id: "PUB ID",
   campaign_name: "Campaign Name",
   vertical: "Vertical", // ✅ Added here
   geo: "GEO",
@@ -32,19 +32,10 @@ const columnHeadingsAdv = {
   os: "OS",
   payable_event: "Payable Event",
   mmp_tracker: "MMP Tracker",
-  adv_payout: "ADV Payout $",
-  pub_display: "PUB ID",
-  pay_out: "Pub Payout $",
   pid: "PID",
+
   shared_date: "Shared Date",
   paused_date: "Paused Date",
-  fp: "FP", // ✅ Added after paused_date
-  fa: "FA", // ✅ Added after paused_date
-  fa1: "FA1", // ✅ Added after paused_date
-  adv_total_no: "ADV Total Numbers",
-  adv_deductions: "ADV Deductions",
-  adv_approved_no: "ADV Approved Numbers",
-  pub_Apno: "PUB Approved Numbers",
 };
 
 const CampianDataOptimization = () => {
