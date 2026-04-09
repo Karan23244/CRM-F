@@ -702,16 +702,16 @@ const SubAdminEdit = () => {
                     return ["publisher", "publisher_manager", "pub_executive"].includes(s.role);
                   }
                   if (role.includes("publisher")) {
-                    return ["publisher"].includes(s.role);
+                    return ["publisher", "pub_executive"].includes(s.role);
                   }
                   if (role.includes("advertiser")) {
-                    return ["advertiser"].includes(s.role);
+                    return ["advertiser", "adv_executive"].includes(s.role);
                   }
                      if (role.includes("pub_executive")) {
-                  return ["publisher", "pub_executive"].includes(s.role);
+                  return ["pub_executive"].includes(s.role);
                 }
                 if (role.includes("adv_executive")) {
-                  return ["advertiser", "adv_executive"].includes(s.role);
+                  return ["adv_executive"].includes(s.role);
                 }
                   return false;
                 })

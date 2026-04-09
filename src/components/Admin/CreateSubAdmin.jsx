@@ -291,17 +291,17 @@ const SubAdminForm = () => {
                     "pub_executive",
                   ].includes(s.role);
                 }
-                if (role.includes("pub_executive")) {
+                if (role.includes("publisher")) {
                   return ["publisher", "pub_executive"].includes(s.role);
                 }
-                if (role.includes("adv_executive")) {
+                if (role.includes("advertiser")) {
                   return ["advertiser", "adv_executive"].includes(s.role);
                 }
-                if (role.includes("publisher")) {
-                  return ["publisher"].includes(s.role);
+                if (role.includes("pub_executive")) {
+                  return ["pub_executive"].includes(s.role);
                 }
-                if (role.includes("advertiser")) {
-                  return ["advertiser"].includes(s.role);
+                if (role.includes("adv_executive")) {
+                  return ["adv_executive"].includes(s.role);
                 }
                 return false;
               })
