@@ -271,6 +271,9 @@ const SubAdminForm = () => {
                     "advertiser",
                     "publisher",
                     "publisher_manager",
+                    "advertiser_manager",
+                    "pub_executive",
+                    "adv_executive",
                   ].includes(s.role);
                 }
 
