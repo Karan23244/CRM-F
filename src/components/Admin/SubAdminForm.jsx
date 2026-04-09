@@ -179,71 +179,69 @@ const SubAdminEdit = () => {
     try {
       // ✅ Get old sub-admin data from your existing state
       const oldSubAdmin = subAdmins.find((u) => u.id === selectedSubAdmin);
-      console.log("Old Sub-Admin Data:", oldSubAdmin); // Debug log
-      console.log("Payload for Update:", payload); // Debug log
-      // const response = await fetch(`${apiUrl}/update-sub-admin`, {
-      //   method: "PUT",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify(payload),
-      // });
-      // const data = await response.json();
+      const response = await fetch(`${apiUrl}/update-sub-admin`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json();
 
-      // if (response.ok) {
-      //   Swal.fire({
-      //     icon: "success",
-      //     title: "Updated!",
-      //     text: "Sub-admin updated successfully.",
-      //   });
+      if (response.ok) {
+        Swal.fire({
+          icon: "success",
+          title: "Updated!",
+          text: "Sub-admin updated successfully.",
+        });
 
-      //   // ✅ Detect which fields changed
-      //   const changedFields = [];
+        // ✅ Detect which fields changed
+        const changedFields = [];
 
-      //   if (oldSubAdmin.username !== username) changedFields.push("username");
-      //   if (oldSubAdmin.role !== role) changedFields.push("role");
+        if (oldSubAdmin.username !== username) changedFields.push("username");
+        if (oldSubAdmin.role !== role) changedFields.push("role");
 
-      //   const oldRangeStr = JSON.stringify(oldSubAdmin.ranges || []);
-      //   const newRangeStr = JSON.stringify(payload.ranges);
-      //   if (oldRangeStr !== newRangeStr) changedFields.push("ranges");
+        const oldRangeStr = JSON.stringify(oldSubAdmin.ranges || []);
+        const newRangeStr = JSON.stringify(payload.ranges);
+        if (oldRangeStr !== newRangeStr) changedFields.push("ranges");
 
-      //   const oldAssignedStr = JSON.stringify(
-      //     oldSubAdmin.assigned_subadmins || [],
-      //   );
-      //   const newAssignedStr = JSON.stringify(payload.assigned_subadmins || []);
-      //   if (oldAssignedStr !== newAssignedStr)
-      //     changedFields.push("assigned users");
+        const oldAssignedStr = JSON.stringify(
+          oldSubAdmin.assigned_subadmins || [],
+        );
+        const newAssignedStr = JSON.stringify(payload.assigned_subadmins || []);
+        if (oldAssignedStr !== newAssignedStr)
+          changedFields.push("assigned users");
 
-      //   if (oldSubAdmin.can_see_button1 !== payload.can_see_button1)
-      //     changedFields.push("edit condition permission");
-      //   if (oldSubAdmin.can_see_input1 !== payload.can_see_input1)
-      //     changedFields.push("upload files permission");
+        if (oldSubAdmin.can_see_button1 !== payload.can_see_button1)
+          changedFields.push("edit condition permission");
+        if (oldSubAdmin.can_see_input1 !== payload.can_see_input1)
+          changedFields.push("upload files permission");
 
-      //   const detailsChanged =
-      //     changedFields.length > 0
-      //       ? changedFields.join(", ")
-      //       : "general details";
+        const detailsChanged =
+          changedFields.length > 0
+            ? changedFields.join(", ")
+            : "general details";
 
-      //   // ✅ Build notification message
-      //   const message = `⚙️ Your ${detailsChanged} were updated by ${
-      //     senderData?.username || "Admin"
-      //   }.`;
+        // ✅ Build notification message
+        const message = `⚙️ Your ${detailsChanged} were updated by ${
+          senderData?.username || "Admin"
+        }.`;
 
-      //   // ✅ Send notification to updated sub-admin
-      //   await createNotification({
-      //     sender: senderData?.id,
-      //     receiver: selectedSubAdmin,
-      //     type: "subadmin_update",
-      //     message,
-      //     url: "/dashboard/myaccount",
-      //   });
-      //   fetchSubAdmins();
-      //   handleCancel();
-      // } else {
-      //   Swal.fire({
-      //     icon: "error",
-      //     title: "Error!",
-      //     text: data.message || "Failed to update sub-admin.",
-      //   });
-      // }
+        // ✅ Send notification to updated sub-admin
+        await createNotification({
+          sender: senderData?.id,
+          receiver: selectedSubAdmin,
+          type: "subadmin_update",
+          message,
+          url: "/dashboard/myaccount",
+        });
+        fetchSubAdmins();
+        handleCancel();
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Error!",
+          text: data.message || "Failed to update sub-admin.",
+        });
+      }
     } catch (error) {
       Swal.fire({
         icon: "error",
