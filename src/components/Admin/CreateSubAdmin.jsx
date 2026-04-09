@@ -123,11 +123,7 @@ const SubAdminForm = () => {
       //   start: String(start),
       //   end: String(end),
       // })),
-      assigned_subadmins:
-        role.includes("publisher_manager") ||
-        role.includes("advertiser_manager")
-          ? assignedSubAdmins
-          : [],
+      assigned_subadmins: assignedSubAdmins,
       can_see_button1: permissionEditCondition ? 1 : 0,
       can_see_input1: permissionUploadFiles ? 1 : 0,
       can_add_store: permissionAddStore ? 1 : 0,
@@ -283,6 +279,7 @@ const SubAdminForm = () => {
                     "advertiser",
                     "advertiser_manager",
                     "adv_executive",
+                    "operations",
                   ].includes(s.role);
                 }
 
@@ -292,6 +289,7 @@ const SubAdminForm = () => {
                     "publisher",
                     "publisher_manager",
                     "pub_executive",
+                    "operations",
                   ].includes(s.role);
                 }
                 if (role.includes("publisher")) {
