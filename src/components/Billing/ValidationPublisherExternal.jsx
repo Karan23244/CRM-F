@@ -1,22 +1,14 @@
-import { useEffect, useState, useCallback } from "react";
-import { DatePicker, Table, Button, Spin, Modal } from "antd";
+import { useEffect, useState } from "react";
+import { DatePicker, Table, Button, Modal, Tag, Spin } from "antd";
 import axios from "axios";
 import { useSelector } from "react-redux";
+import { nanoid } from "nanoid";
 import StyledTable from "../../Utils/StyledTable";
+
 const API = import.meta.env.VITE_API_URL5;
 
-const displayValue = (v) =>
-  v === null || v === undefined ? "Pending" : Number(v) === 0 ? 0 : v;
-
-const SummaryItem = ({ label, value, highlight }) => (
-  <div
-    className={`rounded-lg p-3 ${
-      highlight ? "bg-blue-50 border border-blue-200" : "bg-gray-50 border"
-    }`}>
-    <div className="text-xs text-gray-500 mb-1">{label}</div>
-    <div className="text-sm font-semibold text-gray-800">{value}</div>
-  </div>
-);
+// helper → always return 0 if empty
+const safeNum = (v) => Number(v || 0);
 
 export default function PublisherExternalBilling() {
   const { user } = useSelector((s) => s.auth);
@@ -24,190 +16,279 @@ export default function PublisherExternalBilling() {
   const [month, setMonth] = useState(null);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
+
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [detailsIndex, setDetailsIndex] = useState(null);
+  const [activeRow, setActiveRow] = useState(null);
 
+  const [filters, setFilters] = useState({});
+
+  // ─────────────────────────────────────────────
+  // FETCH DATA
+  // ─────────────────────────────────────────────
   const fetchBilling = async () => {
-    if (!month) return;
-
     setLoading(true);
-    const res = await axios.post(`${API}/billing/publisher-external-data`, {
-      pubid: user.username,
-      month,
-    });
+    try {
+      const res = await axios.post(`${API}/billing/publisher-external-data`, {
+        pubid: 361,
+        month,
+      });
 
-    setRows(res.data.data || []);
-    setLoading(false);
+      const flat = res.data.data || [];
+      const map = new Map();
+
+      flat.forEach((row) => {
+        const key = [
+          row.campaign_name,
+          row.geo,
+          row.vertical,
+          row.payable_event,
+          Number(row.pay_out || 0),
+        ].join("|");
+
+        if (!map.has(key)) {
+          map.set(key, {
+            _tmp_id: nanoid(),
+            campaign_name: row.campaign_name,
+            geo: row.geo,
+            vertical: row.vertical,
+            payable_event: row.payable_event,
+            pay_out: safeNum(row.pay_out),
+
+            osSet: new Set(),
+
+            pid_data: [],
+          });
+        }
+
+        const group = map.get(key);
+
+        if (row.os) group.osSet.add(row.os);
+
+        const adv = safeNum(row.adv_total_no);
+        const apno = safeNum(row.pub_Apno);
+        const payout = safeNum(row.pay_out);
+
+        group.pid_data.push({
+          adv_data_id: row.adv_data_id,
+          pid: row.pid,
+          os: row.os,
+          adv_total_no: adv,
+          pub_Apno: apno,
+          payout_amount: apno * payout,
+        });
+      });
+
+      const finalRows = Array.from(map.values()).map((r) => ({
+        ...r,
+        os: Array.from(r.osSet).join(", "),
+      }));
+
+      setRows(finalRows);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     if (month) fetchBilling();
   }, [month]);
 
+  // ─────────────────────────────────────────────
+  // FILTER
+  // ─────────────────────────────────────────────
+  const filteredRows = rows.filter((row) =>
+    Object.entries(filters).every(([key, val]) => {
+      if (!val) return true;
+      return row[key] === val;
+    }),
+  );
+
+  // ─────────────────────────────────────────────
+  // TABLE COLUMNS
+  // ─────────────────────────────────────────────
   const columns = [
     {
       title: "Campaign",
       render: (_, r) => (
-        <span title={`${r.campaign_name} • ${r.geo} • ${r.os}`}>
-          {r.campaign_name} • {r.geo} • {r.os}
+        <span>
+          {r.campaign_name || "—"} • {r.geo || "—"} • {r.os || "—"}
         </span>
       ),
     },
     {
+      title: "Vertical",
+      dataIndex: "vertical",
+      render: (v) => v || "—",
+    },
+    {
       title: "Payable Event",
       dataIndex: "payable_event",
+      render: (v) => v || "—",
     },
     {
-      title: "PUB Payout",
-      dataIndex: "pub_payout",
+      title: "Payout Rate",
+      dataIndex: "pay_out",
+      render: (v) => `$${safeNum(v).toFixed(2)}`,
     },
+
+    // ✅ FIXED TOTALS (derived from pid_data)
     {
       title: "PUB Total",
-      render: (_, r) => displayValue(r.pub_total_no),
+      render: (_, row) => {
+        const total = (row.pid_data || []).reduce(
+          (s, p) => s + safeNum(p.adv_total_no),
+          0,
+        );
+        return total.toFixed(2);
+      },
     },
     {
       title: "PUB Approved",
-      render: (_, r) => displayValue(r.pub_approved_no),
+      render: (_, row) => {
+        const approved = (row.pid_data || []).reduce(
+          (s, p) => s + safeNum(p.pub_Apno),
+          0,
+        );
+        return approved.toFixed(2);
+      },
     },
     {
       title: "Total Payout",
-      render: (_, r) => displayValue(r.payout_amount),
+      render: (_, row) => {
+        const payout = (row.pid_data || []).reduce(
+          (s, p) => s + safeNum(p.payout_amount),
+          0,
+        );
+        return `$${payout.toFixed(2)}`;
+      },
     },
+
     {
       title: "Details",
-      render: (_, __, i) => (
+      render: (_, row) => (
         <Button
-          size="small"
           type="link"
           onClick={() => {
-            setDetailsIndex(i);
+            setActiveRow(row);
             setDetailsOpen(true);
           }}>
           View
         </Button>
       ),
     },
-    {
-      title: "Status",
-      render: (_, r) =>
-        r.status === "verified" ? (
-          <span className="text-green-600 font-semibold">Verified</span>
-        ) : (
-          <span className="text-orange-600 font-semibold">Locked</span>
-        ),
-    },
   ];
 
-  const tableSummary = useCallback((pageData) => {
-    let approved = 0;
-    let payout = 0;
+  // ─────────────────────────────────────────────
+  // SUMMARY FIXED
+  // ─────────────────────────────────────────────
+  const summary = (pageData) => {
+    let totalNo = 0,
+      totalApproved = 0,
+      totalPayout = 0;
 
-    pageData.forEach((r) => {
-      if (r.status === "verified") {
-        approved += Number(r.pub_approved_no || 0);
-        payout += Number(r.payout_amount || 0);
-      }
+    pageData.forEach((row) => {
+      totalNo += (row.pid_data || []).reduce(
+        (s, p) => s + safeNum(p.adv_total_no),
+        0,
+      );
+
+      totalApproved += (row.pid_data || []).reduce(
+        (s, p) => s + safeNum(p.pub_Apno),
+        0,
+      );
+
+      totalPayout += (row.pid_data || []).reduce(
+        (s, p) => s + safeNum(p.payout_amount),
+        0,
+      );
     });
 
     return (
       <Table.Summary.Row>
-        <Table.Summary.Cell colSpan={4} />
-        <Table.Summary.Cell className="text-center">
-          <b>{approved}</b>
+        <Table.Summary.Cell colSpan={4}>
+          <b>Total</b>
         </Table.Summary.Cell>
-        <Table.Summary.Cell className="text-center">
-          <b>{payout.toFixed(2)}</b>
+        <Table.Summary.Cell>
+          <b>{totalNo.toFixed(2)}</b>
         </Table.Summary.Cell>
-        <Table.Summary.Cell colSpan={2} />
+        <Table.Summary.Cell>
+          <b>{totalApproved.toFixed(2)}</b>
+        </Table.Summary.Cell>
+        <Table.Summary.Cell>
+          <b>${totalPayout.toFixed(2)}</b>
+        </Table.Summary.Cell>
+        <Table.Summary.Cell />
       </Table.Summary.Row>
     );
-  }, []);
+  };
 
-  const activeRow = detailsIndex !== null ? rows[detailsIndex] : null;
-
+  // ─────────────────────────────────────────────
+  // RENDER
+  // ─────────────────────────────────────────────
   return (
     <>
       <div className="p-5">
         <div className="flex gap-3 mb-4">
-          <DatePicker
-            picker="month"
-            onChange={(_, s) => {
-              setMonth(s);
-              setRows([]);
-            }}
-          />
+          <DatePicker picker="month" onChange={(_, s) => setMonth(s)} />
+          <Button onClick={() => setFilters({})}>Clear Filters</Button>
         </div>
 
         {loading ? (
           <Spin />
         ) : (
           <StyledTable
-            rowKey={(r) => r.billing_id}
-            dataSource={rows}
+            rowKey={(r) => r._tmp_id}
+            dataSource={filteredRows}
             columns={columns}
-            summary={tableSummary}
+            summary={summary}
           />
         )}
       </div>
 
+      {/* MODAL */}
       <Modal
         open={detailsOpen}
         onCancel={() => {
           setDetailsOpen(false);
-          setDetailsIndex(null);
+          setActiveRow(null);
         }}
         footer={null}
-        width={900}
-        centered>
+        width={900}>
         {activeRow && (
           <>
-            <div className="mb-4 border-b pb-3">
-              <h2 className="text-lg font-semibold">
-                {activeRow.campaign_name}
-              </h2>
-              <p className="text-sm text-gray-500">
-                {activeRow.geo} • {activeRow.os}
-              </p>
-            </div>
+            <h2 className="text-lg font-semibold mb-2">
+              {activeRow.campaign_name}
+            </h2>
 
-            <div className="grid grid-cols-4 gap-4 mb-6">
-              <SummaryItem
-                label="Payable Event"
-                value={activeRow.payable_event}
-              />
-              <SummaryItem
-                label="PUB Payout"
-                value={`$${activeRow.pub_payout}`}
-              />
-              <SummaryItem
-                label="Approved"
-                value={displayValue(activeRow.pub_approved_no)}
-              />
-              <SummaryItem
-                label="Total Payout"
-                highlight
-                value={displayValue(activeRow.payout_amount)}
-              />
-            </div>
+            <p className="text-gray-500 mb-4">
+              {activeRow.geo} • {activeRow.os}
+            </p>
 
-            <Table
+            <StyledTable
               size="small"
               pagination={false}
+              rowKey={(r, i) => i}
               dataSource={activeRow.pid_data || []}
-              rowKey={(r, i) => `${r.pid}-${i}`}
               columns={[
+                { title: "OS", dataIndex: "os" },
                 { title: "PID", dataIndex: "pid" },
                 {
                   title: "Total",
-                  render: (_, r) => displayValue(r.total_no),
+                  render: (_, r) => safeNum(r.adv_total_no),
                 },
                 {
                   title: "Approved",
-                  render: (_, r) => displayValue(r.approved_no),
+                  render: (_, r) => safeNum(r.pub_Apno),
                 },
                 {
                   title: "Payout",
-                  render: (_, r) => displayValue(r.payout_amount),
+                  render: (_, r) => `$${safeNum(r.payout_amount).toFixed(2)}`,
+                },
+                {
+                  title: "Status",
+                  render: () => <Tag color="green">Verified</Tag>,
                 },
               ]}
             />

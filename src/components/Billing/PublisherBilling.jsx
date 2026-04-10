@@ -100,7 +100,7 @@ export default function PublisherAccount() {
         user_id: user?.id,
         role: user?.role || [],
         assigned_subadmins: user?.assigned_subadmins || [],
-        month: m,
+        month: month || currentMonth,
       });
 
       setData(res.data.data); // ⚠️ important (your backend sends { success, data })

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Select,
   DatePicker,
@@ -9,26 +9,44 @@ import {
   Modal,
   message,
   Checkbox,
+  Tag,
 } from "antd";
 import axios from "axios";
 import Swal from "sweetalert2";
 import { useSelector } from "react-redux";
 import StyledTable from "../../Utils/StyledTable";
 import { nanoid } from "nanoid";
-import { FilterFilled } from "@ant-design/icons";
+import { FilterFilled, LockFilled } from "@ant-design/icons";
 
 const { Option } = Select;
 const API = import.meta.env.VITE_API_URL5;
+const isPidLocked = (p, billingLocked) =>
+  billingLocked || p.status === "verified" || p.status === "locked";
+
+const isCampaignLocked = (row, billingLocked) =>
+  billingLocked ||
+  (row.pid_data || []).some(
+    (p) => p.status === "verified" || p.status === "locked",
+  );
 const displayValue = (v) =>
   v === null || v === undefined ? "Pending" : Number(v) === 0 ? 0 : v;
 
-const SummaryItem = ({ label, value, highlight, disabled }) => (
+// ─────────────────────────────────────────────
+// UI helpers
+// ─────────────────────────────────────────────
+const SummaryItem = ({ label, value, highlight }) => (
   <div
-    className={`rounded-lg p-3 ${highlight ? "bg-blue-50 border border-blue-200" : "bg-gray-50 border"} ${disabled ? "opacity-50" : ""}`}>
+    className={`rounded-lg p-3 ${
+      highlight ? "bg-blue-50 border border-blue-200" : "bg-gray-50 border"
+    }`}>
     <div className="text-xs text-gray-500 mb-1">{label}</div>
     <div className="text-sm font-semibold text-gray-800">{value}</div>
   </div>
 );
+
+// ─────────────────────────────────────────────
+// Editable cells — local state only, zero DB writes
+// ─────────────────────────────────────────────
 const EditableCampaignCell = ({ row, record, onChange, disabled }) => {
   const [editing, setEditing] = useState(false);
   const [local, setLocal] = useState({
@@ -54,7 +72,11 @@ const EditableCampaignCell = ({ row, record, onChange, disabled }) => {
     return (
       <div
         onClick={() => !disabled && setEditing(true)}
-        className={`campaign-cell ${disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-gray-100"}`}
+        className={`campaign-cell ${
+          disabled
+            ? "cursor-not-allowed opacity-60"
+            : "cursor-pointer hover:bg-gray-100"
+        }`}
         title={`${row.campaign_name} - ${row.geo} - ${row.os}`}>
         <span className="truncate">
           {row.campaign_name || "—"} <span className="text-gray-400">•</span>{" "}
@@ -97,6 +119,7 @@ const EditableCampaignCell = ({ row, record, onChange, disabled }) => {
     </div>
   );
 };
+
 const EditableTextCell = ({
   value,
   onSave,
@@ -107,15 +130,11 @@ const EditableTextCell = ({
   const [editing, setEditing] = useState(false);
   const [local, setLocal] = useState(value || "");
 
-  useEffect(() => {
-    setLocal(value || "");
-  }, [value]);
+  useEffect(() => setLocal(value || ""), [value]);
 
   const save = () => {
     setEditing(false);
-    if (local !== value) {
-      onSave(local.trim());
-    }
+    if (local !== value) onSave(local.trim());
   };
 
   return editing ? (
@@ -150,15 +169,12 @@ const EditableCell = ({ value, onSave, width = 100, disabled }) => {
   const [editing, setEditing] = useState(false);
   const [localValue, setLocalValue] = useState(value ?? "");
 
-  useEffect(() => {
-    setLocalValue(value ?? "");
-  }, [value]);
+  useEffect(() => setLocalValue(value ?? ""), [value]);
 
   const save = () => {
     setEditing(false);
-    if (localValue !== value) {
+    if (localValue !== value)
       onSave(localValue === "" ? null : Number(localValue));
-    }
   };
 
   return editing ? (
@@ -184,19 +200,22 @@ const EditableCell = ({ value, onSave, width = 100, disabled }) => {
     </div>
   );
 };
-const EditablePidCell = ({ value, onCommit }) => {
+
+const EditablePidCell = ({ value, onCommit, disabled }) => {
   const [editing, setEditing] = useState(false);
   const [local, setLocal] = useState(value || "");
 
-  useEffect(() => {
-    setLocal(value || "");
-  }, [value]);
+  useEffect(() => setLocal(value || ""), [value]);
 
   if (!editing) {
     return (
       <div
-        onClick={() => setEditing(true)}
-        className="px-2 py-1 cursor-pointer hover:bg-gray-100 truncate"
+        onClick={() => !disabled && setEditing(true)}
+        className={`px-2 py-1 truncate ${
+          disabled
+            ? "cursor-not-allowed opacity-60"
+            : "cursor-pointer hover:bg-gray-100"
+        }`}
         title={local}>
         {local || "—"}
       </div>
@@ -222,354 +241,419 @@ const EditablePidCell = ({ value, onCommit }) => {
   );
 };
 
+// ─────────────────────────────────────────────
+// Main component
+// ─────────────────────────────────────────────
 export default function BillingAdvertiser() {
-  const autosaveTimer = useRef(null);
   const { user } = useSelector((s) => s.auth);
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [detailsIndex, setDetailsIndex] = useState(null);
+
   const [publishers, setPublishers] = useState([]);
   const [selectedPubId, setSelectedPubId] = useState(null);
   const [month, setMonth] = useState(null);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [billingLocked, setBillingLocked] = useState(false);
+
+  // modal
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [detailsRowId, setDetailsRowId] = useState(null);
+
+  // filters
   const [filters, setFilters] = useState({});
+  const [pidFilters, setPidFilters] = useState({});
   const [filterSearch, setFilterSearch] = useState({});
   const [uniqueValues, setUniqueValues] = useState({});
-  const [pidFilters, setPidFilters] = useState({});
-  const isLocked = rows.some((r) => r.status === "locked");
-  console.log("Fetched Billing Data:", rows);
-  const normalize = (val) => {
-    if (val === null || val === undefined || val === "") return "Pending";
-    return String(val).trim();
+  console.log(rows);
+  const allDataLocked =
+    rows.length > 0 &&
+    rows.every(
+      (r) =>
+        (r.pid_data || []).length > 0 &&
+        (r.pid_data || []).every((p) => p.status === "locked"),
+    );
+  // ── helpers ───────────────────────────────────
+  const normalize = (val) =>
+    val === null || val === undefined || val === ""
+      ? "Pending"
+      : String(val).trim();
+
+  // true only when every campaign has ≥1 PID and all are verified
+  const allPidsVerified =
+    rows.length > 0 &&
+    rows.every(
+      (r) =>
+        (r.pid_data || []).length > 0 &&
+        (r.pid_data || []).every((p) => p.status === "verified"),
+    );
+  // ── dropdowns ─────────────────────────────────
+  useEffect(() => {
+    axios
+      .post(`${API}/billing/dropdowns`, {
+        roles: user.role,
+        user_id: user.id,
+      })
+      .then((r) => setPublishers(r.data.publishers || []));
+  }, []);
+
+  // ── fetch & group flat rows by campaign_id ────
+  const fetchBilling = async () => {
+    if (!selectedPubId || !month) return;
+    setLoading(true);
+    try {
+      const res = await axios.post(`${API}/billing/publisher-data`, {
+        id: selectedPubId,
+        month,
+      });
+      console.log("Raw billing data:", res.data);
+      const flat = res.data.data || [];
+      const locked = res.data.billing_locked || false;
+      setBillingLocked(locked);
+
+      const map = new Map();
+
+      flat.forEach((row) => {
+        const key = [
+          row.campaign_name,
+          row.geo,
+          row.vertical,
+          row.payable_event,
+          Number(row.pay_out || 0),
+        ].join("|");
+
+        if (!map.has(key)) {
+          map.set(key, {
+            _tmp_id: nanoid(),
+            campaign_name: row.campaign_name,
+            geo: row.geo,
+            vertical: row.vertical,
+            payable_event: row.payable_event,
+            pay_out: Number(row.pay_out || 0),
+
+            osSet: new Set(), // ✅ important
+
+            adv_total_number: 0,
+            pub_apno: 0,
+            payout_amount: 0,
+
+            pid_data: [],
+          });
+        }
+
+        const group = map.get(key);
+
+        // ✅ collect OS
+        if (row.os) group.osSet.add(row.os);
+
+        const adv = Number(row.adv_total_no || 0);
+        const apno = Number(row.pub_Apno || 0);
+        const payout = Number(row.pay_out || 0);
+
+        group.adv_total_number += adv;
+        group.pub_apno += apno;
+        group.payout_amount += apno * payout;
+
+        group.pid_data.push({
+          adv_data_id: row.adv_data_id,
+          pid: row.pid,
+          os: row.os,
+          adv_total_no: adv,
+          pub_Apno: apno,
+          payout_amount: apno * payout,
+          status: row.status,
+        });
+      });
+
+      const finalRows = Array.from(map.values()).map((r) => ({
+        ...r,
+        os: Array.from(r.osSet).join(", "), // 🔥 final OS output
+        adv_total_number: Number(r.adv_total_number.toFixed(2)),
+        pub_apno: Number(r.pub_apno.toFixed(2)),
+        payout_amount: Number(r.payout_amount.toFixed(2)),
+      }));
+
+      setRows(finalRows);
+    } catch (err) {
+      console.error("fetchBilling error:", err);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    if (selectedPubId && month) fetchBilling();
+  }, [selectedPubId, month]);
+
+  // ── active modal row ───────────────────────────
+  const activeRow = rows.find((r) => r._tmp_id === detailsRowId);
+  const activeIndex = rows.findIndex((r) => r._tmp_id === detailsRowId);
+
+  // ── unique filter values ───────────────────────
+  useEffect(() => {
+    const keys = ["campaign_name", "geo", "os", "payable_event", "pay_out"];
+    const obj = {};
+    keys.forEach((k) => {
+      obj[k] = [...new Set(rows.map((r) => normalize(r[k])))];
+    });
+    setUniqueValues(obj);
+  }, [rows]);
+
+  useEffect(() => {
+    if (!activeRow) return;
+    const keys = ["os", "pid", "adv_total_no", "pub_Apno"];
+    const obj = {};
+    keys.forEach((k) => {
+      obj[k] = [
+        ...new Set((activeRow.pid_data || []).map((p) => normalize(p[k]))),
+      ];
+    });
+    setUniqueValues((prev) => ({ ...prev, ...obj }));
+  }, [activeRow]);
+
+  // ── local state updaters (no DB write) ────────
   const updateCampaignComposite = (record, values) => {
-    updateRowsSafely((prev) =>
-      prev.map((row) =>
-        (row.billing_id || row._tmp_id) ===
-        (record.billing_id || record._tmp_id)
-          ? { ...row, ...values }
-          : row,
+    setRows((prev) =>
+      prev.map((r) => (r._tmp_id === record._tmp_id ? { ...r, ...values } : r)),
+    );
+  };
+
+  const updateCampaignField = (tmpId, field, value) => {
+    setRows((prev) =>
+      prev.map((r) => (r._tmp_id === tmpId ? { ...r, [field]: value } : r)),
+    );
+  };
+
+  const updatePidField = (parentIdx, pidIdx, field, value) => {
+    setRows((prev) =>
+      prev.map((r, i) =>
+        i === parentIdx
+          ? {
+              ...r,
+              pid_data: r.pid_data.map((p, j) =>
+                j === pidIdx ? { ...p, [field]: value } : p,
+              ),
+            }
+          : r,
       ),
     );
   };
 
-  useEffect(() => {
-    fetchDropdowns();
-  }, []);
-
-  const fetchDropdowns = async () => {
-    const res = await axios.post(`${API}/billing/dropdowns`, {
-      roles: user.role,
-      user_id: user.id,
-    });
-    setPublishers(res.data.publishers || []);
-  };
-
-  const fetchBilling = async () => {
-    if (!selectedPubId || !month) return;
-    setLoading(true);
-    const res = await axios.post(`${API}/billing/publisher-data`, {
-      id: selectedPubId,
-      month,
-    });
-    console.log(res.data.data);
-    setRows(
-      (res.data.data || []).map((r) => ({
-        ...r,
-        _tmp_id: r.billing_id ? null : nanoid(),
-      })),
-    );
-
-    setLoading(false);
-  };
-  useEffect(() => {
-    if (selectedPubId && month) {
-      fetchBilling();
-    }
-  }, [selectedPubId, month]);
-  const triggerAutosave = (nextRows, previousRows) => {
-    if (!selectedPubId || !month) return;
-
-    clearTimeout(autosaveTimer.current);
-
-    autosaveTimer.current = setTimeout(async () => {
-      try {
-        const res = await axios.post(`${API}/billing/publisher-save`, {
-          pub_id: selectedPubId,
-          month,
-          data: nextRows,
-        });
-        console.log("Autosave Response:", res);
-        // if (res.data?.success) {
-        //   if (res.data.billingIdMap) {
-        //     setRows((prev) =>
-        //       prev.map((r) => {
-        //         const match = res.data.billingIdMap.find(
-        //           (b) =>
-        //             (!r.billing_id && b.tmp_id === r._tmp_id) ||
-        //             b.billing_id === r.billing_id,
-        //         );
-
-        //         return match ? { ...r, billing_id: match.billing_id } : r;
-        //       }),
-        //     );
-        //   }
-        // }
-        if (res.data?.success) {
-          setRows((prev) =>
-            prev.map((r) => {
-              // 1️⃣ Match billingIdMap (for new IDs)
-              const idMatch = res.data.billingIdMap?.find(
-                (b) =>
-                  (!r.billing_id && b.tmp_id === r._tmp_id) ||
-                  b.billing_id === r.billing_id,
-              );
-
-              // 2️⃣ Match updated row data
-              const updatedMatch = res.data.data?.find(
-                (d) => d.billing_id === (idMatch?.billing_id || r.billing_id),
-              );
-
-              return {
-                ...r,
-                ...(idMatch ? { billing_id: idMatch.billing_id } : {}),
-                ...(updatedMatch || {}),
-              };
-            }),
-          );
-        }
-      } catch (err) {
-        console.log("SAVE ERROR:", err);
-
-        // 🔥 ROLLBACK STATE
-        if (previousRows) {
-          console.log("Rolling back to previous state:", previousRows);
-          setRows(previousRows);
-        }
-
-        Swal.fire({
-          icon: "error",
-          title: "Server Error",
-          text:
-            err.response?.data?.message ||
-            err.response?.data?.error ||
-            "Internal Server Error (500)",
-        });
-      }
-    }, 700);
-  };
-  const updateRowsSafely = (updater) => {
-    setRows((prev) => {
-      const previous = JSON.parse(JSON.stringify(prev)); // deep copy
-      const updated = updater(prev);
-      console.log("Updated Rows:", updated);
-      console.log("Previous Rows:", previous);
-      triggerAutosave(updated, previous);
-
-      return updated;
-    });
-  };
-  const updatePid = (parentIndex, pidIndex, field, value) => {
-    setRows((prev) => {
-      const copy = prev.map((r, i) =>
-        i === parentIndex
-          ? {
-              ...r,
-              pid_data: r.pid_data.map((p, j) =>
-                j === pidIndex ? { ...p, [field]: value } : p,
-              ),
-            }
-          : r,
-      );
-      console.log("PID Updated Rows:", copy);
-      triggerAutosave(copy);
-      return copy;
-    });
-  };
-
-  const addPid = (parentIndex) => {
-    const updated = rows.map((r, i) =>
-      i === parentIndex
-        ? {
-            ...r,
-            pid_data: [
-              ...(r.pid_data || []),
-              {
-                _id: nanoid(), // ✅ unique id
-                os: "",
-                pid: "",
-                total_no: null,
-                deductions: null,
-                approved_no: null,
-              },
-            ],
-          }
-        : r,
-    );
-    setRows(updated);
-  };
   const addCampaign = () => {
-    setRows((r) => [
+    setRows((prev) => [
       {
         _tmp_id: nanoid(),
+        campaign_id: "",
         campaign_name: "",
         geo: "",
         os: "",
         payable_event: "",
-        payout_rate: 0,
-        total_no: null,
-        deductions: null,
-        approved_no: null,
+        pay_out: null,
+        vertical: "",
         pid_data: [],
       },
-      ...r,
+      ...prev,
     ]);
   };
-  const activeRow = rows.find(
-    (r) => (r.billing_id || r._tmp_id) === detailsRowId,
-  );
-  useEffect(() => {
-    const valuesObj = {};
 
-    const keys = [
-      "campaign_name",
-      "geo",
-      "os",
-      "payable_event",
-      "pub_payout",
-      "adv_total_number",
-      "pub_apno",
-      "payout_amount",
-    ];
+  const addPid = (parentIndex) => {
+    setRows((prev) =>
+      prev.map((r, i) =>
+        i === parentIndex
+          ? {
+              ...r,
+              pid_data: [
+                ...(r.pid_data || []),
+                {
+                  _tmp_id: nanoid(),
+                  adv_data_id: null,
+                  pid: "",
+                  os: "",
+                  adv_total_no: null,
+                  pub_Apno: null,
+                  status: "unverified",
+                },
+              ],
+            }
+          : r,
+      ),
+    );
+  };
 
-    keys.forEach((key) => {
-      valuesObj[key] = [...new Set(rows.map((row) => normalize(row[key])))];
-    });
+  // ── verify one PID → writes to pub_data_verified ─
+  const verifyPid = async (pidRow, campaignRow, pidIndex, parentIndex) => {
+    // ── REMOVED: the adv_data_id guard that was blocking new PIDs
+    try {
+      const res = await axios.post(`${API}/billing/publisher-verify-pid`, {
+        adv_data_id: pidRow.adv_data_id || null, // null for manually added PIDs
+        pid: pidRow.pid,
+        campaign_id: campaignRow.campaign_id,
+        pub_id: pidRow.pub_id || selectedPubId,
+        shared_date: pidRow.shared_date || month + "-01", // fallback date for new PIDs
+        campaign_name: campaignRow.campaign_name,
+        geo: campaignRow.geo,
+        os: pidRow.os,
+        payable_event: campaignRow.payable_event,
+        pay_out: campaignRow.pay_out,
+        adv_total_no: pidRow.adv_total_no,
+        pub_Apno: pidRow.pub_Apno,
+        vertical: campaignRow.vertical,
+      });
 
-    setUniqueValues(valuesObj);
-  }, [rows]);
-  useEffect(() => {
-    if (!activeRow) return;
+      if (res.data?.success) {
+        // ── flip status locally + store insertId for future re-verifies
+        setRows((prev) =>
+          prev.map((r, i) =>
+            i === parentIndex
+              ? {
+                  ...r,
+                  pid_data: r.pid_data.map((p, j) =>
+                    j === pidIndex
+                      ? {
+                          ...p,
+                          status: "verified",
+                          // ── NEW: store the db id so a re-verify uses ON DUPLICATE KEY UPDATE
+                          adv_data_id:
+                            p.adv_data_id ?? res.data.insertId ?? null,
+                        }
+                      : p,
+                  ),
+                }
+              : r,
+          ),
+        );
+        message.success(`PID "${pidRow.pid}" verified ✔`);
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: res.data.title || "Verification Failed",
+          text: res.data.message || "Unable to verify.",
+        });
+      }
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "Server Error",
+        text: err.response?.data?.message || "Internal Server Error (500)",
+      });
+    }
+  };
+  // ── lock entire billing ────────────────────────
+  const lockBilling = async () => {
+    try {
+      const res = await axios.post(`${API}/billing/publisher-lock`, {
+        pub_id: selectedPubId,
+        month,
+      });
 
-    const pidValues = {};
-    const keys = ["os", "pid", "adv_total_number", "pub_apno", "payout_amount"];
+      if (res.data?.success) {
+        Swal.fire({
+          icon: "success",
+          title: "Billing Closed",
+          text: "Billing has been locked successfully.",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+        setBillingLocked(true);
+        setRows((prev) =>
+          prev.map((r) => ({
+            ...r,
+            status: "locked",
+            pid_data: (r.pid_data || []).map((p) => ({
+              ...p,
+              status: "locked",
+            })),
+          })),
+        );
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: res.data.title || "Lock Failed",
+          text: res.data.message || "Unable to lock billing.",
+        });
+      }
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "Server Error",
+        text: err.response?.data?.message || "Internal Server Error (500)",
+      });
+    }
+  };
 
-    keys.forEach((key) => {
-      pidValues[key] = [
-        ...new Set((activeRow.pid_data || []).map((p) => normalize(p[key]))),
-      ];
-    });
-
-    setUniqueValues((prev) => ({
-      ...prev,
-      ...pidValues,
-    }));
-  }, [activeRow]);
-
+  // ── column filter helper ──────────────────────
   const getColumnFilter = (dataIndex, isPid = false) => ({
     filterDropdown: () => {
       const allValues = uniqueValues[dataIndex] || [];
-
-      const selectedValues = isPid
+      const selected = isPid
         ? (pidFilters[dataIndex] ?? allValues)
         : (filters[dataIndex] ?? allValues);
-
-      const isFiltered = selectedValues.length !== allValues.length; // ✅ correct check
-
-      const searchText = filterSearch[dataIndex] || "";
-
-      const visibleValues = allValues.filter((val) =>
-        val.toString().toLowerCase().includes(searchText.toLowerCase()),
+      const search = filterSearch[dataIndex] || "";
+      const visible = allValues.filter((v) =>
+        v.toString().toLowerCase().includes(search.toLowerCase()),
       );
+      const isAll = selected.length === allValues.length;
+      const isIndet = selected.length > 0 && !isAll;
 
-      const isAllSelected = selectedValues.length === allValues.length;
-      const isIndeterminate = selectedValues.length > 0 && !isAllSelected;
+      const update = (next) =>
+        isPid
+          ? setPidFilters((p) => ({ ...p, [dataIndex]: next }))
+          : setFilters((p) => ({ ...p, [dataIndex]: next }));
 
-      const updateFilters = (next) => {
-        if (isPid) {
-          setPidFilters((prev) => ({
-            ...prev,
-            [dataIndex]: next,
-          }));
-        } else {
-          setFilters((prev) => ({
-            ...prev,
-            [dataIndex]: next,
-          }));
-        }
-      };
+      const clearKey = () =>
+        isPid
+          ? setPidFilters((p) => {
+              const c = { ...p };
+              delete c[dataIndex];
+              return c;
+            })
+          : setFilters((p) => {
+              const c = { ...p };
+              delete c[dataIndex];
+              return c;
+            });
 
       return (
         <div
           className="w-[260px] rounded-xl"
           onClick={(e) => e.stopPropagation()}>
-          {/* 🔍 Search */}
           <div className="sticky top-0 bg-white p-2 border-b">
             <Input
               allowClear
               placeholder="Search values"
-              value={searchText}
+              value={search}
               onChange={(e) =>
-                setFilterSearch((prev) => ({
-                  ...prev,
+                setFilterSearch((p) => ({
+                  ...p,
                   [dataIndex]: e.target.value,
                 }))
               }
             />
           </div>
-
-          {/* ☑ Select All */}
           <div className="px-3 py-2">
             <Checkbox
-              indeterminate={isIndeterminate}
-              checked={isAllSelected}
-              onChange={(e) => {
-                const checked = e.target.checked;
-
-                if (checked) {
-                  if (isPid) {
-                    setPidFilters((prev) => {
-                      const updated = { ...prev };
-                      delete updated[dataIndex];
-                      return updated;
-                    });
-                  } else {
-                    setFilters((prev) => {
-                      const updated = { ...prev };
-                      delete updated[dataIndex];
-                      return updated;
-                    });
-                  }
-                } else {
-                  updateFilters([]);
-                }
-              }}>
+              indeterminate={isIndet}
+              checked={isAll}
+              onChange={(e) => (e.target.checked ? clearKey() : update([]))}>
               Select All
             </Checkbox>
           </div>
-
-          {/* 📋 Values */}
           <div className="max-h-[220px] overflow-y-auto px-2 pb-2 space-y-1">
-            {visibleValues.map((val) => (
+            {visible.map((val) => (
               <label
                 key={val}
                 className="flex items-center gap-2 px-2 py-1 rounded cursor-pointer hover:bg-blue-50">
                 <Checkbox
-                  checked={selectedValues.includes(val)}
+                  checked={selected.includes(val)}
                   onChange={(e) => {
                     const next = e.target.checked
-                      ? [...selectedValues, val]
-                      : selectedValues.filter((v) => v !== val);
-
-                    updateFilters(next);
+                      ? [...selected, val]
+                      : selected.filter((v) => v !== val);
+                    update(next);
                   }}
                 />
                 <span className="truncate">{val}</span>
               </label>
             ))}
-
-            {visibleValues.length === 0 && (
+            {visible.length === 0 && (
               <div className="py-4 text-center text-gray-400 text-sm">
                 No matching values
               </div>
@@ -578,32 +662,37 @@ export default function BillingAdvertiser() {
         </div>
       );
     },
-
-    // ✅ THIS controls icon color
     filterIcon: () => {
       const allValues = uniqueValues[dataIndex] || [];
-
-      const selectedValues = isPid
+      const selected = isPid
         ? (pidFilters[dataIndex] ?? allValues)
         : (filters[dataIndex] ?? allValues);
-
-      const isFiltered = selectedValues.length !== allValues.length;
-
       return (
         <FilterFilled
           style={{
-            color: isFiltered ? "#1677ff" : "#bfbfbf",
+            color: selected.length !== allValues.length ? "#1677ff" : "#bfbfbf",
           }}
         />
       );
     },
   });
-  const filteredRows = rows.filter((row) => {
-    return Object.entries(filters).every(([key, values]) => {
-      if (!values || values.length === 0) return true;
-      return values.includes(normalize(row[key]));
-    });
-  });
+
+  // ── filtered data ──────────────────────────────
+  const filteredRows = rows.filter((row) =>
+    Object.entries(filters).every(([k, vals]) => {
+      if (!vals || vals.length === 0) return true;
+      return vals.includes(normalize(row[k]));
+    }),
+  );
+
+  const filteredPidData = (activeRow?.pid_data || []).filter((row) =>
+    Object.entries(pidFilters).every(([k, vals]) => {
+      if (!vals || vals.length === 0) return true;
+      return vals.includes(normalize(row[k]));
+    }),
+  );
+
+  // ── campaign table columns ────────────────────
   const columns = [
     {
       title: "Campaign",
@@ -613,32 +702,22 @@ export default function BillingAdvertiser() {
           row={record}
           record={record}
           onChange={updateCampaignComposite}
-          disabled={record.status === "locked"}
+          disabled={isCampaignLocked(record, billingLocked)}
         />
       ),
     },
     {
       title: "Pub Payout",
-      ...getColumnFilter("pub_payout"),
+      ...getColumnFilter("pay_out"),
       width: 120,
       render: (_, record) => (
         <EditableCell
-          value={record.pub_payout}
-          onSave={(v) =>
-            updateRowsSafely((prev) =>
-              prev.map((row) =>
-                (row.billing_id || row._tmp_id) ===
-                (record.billing_id || record._tmp_id)
-                  ? { ...row, pub_payout: v }
-                  : row,
-              ),
-            )
-          }
-          disabled={record.status === "locked"}
+          value={record.pay_out}
+          disabled={isCampaignLocked(record, billingLocked)}
+          onSave={(v) => updateCampaignField(record._tmp_id, "pay_out", v)}
         />
       ),
     },
-
     {
       title: "Payable Event",
       ...getColumnFilter("payable_event"),
@@ -646,44 +725,53 @@ export default function BillingAdvertiser() {
         <EditableTextCell
           value={record.payable_event}
           width={180}
+          disabled={isCampaignLocked(record, billingLocked)}
           onSave={(v) =>
-            updateRowsSafely((prev) =>
-              prev.map((row) =>
-                (row.billing_id || row._tmp_id) ===
-                (record.billing_id || record._tmp_id)
-                  ? { ...row, payable_event: v }
-                  : row,
-              ),
-            )
+            updateCampaignField(record._tmp_id, "payable_event", v)
           }
-          disabled={record.status === "locked"}
         />
       ),
     },
-
     {
       title: "PUB Total",
-      ...getColumnFilter("adv_total_number"),
-      render: (_, row) => displayValue(row.adv_total_number),
+      render: (_, row) => {
+        const total = (row.pid_data || []).reduce(
+          (s, p) => s + (Number(p.adv_total_no) || 0),
+          0,
+        );
+        return displayValue(total || null);
+      },
     },
     {
       title: "PUB Approved",
-      ...getColumnFilter("pub_apno"),
-      render: (_, row) => displayValue(row.pub_apno),
+      render: (_, row) => {
+        const approved = (row.pid_data || []).reduce(
+          (s, p) => s + (Number(p.pub_Apno) || 0),
+          0,
+        );
+        return displayValue(approved || null);
+      },
     },
     {
       title: "Total Payout",
-      ...getColumnFilter("payout_amount"),
-      render: (_, row) => displayValue(row.payout_amount),
+      render: (_, row) => {
+        const approved = (row.pid_data || []).reduce(
+          (s, p) => s + (Number(p.pub_Apno) || 0),
+          0,
+        );
+        if (!approved || !row.pay_out) return "Pending";
+        return (approved * Number(row.pay_out)).toFixed(2);
+      },
     },
     {
       title: "Details",
+      width: 80,
       render: (_, row) => (
         <Button
           size="small"
           type="link"
           onClick={() => {
-            setDetailsRowId(row.billing_id || row._tmp_id);
+            setDetailsRowId(row._tmp_id);
             setDetailsOpen(true);
           }}>
           View
@@ -692,157 +780,85 @@ export default function BillingAdvertiser() {
     },
     {
       title: "Status",
-      width: 140,
-      render: (_, row) =>
-        row.status === "verified" ? (
-          <span className="text-green-600 font-semibold">Verified</span>
-        ) : (
-          <Button
-            size="small"
-            disabled={row.status === "locked"}
-            onClick={async () => {
-              try {
-                let billingId = row.billing_id;
+      width: 155,
+      render: (_, row) => {
+        if (billingLocked || row.status === "locked")
+          return (
+            <Tag icon={<LockFilled />} color="red">
+              Locked
+            </Tag>
+          );
 
-                // 1️⃣ Ensure snapshot exists
-                if (!billingId) {
-                  const saveRes = await axios.post(
-                    `${API}/billing/publisher-save`,
-                    {
-                      pub_id: selectedPubId,
-                      month,
-                      data: rows,
-                    },
-                  );
-                  console.log("Save before verify:", saveRes);
-                  if (saveRes.data?.billingIdMap) {
-                    setRows((prev) =>
-                      prev.map((r) => {
-                        const match = saveRes.data.billingIdMap.find(
-                          (b) =>
-                            (!r.billing_id && b.tmp_id === r._tmp_id) ||
-                            b.billing_id === r.billing_id,
-                        );
+        const total = (row.pid_data || []).length;
 
-                        if (match && r._tmp_id === row._tmp_id) {
-                          billingId = match.billing_id;
-                        }
+        const verified = (row.pid_data || []).filter(
+          (p) => p.status === "verified",
+        ).length;
 
-                        return match
-                          ? { ...r, billing_id: match.billing_id }
-                          : r;
-                      }),
-                    );
-                  }
-                }
+        const locked = (row.pid_data || []).filter(
+          (p) => p.status === "locked",
+        ).length;
 
-                // 2️⃣ Verify row
-                const res = await axios.post(
-                  `${API}/billing/publisher-verify-row`,
-                  {
-                    billing_id: billingId,
-                  },
-                );
+        const completed = verified + locked;
 
-                if (res.data?.success) {
-                  Swal.fire({
-                    icon: "success",
-                    title: res.data.title || "Row Verified",
-                    text: res.data.message || "Campaign verified successfully.",
-                    timer: 1500,
-                    showConfirmButton: false,
-                  });
+        if (total === 0) return <Tag color="default">No PIDs</Tag>;
 
-                  // ✅ Update row locally (NO refetch)
-                  setRows((prev) =>
-                    prev.map((r) =>
-                      (r.billing_id || r._tmp_id) ===
-                      (row.billing_id || row._tmp_id)
-                        ? { ...r, status: "verified" }
-                        : r,
-                    ),
-                  );
-                } else {
-                  Swal.fire({
-                    icon: "error",
-                    title: res.data.title || "Verification Failed",
-                    text: res.data.message || "Unable to verify row.",
-                  });
-                }
-              } catch (err) {
-                Swal.fire({
-                  icon: "error",
-                  title: "Server Error",
-                  text:
-                    err.response?.data?.message ||
-                    err.response?.data?.error ||
-                    "Internal Server Error (500)",
-                });
-              }
-            }}>
-            Verify
-          </Button>
-        ),
+        // ✅ ALL DONE (verified + locked)
+        if (completed === total) return <Tag color="green">All Verified</Tag>;
+
+        return (
+          <Tag color="orange">
+            {completed}/{total} Verified
+          </Tag>
+        );
+      },
     },
   ];
 
+  // ── table summary row ─────────────────────────
   const tableSummary = useCallback(
     (pageData) => {
-      let totalPubTotal = 0;
-      let totalPubApproved = 0;
-      let totalPubPayout = 0;
+      let totalNo = 0,
+        totalApproved = 0,
+        totalPayout = 0;
 
       pageData.forEach((row) => {
-        // 1️⃣ Calculate from PID only
-        const pubTotal = (row.pid_data || []).reduce(
-          (sum, p) => sum + (Number(p.adv_total_number) || 0),
+        const no = (row.pid_data || []).reduce(
+          (s, p) => s + (Number(p.adv_total_no) || 0),
           0,
         );
-        const pubApproved = (row.pid_data || []).reduce(
-          (sum, p) => sum + (Number(p.pub_apno) || 0),
+        const approved = (row.pid_data || []).reduce(
+          (s, p) => s + (Number(p.pub_Apno) || 0),
           0,
         );
-
-        // 2️⃣ Calculate payout from approved * payout rate
-        const payout =
-          row.pub_payout && pubApproved
-            ? pubApproved * Number(row.pub_payout)
-            : 0;
-
-        totalPubTotal += pubTotal;
-        totalPubApproved += pubApproved;
-        totalPubPayout += payout;
+        totalNo += no;
+        totalApproved += approved;
+        totalPayout +=
+          approved && row.pay_out ? approved * Number(row.pay_out) : 0;
       });
 
       return (
         <Table.Summary.Row>
-          {columns.map((col, index) => {
-            const key = col.dataIndex || `col-${index}`;
-
-            if (col.title === "PUB Total") {
+          {columns.map((col, idx) => {
+            const key = `sum-${idx}`;
+            if (col.title === "PUB Total")
               return (
                 <Table.Summary.Cell key={key} className="text-center">
-                  <b>{totalPubTotal.toFixed(2)}</b>
+                  <b>{totalNo.toFixed(2)}</b>
                 </Table.Summary.Cell>
               );
-            }
-
-            if (col.title === "PUB Approved") {
+            if (col.title === "PUB Approved")
               return (
                 <Table.Summary.Cell key={key} className="text-center">
-                  <b>{totalPubApproved.toFixed(2)}</b>
+                  <b>{totalApproved.toFixed(2)}</b>
                 </Table.Summary.Cell>
               );
-            }
-
-            if (col.title === "Total Payout") {
+            if (col.title === "Total Payout")
               return (
                 <Table.Summary.Cell key={key} className="text-center">
-                  <b>{totalPubPayout.toFixed(2)}</b>
+                  <b>{totalPayout.toFixed(2)}</b>
                 </Table.Summary.Cell>
               );
-            }
-
             return <Table.Summary.Cell key={key} />;
           })}
         </Table.Summary.Row>
@@ -850,24 +866,24 @@ export default function BillingAdvertiser() {
     },
     [columns],
   );
-  const publisherOptions = publishers?.map((publisher) => ({
-    label: `${publisher.pub_id} (${publisher.pub_name})`,
-    value: publisher.pub_id,
+
+  const resetFilters = () => {
+    setFilters({});
+    setPidFilters({});
+    setFilterSearch({});
+  };
+
+  const publisherOptions = (publishers || []).map((p) => ({
+    label: `${p.pub_id} (${p.pub_name})`,
+    value: p.pub_id,
   }));
 
-  const filteredPidData = (activeRow?.pid_data || []).filter((row) => {
-    return Object.entries(pidFilters).every(([key, values]) => {
-      if (!values || values.length === 0) return true;
-      return values.includes(normalize(row[key]));
-    });
-  });
-  const index = rows.findIndex(
-    (r) => (r.billing_id || r._tmp_id) === detailsRowId,
-  );
+  // ── render ─────────────────────────────────────
   return (
     <>
       <div className="p-5">
-        <div className="flex gap-3 mb-4 flex-wrap">
+        {/* toolbar */}
+        <div className="flex gap-3 mb-4 flex-wrap items-center">
           <Select
             showSearch
             placeholder="Select Publisher"
@@ -884,43 +900,55 @@ export default function BillingAdvertiser() {
             onChange={(v) => {
               setSelectedPubId(v ?? null);
               setRows([]);
-
-              // ✅ reset filters
-              setFilters({});
-              setPidFilters({});
-              setFilterSearch({});
+              setBillingLocked(false);
+              resetFilters();
             }}
           />
 
           <DatePicker
             picker="month"
-            onChange={(d, s) => {
+            onChange={(_, s) => {
               setMonth(s);
               setRows([]);
-
-              // ✅ reset filters
-              setFilters({});
-              setPidFilters({});
-              setFilterSearch({});
+              setBillingLocked(false);
+              resetFilters();
             }}
           />
 
           <Button
             onClick={addCampaign}
-            disabled={!selectedPubId || !month || isLocked}>
+            disabled={
+              !selectedPubId || !month || billingLocked || allDataLocked
+            }>
             + Add Campaign
           </Button>
+
           <Button
-            onClick={() => {
-              setFilters({});
-              setPidFilters({});
-              setFilterSearch({});
-            }}
+            onClick={resetFilters}
             disabled={
               !Object.keys(filters).length && !Object.keys(pidFilters).length
             }>
             Clear Filters
           </Button>
+
+          {/* live billing lock badge */}
+          {rows.length > 0 &&
+            (allDataLocked ? (
+              <Tag
+                icon={<LockFilled />}
+                color="red"
+                style={{ fontSize: 13, padding: "4px 10px" }}>
+                Billing Locked
+              </Tag>
+            ) : allPidsVerified ? (
+              <Tag color="green" style={{ fontSize: 13, padding: "4px 10px" }}>
+                ✔ All PIDs Verified — Ready to Close
+              </Tag>
+            ) : (
+              <Tag color="orange" style={{ fontSize: 13, padding: "4px 10px" }}>
+                Pending Verification
+              </Tag>
+            ))}
         </div>
 
         {loading ? (
@@ -928,103 +956,72 @@ export default function BillingAdvertiser() {
         ) : (
           <>
             <StyledTable
-              rowKey={(r) => r.billing_id || r._tmp_id}
+              rowKey={(r) => r._tmp_id}
               dataSource={filteredRows}
               columns={columns}
               summary={tableSummary}
             />
+
+            {/* Close Billing — enabled only when every PID is verified */}
             <div className="flex justify-end mt-4">
               <Button
                 danger
-                disabled={!rows.length || !selectedPubId || !month || isLocked}
-                onClick={async () => {
-                  try {
-                    const needsSnapshot = rows.some((r) => !r.billing_id);
-
-                    // 1️⃣ Ensure snapshot exists
-                    if (needsSnapshot) {
-                      await axios.post(`${API}/billing/publisher-save`, {
-                        pub_id: selectedPubId,
-                        month,
-                        data: rows,
-                      });
-                    }
-
-                    // 2️⃣ Lock billing
-                    const res = await axios.post(
-                      `${API}/billing/publisher-lock`,
-                      {
-                        pub_id: selectedPubId,
-                        month,
-                      },
-                    );
-                    console.log("LOCK RES:", res.data);
-                    if (res.data?.success) {
-                      Swal.fire({
-                        icon: "success",
-                        title: res.data.title || "Billing Closed",
-                        text:
-                          res.data.message || "Billing locked successfully.",
-                      });
-
-                      fetchBilling();
-                    } else {
-                      Swal.fire({
-                        icon: "error",
-                        title: res.data.title || "Lock Failed",
-                        text: res.data.message || "Unable to lock billing.",
-                      });
-                    }
-                  } catch (err) {
-                    console.log("SAVE ERROR:", err);
-
-                    Swal.fire({
-                      icon: "error",
-                      title: "Server Error",
-                      text:
-                        err.response?.data?.message || // backend message
-                        err.response?.data?.error || // sometimes error key
-                        "Internal Server Error (500)",
-                    });
-                  }
-                }}>
-                Close Billing
+                disabled={!allPidsVerified || billingLocked || !rows.length}
+                title={
+                  billingLocked
+                    ? "Billing already locked"
+                    : !allPidsVerified
+                      ? "Verify all PIDs before closing billing"
+                      : "Lock billing permanently"
+                }
+                onClick={() =>
+                  Swal.fire({
+                    icon: "warning",
+                    title: "Close Billing?",
+                    text: "This will lock all verified PIDs permanently and cannot be undone.",
+                    showCancelButton: true,
+                    confirmButtonText: "Yes, Lock It",
+                    confirmButtonColor: "#d33",
+                  }).then((result) => {
+                    if (result.isConfirmed) lockBilling();
+                  })
+                }>
+                {billingLocked ? (
+                  <>
+                    <LockFilled className="mr-1" /> Billing Closed
+                  </>
+                ) : (
+                  "Close Billing"
+                )}
               </Button>
             </div>
           </>
         )}
       </div>
 
+      {/* PID detail modal */}
       <Modal
         open={detailsOpen}
         key={detailsRowId}
         onCancel={() => {
           setDetailsOpen(false);
           setDetailsRowId(null);
-
-          // ✅ reset PID filters
           setPidFilters({});
           setFilterSearch((prev) => {
             const updated = { ...prev };
-
-            // remove only pid-related search keys (optional clean)
-            [
-              "os",
-              "pid",
-              "adv_total_number",
-              "pub_apno",
-              "payout_amount",
-            ].forEach((k) => delete updated[k]);
-
+            ["os", "pid", "adv_total_no", "pub_Apno"].forEach(
+              (k) => delete updated[k],
+            );
             return updated;
           });
         }}
         footer={null}
-        width={920}
+        width={960}
         centered
         title={null}>
         {activeRow && (
           <>
+            {/* header */}
             <div className="flex justify-between items-center mb-4 pb-3 border-b">
               <div>
                 <h2 className="text-lg font-semibold text-gray-800">
@@ -1034,28 +1031,49 @@ export default function BillingAdvertiser() {
                   {activeRow.campaign_name} • {activeRow.geo} • {activeRow.os}
                 </p>
               </div>
+              {billingLocked && (
+                <Tag icon={<LockFilled />} color="red">
+                  Billing Locked
+                </Tag>
+              )}
             </div>
 
-            <div className="grid grid-cols-4 md:grid-cols-4 gap-4 mb-6">
+            {/* summary cards */}
+            <div className="grid grid-cols-4 gap-4 mb-6">
               <SummaryItem
                 label="Payable Event"
-                value={activeRow.payable_event}
+                value={activeRow.payable_event || "—"}
               />
               <SummaryItem
-                label="PUB Payout"
-                value={`$${activeRow.pub_payout}`}
+                label="Pub Payout"
+                value={activeRow.pay_out ? `$${activeRow.pay_out}` : "—"}
               />
               <SummaryItem
                 label="Total Approved"
-                value={displayValue(activeRow.pub_apno)}
+                value={displayValue(
+                  (activeRow.pid_data || []).reduce(
+                    (s, p) => s + (Number(p.pub_Apno) || 0),
+                    0,
+                  ) || null,
+                )}
               />
               <SummaryItem
-                label="Total Payout"
                 highlight
-                value={displayValue(activeRow.payout_amount)}
+                label="Total Payout"
+                value={(() => {
+                  const approved = (activeRow.pid_data || []).reduce(
+                    (s, p) => s + (Number(p.pub_Apno) || 0),
+                    0,
+                  );
+                  if (!approved || !activeRow.pay_out) return "Pending";
+                  return `$${(approved * Number(activeRow.pay_out)).toFixed(
+                    2,
+                  )}`;
+                })()}
               />
             </div>
 
+            {/* PID breakdown */}
             <div className="bg-white border rounded-lg p-3">
               <div className="flex justify-between items-center mb-3">
                 <h3 className="text-sm font-semibold text-gray-700">
@@ -1064,13 +1082,8 @@ export default function BillingAdvertiser() {
                 <Button
                   size="small"
                   type="dashed"
-                  onClick={() => {
-                    const index = rows.findIndex(
-                      (r) => (r.billing_id || r._tmp_id) === detailsRowId,
-                    );
-                    addPid(index);
-                  }}
-                  disabled={activeRow.status === "locked"}>
+                  disabled={allDataLocked}
+                  onClick={() => addPid(activeIndex)}>
                   + Add PID
                 </Button>
               </div>
@@ -1079,12 +1092,17 @@ export default function BillingAdvertiser() {
                 size="small"
                 pagination={false}
                 tableLayout="fixed"
-                rowKey={(r, i) => `${r.pid}-${i}`}
+                rowKey={(r, i) => r.adv_data_id || r._tmp_id || `${r.pid}-${i}`}
                 dataSource={filteredPidData}
+                rowClassName={(r) =>
+                  r.status === "verified" || r.status === "locked"
+                    ? "bg-green-50"
+                    : ""
+                }
                 columns={[
                   {
                     title: "OS",
-                    width: 180,
+                    width: 150,
                     ...getColumnFilter("os", true),
                     render: (_, r, i) => (
                       <Select
@@ -1092,21 +1110,14 @@ export default function BillingAdvertiser() {
                         style={{ width: "100%" }}
                         value={r.os || undefined}
                         placeholder="Select OS"
-                        disabled={activeRow.status === "locked"}
-                        onChange={(v) => {
-                          updateRowsSafely((prev) =>
-                            prev.map((row) =>
-                              (row.billing_id || row._tmp_id) === detailsRowId
-                                ? {
-                                    ...row,
-                                    pid_data: row.pid_data.map((p, pIndex) =>
-                                      pIndex === i ? { ...p, os: v } : p,
-                                    ),
-                                  }
-                                : row,
-                            ),
-                          );
-                        }}>
+                        disabled={
+                          billingLocked ||
+                          r.status === "verified" ||
+                          r.status === "locked"
+                        }
+                        onChange={(v) =>
+                          updatePidField(activeIndex, i, "os", v)
+                        }>
                         <Option value="Android">Android</Option>
                         <Option value="iOS">iOS</Option>
                       </Select>
@@ -1119,58 +1130,87 @@ export default function BillingAdvertiser() {
                     render: (_, r, i) => (
                       <EditablePidCell
                         value={r.pid}
-                        onCommit={(v) => {
-                          updateRowsSafely((prev) =>
-                            prev.map((row) =>
-                              (row.billing_id || row._tmp_id) === detailsRowId
-                                ? {
-                                    ...row,
-                                    pid_data: row.pid_data.map((p, pIndex) =>
-                                      pIndex === i ? { ...p, pid: v } : p,
-                                    ),
-                                  }
-                                : row,
-                            ),
-                          );
-                        }}
-                        disabled={activeRow.status === "locked"}
+                        disabled={
+                          billingLocked ||
+                          r.status === "verified" ||
+                          r.status === "locked"
+                        }
+                        onCommit={(v) =>
+                          updatePidField(activeIndex, i, "pid", v)
+                        }
                       />
                     ),
                   },
                   {
                     title: "Total",
-                    width: 90,
-                    ...getColumnFilter("adv_total_number", true),
+                    width: 100,
+                    ...getColumnFilter("adv_total_no", true),
                     render: (_, r, i) => (
                       <EditableCell
-                        value={r.adv_total_number}
-                        onSave={(v) =>
-                          updatePid(index, i, "adv_total_number", v)
+                        value={r.adv_total_no}
+                        disabled={
+                          billingLocked ||
+                          r.status === "verified" ||
+                          r.status === "locked"
                         }
-                        disabled={activeRow.status === "locked"}
+                        onSave={(v) =>
+                          updatePidField(activeIndex, i, "adv_total_no", v)
+                        }
                       />
                     ),
                   },
                   {
                     title: "Approved",
                     width: 110,
-                    ...getColumnFilter("pub_apno", true),
+                    ...getColumnFilter("pub_Apno", true),
                     render: (_, r, i) => (
                       <EditableCell
-                        value={r.pub_apno}
-                        onSave={(v) => updatePid(index, i, "pub_apno", v)}
-                        disabled={activeRow.status === "locked"}
+                        value={r.pub_Apno}
+                        disabled={
+                          billingLocked ||
+                          r.status === "verified" ||
+                          r.status === "locked"
+                        }
+                        onSave={(v) =>
+                          updatePidField(activeIndex, i, "pub_Apno", v)
+                        }
                       />
                     ),
                   },
                   {
                     title: "Total Payout",
-                    ...getColumnFilter("payout_amount", true),
                     width: 120,
-                    render: (_, r) =>
-                      r.payout_amount == null
-                        ? "Pending"
-                        : displayValue(r.payout_amount),
+                    render: (_, r) => {
+                      if (!r.pub_Apno || !activeRow.pay_out) return "Pending";
+                      return `$${(
+                        Number(r.pub_Apno) * Number(activeRow.pay_out)
+                      ).toFixed(2)}`;
+                    },
+                  },
+                  {
+                    title: "Action",
+                    width: 110,
+                    render: (_, r, i) => {
+                      if (billingLocked || r.status === "locked")
+                        return (
+                          <Tag icon={<LockFilled />} color="red">
+                            Locked
+                          </Tag>
+                        );
+                      if (r.status === "verified")
+                        return <Tag color="green">✔ Verified</Tag>;
+                      return (
+                        <Button
+                          size="small"
+                          type="primary"
+                          ghost
+                          onClick={() =>
+                            verifyPid(r, activeRow, i, activeIndex)
+                          }>
+                          Verify
+                        </Button>
+                      );
+                    },
                   },
                 ]}
               />

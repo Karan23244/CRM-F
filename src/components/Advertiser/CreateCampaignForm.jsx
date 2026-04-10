@@ -507,7 +507,6 @@ const CreateCampaignForm = () => {
       String(val).toLowerCase().includes(searchText.toLowerCase()),
     ),
   );
-
   return (
     <div className="min-h-screen flex flex-col items-center p-6">
       {/* ====== FORM CARD ====== */}

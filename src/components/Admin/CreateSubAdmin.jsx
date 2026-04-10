@@ -215,105 +215,109 @@ const SubAdminForm = () => {
             <Option value="publisher">Publisher</Option>
             <Option value="advertiser">Advertiser</Option>
             <Option value="operations">Operations</Option>
+            <Option value="accounts">Accounts</Option>
             <Option value="optimization">Optimization</Option>
             <Option value="advertiser_manager">Advertiser Manager</Option>
             <Option value="publisher_manager">Publisher Manager</Option>
             <Option value="pub_executive">Publisher Executive</Option>
             <Option value="adv_executive">Advertiser Executive</Option>
-            <Option value="accounts">Accounts</Option>
           </Select>
         </div>
+        {!role.includes("accounts") && (
+          <>
+            {/* Permissions */}
+            <div className="flex flex-wrap gap-6 mb-6">
+              <Checkbox
+                checked={permissionEditCondition}
+                onChange={(e) => setPermissionEditCondition(e.target.checked)}>
+                Permission for Edit Condition
+              </Checkbox>
+              <Checkbox
+                checked={permissionUploadFiles}
+                onChange={(e) => setPermissionUploadFiles(e.target.checked)}>
+                Permission for Uploading Files
+              </Checkbox>
+              <Checkbox
+                checked={permissionAddStore}
+                onChange={(e) => setPermissionAddStore(e.target.checked)}>
+                Permission to Add Store
+              </Checkbox>
+            </div>
 
-        {/* Permissions */}
-        <div className="flex flex-wrap gap-6 mb-6">
-          <Checkbox
-            checked={permissionEditCondition}
-            onChange={(e) => setPermissionEditCondition(e.target.checked)}>
-            Permission for Edit Condition
-          </Checkbox>
-          <Checkbox
-            checked={permissionUploadFiles}
-            onChange={(e) => setPermissionUploadFiles(e.target.checked)}>
-            Permission for Uploading Files
-          </Checkbox>
-          <Checkbox
-            checked={permissionAddStore}
-            onChange={(e) => setPermissionAddStore(e.target.checked)}>
-            Permission to Add Store
-          </Checkbox>
-        </div>
+            {/* Assign Sub-Admins */}
+            <div className="mb-6">
+              <label className="block font-semibold mb-2">
+                Assign Sub-Admins
+              </label>
+              <Select
+                mode="multiple"
+                showSearch
+                value={assignedSubAdmins}
+                onChange={setAssignedSubAdmins}
+                placeholder="Select sub-admins"
+                className="w-full rounded-lg border-gray-200 bg-gray-50"
+                filterOption={(input, option) =>
+                  option.children.toLowerCase().includes(input.toLowerCase())
+                }>
+                {subAdminOptions
+                  .filter((s) => {
+                    // If both manager roles selected → show both advertiser + publisher
+                    if (
+                      role.includes("advertiser_manager") &&
+                      role.includes("publisher_manager")
+                    ) {
+                      return [
+                        "advertiser",
+                        "publisher",
+                        "publisher_manager",
+                        "advertiser_manager",
+                        "pub_executive",
+                        "adv_executive",
+                      ].includes(s.role);
+                    }
 
-        {/* Assign Sub-Admins */}
-        <div className="mb-6">
-          <label className="block font-semibold mb-2">Assign Sub-Admins</label>
-          <Select
-            mode="multiple"
-            showSearch
-            value={assignedSubAdmins}
-            onChange={setAssignedSubAdmins}
-            placeholder="Select sub-admins"
-            className="w-full rounded-lg border-gray-200 bg-gray-50"
-            filterOption={(input, option) =>
-              option.children.toLowerCase().includes(input.toLowerCase())
-            }>
-            {subAdminOptions
-              .filter((s) => {
-                // If both manager roles selected → show both advertiser + publisher
-                if (
-                  role.includes("advertiser_manager") &&
-                  role.includes("publisher_manager")
-                ) {
-                  return [
-                    "advertiser",
-                    "publisher",
-                    "publisher_manager",
-                    "advertiser_manager",
-                    "pub_executive",
-                    "adv_executive",
-                  ].includes(s.role);
-                }
+                    // For advertiser manager → only advertiser + advertiser_manager (except him)
+                    if (role.includes("advertiser_manager")) {
+                      return [
+                        "advertiser",
+                        "advertiser_manager",
+                        "adv_executive",
+                        "operations",
+                      ].includes(s.role);
+                    }
 
-                // For advertiser manager → only advertiser + advertiser_manager (except him)
-                if (role.includes("advertiser_manager")) {
-                  return [
-                    "advertiser",
-                    "advertiser_manager",
-                    "adv_executive",
-                    "operations",
-                  ].includes(s.role);
-                }
-
-                // For publisher manager → only publisher + publisher_manager (except him)
-                if (role.includes("publisher_manager")) {
-                  return [
-                    "publisher",
-                    "publisher_manager",
-                    "pub_executive",
-                    "operations",
-                  ].includes(s.role);
-                }
-                if (role.includes("publisher")) {
-                  return ["publisher", "pub_executive"].includes(s.role);
-                }
-                if (role.includes("advertiser")) {
-                  return ["advertiser", "adv_executive"].includes(s.role);
-                }
-                if (role.includes("pub_executive")) {
-                  return ["pub_executive"].includes(s.role);
-                }
-                if (role.includes("adv_executive")) {
-                  return ["adv_executive"].includes(s.role);
-                }
-                return false;
-              })
-              .map((subAdmin) => (
-                <Option key={subAdmin.id} value={subAdmin.id}>
-                  {subAdmin.username} ({subAdmin.role})
-                </Option>
-              ))}
-          </Select>
-        </div>
-
+                    // For publisher manager → only publisher + publisher_manager (except him)
+                    if (role.includes("publisher_manager")) {
+                      return [
+                        "publisher",
+                        "publisher_manager",
+                        "pub_executive",
+                        "operations",
+                      ].includes(s.role);
+                    }
+                    if (role.includes("publisher")) {
+                      return ["publisher", "pub_executive"].includes(s.role);
+                    }
+                    if (role.includes("advertiser")) {
+                      return ["advertiser", "adv_executive"].includes(s.role);
+                    }
+                    if (role.includes("pub_executive")) {
+                      return ["pub_executive"].includes(s.role);
+                    }
+                    if (role.includes("adv_executive")) {
+                      return ["adv_executive"].includes(s.role);
+                    }
+                    return false;
+                  })
+                  .map((subAdmin) => (
+                    <Option key={subAdmin.id} value={subAdmin.id}>
+                      {subAdmin.username} ({subAdmin.role})
+                    </Option>
+                  ))}
+              </Select>
+            </div>
+          </>
+        )}
         {/* Ranges
         <div className="mb-6">
           <label className="block font-semibold mb-2">Ranges</label>
