@@ -10,6 +10,7 @@ import {
   Tag,
 } from "antd";
 import dayjs from "dayjs";
+import { useSelector } from "react-redux";
 import axios from "axios";
 import StyledTable from "../../Utils/StyledTable";
 
@@ -154,16 +155,20 @@ const SystemAmountCell = ({ record }) => {
 export default function PublisherAccount() {
   const currentMonth = dayjs().format("YYYY-MM");
   const [data, setData] = useState([]);
+  const { user } = useSelector((state) => state.auth);
   const [month, setMonth] = useState(currentMonth);
   const [loading, setLoading] = useState(false);
 
   const fetchData = async (m) => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API}/publisher/account`, {
-        params: m ? { month: m } : {},
+      const res = await axios.post(`${API}/publisher/account`, {
+        user_id: user?.id,
+        role: user?.role || [],
+        assigned_subadmins: user?.assigned_subadmins || [],
+        month: month || currentMonth,
       });
-      setData(res.data);
+      setData(res.data.data);
     } catch {
       message.error("Failed to fetch data");
     } finally {

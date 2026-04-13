@@ -102,7 +102,7 @@ export default function PublisherAccount() {
         assigned_subadmins: user?.assigned_subadmins || [],
         month: month || currentMonth,
       });
-
+      console.log("API Response:", res.data);
       setData(res.data.data); // ⚠️ important (your backend sends { success, data })
     } catch (err) {
       console.error(err);

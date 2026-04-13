@@ -496,6 +496,7 @@ export default function BillingAdvertiser() {
         adv_total_no: pidRow.adv_total_no,
         pub_Apno: pidRow.pub_Apno,
         vertical: campaignRow.vertical,
+         billing_month: month, 
       });
 
       if (res.data?.success) {
