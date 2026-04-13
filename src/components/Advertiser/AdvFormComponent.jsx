@@ -73,7 +73,7 @@ const AdvertiserEditForm = () => {
   const userId = user?.id || null;
   const { Option } = Select;
   const isAdvertiserManager = user?.role?.includes("advertiser_manager");
-
+  const restrictedRoles = ["operation", "optimization"];
   const [name, setName] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const [geo, setGeo] = useState("");
@@ -168,9 +168,12 @@ const AdvertiserEditForm = () => {
           setSubAdmins(
             data.data.filter(
               (a) =>
-                ["advertiser_manager", "advertiser","adv_executive", "operations"].includes(
-                  a.role,
-                ) && a.id !== userId,
+                [
+                  "advertiser_manager",
+                  "advertiser",
+                  "adv_executive",
+                  "operations",
+                ].includes(a.role) && a.id !== userId,
             ),
           );
         }
@@ -582,24 +585,27 @@ const AdvertiserEditForm = () => {
           },
         ]
       : []),
-    {
-      title: "Actions",
-      key: "actions",
-      render: (_, record) => (
-        <Space size="middle">
-          <Tooltip title="Edit">
-            <Button
-              type="primary"
-              size="small"
-              icon={<EditOutlined />}
-              onClick={() => handleEdit(record)}
-            />
-          </Tooltip>
-        </Space>
-      ),
-    },
+    ...(!user?.role?.some((role) => restrictedRoles.includes(role))
+      ? [
+          {
+            title: "Actions",
+            key: "actions",
+            render: (_, record) => (
+              <Space size="middle">
+                <Tooltip title="Edit">
+                  <Button
+                    type="primary"
+                    size="small"
+                    icon={<EditOutlined />}
+                    onClick={() => handleEdit(record)}
+                  />
+                </Tooltip>
+              </Space>
+            ),
+          },
+        ]
+      : []),
   ];
-
   return (
     <div className="">
       {editingAdv && (
@@ -720,31 +726,31 @@ const AdvertiserEditForm = () => {
           )}
 
           {/* Assign User for Non-Manager */}
-          {user?.role !== "advertiser_manager" && (
-            <div className="md:col-span-2">
-              <label className="block text-[#2F5D99] text-base font-semibold mb-2">
-                Assign User
-              </label>
-              <select
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2F5D99] focus:border-[#2F5D99] transition-all"
-                value={assign_id}
-                onChange={(e) => {
-                  const selectedId = e.target.value;
-                  const selectedUser = subAdmins.find(
-                    (a) => a.id.toString() === selectedId,
-                  );
-                  setAssign_id(selectedId);
-                  setAssign_user(selectedUser?.username || "");
-                }}>
-                <option value="">Select Sub Admin</option>
-                {subAdmins.map((admin) => (
-                  <option key={admin.id} value={admin.id}>
-                    {admin.username}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+          {/* {!user?.role?.includes("advertiser_manager") && ( */}
+          <div className="md:col-span-2">
+            <label className="block text-[#2F5D99] text-base font-semibold mb-2">
+              Assign User
+            </label>
+            <select
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2F5D99] focus:border-[#2F5D99] transition-all"
+              value={assign_id}
+              onChange={(e) => {
+                const selectedId = e.target.value;
+                const selectedUser = subAdmins.find(
+                  (a) => a.id.toString() === selectedId,
+                );
+                setAssign_id(selectedId);
+                setAssign_user(selectedUser?.username || "");
+              }}>
+              <option value="">Select Sub Admin</option>
+              {subAdmins.map((admin) => (
+                <option key={admin.id} value={admin.id}>
+                  {admin.username}
+                </option>
+              ))}
+            </select>
+          </div>
+          {/* )} */}
 
           {/* Action Buttons */}
           <div className="md:col-span-2 flex flex-wrap justify-end gap-4 mt-4 pt-4 border-gray-200">

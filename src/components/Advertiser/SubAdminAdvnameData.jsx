@@ -20,6 +20,8 @@ const AdvnameData = () => {
   const [filters, setFilters] = useState({});
   const [filterSearch, setFilterSearch] = useState({});
   const [uniqueValues, setUniqueValues] = useState({});
+  const [assign_id, setAssign_id] = useState("");
+  const [assign_user, setAssign_user] = useState("");
   // Form State for Editing
   const [name, setName] = useState("");
   const [selectedId, setSelectedId] = useState("");
@@ -64,9 +66,12 @@ const AdvnameData = () => {
         const data = await response.json();
         if (response.ok) {
           const filtered = data.data.filter((subAdmin) =>
-            ["advertiser_manager", "advertiser","adv_executive", "operations"].includes(
-              subAdmin.role,
-            ),
+            [
+              "advertiser_manager",
+              "advertiser",
+              "adv_executive",
+              "operations",
+            ].includes(subAdmin.role),
           );
           console.log(filtered);
           setSubAdmins(filtered);
@@ -136,6 +141,8 @@ const AdvnameData = () => {
       note: note || "",
       target: target || "",
       user_id: advUserId,
+      assign_id,
+      assign_user,
     };
     try {
       // **Update existing advertiser**
@@ -176,6 +183,8 @@ const AdvnameData = () => {
     setNote(record.note);
     setTarget(record.target);
     setAdvUserId(record.user_id);
+    setAssign_user(record.assign_user || "");
+    setAssign_id(record.assign_id || "");
   };
 
   // **Reset Form**
@@ -185,6 +194,8 @@ const AdvnameData = () => {
     setGeo("");
     setNote("");
     setTarget("");
+    setAssign_id("");
+    setAssign_user("");
     setEditingAdv(null);
   };
 
@@ -497,7 +508,6 @@ const AdvnameData = () => {
       title: "Postback URL",
       dataIndex: "postback_url",
       key: "postback_url",
-      onFilter: (value, record) => record.assign_user === value,
     },
     {
       title: "Transfer Adv AM",
@@ -682,7 +692,29 @@ const AdvnameData = () => {
               rows="3"
             />
           </div>
-
+          <div className="md:col-span-2">
+            <label className="block text-[#2F5D99] text-base font-semibold mb-2">
+              Assign User
+            </label>
+            <select
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2F5D99] focus:border-[#2F5D99] transition-all"
+              value={assign_id}
+              onChange={(e) => {
+                const selectedId = e.target.value;
+                const selectedUser = subAdmins.find(
+                  (a) => a.id.toString() === selectedId,
+                );
+                setAssign_id(selectedId);
+                setAssign_user(selectedUser?.username || "");
+              }}>
+              <option value="">Select Sub Admin</option>
+              {subAdmins.map((admin) => (
+                <option key={admin.id} value={admin.id}>
+                  {admin.username}
+                </option>
+              ))}
+            </select>
+          </div>
           {/* Buttons */}
           <div className="md:col-span-2 flex flex-wrap gap-4 justify-end mt-4">
             <button
