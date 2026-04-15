@@ -8,7 +8,7 @@ import {
   ReloadOutlined,
   PushpinOutlined,
   CopyOutlined,
-  EyeOutlined
+  EyeOutlined,
 } from "@ant-design/icons";
 import geoData from "../../Data/geoData.json";
 import Swal from "sweetalert2";
@@ -27,6 +27,7 @@ const PubnameData = () => {
   const [selectedId, setSelectedId] = useState("");
   const [geo, setGeo] = useState("");
   const [note, setNote] = useState("");
+  const [mail, setmail] = useState("");
   const [pubUserId, setPubUserId] = useState(null);
   const [editingAssignRowId, setEditingAssignRowId] = useState(null);
   const [target, setTarget] = useState("");
@@ -148,6 +149,7 @@ const PubnameData = () => {
       pub_name: name,
       pub_id: selectedId,
       geo: geo,
+      mail: mail,
       note: note || "",
       target: target || "",
       user_id: pubUserId,
@@ -183,6 +185,8 @@ const PubnameData = () => {
     setNote(record.note);
     setTarget(record.target);
     setPubUserId(record.user_id);
+    setmail(record.mail || "");
+
     // setLevel(record.level || "");
   };
 
@@ -195,6 +199,7 @@ const PubnameData = () => {
     setTarget("");
     setPubUserId(null);
     setEditingPub(null);
+    setmail("");
     // setLevel("");
   };
   // Handle place link save
@@ -376,6 +381,7 @@ const PubnameData = () => {
     pub_name: "Publisher Name",
     pub_id: "Publisher ID",
     geo: "Geo",
+    mail: "Email",
     note: "Note",
     target: "Target",
   };
@@ -667,7 +673,19 @@ const PubnameData = () => {
                 ))}
               </select>
             </div>
-
+            {/* mail */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                E-mail
+              </label>
+              <input
+                type="email"
+                value={mail}
+                onChange={(e) => setmail(e.target.value)}
+                placeholder="Enter E-mail"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5D99] transition-all"
+              />
+            </div>
             {/* Target */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">

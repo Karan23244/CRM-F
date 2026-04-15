@@ -21,6 +21,7 @@ const SubAdminPubnameData = () => {
   const [filters, setFilters] = useState({});
   const [filterSearch, setFilterSearch] = useState({});
   const [uniqueValues, setUniqueValues] = useState({});
+  const [mail, setmail] = useState("");
   const [sortInfo, setSortInfo] = useState({
     columnKey: null,
     order: null, // "ascend" | "descend" | null
@@ -65,7 +66,9 @@ const SubAdminPubnameData = () => {
         const data = await response.json();
         if (response.ok) {
           const filtered = data.data.filter((subAdmin) =>
-            ["publisher_manager", "publisher","pub_executive"].includes(subAdmin.role),
+            ["publisher_manager", "publisher", "pub_executive"].includes(
+              subAdmin.role,
+            ),
           );
           setSubAdmins(filtered);
         } else {
@@ -141,6 +144,7 @@ const SubAdminPubnameData = () => {
       note: note || "",
       target: target || "",
       user_id: pubUserId,
+      mail: mail,
     };
 
     try {
@@ -181,6 +185,7 @@ const SubAdminPubnameData = () => {
     setNote(record.note);
     setTarget(record.target);
     setPubUserId(record.user_id);
+    setmail(record.mail || "");
   };
 
   // Reset Form
@@ -192,6 +197,7 @@ const SubAdminPubnameData = () => {
     setTarget("");
     setPubUserId(null);
     setEditingPub(null);
+    setmail("");
   };
   // Handle place link save
   const autoSavePlaceLink = async (record, value) => {
@@ -429,6 +435,31 @@ const SubAdminPubnameData = () => {
       onFilter: (value, record) => record.geo === value,
     },
     {
+      title: "E-mail",
+      dataIndex: "mail",
+      key: "mail",
+      sorter: (a, b) => (a.mail || "").localeCompare(b.mail || ""),
+      sortOrder: sortInfo.columnKey === "mail" ? sortInfo.order : null,
+      onHeaderCell: () => ({
+        onClick: () => {
+          let newOrder = "ascend";
+
+          if (sortInfo.columnKey === "mail") {
+            if (sortInfo.order === "ascend") newOrder = "descend";
+            else if (sortInfo.order === "descend") newOrder = null;
+            else newOrder = "ascend";
+          }
+
+          setSortInfo({
+            columnKey: "mail",
+            order: newOrder,
+          });
+        },
+      }),
+      filterDropdown: excelFilterDropdown("mail"),
+      onFilter: (value, record) => record.mail === value,
+    },
+    {
       title: "Note",
       dataIndex: "note",
       key: "note",
@@ -661,7 +692,7 @@ const SubAdminPubnameData = () => {
               <strong>Username:</strong> {username}
             </div>
             <div className="break-all">
-              <strong>Password:</strong> {password}
+              <strong>Password:</strong> -
             </div>
 
             <Button
@@ -729,7 +760,19 @@ const SubAdminPubnameData = () => {
                 className="w-full p-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
               />
             </div>
-
+            {/* mail */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                E-mail
+              </label>
+              <input
+                type="email"
+                value={mail}
+                onChange={(e) => setmail(e.target.value)}
+                placeholder="Enter E-mail"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5D99] transition-all"
+              />
+            </div>
             {/* Select Geo */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">

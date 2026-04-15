@@ -17,7 +17,7 @@ import { useSelector } from "react-redux";
 import StyledTable from "../../Utils/StyledTable";
 import { nanoid } from "nanoid";
 import { FilterFilled, LockFilled } from "@ant-design/icons";
-
+import OldValidationPublisher from "./OldValidationPublisher";
 const { Option } = Select;
 const API = import.meta.env.VITE_API_URL5;
 const isPidLocked = (p, billingLocked) =>
@@ -263,7 +263,15 @@ export default function BillingAdvertiser() {
   const [pidFilters, setPidFilters] = useState({});
   const [filterSearch, setFilterSearch] = useState({});
   const [uniqueValues, setUniqueValues] = useState({});
-  console.log(rows);
+  const isNewBilling = (month) => {
+    if (!month) return false;
+
+    const selected = new Date(month + "-01");
+    const cutoff = new Date("2026-02-01");
+
+    return selected >= cutoff; // 🔥 reversed
+  };
+  const isOld = isNewBilling(month);
   const allDataLocked =
     rows.length > 0 &&
     rows.every(
@@ -296,28 +304,123 @@ export default function BillingAdvertiser() {
   }, []);
 
   // ── fetch & group flat rows by campaign_id ────
+  // const fetchBilling = async () => {
+  //   if (!selectedPubId || !month) return;
+  //   setLoading(true);
+  //   try {
+  //     const res = await axios.post(`${API}/billing/publisher-data`, {
+  //       id: selectedPubId,
+  //       month,
+  //     });
+  //     console.log("Raw billing data:", res.data);
+  //     const flat = res.data.data || [];
+  //     const locked = res.data.billing_locked || false;
+  //     setBillingLocked(locked);
+
+  //     const map = new Map();
+
+  //     flat.forEach((row) => {
+  //       const key = [
+  //         row.campaign_name,
+  //         row.geo,
+  //         row.vertical,
+  //         row.payable_event,
+  //         Number(row.pay_out || 0),
+  //       ].join("|");
+
+  //       if (!map.has(key)) {
+  //         map.set(key, {
+  //           _tmp_id: nanoid(),
+  //           campaign_name: row.campaign_name,
+  //           geo: row.geo,
+  //           vertical: row.vertical,
+  //           payable_event: row.payable_event,
+  //           pay_out: Number(row.pay_out || 0),
+
+  //           osSet: new Set(), // ✅ important
+
+  //           adv_total_number: 0,
+  //           pub_apno: 0,
+  //           payout_amount: 0,
+
+  //           pid_data: [],
+  //         });
+  //       }
+
+  //       const group = map.get(key);
+
+  //       // ✅ collect OS
+  //       if (row.os) group.osSet.add(row.os);
+
+  //       const adv = Number(row.adv_total_no || 0);
+  //       const apno = Number(row.pub_Apno || 0);
+  //       const payout = Number(row.pay_out || 0);
+
+  //       group.adv_total_number += adv;
+  //       group.pub_apno += apno;
+  //       group.payout_amount += apno * payout;
+
+  //       group.pid_data.push({
+  //         adv_data_id: row.adv_data_id,
+  //         pid: row.pid,
+  //         os: row.os,
+  //         adv_total_no: adv,
+  //         pub_Apno: apno,
+  //         payout_amount: apno * payout,
+  //         status: row.status,
+  //       });
+  //     });
+
+  //     const finalRows = Array.from(map.values()).map((r) => ({
+  //       ...r,
+  //       os: Array.from(r.osSet).join(", "), // 🔥 final OS output
+  //       adv_total_number: Number(r.adv_total_number.toFixed(2)),
+  //       pub_apno: Number(r.pub_apno.toFixed(2)),
+  //       payout_amount: Number(r.payout_amount.toFixed(2)),
+  //     }));
+
+  //     setRows(finalRows);
+  //   } catch (err) {
+  //     console.error("fetchBilling error:", err);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+  const getValidNumber = (val) => {
+    return val === null || val === undefined || val === "" ? null : Number(val);
+  };
+
+  const isValid = (val) => val !== null && val !== undefined && val !== "";
+
   const fetchBilling = async () => {
     if (!selectedPubId || !month) return;
+
     setLoading(true);
+
     try {
       const res = await axios.post(`${API}/billing/publisher-data`, {
         id: selectedPubId,
         month,
       });
+
       console.log("Raw billing data:", res.data);
+
       const flat = res.data.data || [];
       const locked = res.data.billing_locked || false;
+
       setBillingLocked(locked);
 
       const map = new Map();
 
       flat.forEach((row) => {
+        const payoutVal = getValidNumber(row.pay_out);
+
         const key = [
           row.campaign_name,
           row.geo,
           row.vertical,
           row.payable_event,
-          Number(row.pay_out || 0),
+          payoutVal ?? "NA", // ✅ prevents null & 0 mixing
         ].join("|");
 
         if (!map.has(key)) {
@@ -327,9 +430,9 @@ export default function BillingAdvertiser() {
             geo: row.geo,
             vertical: row.vertical,
             payable_event: row.payable_event,
-            pay_out: Number(row.pay_out || 0),
+            pay_out: payoutVal,
 
-            osSet: new Set(), // ✅ important
+            osSet: new Set(),
 
             adv_total_number: 0,
             pub_apno: 0,
@@ -341,16 +444,20 @@ export default function BillingAdvertiser() {
 
         const group = map.get(key);
 
-        // ✅ collect OS
+        // ✅ Collect OS
         if (row.os) group.osSet.add(row.os);
 
-        const adv = Number(row.adv_total_no || 0);
-        const apno = Number(row.pub_Apno || 0);
-        const payout = Number(row.pay_out || 0);
+        const adv = getValidNumber(row.adv_total_no);
+        const apno = getValidNumber(row.pub_Apno);
+        const payout = payoutVal;
 
-        group.adv_total_number += adv;
-        group.pub_apno += apno;
-        group.payout_amount += apno * payout;
+        // ✅ Only add valid values
+        if (isValid(adv)) group.adv_total_number += adv;
+        if (isValid(apno)) group.pub_apno += apno;
+
+        if (isValid(apno) && isValid(payout)) {
+          group.payout_amount += apno * payout;
+        }
 
         group.pid_data.push({
           adv_data_id: row.adv_data_id,
@@ -358,19 +465,23 @@ export default function BillingAdvertiser() {
           os: row.os,
           adv_total_no: adv,
           pub_Apno: apno,
-          payout_amount: apno * payout,
+          payout_amount:
+            isValid(apno) && isValid(payout) ? apno * payout : null,
           status: row.status,
         });
       });
 
       const finalRows = Array.from(map.values()).map((r) => ({
         ...r,
-        os: Array.from(r.osSet).join(", "), // 🔥 final OS output
+        os: Array.from(r.osSet).join(", "),
         adv_total_number: Number(r.adv_total_number.toFixed(2)),
         pub_apno: Number(r.pub_apno.toFixed(2)),
         payout_amount: Number(r.payout_amount.toFixed(2)),
+        adv_total_no: Number(r.adv_total_number.toFixed(2)),
+        pub_Apno: Number(r.pub_apno.toFixed(2)),
+        total_payout: Number(r.payout_amount.toFixed(2)),
       }));
-
+      console.log("Processed billing rows:", finalRows);
       setRows(finalRows);
     } catch (err) {
       console.error("fetchBilling error:", err);
@@ -378,7 +489,6 @@ export default function BillingAdvertiser() {
       setLoading(false);
     }
   };
-
   useEffect(() => {
     if (selectedPubId && month) fetchBilling();
   }, [selectedPubId, month]);
@@ -389,7 +499,16 @@ export default function BillingAdvertiser() {
 
   // ── unique filter values ───────────────────────
   useEffect(() => {
-    const keys = ["campaign_name", "geo", "os", "payable_event", "pay_out"];
+    const keys = [
+      "campaign_name",
+      "geo",
+      "os",
+      "payable_event",
+      "pay_out",
+      "adv_total_no",
+      "pub_Apno",
+      "total_payout",
+    ];
     const obj = {};
     keys.forEach((k) => {
       obj[k] = [...new Set(rows.map((r) => normalize(r[k])))];
@@ -496,7 +615,7 @@ export default function BillingAdvertiser() {
         adv_total_no: pidRow.adv_total_no,
         pub_Apno: pidRow.pub_Apno,
         vertical: campaignRow.vertical,
-         billing_month: month, 
+        billing_month: month,
       });
 
       if (res.data?.success) {
@@ -735,33 +854,20 @@ export default function BillingAdvertiser() {
     },
     {
       title: "PUB Total",
-      render: (_, row) => {
-        const total = (row.pid_data || []).reduce(
-          (s, p) => s + (Number(p.adv_total_no) || 0),
-          0,
-        );
-        return displayValue(total || null);
-      },
+      ...getColumnFilter("adv_total_no"),
+      render: (_, row) => displayValue(row.adv_total_no),
     },
     {
       title: "PUB Approved",
-      render: (_, row) => {
-        const approved = (row.pid_data || []).reduce(
-          (s, p) => s + (Number(p.pub_Apno) || 0),
-          0,
-        );
-        return displayValue(approved || null);
-      },
+      ...getColumnFilter("pub_Apno"),
+      render: (_, row) => displayValue(row.pub_Apno),
     },
     {
       title: "Total Payout",
+      ...getColumnFilter("total_payout"),
       render: (_, row) => {
-        const approved = (row.pid_data || []).reduce(
-          (s, p) => s + (Number(p.pub_Apno) || 0),
-          0,
-        );
-        if (!approved || !row.pay_out) return "Pending";
-        return (approved * Number(row.pay_out)).toFixed(2);
+        if (row.total_payout == null) return "Pending";
+        return row.total_payout.toFixed(2);
       },
     },
     {
@@ -878,7 +984,7 @@ export default function BillingAdvertiser() {
     label: `${p.pub_id} (${p.pub_name})`,
     value: p.pub_id,
   }));
-
+  console.log(isOld);
   // ── render ─────────────────────────────────────
   return (
     <>
@@ -915,46 +1021,53 @@ export default function BillingAdvertiser() {
               resetFilters();
             }}
           />
+          {isOld ? (
+            <>
+              <Button
+                onClick={addCampaign}
+                disabled={
+                  !selectedPubId || !month || billingLocked || allDataLocked
+                }>
+                + Add Campaign
+              </Button>
 
-          <Button
-            onClick={addCampaign}
-            disabled={
-              !selectedPubId || !month || billingLocked || allDataLocked
-            }>
-            + Add Campaign
-          </Button>
+              <Button
+                onClick={resetFilters}
+                disabled={
+                  !Object.keys(filters).length &&
+                  !Object.keys(pidFilters).length
+                }>
+                Clear Filters
+              </Button>
 
-          <Button
-            onClick={resetFilters}
-            disabled={
-              !Object.keys(filters).length && !Object.keys(pidFilters).length
-            }>
-            Clear Filters
-          </Button>
-
-          {/* live billing lock badge */}
-          {rows.length > 0 &&
-            (allDataLocked ? (
-              <Tag
-                icon={<LockFilled />}
-                color="red"
-                style={{ fontSize: 13, padding: "4px 10px" }}>
-                Billing Locked
-              </Tag>
-            ) : allPidsVerified ? (
-              <Tag color="green" style={{ fontSize: 13, padding: "4px 10px" }}>
-                ✔ All PIDs Verified — Ready to Close
-              </Tag>
-            ) : (
-              <Tag color="orange" style={{ fontSize: 13, padding: "4px 10px" }}>
-                Pending Verification
-              </Tag>
-            ))}
+              {/* live billing lock badge */}
+              {rows.length > 0 &&
+                (allDataLocked ? (
+                  <Tag
+                    icon={<LockFilled />}
+                    color="red"
+                    style={{ fontSize: 13, padding: "4px 10px" }}>
+                    Billing Locked
+                  </Tag>
+                ) : allPidsVerified ? (
+                  <Tag
+                    color="green"
+                    style={{ fontSize: 13, padding: "4px 10px" }}>
+                    ✔ All PIDs Verified — Ready to Close
+                  </Tag>
+                ) : (
+                  <Tag
+                    color="orange"
+                    style={{ fontSize: 13, padding: "4px 10px" }}>
+                    Pending Verification
+                  </Tag>
+                ))}
+            </>
+          ) : (
+            <></>
+          )}
         </div>
-
-        {loading ? (
-          <Spin />
-        ) : (
+        {isOld ? (
           <>
             <StyledTable
               rowKey={(r) => r._tmp_id}
@@ -997,6 +1110,8 @@ export default function BillingAdvertiser() {
               </Button>
             </div>
           </>
+        ) : (
+          <OldValidationPublisher selectedPubId={selectedPubId} month={month} />
         )}
       </div>
 
@@ -1055,7 +1170,7 @@ export default function BillingAdvertiser() {
                   (activeRow.pid_data || []).reduce(
                     (s, p) => s + (Number(p.pub_Apno) || 0),
                     0,
-                  ) || null,
+                  ),
                 )}
               />
               <SummaryItem
@@ -1066,7 +1181,8 @@ export default function BillingAdvertiser() {
                     (s, p) => s + (Number(p.pub_Apno) || 0),
                     0,
                   );
-                  if (!approved || !activeRow.pay_out) return "Pending";
+                  if (approved == null || activeRow.pay_out == null)
+                    return "Pending";
                   return `$${(approved * Number(activeRow.pay_out)).toFixed(
                     2,
                   )}`;
@@ -1182,7 +1298,8 @@ export default function BillingAdvertiser() {
                     title: "Total Payout",
                     width: 120,
                     render: (_, r) => {
-                      if (!r.pub_Apno || !activeRow.pay_out) return "Pending";
+                      if (r.pub_Apno == null || activeRow.pay_out == null)
+                        return "Pending";
                       return `$${(
                         Number(r.pub_Apno) * Number(activeRow.pay_out)
                       ).toFixed(2)}`;

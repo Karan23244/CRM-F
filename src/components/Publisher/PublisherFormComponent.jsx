@@ -102,6 +102,7 @@ const PublisherEditForm = () => {
   const [filterSearch, setFilterSearch] = useState({});
   const [uniqueValues, setUniqueValues] = useState({});
   const [subAdmins, setSubAdmins] = useState([]);
+  const [mail, setmail] = useState("");
   const [sortInfo, setSortInfo] = useState({
     columnKey: null,
     order: null, // "ascend" | "descend" | null
@@ -125,8 +126,9 @@ const PublisherEditForm = () => {
         if (response.ok) {
           const filtered = data.data.filter(
             (subAdmin) =>
-              ["publisher_manager","pub_executive", "publisher"].includes(subAdmin.role) &&
-              subAdmin.id !== userId,
+              ["publisher_manager", "pub_executive", "publisher"].includes(
+                subAdmin.role,
+              ) && subAdmin.id !== userId,
           );
 
           setSubAdmins(filtered);
@@ -213,20 +215,20 @@ const PublisherEditForm = () => {
     setGeo(record.geo);
     setNote(record.note || "");
     setTarget(record.target || "");
-    setLevel(record.level || "");
+    setmail(record.mail || "");
   };
 
   // Handle update
   const handleUpdate = async (e) => {
     e.preventDefault();
-
     const trimmed = {
       pub_name: name.trim(),
-      pub_id: pubId.trim(),
+      pub_id: String(pubId).trim(),
       geo: geo.trim(),
       note: note.trim(),
       target: target.trim(),
       user_id: userId,
+      mail: mail,
     };
 
     if (!trimmed.pub_name || !trimmed.pub_id || !trimmed.geo) {
@@ -274,6 +276,7 @@ const PublisherEditForm = () => {
     setGeo("");
     setNote("");
     setTarget("");
+    setmail("");
   };
   // Handle place link save
   const autoSavePlaceLink = async (record, value) => {
@@ -484,6 +487,31 @@ const PublisherEditForm = () => {
       }),
       filterDropdown: excelFilterDropdown("geo"),
       onFilter: (value, record) => record.geo === value,
+    },
+    {
+      title: "E-mail",
+      dataIndex: "mail",
+      key: "mail",
+      sorter: (a, b) => (a.mail || "").localeCompare(b.mail || ""),
+      sortOrder: sortInfo.columnKey === "mail" ? sortInfo.order : null,
+      onHeaderCell: () => ({
+        onClick: () => {
+          let newOrder = "ascend";
+
+          if (sortInfo.columnKey === "mail") {
+            if (sortInfo.order === "ascend") newOrder = "descend";
+            else if (sortInfo.order === "descend") newOrder = null;
+            else newOrder = "ascend";
+          }
+
+          setSortInfo({
+            columnKey: "mail",
+            order: newOrder,
+          });
+        },
+      }),
+      filterDropdown: excelFilterDropdown("mail"),
+      onFilter: (value, record) => record.mail === value,
     },
     {
       title: "Note",
@@ -718,7 +746,7 @@ const PublisherEditForm = () => {
               <strong>Username:</strong> {username}
             </div>
             <div className="break-all">
-              <strong>Password:</strong> {password}
+              <strong>Password:</strong> -
             </div>
 
             <Button
@@ -808,7 +836,19 @@ const PublisherEditForm = () => {
                 ))}
               </Select>
             </div>
-
+            {/* mail */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                E-mail
+              </label>
+              <input
+                type="email"
+                value={mail}
+                onChange={(e) => setmail(e.target.value)}
+                placeholder="Enter E-mail"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2F5D99] transition-all"
+              />
+            </div>
             {/* Target */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">

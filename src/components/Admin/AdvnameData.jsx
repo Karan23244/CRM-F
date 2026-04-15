@@ -47,7 +47,7 @@ const AdvnameData = () => {
   // ✅ Fallbacks for empty data (avoid "not iterable" error)
   const safeArray = (key) =>
     Array.from(uniqueValues[key] || []).filter(
-      (val) => val && val.trim() !== ""
+      (val) => val && val.trim() !== "",
     );
   const normalize = (val) => {
     if (val === null || val === undefined || val === "") return "-";
@@ -106,7 +106,7 @@ const AdvnameData = () => {
 
         if (response.data && Array.isArray(response.data.data)) {
           const filteredData = response.data.data.filter(
-            (item) => item.pause !== 1
+            (item) => item.pause !== 1,
           );
           setTableData(filteredData);
         } else {
@@ -130,8 +130,8 @@ const AdvnameData = () => {
         if (response.ok) {
           const filtered = data.data.filter((subAdmin) =>
             ["advertiser_manager", "advertiser", "operations"].includes(
-              subAdmin.role
-            )
+              subAdmin.role,
+            ),
           );
           setSubAdmins(filtered);
         } else {
@@ -151,7 +151,7 @@ const AdvnameData = () => {
       Swal.fire(
         "Missing Fields",
         "Please fill all required fields.",
-        "warning"
+        "warning",
       );
 
       return;
@@ -194,7 +194,7 @@ const AdvnameData = () => {
       Swal.fire(
         "Error",
         "Error updating advertiser. Please try again.",
-        "error"
+        "error",
       );
     }
   };
@@ -238,7 +238,7 @@ const AdvnameData = () => {
         Swal.fire(
           "Paused",
           `Advertiser ${record.adv_id} has been paused.`,
-          "success"
+          "success",
         );
 
         // ✅ Refresh data after pause
@@ -250,7 +250,7 @@ const AdvnameData = () => {
         Swal.fire(
           "Failed",
           `Failed to pause advertiser ${record.pub_id}.`,
-          "error"
+          "error",
         );
       }
     } catch (error) {
@@ -870,7 +870,7 @@ const AdvnameData = () => {
         const searchVal = filterSearch[key] || "";
 
         const visibleValues = allValues.filter((v) =>
-          v.toLowerCase().includes(searchVal.toLowerCase())
+          v.toLowerCase().includes(searchVal.toLowerCase()),
         );
 
         const isAllSelected = selectedValues.length === allValues.length;
@@ -959,7 +959,7 @@ const AdvnameData = () => {
         togglePin,
         sortInfo,
         setSortInfo,
-      })
+      }),
     ),
     {
       title: "Acc Email",
@@ -1000,7 +1000,7 @@ const AdvnameData = () => {
                     Swal.fire(
                       "Success",
                       "User transferred successfully!",
-                      "success"
+                      "success",
                     );
 
                     // ✅ Update local tableData to reflect changes
@@ -1011,8 +1011,8 @@ const AdvnameData = () => {
                               ...item,
                               user_id: newUserId,
                             }
-                          : item
-                      )
+                          : item,
+                      ),
                     );
                   } else {
                     Swal.fire("Error", "Failed to transfer user", "error");
@@ -1055,6 +1055,24 @@ const AdvnameData = () => {
       ),
       dataIndex: "postback_url",
       key: "postback_url",
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      render: (_, record) => (
+        <Space size="middle">
+          <Tooltip title="Edit">
+            <EditOutlined
+              onClick={() => handleEdit(record)}
+              style={{
+                color: "#2F5D99",
+                fontSize: "18px",
+                cursor: "pointer",
+              }}
+            />
+          </Tooltip>
+        </Space>
+      ),
     },
   ];
 
@@ -1177,7 +1195,7 @@ const AdvnameData = () => {
                 onChange={(e) => {
                   const selectedId = e.target.value;
                   const selectedUser = subAdmins.find(
-                    (admin) => admin.id.toString() === selectedId
+                    (admin) => admin.id.toString() === selectedId,
                   );
                   setAssign_id(selectedId);
                   setAssign_user(selectedUser ? selectedUser.username : "");
