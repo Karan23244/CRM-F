@@ -677,11 +677,11 @@ const SubAdminPubnameData = () => {
       key: "details",
       align: "center",
       render: (_, record) => {
-        const username = record.publisher_username || "-";
+        const mail = record.mail || "-";
         const password = record.password || "-";
 
         const copyToClipboard = () => {
-          const text = `Username: ${username}\nPassword: ${password}`;
+          const text = `Email: ${mail}\nPassword: ${password}`;
           navigator.clipboard.writeText(text);
           message.success("Details copied!");
         };
@@ -689,10 +689,10 @@ const SubAdminPubnameData = () => {
         const hoverContent = (
           <div className="text-xs space-y-2 max-w-[250px]">
             <div>
-              <strong>Username:</strong> {username}
+              <strong>Email:</strong> {mail}
             </div>
             <div className="break-all">
-              <strong>Password:</strong> -
+              <strong>Password:</strong> {password}
             </div>
 
             <Button

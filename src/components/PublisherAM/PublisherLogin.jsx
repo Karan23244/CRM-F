@@ -8,7 +8,7 @@ import { FaEye, FaEyeSlash, FaUser, FaLock } from "react-icons/fa";
 const apiUrl = import.meta.env.VITE_API_URL;
 
 const PublisherLogin = () => {
-  const [username, setUsername] = useState("");
+  const [mail, setMail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -19,12 +19,12 @@ const PublisherLogin = () => {
     e.preventDefault();
     setLoading(true);
 
-    if (!username.trim() || !password.trim()) {
+    if (!mail.trim() || !password.trim()) {
       setLoading(false);
       return Swal.fire({
         icon: "error",
         title: "Oops...",
-        text: "Both username and password are required.",
+        text: "Both email and password are required.",
       });
     }
 
@@ -33,7 +33,7 @@ const PublisherLogin = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          username: username.trim(),
+          mail: mail.trim(),
           password: password.trim(),
         }),
       });
@@ -118,19 +118,19 @@ const PublisherLogin = () => {
               {/* Username */}
               <div>
                 <label className="block text-gray-700 text-sm font-medium mb-1">
-                  Username
+                  E-mail
                 </label>
                 <div className="relative">
                   <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
                     <FaUser />
                   </span>
                   <input
-                    type="text"
+                    type="email"
                     className="block w-full pl-10 pr-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-[#2F5D99] focus:outline-none"
-                    placeholder="Enter your username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    autoComplete="username"
+                    placeholder="Enter your e-mail"
+                    value={mail}
+                    onChange={(e) => setMail(e.target.value)}
+                    autoComplete="Email"
                   />
                 </div>
               </div>

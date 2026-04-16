@@ -14,16 +14,16 @@ import { useSelector } from "react-redux";
 import { FilterFilled } from "@ant-design/icons";
 import { nanoid } from "nanoid";
 import StyledTable from "../../Utils/StyledTable";
-import OldValidationPublisherExternal from "./OldValidationPublisherExternal";
+
 
 const API = import.meta.env.VITE_API_URL5;
 
 // helper → always return 0 if empty
 const safeNum = (v) => Number(v || 0);
 
-export default function PublisherExternalBilling() {
+export default function PublisherExternalBilling({pubid, month}) {
+    console.log("Rendering old PublisherExternalBilling with pubid:", pubid, "and month:", month);
   const { user } = useSelector((s) => s.auth);
-  const [month, setMonth] = useState(null);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -33,16 +33,6 @@ export default function PublisherExternalBilling() {
   const [filterSearch, setFilterSearch] = useState({});
   const [uniqueValues, setUniqueValues] = useState({});
   const [pidFilters, setPidFilters] = useState({});
-  const isNewBilling = (month) => {
-    if (!month) return false;
-
-    const selected = new Date(`${month}-01T00:00:00`);
-    const cutoff = new Date("2026-02-01T00:00:00");
-
-    return selected >= cutoff;
-  };
-
-  const isOld = isNewBilling(month);
   const normalize = (val) =>
     val === null || val === undefined || val === ""
       ? "Pending"
@@ -53,11 +43,11 @@ export default function PublisherExternalBilling() {
   const fetchBilling = async () => {
     setLoading(true);
     try {
-      const res = await axios.post(`${API}/billing/publisher-external-data`, {
-        pubid: user?.pubid,
+      const res = await axios.post(`${API}/billing/old-publisher-external-data`, {
+        pubid: pubid,
         month,
       });
-      console.log("Raw API response:", res.data);
+      console.log("Raw old API response:", res.data);
       const flat = res.data.data || [];
       const map = new Map();
 
@@ -401,7 +391,7 @@ export default function PublisherExternalBilling() {
       </Table.Summary.Row>
     );
   };
-  console.log(isOld);
+
   // ─────────────────────────────────────────────
   // RENDER
   // ─────────────────────────────────────────────
@@ -409,8 +399,6 @@ export default function PublisherExternalBilling() {
     <>
       <div className="p-5">
         <div className="flex gap-3 mb-4">
-          <DatePicker picker="month" onChange={(_, s) => setMonth(s)} />
-                 {isOld ? (
           <Button
             onClick={() => {
               setFilters({});
@@ -418,21 +406,14 @@ export default function PublisherExternalBilling() {
             }}>
             Clear Filters
           </Button>
-            ) : (
-         <></>
-        )}
         </div>
 
-        {isOld ? (
           <StyledTable
             rowKey={(r) => r._tmp_id}
             dataSource={filteredRows}
             columns={columns}
             summary={summary}
           />
-        ) : (
-          <OldValidationPublisherExternal month={month} pubid={user?.pubid} />
-        )}
       </div>
 
       {/* MODAL */}
