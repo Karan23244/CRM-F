@@ -1055,6 +1055,17 @@ const AdvnameData = () => {
       ),
       dataIndex: "postback_url",
       key: "postback_url",
+      render: (text) => {
+        if (!text) return "-";
+
+        return (
+          <div className="w-[260px] overflow-hidden whitespace-nowrap group cursor-pointer">
+            <div className="inline-block min-w-full transition-transform duration-700 ease-in-out group-hover:-translate-x-full">
+              {text}
+            </div>
+          </div>
+        );
+      },
     },
     {
       title: "Actions",

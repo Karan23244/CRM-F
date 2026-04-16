@@ -508,6 +508,17 @@ const AdvnameData = () => {
       title: "Postback URL",
       dataIndex: "postback_url",
       key: "postback_url",
+      render: (text) => {
+        if (!text) return "-";
+
+        return (
+          <div className="w-[250px] overflow-hidden whitespace-nowrap relative group">
+            <div className="inline-block animate-marquee group-hover:pause">
+              {text}
+            </div>
+          </div>
+        );
+      },
     },
     {
       title: "Transfer Adv AM",
