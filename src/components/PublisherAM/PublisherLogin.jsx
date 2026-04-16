@@ -37,7 +37,7 @@ const PublisherLogin = () => {
           password: password.trim(),
         }),
       });
-
+      console.log("Login response status:", response);
       const data = await response.json();
       console.log("Login response:", data);
       if (data.success) {

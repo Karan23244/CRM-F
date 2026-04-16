@@ -251,8 +251,9 @@ const PublisherEditForm = () => {
 
         // Refresh data
         const { data } = await axios.get(`${apiUrl}/pubid-data/${userId}`);
-        if (data.success && Array.isArray(data.Publisher)) {
-          setPublishers(data.Publisher);
+        console.log(data)
+        if (data.success && Array.isArray(data.publishers)) {
+          setPublishers(data.publishers);
         }
         resetForm();
       }
