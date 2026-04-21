@@ -500,7 +500,7 @@ const CampaignList = () => {
       "✅ All filters, sorts, pins, and hidden columns have been cleared",
     );
   };
-  const allowedRoles = ["publisher", "publisher_manager"];
+  const allowedRoles = ["publisher", "publisher_manager","pub_executive"];
   const isPublisherRole = user?.role?.some((r) => allowedRoles.includes(r));
 
   // All Columns
