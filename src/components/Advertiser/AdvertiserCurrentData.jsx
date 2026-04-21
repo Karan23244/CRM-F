@@ -232,26 +232,26 @@ const AdvertiserData = () => {
       );
 
       const responses = await Promise.all(promises);
-
+      console.log(responses);
       const newRoleData = responses.map((res, index) => ({
         adminId: selectedAdmins[index].value,
         name: selectedAdmins[index].label,
         role: selectedAdmins[index].role,
         data: res.data.data,
       }));
-
+      console.log("New Role Data:", newRoleData);
       setRoleData(newRoleData);
 
       const mergedData = [
         ...data,
         ...newRoleData.flatMap((r) =>
-          (r.data?.advertiser_data || []).map((item) => ({
+          (r.data?.advertiser_data || r.data || []).map((item) => ({
             ...item,
             subadminId: r.adminId,
           })),
         ),
       ];
-
+      console.log("Merged Data:", mergedData);
       setData(mergedData);
     } catch (error) {
       console.error("Error fetching subadmin data:", error);
@@ -1204,37 +1204,37 @@ const AdvertiserData = () => {
             // if (key === "paused_date") {
             //   const pausedEditable = record.flag === "1";
 
-              // ❌ Not editable
-              // if (!pausedEditable) {
-              //   return (
-              //     <div style={{ color: "gray", cursor: "not-allowed" }}>
-              //       {value ? dayjs(value).format("YYYY-MM-DD") : "-"}
-              //     </div>
-              //   );
-              // }
+            // ❌ Not editable
+            // if (!pausedEditable) {
+            //   return (
+            //     <div style={{ color: "gray", cursor: "not-allowed" }}>
+            //       {value ? dayjs(value).format("YYYY-MM-DD") : "-"}
+            //     </div>
+            //   );
+            // }
 
-              // ✏️ Editable
-              // if (isEditing) {
-              //   return (
-              //     <DatePicker
-              //       allowClear
-              //       value={value ? dayjs(value) : null}
-              //       format="YYYY-MM-DD"
-              //       onChange={(date) => {
-              //         const finalDate = date ? date.format("YYYY-MM-DD") : null;
-              //         setSelectedPauseDate(finalDate);
-              //         setSelectedPauseRecord(record);
-              //         setShareModalVisible(true);
-              //       }}
-              //       onOpenChange={(open) => {
-              //         if (!open) setEditingCell({ key: null, field: null });
-              //       }}
-              //       autoFocus
-              //     />
-              //   );
-              // }
+            // ✏️ Editable
+            // if (isEditing) {
+            //   return (
+            //     <DatePicker
+            //       allowClear
+            //       value={value ? dayjs(value) : null}
+            //       format="YYYY-MM-DD"
+            //       onChange={(date) => {
+            //         const finalDate = date ? date.format("YYYY-MM-DD") : null;
+            //         setSelectedPauseDate(finalDate);
+            //         setSelectedPauseRecord(record);
+            //         setShareModalVisible(true);
+            //       }}
+            //       onOpenChange={(open) => {
+            //         if (!open) setEditingCell({ key: null, field: null });
+            //       }}
+            //       autoFocus
+            //     />
+            //   );
+            // }
 
-              // Default display (editable but not editing)
+            // Default display (editable but not editing)
             //   return (
             //     <div>{value ? dayjs(value).format("YYYY-MM-DD") : "-"}</div>
             //   );
