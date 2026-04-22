@@ -281,7 +281,6 @@ export const sidebarLinks = [
           "advertiser_manager",
           "advertiser",
           "admin",
-          "pub_executive",
           "adv_executive",
         ],
       },
