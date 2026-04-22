@@ -367,7 +367,7 @@ const SubAdminEdit = () => {
             u.id === record.id
               ? {
                   ...u,
-                  is_paused: checked ? 1 : 0,
+                  pause: checked ? 1 : 0,
                   status: data.data?.status, // optional (live/paused)
                 }
               : u,
@@ -482,12 +482,12 @@ const SubAdminEdit = () => {
           <Tooltip
             title={record.is_paused ? "Account Paused" : "Account Active"}>
             <Switch
-              checked={record.is_paused === 1}
+              checked={record.pause === 1}
               onChange={(checked) => handleTogglePause(record, checked)}
               checkedChildren="Paused"
               unCheckedChildren="Active"
               style={{
-                backgroundColor: record.is_paused ? "#ff4d4f" : "#52c41a",
+                backgroundColor: record.pause ? "#ff4d4f" : "#52c41a",
               }}
             />
           </Tooltip>
