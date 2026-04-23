@@ -43,7 +43,7 @@ const SubAdminPubnameData = () => {
   };
   const fetchData = async () => {
     try {
-      const response = await axios.get(`${apiUrl}/get-Namepub/`);
+      const response = await axios.get(`${apiUrl}/get-Namepub/${userId}`);
       console.log(response);
       if (response.data && Array.isArray(response.data.data)) {
         setTableData(response.data.data);
@@ -159,7 +159,7 @@ const SubAdminPubnameData = () => {
         });
 
         // Refresh table data after update
-        const { data } = await axios.get(`${apiUrl}/get-Namepub/`);
+        const { data } = await axios.get(`${apiUrl}/get-Namepub/${userId}`);
         if (data.success && Array.isArray(data.data)) {
           setTableData(data.data);
         }
@@ -228,7 +228,7 @@ const SubAdminPubnameData = () => {
         });
       }
 
-      const { data } = await axios.get(`${apiUrl}/get-Namepub/`);
+      const { data } = await axios.get(`${apiUrl}/get-Namepub/${userId}`);
       if (data.success && Array.isArray(data.data)) {
         setTableData(data.data);
       }

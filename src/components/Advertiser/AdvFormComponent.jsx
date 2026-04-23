@@ -19,16 +19,30 @@ const AdvertiserIDDashboard = () => {
   const user = useSelector((state) => state.auth.user);
   const [activeTab, setActiveTab] = useState("yourData");
   const showAssignPubTab = user?.role?.includes("advertiser_manager");
+  const [billingDetails, setBillingDetails] = useState([]);
+
+  const emptyBilling = () => ({
+    legal_name: "",
+    billing_address: "",
+    tax_type: "",
+    tax_id: "",
+  });
+  const addBillingEntry = () =>
+    setBillingDetails((prev) => [...prev, emptyBilling()]);
+  const removeBillingEntry = (index) =>
+    setBillingDetails((prev) => prev.filter((_, i) => i !== index));
+  const updateBillingEntry = (index, field, value) =>
+    setBillingDetails((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, [field]: value } : item)),
+    );
 
   return (
     <div className="p-4">
-      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
         <h2 className="text-2xl font-bold text-[#2F5D99] mb-4 md:mb-0">
           Advertiser Dashboard
         </h2>
       </div>
-      {/* Tabs Section — only show if user is publisher_manager */}
       {showAssignPubTab && (
         <div className="flex flex-wrap gap-3 mb-6 bg-white p-3 rounded-lg shadow-sm border border-gray-200">
           <Button
@@ -42,7 +56,6 @@ const AdvertiserIDDashboard = () => {
             }`}>
             Your Data
           </Button>
-
           <Button
             icon={<DatabaseOutlined />}
             type="default"
@@ -56,7 +69,6 @@ const AdvertiserIDDashboard = () => {
           </Button>
         </div>
       )}
-
       {activeTab === "yourData" ? (
         <AdvertiserEditForm />
       ) : showAssignPubTab ? (
@@ -68,12 +80,22 @@ const AdvertiserIDDashboard = () => {
 
 export default AdvertiserIDDashboard;
 
+// ─── Billing helper ──────────────────────────────────────────────────────────
+const emptyBilling = () => ({
+  legal_name: "",
+  billing_address: "",
+  tax_type: "",
+  tax_id: "",
+});
+
 const AdvertiserEditForm = () => {
   const user = useSelector((state) => state.auth.user);
   const userId = user?.id || null;
   const { Option } = Select;
   const isAdvertiserManager = user?.role?.includes("advertiser_manager");
   const restrictedRoles = ["operation", "optimization"];
+
+  // ── Main form state ──────────────────────────────────────────────────────
   const [name, setName] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const [geo, setGeo] = useState("");
@@ -84,22 +106,38 @@ const AdvertiserEditForm = () => {
   const [assign_user, setAssign_user] = useState("");
   const [assign_id, setAssign_id] = useState("");
   const [editingAdv, setEditingAdv] = useState(null);
+
+  // ── Billing state ────────────────────────────────────────────────────────
+  const [billingDetails, setBillingDetails] = useState([]);
+
+  // ── Table / filter state ─────────────────────────────────────────────────
   const [filters, setFilters] = useState({});
   const [filterSearch, setFilterSearch] = useState({});
   const [uniqueValues, setUniqueValues] = useState({});
   const [advertisers, setAdvertisers] = useState([]);
   const [subAdmins, setSubAdmins] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortInfo, setSortInfo] = useState({
-    columnKey: null,
-    order: null,
-  });
+  const [sortInfo, setSortInfo] = useState({ columnKey: null, order: null });
   const [editingAssignRowId, setEditingAssignRowId] = useState(null);
+
+  // ── Billing helpers ──────────────────────────────────────────────────────
+  const addBillingEntry = () =>
+    setBillingDetails((prev) => [...prev, emptyBilling()]);
+
+  const removeBillingEntry = (index) =>
+    setBillingDetails((prev) => prev.filter((_, i) => i !== index));
+
+  const updateBillingEntry = (index, field, value) =>
+    setBillingDetails((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, [field]: value } : item)),
+    );
+
+  // ── Utilities ────────────────────────────────────────────────────────────
   const normalize = (val) => {
     if (val === null || val === undefined || val === "") return "-";
     return val.toString().trim();
   };
-  console.log(subAdmins);
+
   const trimValues = (obj) =>
     Object.fromEntries(
       Object.entries(obj).map(([k, v]) => [
@@ -107,6 +145,7 @@ const AdvertiserEditForm = () => {
         typeof v === "string" ? v.trim() : v,
       ]),
     );
+
   const getExcelFilteredDataForColumn = (columnKey) => {
     return advertisers.filter((row) =>
       Object.entries(filters).every(([key, values]) => {
@@ -116,23 +155,27 @@ const AdvertiserEditForm = () => {
       }),
     );
   };
+
   useEffect(() => {
     const valuesObj = {};
-
     Object.keys(advertisers[0] || {}).forEach((col) => {
+      // skip nested array — billing_details would produce [object Object]
+      if (col === "billing_details") return;
       const source = getExcelFilteredDataForColumn(col);
-
       valuesObj[col] = [
         ...new Set(source.map((row) => normalize(row[col]))),
       ].sort((a, b) => a.localeCompare(b));
     });
-
     setUniqueValues(valuesObj);
   }, [advertisers, filters]);
+
+  // ── Data fetching ────────────────────────────────────────────────────────
   const fetchAdvertisers = async () => {
     if (!userId) return;
     try {
       const { data } = await axios.get(`${apiUrl}/advid-data/${userId}`);
+      // const { data } = await axios.get(`http://localhost:5200/api/advid-data/${userId}`);
+
       if (data.success && Array.isArray(data.advertisements)) {
         setAdvertisers(data.advertisements);
       }
@@ -140,24 +183,10 @@ const AdvertiserEditForm = () => {
       setAdvertisers([]);
     }
   };
+
   useEffect(() => {
     fetchAdvertisers();
   }, [userId]);
-  const filteredData = advertisers.filter((row) => {
-    // 🔍 Global search
-    const matchesSearch = Object.values(row)
-      .join(" ")
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-
-    if (!matchesSearch) return false;
-
-    // 🎯 Excel-style filters
-    return Object.entries(filters).every(([key, values]) => {
-      if (!values || values.length === 0) return true;
-      return values.includes(normalize(row[key]));
-    });
-  });
 
   useEffect(() => {
     const fetchSubAdmins = async () => {
@@ -184,6 +213,24 @@ const AdvertiserEditForm = () => {
     fetchSubAdmins();
   }, []);
 
+  // ── Filtered table data ──────────────────────────────────────────────────
+  const filteredData = advertisers.filter((row) => {
+    // exclude billing_details array from search join to avoid [object Object]
+    const { billing_details, ...flatRow } = row;
+    const matchesSearch = Object.values(flatRow)
+      .join(" ")
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+
+    if (!matchesSearch) return false;
+
+    return Object.entries(filters).every(([key, values]) => {
+      if (!values || values.length === 0) return true;
+      return values.includes(normalize(row[key]));
+    });
+  });
+
+  // ── Handlers ─────────────────────────────────────────────────────────────
   const handleEdit = (record) => {
     setEditingAdv(record);
     setName(record.adv_name);
@@ -195,24 +242,42 @@ const AdvertiserEditForm = () => {
     setPoc_email(record.poc_email || "");
     setAssign_user(record.assign_user || "");
     setAssign_id(record.assign_id || "");
-  };
 
+    // ✅ THIS WAS MISSING — load billing_details from record
+    setBillingDetails(
+      Array.isArray(record.billing_details) && record.billing_details.length > 0
+        ? record.billing_details.map(
+            ({ id, legal_name, billing_address, tax_type, tax_id }) => ({
+              id,
+              legal_name: legal_name || "",
+              billing_address: billing_address || "",
+              tax_type: tax_type || "",
+              tax_id: tax_id || "",
+            }),
+          )
+        : [emptyBilling()],
+    );
+  };
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const updatedAdv = trimValues({
-      adv_name: name,
-      adv_id: selectedId,
-      geo,
-      note,
-      target,
-      acc_email,
-      poc_email,
-      assign_user,
-      assign_id,
-      user_id:
-        user?.role === "advertiser_manager" ? editingAdv?.user_id : userId,
-    });
+    const updatedAdv = {
+      ...trimValues({
+        adv_name: name,
+        adv_id: selectedId,
+        geo,
+        note,
+        target,
+        acc_email,
+        poc_email,
+        assign_user,
+        assign_id,
+        user_id:
+          user?.role === "advertiser_manager" ? editingAdv?.user_id : userId,
+      }),
+      // ✅ include billing as array (not inside trimValues to avoid breaking it)
+      billing_details: billingDetails.map((b) => trimValues(b)),
+    };
 
     if (!updatedAdv.adv_name || !updatedAdv.adv_id || !updatedAdv.geo) {
       return Swal.fire({
@@ -224,18 +289,15 @@ const AdvertiserEditForm = () => {
 
     try {
       const response = await axios.put(`${apiUrl}/update-advid`, updatedAdv);
+      //  const response = await axios.put(`http://localhost:5200/api/update-advid`, updatedAdv);
+
       if (response.data.success) {
         Swal.fire({
           icon: "success",
           title: "Updated",
           text: response.data.message || "Advertiser updated successfully!",
         });
-
-        const { data } = await axios.get(`${apiUrl}/advid-data/${userId}`);
-        if (data.success && Array.isArray(data.advertisements)) {
-          setAdvertisers(data.advertisements);
-        }
-
+        await fetchAdvertisers();
         resetForm();
       }
     } catch (err) {
@@ -258,7 +320,10 @@ const AdvertiserEditForm = () => {
     setAssign_user("");
     setAssign_id("");
     setEditingAdv(null);
+    setBillingDetails([]); // ✅ clear billing
   };
+
+  // ── Excel filter dropdown ────────────────────────────────────────────────
   const excelFilterDropdown = (key) => () => {
     const allValues = uniqueValues[key] || [];
     const selectedValues = filters[key] ?? allValues;
@@ -273,22 +338,16 @@ const AdvertiserEditForm = () => {
 
     return (
       <div className="w-[260px]" onClick={(e) => e.stopPropagation()}>
-        {/* 🔍 Search */}
         <div className="p-2 border-b bg-white">
           <Input
             allowClear
             placeholder="Search values"
             value={searchVal}
             onChange={(e) =>
-              setFilterSearch((prev) => ({
-                ...prev,
-                [key]: e.target.value,
-              }))
+              setFilterSearch((prev) => ({ ...prev, [key]: e.target.value }))
             }
           />
         </div>
-
-        {/* ☑ Select All */}
         <div className="px-3 py-2">
           <Checkbox
             checked={isAllSelected}
@@ -305,8 +364,6 @@ const AdvertiserEditForm = () => {
             Select All
           </Checkbox>
         </div>
-
-        {/* 📋 Values */}
         <div className="max-h-[220px] overflow-y-auto px-2 pb-2">
           {visibleValues.map((val) => (
             <label
@@ -318,11 +375,7 @@ const AdvertiserEditForm = () => {
                   const next = e.target.checked
                     ? [...selectedValues, val]
                     : selectedValues.filter((v) => v !== val);
-
-                  setFilters((prev) => ({
-                    ...prev,
-                    [key]: next,
-                  }));
+                  setFilters((prev) => ({ ...prev, [key]: next }));
                 }}
               />
               <span className="truncate">{val}</span>
@@ -332,136 +385,52 @@ const AdvertiserEditForm = () => {
       </div>
     );
   };
+
+  // ── Columns ──────────────────────────────────────────────────────────────
+  const makeSortHeader = (key) => ({
+    sorter: (a, b) => (a[key] || "").localeCompare(b[key] || ""),
+    sortOrder: sortInfo.columnKey === key ? sortInfo.order : null,
+    onHeaderCell: () => ({
+      onClick: () => {
+        setSortInfo((prev) => {
+          if (prev.columnKey !== key)
+            return { columnKey: key, order: "ascend" };
+          if (prev.order === "ascend")
+            return { columnKey: key, order: "descend" };
+          if (prev.order === "descend") return { columnKey: key, order: null };
+          return { columnKey: key, order: "ascend" };
+        });
+      },
+    }),
+    filterDropdown: excelFilterDropdown(key),
+    onFilter: (value, record) => record[key] === value,
+  });
+
   const columns = [
     {
       title: "Advertiser ID",
       dataIndex: "adv_id",
       key: "adv_id",
-      sorter: (a, b) => a.adv_id.localeCompare(b.adv_id),
-      sortOrder: sortInfo.columnKey === "adv_id" ? sortInfo.order : null,
-      onHeaderCell: () => ({
-        onClick: () => {
-          let newOrder = "ascend";
-
-          if (sortInfo.columnKey === "adv_id") {
-            if (sortInfo.order === "ascend") newOrder = "descend";
-            else if (sortInfo.order === "descend")
-              newOrder = null; // 🔹 third click removes sorting
-            else newOrder = "ascend";
-          }
-
-          setSortInfo({
-            columnKey: "adv_id",
-            order: newOrder,
-          });
-        },
-      }),
-      filterDropdown: excelFilterDropdown("adv_id"),
-      onFilter: (value, record) => record.adv_id === value,
+      ...makeSortHeader("adv_id"),
     },
     {
       title: "Advertiser Name",
       dataIndex: "adv_name",
       key: "adv_name",
-      sorter: (a, b) => a.adv_name.localeCompare(b.adv_name),
-      sortOrder: sortInfo.columnKey === "adv_name" ? sortInfo.order : null,
-      onHeaderCell: () => ({
-        onClick: () => {
-          let newOrder = "ascend";
-
-          if (sortInfo.columnKey === "adv_name") {
-            if (sortInfo.order === "ascend") newOrder = "descend";
-            else if (sortInfo.order === "descend")
-              newOrder = null; // 🔹 third click removes sorting
-            else newOrder = "ascend";
-          }
-
-          setSortInfo({
-            columnKey: "adv_name",
-            order: newOrder,
-          });
-        },
-      }),
-      filterDropdown: excelFilterDropdown("adv_name"),
-      onFilter: (value, record) => record.adv_name === value,
+      ...makeSortHeader("adv_name"),
     },
-    {
-      title: "Geo",
-      dataIndex: "geo",
-      key: "geo",
-      sorter: (a, b) => a.geo.localeCompare(b.geo),
-      sortOrder: sortInfo.columnKey === "geo" ? sortInfo.order : null,
-      onHeaderCell: () => ({
-        onClick: () => {
-          let newOrder = "ascend";
-
-          if (sortInfo.columnKey === "geo") {
-            if (sortInfo.order === "ascend") newOrder = "descend";
-            else if (sortInfo.order === "descend")
-              newOrder = null; // 🔹 third click removes sorting
-            else newOrder = "ascend";
-          }
-
-          setSortInfo({
-            columnKey: "geo",
-            order: newOrder,
-          });
-        },
-      }),
-      filterDropdown: excelFilterDropdown("geo"),
-      onFilter: (value, record) => record.geo === value,
-    },
+    { title: "Geo", dataIndex: "geo", key: "geo", ...makeSortHeader("geo") },
     {
       title: "Note",
       dataIndex: "note",
       key: "note",
-      sorter: (a, b) => a.note.localeCompare(b.note),
-      sortOrder: sortInfo.columnKey === "note" ? sortInfo.order : null,
-      onHeaderCell: () => ({
-        onClick: () => {
-          let newOrder = "ascend";
-
-          if (sortInfo.columnKey === "note") {
-            if (sortInfo.order === "ascend") newOrder = "descend";
-            else if (sortInfo.order === "descend")
-              newOrder = null; // 🔹 third click removes sorting
-            else newOrder = "ascend";
-          }
-
-          setSortInfo({
-            columnKey: "note",
-            order: newOrder,
-          });
-        },
-      }),
-      filterDropdown: excelFilterDropdown("note"),
-      onFilter: (value, record) => record.note === value,
+      ...makeSortHeader("note"),
     },
     {
       title: "Target",
       dataIndex: "target",
       key: "target",
-      sorter: (a, b) => a.target.localeCompare(b.target),
-      sortOrder: sortInfo.columnKey === "target" ? sortInfo.order : null,
-      onHeaderCell: () => ({
-        onClick: () => {
-          let newOrder = "ascend";
-
-          if (sortInfo.columnKey === "target") {
-            if (sortInfo.order === "ascend") newOrder = "descend";
-            else if (sortInfo.order === "descend")
-              newOrder = null; // 🔹 third click removes sorting
-            else newOrder = "ascend";
-          }
-
-          setSortInfo({
-            columnKey: "target",
-            order: newOrder,
-          });
-        },
-      }),
-      filterDropdown: excelFilterDropdown("target"),
-      onFilter: (value, record) => record.target === value,
+      ...makeSortHeader("target"),
     },
     {
       title: "Acc Email",
@@ -479,27 +448,7 @@ const AdvertiserEditForm = () => {
       title: "Assign User",
       dataIndex: "assign_user",
       key: "assign_user",
-      sorter: (a, b) => a.assign_user.localeCompare(b.assign_user),
-      sortOrder: sortInfo.columnKey === "assign_user" ? sortInfo.order : null,
-      onHeaderCell: () => ({
-        onClick: () => {
-          let newOrder = "ascend";
-
-          if (sortInfo.columnKey === "assign_user") {
-            if (sortInfo.order === "ascend") newOrder = "descend";
-            else if (sortInfo.order === "descend")
-              newOrder = null; // 🔹 third click removes sorting
-            else newOrder = "ascend";
-          }
-
-          setSortInfo({
-            columnKey: "assign_user",
-            order: newOrder,
-          });
-        },
-      }),
-      filterDropdown: excelFilterDropdown("assign_user"),
-      onFilter: (value, record) => record.assign_user === value,
+      ...makeSortHeader("assign_user"),
     },
     {
       title: "Postback URL",
@@ -507,7 +456,6 @@ const AdvertiserEditForm = () => {
       key: "postback_url",
       render: (text) => {
         if (!text) return "-";
-
         return (
           <div className="w-[250px] overflow-hidden whitespace-nowrap relative group">
             <div className="inline-block animate-marquee group-hover:pause">
@@ -517,7 +465,6 @@ const AdvertiserEditForm = () => {
         );
       },
     },
-    /* ✅ CONDITIONAL COLUMN */
     ...(isAdvertiserManager
       ? [
           {
@@ -525,7 +472,6 @@ const AdvertiserEditForm = () => {
             key: "user_id",
             render: (_, record) => {
               const isEditing = editingAssignRowId === record.adv_id;
-
               if (isEditing) {
                 return (
                   <Select
@@ -546,18 +492,7 @@ const AdvertiserEditForm = () => {
                             "User transferred successfully!",
                             "success",
                           );
-
-                          // ✅ Update local tableData to reflect changes
-                          setTableData((prev) =>
-                            prev.map((item) =>
-                              item.adv_id === record.adv_id
-                                ? {
-                                    ...item,
-                                    user_id: newUserId,
-                                  }
-                                : item,
-                            ),
-                          );
+                          await fetchAdvertisers();
                         } else {
                           Swal.fire(
                             "Error",
@@ -572,7 +507,7 @@ const AdvertiserEditForm = () => {
                         setEditingAssignRowId(null);
                       }
                     }}
-                    onBlur={() => setEditingAssignRowId(null)} // Close if user clicks away
+                    onBlur={() => setEditingAssignRowId(null)}
                     className="min-w-[150px]">
                     {subAdmins.map((admin) => (
                       <Option key={admin.id} value={admin.id.toString()}>
@@ -582,8 +517,6 @@ const AdvertiserEditForm = () => {
                   </Select>
                 );
               }
-
-              // Show normal text, and enter edit mode on click
               return (
                 <span
                   onClick={() => setEditingAssignRowId(record.adv_id)}
@@ -617,6 +550,8 @@ const AdvertiserEditForm = () => {
         ]
       : []),
   ];
+
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="">
       {editingAdv && (
@@ -632,37 +567,27 @@ const AdvertiserEditForm = () => {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className={`w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2F5D99] focus:border-[#2F5D99] transition-all ${
-                editingAdv ? "bg-gray-100 cursor-not-allowed" : ""
-              }`}
+              className="w-full p-3 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
               required
-              disabled={!!editingAdv}
+              disabled
             />
           </div>
 
           {/* Advertiser ID */}
           <div>
             <label className="block text-[#2F5D99] text-base font-semibold mb-2">
-              Select Advertiser ID
+              Advertiser ID
             </label>
             <select
               value={selectedId}
-              onChange={(e) => setSelectedId(e.target.value)}
-              className={`w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2F5D99] focus:border-[#2F5D99] transition-all ${
-                editingAdv ? "bg-gray-100 cursor-not-allowed" : ""
-              }`}
+              className="w-full p-3 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
               required
-              disabled={!!editingAdv}>
-              <option value="">Select an ID</option>
-              {(editingAdv ? [editingAdv.adv_id] : availableIds).map((id) => (
-                <option key={id} value={id}>
-                  {id}
-                </option>
-              ))}
+              disabled>
+              <option value={editingAdv.adv_id}>{editingAdv.adv_id}</option>
             </select>
           </div>
 
-          {/* Select Geo */}
+          {/* Geo */}
           <div>
             <label className="block text-[#2F5D99] text-base font-semibold mb-2">
               Select Geo
@@ -678,15 +603,15 @@ const AdvertiserEditForm = () => {
                 option?.label?.toLowerCase().includes(input.toLowerCase())
               }
               required>
-              {geoData.geo?.map((geo) => (
-                <Select.Option key={geo.code} value={geo.code} label={geo.code}>
-                  {geo.code}
+              {geoData.geo?.map((g) => (
+                <Select.Option key={g.code} value={g.code} label={g.code}>
+                  {g.code}
                 </Select.Option>
               ))}
             </Select>
           </div>
 
-          {/* Conditional Fields for Advertiser Manager */}
+          {/* Advertiser Manager only fields */}
           {user?.role?.includes("advertiser_manager") && (
             <>
               <div>
@@ -736,8 +661,7 @@ const AdvertiserEditForm = () => {
             </>
           )}
 
-          {/* Assign User for Non-Manager */}
-          {/* {!user?.role?.includes("advertiser_manager") && ( */}
+          {/* Assign User */}
           <div className="md:col-span-2">
             <label className="block text-[#2F5D99] text-base font-semibold mb-2">
               Assign User
@@ -746,11 +670,11 @@ const AdvertiserEditForm = () => {
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2F5D99] focus:border-[#2F5D99] transition-all"
               value={assign_id}
               onChange={(e) => {
-                const selectedId = e.target.value;
+                const sid = e.target.value;
                 const selectedUser = subAdmins.find(
-                  (a) => a.id.toString() === selectedId,
+                  (a) => a.id.toString() === sid,
                 );
-                setAssign_id(selectedId);
+                setAssign_id(sid);
                 setAssign_user(selectedUser?.username || "");
               }}>
               <option value="">Select Sub Admin</option>
@@ -761,22 +685,128 @@ const AdvertiserEditForm = () => {
               ))}
             </select>
           </div>
-          {/* )} */}
+
+          {/* ── Billing Details ──────────────────────────────────────────────── */}
+          {/* ── Billing Details ─────────────────────────────────────── */}
+          <div className="md:col-span-2 border-t pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[#2F5D99] text-base font-semibold">
+                Billing Details
+                {billingDetails.length > 0 && (
+                  <span className="ml-2 text-xs bg-blue-100 text-blue-700 rounded-full px-2 py-0.5 font-normal">
+                    {billingDetails.length}
+                  </span>
+                )}
+              </h3>
+              <button
+                type="button"
+                onClick={addBillingEntry}
+                className="text-sm px-4 py-1.5 rounded-lg border border-blue-300 text-blue-600 hover:bg-blue-50 transition-all">
+                + Add Entry
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {billingDetails.map((entry, index) => (
+                <div
+                  key={entry.id || index}
+                  className="relative p-4 rounded-xl border border-gray-200 bg-gray-50">
+                  <button
+                    type="button"
+                    onClick={() => removeBillingEntry(index)}
+                    className="absolute top-3 right-3 text-gray-400 hover:text-red-500 transition-colors text-lg leading-none">
+                    &#x2715;
+                  </button>
+                  <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">
+                    Entry {index + 1}
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">
+                        Legal Name
+                      </label>
+                      <input
+                        type="text"
+                        value={entry.legal_name}
+                        onChange={(e) =>
+                          updateBillingEntry(
+                            index,
+                            "legal_name",
+                            e.target.value,
+                          )
+                        }
+                        placeholder="Legal entity name"
+                        className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2F5D99] focus:outline-none text-sm bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">
+                        Tax Type
+                      </label>
+                      <input
+                        type="text"
+                        value={entry.tax_type}
+                        onChange={(e) =>
+                          updateBillingEntry(index, "tax_type", e.target.value)
+                        }
+                        placeholder="e.g. GST, VAT, PAN..."
+                        className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2F5D99] focus:outline-none text-sm bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">
+                        Tax ID
+                      </label>
+                      <input
+                        type="text"
+                        value={entry.tax_id}
+                        onChange={(e) =>
+                          updateBillingEntry(index, "tax_id", e.target.value)
+                        }
+                        placeholder="e.g. 27AAPFU0939F1ZV"
+                        className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2F5D99] focus:outline-none text-sm bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">
+                        Billing Address
+                      </label>
+                      <input
+                        type="text"
+                        value={entry.billing_address}
+                        onChange={(e) =>
+                          updateBillingEntry(
+                            index,
+                            "billing_address",
+                            e.target.value,
+                          )
+                        }
+                        placeholder="Full billing address"
+                        className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2F5D99] focus:outline-none text-sm bg-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {billingDetails.length === 0 && (
+                <p className="text-sm text-gray-400 text-center py-4 border border-dashed border-gray-200 rounded-xl">
+                  No billing entries. Click "+ Add Entry" to add one.
+                </p>
+              )}
+            </div>
+          </div>
 
           {/* Action Buttons */}
-          <div className="md:col-span-2 flex flex-wrap justify-end gap-4 mt-4 pt-4 border-gray-200">
+          <div className="md:col-span-2 flex flex-wrap justify-end gap-4 mt-4 pt-4 border-t border-gray-200">
             <button
               type="submit"
               className="flex-1 md:flex-none bg-[#2F5D99] hover:bg-[#24487A] text-white px-8 py-3 rounded-lg font-medium shadow-md transition-all">
-              {editingAdv ? "Update Advertiser" : "Create Advertiser"}
+              Update Advertiser
             </button>
-
             <button
               type="button"
-              onClick={() => {
-                resetForm();
-                setShowForm(false);
-              }}
+              onClick={resetForm}
               className="flex-1 md:flex-none bg-gray-400 hover:bg-gray-500 text-white px-8 py-3 rounded-lg font-medium shadow-md transition-all">
               Cancel
             </button>
@@ -784,7 +814,7 @@ const AdvertiserEditForm = () => {
         </form>
       )}
 
-      {/* Show Table and Search Bar only when not editing */}
+      {/* Table */}
       {!editingAdv && (
         <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-200">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
@@ -799,7 +829,6 @@ const AdvertiserEditForm = () => {
               />
             </div>
           </div>
-
           <StyledTable
             bordered
             dataSource={filteredData}
@@ -814,7 +843,6 @@ const AdvertiserEditForm = () => {
             }}
             scroll={{ x: "max-content" }}
             onChange={(pagination, filters, sorter) => {
-              // Update sort info only if user clicks header or sorter changes
               if (sorter.order || sorter.columnKey) {
                 setSortInfo({
                   columnKey: sorter.columnKey,
@@ -822,7 +850,7 @@ const AdvertiserEditForm = () => {
                 });
               }
             }}
-            sortDirections={["ascend", "descend", null]} // 🔹 allows 3rd (none) state
+            sortDirections={["ascend", "descend", null]}
             showSorterTooltip={false}
           />
         </div>

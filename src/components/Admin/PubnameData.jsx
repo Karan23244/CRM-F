@@ -10,12 +10,14 @@ import {
   CopyOutlined,
   EyeOutlined,
 } from "@ant-design/icons";
+import { useSelector } from "react-redux";
 import geoData from "../../Data/geoData.json";
 import Swal from "sweetalert2";
 import StyledTable from "../../Utils/StyledTable";
 
 const { Option } = Select;
 const apiUrl = import.meta.env.VITE_API_URL;
+const userId = useSelector((state) => state.user?.id) || null;
 
 const PubnameData = () => {
   const [tableData, setTableData] = useState([]);
@@ -101,7 +103,7 @@ const PubnameData = () => {
   // ✅ Make fetchData reusable
   const fetchData = async () => {
     try {
-      const response = await axios.get(`${apiUrl}/get-Namepub/`);
+      const response = await axios.get(`${apiUrl}/get-Namepub/${userId}`);
       if (response.data && Array.isArray(response.data.data)) {
         setTableData(response.data.data);
       } else {

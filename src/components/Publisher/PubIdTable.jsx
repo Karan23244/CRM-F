@@ -94,6 +94,8 @@ const PubIdTable = () => {
     pub_display: "PUB ID",
     adv_id: "ADV ID",
     pub_id: "PUB ID",
+    adv_AM: "ADV AM", // ✅ ADD THIS
+    pub_name: "PUB AM",
     category: "Category",
     geo: "Geo",
     os: "OS",
