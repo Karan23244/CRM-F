@@ -29,7 +29,7 @@ const apiUrl = import.meta.env.VITE_API_URL;
 
 const PubIdTable = () => {
   const roles = useSelector((state) => state.auth.user?.role || []);
-
+  const id = useSelector((state) => state.auth.user?.id || []);
   const [data, setData] = useState([]);
   const [pinnedColumns, setPinnedColumns] = useState({});
   const [searchText, setSearchText] = useState("");
@@ -48,10 +48,15 @@ const PubIdTable = () => {
     order: null,
   });
   const isPublisher =
-    roles.includes("publisher") || roles.includes("publisher_manager") || roles.includes("pub_executive");
+    roles.includes("publisher") ||
+    roles.includes("publisher_manager") ||
+    roles.includes("pub_executive");
 
   const isAdvertiser =
-    roles.includes("advertiser") || roles.includes("advertiser_manager") || roles.includes("adv_executive") || roles.includes("operations");
+    roles.includes("advertiser") ||
+    roles.includes("advertiser_manager") ||
+    roles.includes("adv_executive") ||
+    roles.includes("operations");
 
   const isAdmin = roles.includes("admin");
   const advColumnKey = isAdmin || isAdvertiser ? "adv_display" : "adv_id";
@@ -60,7 +65,7 @@ const PubIdTable = () => {
   useEffect(() => {
     localStorage.setItem(
       "hiddenPublisherColumns",
-      JSON.stringify(hiddenColumns)
+      JSON.stringify(hiddenColumns),
     );
   }, [hiddenColumns]);
 
@@ -106,7 +111,9 @@ const PubIdTable = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${apiUrl}/getpubdata`);
+      const res = await axios.get(`${apiUrl}/getpubdata`, {
+        params: { id: id }, // 👈 send id here
+      });
 
       const sortedData = (res.data.data || []).reverse(); // latest first
       console.log("Fetched PUBID data:", sortedData);
@@ -188,7 +195,7 @@ const PubIdTable = () => {
     try {
       const updatedRecord = { ...record, [field]: value };
       setData((prev) =>
-        prev.map((item) => (item.id === id ? updatedRecord : item))
+        prev.map((item) => (item.id === id ? updatedRecord : item)),
       );
 
       const response = await axios.put(`${apiUrl}/updatePubidData/${id}`, {
@@ -285,7 +292,7 @@ const PubIdTable = () => {
         const searchText = filterSearch[dataIndex] || "";
 
         const visibleValues = allValues.filter((val) =>
-          val.toString().toLowerCase().includes(searchText.toLowerCase())
+          val.toString().toLowerCase().includes(searchText.toLowerCase()),
         );
 
         const isAllSelected = selectedValues.length === allValues.length;
@@ -483,7 +490,7 @@ const PubIdTable = () => {
     setHiddenColumns([]);
     localStorage.removeItem("hiddenCampaignColumns");
     message.success(
-      "✅ All filters, sorts, pins, and hidden columns have been cleared"
+      "✅ All filters, sorts, pins, and hidden columns have been cleared",
     );
   };
 
@@ -498,19 +505,19 @@ const PubIdTable = () => {
     getColumnWithFilterAndPin("geo", "Geo"),
     getColumnWithFilterAndPin("os", "OS"),
     getColumnWithFilterAndPin("category", "Category", (text, record) =>
-      renderEditableCell(record, "category", text, "select-category")
+      renderEditableCell(record, "category", text, "select-category"),
     ),
     getColumnWithFilterAndPin(
       "achieved",
       "Payable Number Achieved",
-      (text, record) => renderEditableCell(record, "achieved", text, "number")
+      (text, record) => renderEditableCell(record, "achieved", text, "number"),
     ),
     getColumnWithFilterAndPin("review", "Review", (text, record) =>
-      renderEditableCell(record, "review", text, "select-review")
+      renderEditableCell(record, "review", text, "select-review"),
     ),
 
     getColumnWithFilterAndPin("note", "Note", (text, record) =>
-      renderEditableCell(record, "note", text, "textarea")
+      renderEditableCell(record, "note", text, "textarea"),
     ),
     {
       title: "Updated At",
@@ -533,7 +540,7 @@ const PubIdTable = () => {
 
   // 🔹 Filter out hidden columns before rendering
   const visibleColumns = allColumns.filter(
-    (col) => !hiddenColumns.includes(col.key)
+    (col) => !hiddenColumns.includes(col.key),
   );
 
   return (

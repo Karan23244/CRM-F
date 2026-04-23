@@ -129,7 +129,7 @@ const AdvnameData = () => {
         const data = await response.json();
         if (response.ok) {
           const filtered = data.data.filter((subAdmin) =>
-            ["advertiser_manager", "advertiser", "operations"].includes(
+            ["advertiser_manager", "advertiser", "operations","adv_executive"].includes(
               subAdmin.role,
             ),
           );
