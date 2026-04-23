@@ -17,9 +17,10 @@ import StyledTable from "../../Utils/StyledTable";
 
 const { Option } = Select;
 const apiUrl = import.meta.env.VITE_API_URL;
-const userId = useSelector((state) => state.user?.id) || null;
 
 const PubnameData = () => {
+  const user = useSelector((state) => state.auth.user);
+  const userId = user?.id || null;
   const [tableData, setTableData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingPub, setEditingPub] = useState(null);
