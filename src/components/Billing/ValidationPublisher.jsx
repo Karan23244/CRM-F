@@ -535,27 +535,90 @@ export default function BillingAdvertiser() {
     );
   };
 
+  // const updateCampaignField = (tmpId, field, value) => {
+  //   setRows((prev) =>
+  //     prev.map((r) => (r._tmp_id === tmpId ? { ...r, [field]: value } : r)),
+  //   );
+  // };
+
+  // const updatePidField = (parentIdx, pidIdx, field, value) => {
+  //   setRows((prev) =>
+  //     prev.map((r, i) =>
+  //       i === parentIdx
+  //         ? {
+  //             ...r,
+  //             pid_data: r.pid_data.map((p, j) =>
+  //               j === pidIdx ? { ...p, [field]: value } : p,
+  //             ),
+  //           }
+  //         : r,
+  //     ),
+  //   );
+  // };
+
   const updateCampaignField = (tmpId, field, value) => {
     setRows((prev) =>
-      prev.map((r) => (r._tmp_id === tmpId ? { ...r, [field]: value } : r)),
+      prev.map((r) => {
+        if (r._tmp_id !== tmpId) return r;
+
+        const updated = { ...r, [field]: value };
+
+        // 🔥 If payout changed → recalc totals
+        if (field === "pay_out") {
+          let payout_amount = 0;
+
+          (updated.pid_data || []).forEach((p) => {
+            const apno = Number(p.pub_Apno) || 0;
+            payout_amount += apno * (Number(value) || 0);
+          });
+
+          updated.payout_amount = payout_amount;
+          updated.total_payout = payout_amount;
+        }
+
+        return updated;
+      }),
     );
   };
-
   const updatePidField = (parentIdx, pidIdx, field, value) => {
     setRows((prev) =>
-      prev.map((r, i) =>
-        i === parentIdx
-          ? {
-              ...r,
-              pid_data: r.pid_data.map((p, j) =>
-                j === pidIdx ? { ...p, [field]: value } : p,
-              ),
-            }
-          : r,
-      ),
+      prev.map((r, i) => {
+        if (i !== parentIdx) return r;
+
+        const updatedPidData = r.pid_data.map((p, j) =>
+          j === pidIdx ? { ...p, [field]: value } : p,
+        );
+
+        // 🔥 RECALCULATE TOTALS
+        let adv_total_number = 0;
+        let pub_apno = 0;
+        let payout_amount = 0;
+
+        updatedPidData.forEach((p) => {
+          const adv = Number(p.adv_total_no) || 0;
+          const apno = Number(p.pub_Apno) || 0;
+          const payout = Number(r.pay_out) || 0;
+
+          adv_total_number += adv;
+          pub_apno += apno;
+          payout_amount += apno * payout;
+        });
+
+        return {
+          ...r,
+          pid_data: updatedPidData,
+          adv_total_number,
+          pub_apno,
+          payout_amount,
+
+          // keep aliases in sync
+          adv_total_no: adv_total_number,
+          pub_Apno: pub_apno,
+          total_payout: payout_amount,
+        };
+      }),
     );
   };
-
   const addCampaign = () => {
     setRows((prev) => [
       {
@@ -698,7 +761,107 @@ export default function BillingAdvertiser() {
       });
     }
   };
+  //verify all PIDs at once
+  const verifyAllPidsForRow = async (row, rowIndex) => {
+    console.log("Verifying all PIDs for row:", row.pid_data);
+    const unverified = (row.pid_data || []).filter(
+      (p) => p.status !== "verified" && p.status !== "locked",
+    );
 
+    if (!unverified.length) {
+      Swal.fire({
+        icon: "info",
+        title: "Nothing to Verify",
+        text: "All PIDs already verified.",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+      return;
+    }
+
+    const confirm = await Swal.fire({
+      icon: "question",
+      title: `Verify ${unverified.length} PIDs?`,
+      text: `Campaign: ${row.campaign_name}`,
+      showCancelButton: true,
+      confirmButtonText: "Yes, Verify All",
+      confirmButtonColor: "#1677ff",
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    // 🔥 Loader
+    Swal.fire({
+      title: "Verifying...",
+      text: `Processing ${unverified.length} PIDs`,
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+
+    try {
+      const responses = await Promise.all(
+        unverified.map(async (pidRow) => {
+          const res = await axios.post(`${API}/billing/publisher-verify-pid`, {
+            adv_data_id: pidRow.adv_data_id || null,
+            pid: pidRow.pid,
+            campaign_id: row.campaign_id,
+            pub_id: pidRow.pub_id || selectedPubId,
+            shared_date: pidRow.shared_date || month + "-01",
+            campaign_name: row.campaign_name,
+            geo: row.geo,
+            os: pidRow.os,
+            payable_event: row.payable_event,
+            pay_out: row.pay_out,
+            adv_total_no: pidRow.adv_total_no,
+            pub_Apno: pidRow.pub_Apno,
+            vertical: row.vertical,
+            billing_month: month,
+          });
+
+          return {
+            pid: pidRow.pid,
+            insertId: res.data?.insertId,
+          };
+        }),
+      );
+
+      const map = new Map(responses.map((r) => [r.pid, r.insertId]));
+
+      // ✅ Update state
+      setRows((prev) =>
+        prev.map((r, i) => {
+          if (i !== rowIndex) return r;
+
+          return {
+            ...r,
+            pid_data: r.pid_data.map((p) => {
+              if (p.status === "verified" || p.status === "locked") return p;
+
+              return {
+                ...p,
+                status: "verified",
+                adv_data_id: p.adv_data_id ?? map.get(p.pid) ?? null,
+              };
+            }),
+          };
+        }),
+      );
+
+      Swal.fire({
+        icon: "success",
+        title: "Done",
+        text: `${unverified.length} PIDs verified`,
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "Verification Failed",
+        text: err.response?.data?.message || "Something went wrong",
+      });
+    }
+  };
   // ── column filter helper ──────────────────────
   const getColumnFilter = (dataIndex, isPid = false) => ({
     filterDropdown: () => {
@@ -1030,7 +1193,16 @@ export default function BillingAdvertiser() {
                 }>
                 + Add Campaign
               </Button>
-
+              <Button
+                type="primary"
+                disabled={billingLocked || allDataLocked}
+                onClick={async () => {
+                  for (let i = 0; i < rows.length; i++) {
+                    await verifyAllPidsForRow(rows[i], i);
+                  }
+                }}>
+                Verify All
+              </Button>
               <Button
                 onClick={resetFilters}
                 disabled={
