@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import {
   Select,
   DatePicker,
@@ -516,18 +516,29 @@ export default function BillingAdvertiser() {
     setUniqueValues(obj);
   }, [rows]);
 
+  // useEffect(() => {
+  //   if (!activeRow) return;
+  //   const keys = ["os", "pid", "adv_total_no", "pub_Apno"];
+  //   const obj = {};
+  //   keys.forEach((k) => {
+  //     obj[k] = [
+  //       ...new Set((activeRow.pid_data || []).map((p) => normalize(p[k]))),
+  //     ];
+  //   });
+  //   setUniqueValues((prev) => ({ ...prev, ...obj }));
+  // }, [activeRow]);
   useEffect(() => {
     if (!activeRow) return;
     const keys = ["os", "pid", "adv_total_no", "pub_Apno"];
     const obj = {};
     keys.forEach((k) => {
-      obj[k] = [
+      // ✅ prefix with "pid_" so they never overwrite campaign-level keys
+      obj[`pid_${k}`] = [
         ...new Set((activeRow.pid_data || []).map((p) => normalize(p[k]))),
       ];
     });
     setUniqueValues((prev) => ({ ...prev, ...obj }));
   }, [activeRow]);
-
   // ── local state updaters (no DB write) ────────
   const updateCampaignComposite = (record, values) => {
     setRows((prev) =>
@@ -579,6 +590,13 @@ export default function BillingAdvertiser() {
         return updated;
       }),
     );
+    // 🔥 FIX: also clear total_payout filter when payout rate changes
+    if (field === "pay_out") {
+      setFilters((prev) => {
+        const { total_payout, ...rest } = prev;
+        return rest;
+      });
+    }
   };
   const updatePidField = (parentIdx, pidIdx, field, value) => {
     setRows((prev) =>
@@ -618,6 +636,11 @@ export default function BillingAdvertiser() {
         };
       }),
     );
+    // 🔥 FIX: clear stale aggregate filters so uniqueValues recalculates fresh
+    setFilters((prev) => {
+      const { adv_total_no, pub_Apno, total_payout, ...rest } = prev;
+      return rest;
+    });
   };
   const addCampaign = () => {
     setRows((prev) => [
@@ -961,19 +984,25 @@ export default function BillingAdvertiser() {
   });
 
   // ── filtered data ──────────────────────────────
-  const filteredRows = rows.filter((row) =>
-    Object.entries(filters).every(([k, vals]) => {
-      if (!vals || vals.length === 0) return true;
-      return vals.includes(normalize(row[k]));
-    }),
-  );
+  const filteredRows = useMemo(() => {
+    return rows.filter((row) =>
+      Object.entries(filters).every(([k, vals]) => {
+        if (!vals || vals.length === 0) return true;
+        return vals.includes(normalize(row[k]));
+      }),
+    );
+  }, [rows, filters]);
 
-  const filteredPidData = (activeRow?.pid_data || []).filter((row) =>
-    Object.entries(pidFilters).every(([k, vals]) => {
-      if (!vals || vals.length === 0) return true;
-      return vals.includes(normalize(row[k]));
-    }),
-  );
+  const filteredPidData = useMemo(() => {
+    return (activeRow?.pid_data || []).filter((row) =>
+      Object.entries(pidFilters).every(([k, vals]) => {
+        if (!vals || vals.length === 0) return true;
+        // ✅ strip "pid_" prefix to match actual data keys
+        const actualKey = k.startsWith("pid_") ? k.slice(4) : k;
+        return vals.includes(normalize(row[actualKey]));
+      }),
+    );
+  }, [activeRow, pidFilters]);
 
   // ── campaign table columns ────────────────────
   const columns = [
@@ -1297,7 +1326,8 @@ export default function BillingAdvertiser() {
           setPidFilters({});
           setFilterSearch((prev) => {
             const updated = { ...prev };
-            ["os", "pid", "adv_total_no", "pub_Apno"].forEach(
+            ["pid_os", "pid_pid", "pid_adv_total_no", "pid_pub_Apno"].forEach(
+              // ✅ prefixed
               (k) => delete updated[k],
             );
             return updated;
@@ -1392,7 +1422,7 @@ export default function BillingAdvertiser() {
                   {
                     title: "OS",
                     width: 150,
-                    ...getColumnFilter("os", true),
+                    ...getColumnFilter("pid_os", true),
                     render: (_, r, i) => (
                       <Select
                         size="small"
@@ -1415,7 +1445,7 @@ export default function BillingAdvertiser() {
                   {
                     title: "PID",
                     width: 220,
-                    ...getColumnFilter("pid", true),
+                    ...getColumnFilter("pid_pid", true),
                     render: (_, r, i) => (
                       <EditablePidCell
                         value={r.pid}
@@ -1433,7 +1463,7 @@ export default function BillingAdvertiser() {
                   {
                     title: "Total",
                     width: 100,
-                    ...getColumnFilter("adv_total_no", true),
+                    ...getColumnFilter("pid_adv_total_no", true),
                     render: (_, r, i) => (
                       <EditableCell
                         value={r.adv_total_no}
@@ -1451,7 +1481,7 @@ export default function BillingAdvertiser() {
                   {
                     title: "Approved",
                     width: 110,
-                    ...getColumnFilter("pub_Apno", true),
+                    ...getColumnFilter("pid_pub_Apno", true),
                     render: (_, r, i) => (
                       <EditableCell
                         value={r.pub_Apno}

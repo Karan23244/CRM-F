@@ -52,7 +52,7 @@ export const sidebarLinks = [
   // ==========================
   {
     label: "Advertiser",
-    roles: ["advertiser", "advertiser_manager", "operations"],
+    roles: ["advertiser", "advertiser_manager", "operations" ,"adv_executive"],
     sublinks: [
       {
         to: "listadvform",

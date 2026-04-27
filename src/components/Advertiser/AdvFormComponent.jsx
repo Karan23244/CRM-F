@@ -612,7 +612,7 @@ const AdvertiserEditForm = () => {
           </div>
 
           {/* Advertiser Manager only fields */}
-          {user?.role?.includes("advertiser_manager") && (
+          {/* {user?.role?.includes("advertiser_manager") && (
             <>
               <div>
                 <label className="block text-[#2F5D99] text-base font-semibold mb-2">
@@ -656,6 +656,67 @@ const AdvertiserEditForm = () => {
                   onChange={(e) => setNote(e.target.value)}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2F5D99] focus:border-[#2F5D99] transition-all"
                   rows="3"
+                />
+              </div>
+            </>
+          )} */}
+          {user?.role == "advertiser_manager" && (
+            <>
+              <div>
+                <label className="block text-[#2F5D99] text-base font-semibold mb-2">
+                  Target
+                </label>
+                <input
+                  type="text"
+                  value={target}
+                  onChange={(e) => setTarget(e.target.value)}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2F5D99] focus:border-[#2F5D99] transition-all"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-[#2F5D99] text-base font-semibold mb-2">
+                  Note (Optional)
+                </label>
+                <textarea
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2F5D99] focus:border-[#2F5D99] transition-all"
+                  rows="3"
+                />
+              </div>
+            </>
+          )}
+          {(Array.isArray(user?.role)
+            ? user.role.some((r) =>
+                ["advertiser_manager", "adv_executive", "advertiser"].includes(
+                  r,
+                ),
+              )
+            : ["advertiser_manager", "adv_executive", "advertiser"].includes(
+                user?.role,
+              )) && (
+            <>
+              <div>
+                <label className="block text-[#2F5D99] text-base font-semibold mb-2">
+                  POC Email
+                </label>
+                <input
+                  type="email"
+                  value={poc_email}
+                  onChange={(e) => setPoc_email(e.target.value)}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2F5D99] focus:border-[#2F5D99] transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-[#2F5D99] text-base font-semibold mb-2">
+                  Account Email
+                </label>
+                <input
+                  type="email"
+                  value={acc_email}
+                  onChange={(e) => setAcc_email(e.target.value)}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2F5D99] focus:border-[#2F5D99] transition-all"
                 />
               </div>
             </>
