@@ -1,6 +1,15 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { Table, Input, Select, Button, Space, Tooltip, Checkbox } from "antd";
+import {
+  Table,
+  Input,
+  Select,
+  Button,
+  Space,
+  Tooltip,
+  Checkbox,
+  Modal,
+} from "antd";
 import geoData from "../../Data/geoData.json";
 import { useSelector } from "react-redux";
 import Swal from "sweetalert2";
@@ -11,7 +20,7 @@ const apiUrl = import.meta.env.VITE_API_URL;
 
 const SubAdminPubnameData = () => {
   const user = useSelector((state) => state.auth.user);
-  const userId = user?.id || null;
+  const userId = user?.id;
   const isPublisherManager = user?.role?.includes("publisher_manager");
   const [tableData, setTableData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -37,13 +46,18 @@ const SubAdminPubnameData = () => {
   const [placeLinkValue, setPlaceLinkValue] = useState("");
   const [subAdmins, setSubAdmins] = useState([]);
   const [editingAssignRowId, setEditingAssignRowId] = useState(null);
+  const [billingModalVisible, setBillingModalVisible] = useState(false);
+  const [selectedBilling, setSelectedBilling] = useState([]);
   const normalize = (val) => {
     if (val === null || val === undefined || val === "") return "-";
     return val.toString().trim();
   };
   const fetchData = async () => {
+    console.log(userId);
     try {
-      const response = await axios.get(`${apiUrl}/get-Namepub/${userId}`);
+      const response = await axios.get(`${apiUrl}/get-Namepub`, {
+        params: { user_id: userId },
+      });
       console.log(response);
       if (response.data && Array.isArray(response.data.data)) {
         setTableData(response.data.data);
@@ -57,8 +71,9 @@ const SubAdminPubnameData = () => {
   };
   // Fetch publisher data
   useEffect(() => {
+    if (!userId) return;
     fetchData();
-  }, []);
+  }, [userId]);
   useEffect(() => {
     const fetchSubAdmins = async () => {
       try {
@@ -159,7 +174,9 @@ const SubAdminPubnameData = () => {
         });
 
         // Refresh table data after update
-        const { data } = await axios.get(`${apiUrl}/get-Namepub/${userId}`);
+        const { data } = axios.get(`${apiUrl}/get-Namepub`, {
+          params: { user_id: userId },
+        });
         if (data.success && Array.isArray(data.data)) {
           setTableData(data.data);
         }
@@ -719,8 +736,45 @@ const SubAdminPubnameData = () => {
         );
       },
     },
+    {
+      title: "Billing Details",
+      key: "billing",
+      align: "center",
+      render: (_, record) => (
+        <Button
+          type="primary"
+          size="small"
+          onClick={() => {
+            setSelectedBilling(record.billing_details || []);
+            setBillingModalVisible(true);
+          }}>
+          View Billing
+        </Button>
+      ),
+    },
   ];
-
+  const billingColumns = [
+    {
+      title: "Tax ID",
+      dataIndex: "tax_id",
+      key: "tax_id",
+    },
+    {
+      title: "Tax Type",
+      dataIndex: "tax_type",
+      key: "tax_type",
+    },
+    {
+      title: "Legal Name",
+      dataIndex: "legal_name",
+      key: "legal_name",
+    },
+    {
+      title: "Created At",
+      dataIndex: "created_at",
+      key: "created_at",
+    },
+  ];
   return (
     <div className="">
       {editingPub && (
@@ -867,6 +921,19 @@ const SubAdminPubnameData = () => {
         bordered
         scroll={{ x: "max-content" }}
       />
+      <Modal
+        title="Billing Details"
+        open={billingModalVisible}
+        onCancel={() => setBillingModalVisible(false)}
+        footer={null}
+        width={700}>
+        <StyledTable
+          dataSource={selectedBilling}
+          columns={billingColumns}
+          rowKey={(record, index) => index}
+          pagination={false}
+        />
+      </Modal>
     </div>
   );
 };

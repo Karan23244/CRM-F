@@ -435,6 +435,13 @@ export const sidebarLinks = [
       "operations",
     ],
   },
+   {
+    to: "adddetails",
+    label: "Publisher Details",
+    roles: [
+     "publisher_external"
+    ],
+  },
   {
     to: "publisherbill",
     label: "Publisher Billing",

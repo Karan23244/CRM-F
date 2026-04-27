@@ -10,6 +10,7 @@ import {
   Input,
   Tooltip,
   Checkbox,
+  Modal,
 } from "antd";
 import { useSelector } from "react-redux";
 import StyledTable from "../../Utils/StyledTable";
@@ -114,6 +115,8 @@ const PublisherEditForm = () => {
   const [geo, setGeo] = useState("");
   const [note, setNote] = useState("");
   const [target, setTarget] = useState("");
+  const [billingModalVisible, setBillingModalVisible] = useState(false);
+  const [selectedBilling, setSelectedBilling] = useState([]);
   const normalize = (val) => {
     if (val === null || val === undefined || val === "") return "-";
     return val.toString().trim();
@@ -251,7 +254,7 @@ const PublisherEditForm = () => {
 
         // Refresh data
         const { data } = await axios.get(`${apiUrl}/pubid-data/${userId}`);
-        console.log(data)
+        console.log(data);
         if (data.success && Array.isArray(data.publishers)) {
           setPublishers(data.publishers);
         }
@@ -774,6 +777,44 @@ const PublisherEditForm = () => {
         );
       },
     },
+    {
+      title: "Billing Details",
+      key: "billing",
+      align: "center",
+      render: (_, record) => (
+        <Button
+          type="primary"
+          size="small"
+          onClick={() => {
+            setSelectedBilling(record.billing_details || []);
+            setBillingModalVisible(true);
+          }}>
+          View Billing
+        </Button>
+      ),
+    },
+  ];
+  const billingColumns = [
+    {
+      title: "Tax ID",
+      dataIndex: "tax_id",
+      key: "tax_id",
+    },
+    {
+      title: "Tax Type",
+      dataIndex: "tax_type",
+      key: "tax_type",
+    },
+    {
+      title: "Legal Name",
+      dataIndex: "legal_name",
+      key: "legal_name",
+    },
+    {
+      title: "Created At",
+      dataIndex: "created_at",
+      key: "created_at",
+    },
   ];
   return (
     <div className="">
@@ -933,6 +974,19 @@ const PublisherEditForm = () => {
           </div>
         )}
       </div>
+      <Modal
+        title="Billing Details"
+        open={billingModalVisible}
+        onCancel={() => setBillingModalVisible(false)}
+        footer={null}
+        width={700}>
+        <StyledTable
+          dataSource={selectedBilling}
+          columns={billingColumns}
+          rowKey={(record, index) => index}
+          pagination={false}
+        />
+      </Modal>
     </div>
   );
 };

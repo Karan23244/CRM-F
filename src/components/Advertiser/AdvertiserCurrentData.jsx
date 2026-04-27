@@ -429,10 +429,10 @@ const AdvertiserData = () => {
     try {
       console.log("Sending payload:", payload);
 
-      const res = await axios.post(
-        `${apiUrl1}/api/fix-empty-adv-fields`,
-        payload,
-      );
+      // const res = await axios.post(
+      //   `${apiUrl1}/api/fix-empty-adv-fields`,
+      //   payload,
+      // );
 
       if (res?.data?.success) {
         await Swal.fire({

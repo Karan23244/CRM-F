@@ -56,6 +56,7 @@ import Billing from "./components/Billing/Billing";
 import ForgotPassword from "./components/ForgetPassword";
 import CampianDataOptimization from "./components/Optimization/piddata";
 import TotalPidData from "./components/Optimization/CampaignPid";
+import AddDetails from "./components/PublisherAM/DetailsAdd";
 const AppRoutes = () => (
   <Router>
     <Routes>
@@ -127,6 +128,7 @@ const AppRoutes = () => (
             path="optimizationalldata"
             element={<CampianDataOptimization />}
           />
+          <Route path="adddetails" element={<AddDetails />} />
           <Route path="totalpiddata" element={<TotalPidData />} />
           <Route path="myaccount" element={<MyAccount />} />
           {/* default redirect */}
