@@ -88,7 +88,7 @@ const AdvertiserCreateForm = () => {
 
     try {
       // const response = await axios.post(`http://localhost:5200/api/create-advid`, newAdv);
-      const response = await axios.post(`${apiUrl2}/create-advid`, newAdv);
+      const response = await axios.post(`${apiUrl}/create-advid`, newAdv);
 
       if (!response.data.success) throw new Error(response.data.message || "Failed to create advertiser");
 
