@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  startTransition,
+} from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import {
@@ -464,19 +470,32 @@ const AdvertiserData = () => {
     }
   };
   // Check if all values in a row are empty
+  // const handleFilterChange = (values, key) => {
+  //   setFilters((prev) => {
+  //     const allValues = uniqueValues[key] || [];
+
+  //     // Excel behavior:
+  //     // If everything selected → treat as NO FILTER
+  //     if (values.length === allValues.length) {
+  //       const updated = { ...prev };
+  //       delete updated[key];
+  //       return updated;
+  //     }
+
+  //     return { ...prev, [key]: values };
+  //   });
+  // };
   const handleFilterChange = (values, key) => {
-    setFilters((prev) => {
-      const allValues = uniqueValues[key] || [];
-
-      // Excel behavior:
-      // If everything selected → treat as NO FILTER
-      if (values.length === allValues.length) {
-        const updated = { ...prev };
-        delete updated[key];
-        return updated;
-      }
-
-      return { ...prev, [key]: values };
+    startTransition(() => {
+      setFilters((prev) => {
+        const allValues = uniqueValues[key] || [];
+        if (values.length === allValues.length) {
+          const updated = { ...prev };
+          delete updated[key];
+          return updated;
+        }
+        return { ...prev, [key]: values };
+      });
     });
   };
   // Filters / search / date range memoized
@@ -1386,6 +1405,38 @@ const AdvertiserData = () => {
 
         filterDropdownProps: {
           destroyOnClose: false,
+        },
+        // ✅ ADD THIS right after filterDropdownProps:
+        onFilterDropdownOpenChange: (open) => {
+          if (!open) return;
+
+          startTransition(() => {
+            const source = getExcelFilteredDataForColumn(key);
+
+            const values = sortDropdownValues(
+              Array.from(
+                new Set(
+                  source.map((row) => {
+                    if (key === "adv_payout_total") {
+                      const total =
+                        Number(row.adv_payout) * Number(row.adv_approved_no);
+                      return !row.adv_payout ||
+                        !row.adv_approved_no ||
+                        isNaN(total)
+                        ? "-"
+                        : total.toFixed(2);
+                    }
+                    const v = row[key];
+                    return v === null || v === undefined || v === ""
+                      ? "-"
+                      : v.toString().trim();
+                  }),
+                ),
+              ),
+            );
+
+            setUniqueValues((prev) => ({ ...prev, [key]: values }));
+          });
         },
       })),
 

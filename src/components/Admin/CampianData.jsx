@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, startTransition } from "react";
 import {
   Table,
   Checkbox,
@@ -290,44 +290,73 @@ const CampianData = () => {
     });
   };
 
-  useEffect(() => {
-    // Build unique dropdown values dynamically based on selection rules
-    const valuesObj = {};
+  // useEffect(() => {
+  //   // Build unique dropdown values dynamically based on selection rules
+  //   const valuesObj = {};
 
-    Object.keys(columnHeadingsAdv).forEach((col) => {
-      const source = getExcelFilteredDataForColumn(col);
+  //   Object.keys(columnHeadingsAdv).forEach((col) => {
+  //     const source = getExcelFilteredDataForColumn(col);
 
-      valuesObj[col] = sortDropdownValues(
-        Array.from(
-          new Set(
-            source.map((row) => {
-              let v;
+  //     valuesObj[col] = sortDropdownValues(
+  //       Array.from(
+  //         new Set(
+  //           source.map((row) => {
+  //             let v;
 
-              if (col === "adv_payout_total") {
-                const total =
-                  Number(row.adv_payout) * Number(row.adv_approved_no);
-                return isNaN(total) ? "-" : total.toFixed(2);
-              }
+  //             if (col === "adv_payout_total") {
+  //               const payout = row.adv_payout;
+  //               const approved = row.adv_approved_no;
 
-              if (col === "pub_Apno") {
-                v = row.pub_Apno;
-                return isNaN(v) ? "-" : Number(v).toFixed(2);
-              }
+  //               // ✅ Strict validation (IMPORTANT)
+  //               if (
+  //                 payout === null ||
+  //                 payout === undefined ||
+  //                 payout === "" ||
+  //                 approved === null ||
+  //                 approved === undefined ||
+  //                 approved === ""
+  //               ) {
+  //                 return "-";
+  //               }
 
-              v = row[col];
-              return v === null || v === undefined || v === ""
-                ? "-"
-                : v.toString().trim();
-            }),
-          ),
-        ),
-      );
-    });
+  //               const total = Number(payout) * Number(approved);
 
-    setUniqueValues(valuesObj);
+  //               // ✅ Avoid fake 0.00
+  //               if (isNaN(total)) return "-";
 
-    // }
-  }, [selectedDateRange, filteredData]);
+  //               return total;
+  //             }
+
+  //             if (col === "pub_Apno") {
+  //               const v = row.pub_Apno;
+
+  //               console.log("Raw pub_Apno value:", v, "from row:", row);
+
+  //               if (v === null || v === undefined || v === "") {
+  //                 return "-";
+  //               }
+
+  //               if (isNaN(v)) {
+  //                 return "-";
+  //               }
+
+  //               return Number(v); // ✅ IMPORTANT
+  //             }
+
+  //             v = row[col];
+  //             return v === null || v === undefined || v === ""
+  //               ? "-"
+  //               : v.toString().trim();
+  //           }),
+  //         ),
+  //       ),
+  //     );
+  //   });
+
+  //   setUniqueValues(valuesObj);
+
+  //   // }
+  // }, [selectedDateRange, filteredData]);
   // Fetch Dropdown Options
   const fetchDropdowns = async () => {
     try {
@@ -417,22 +446,34 @@ const CampianData = () => {
     }
   };
   // Check if all values in a row are empty
+  // const handleFilterChange = (values, key) => {
+  //   setFilters((prev) => {
+  //     const allValues = uniqueValues[key] || [];
+
+  //     // Excel behavior:
+  //     // If everything selected → treat as NO FILTER
+  //     if (values.length === allValues.length) {
+  //       const updated = { ...prev };
+  //       delete updated[key];
+  //       return updated;
+  //     }
+
+  //     return { ...prev, [key]: values };
+  //   });
+  // };
   const handleFilterChange = (values, key) => {
-    setFilters((prev) => {
-      const allValues = uniqueValues[key] || [];
-
-      // Excel behavior:
-      // If everything selected → treat as NO FILTER
-      if (values.length === allValues.length) {
-        const updated = { ...prev };
-        delete updated[key];
-        return updated;
-      }
-
-      return { ...prev, [key]: values };
+    startTransition(() => {
+      setFilters((prev) => {
+        const allValues = uniqueValues[key] || [];
+        if (values.length === allValues.length) {
+          const updated = { ...prev };
+          delete updated[key];
+          return updated;
+        }
+        return { ...prev, [key]: values };
+      });
     });
   };
-
   function isEmpty(value) {
     return value === null || value === undefined || value === "";
   }
@@ -664,15 +705,50 @@ const CampianData = () => {
           );
         },
 
+        // onFilterDropdownOpenChange: (open) => {
+        //   if (!open) {
+        //     setFilterSearch((prev) => ({
+        //       ...prev,
+        //       [key]: "",
+        //     }));
+        //   }
+        // },
         onFilterDropdownOpenChange: (open) => {
-          if (!open) {
-            setFilterSearch((prev) => ({
-              ...prev,
-              [key]: "",
-            }));
+          if (open) {
+            // Only compute THIS column's values when dropdown opens
+            startTransition(() => {
+              const source = getExcelFilteredDataForColumn(key);
+              const values = sortDropdownValues(
+                Array.from(
+                  new Set(
+                    source.map((row) => {
+                      if (key === "adv_payout_total") {
+                        const { adv_payout, adv_approved_no } = row;
+                        if (!adv_payout || !adv_approved_no) return "-";
+                        const total =
+                          Number(adv_payout) * Number(adv_approved_no);
+                        return isNaN(total) ? "-" : total.toFixed(2);
+                      }
+                      if (key === "pub_Apno") {
+                        const v = row.pub_Apno;
+                        if (v === null || v === undefined || v === "")
+                          return "-";
+                        return isNaN(v) ? "-" : Number(v);
+                      }
+                      const v = row[key];
+                      return v === null || v === undefined || v === ""
+                        ? "-"
+                        : v.toString().trim();
+                    }),
+                  ),
+                ),
+              );
+              setUniqueValues((prev) => ({ ...prev, [key]: values }));
+            });
+          } else {
+            setFilterSearch((prev) => ({ ...prev, [key]: "" }));
           }
         },
-
         dataIndex: key,
         fixed: stickyColumns.includes(key) ? "left" : undefined,
         key,
@@ -701,9 +777,14 @@ const CampianData = () => {
           const value = record[key];
           // 🔒 Make adv_approved_no and pub_Apno non-editable
           if (key === "adv_approved_no" || key === "pub_Apno") {
+            const displayValue =
+              value === null || value === undefined || value === ""
+                ? "-"
+                : value;
+
             return (
               <div style={{ color: "gray", cursor: "not-allowed" }}>
-                {value ?? "-"}
+                {displayValue}
               </div>
             );
           }
@@ -845,7 +926,7 @@ const CampianData = () => {
       })),
     ];
   };
-  console.log(processedData);
+  console.log("Filtered Data:", filteredData);
   return (
     <div className="p-5 min-h-screen">
       {/* Toggle Section */}
@@ -972,7 +1053,7 @@ const CampianData = () => {
           <>
             <div>
               <StyledTable
-                dataSource={processedData}
+                dataSource={filteredData}
                 columns={getColumns(columnHeadingsAdv)}
                 rowKey="id"
                 bordered={false}

@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  startTransition,
+} from "react";
 import { createNotification } from "../../Utils/Notification";
 import io from "socket.io-client";
 
@@ -120,21 +126,29 @@ const PublisherRequest = ({ senderId, receiverId }) => {
     });
   }, []);
   // const handleFilterChange = useCallback((value, key) => {
-  //   setFilters((prev) => ({ ...prev, [key]: value }));
+  //   // detect the first filter applied
+  //   setFilters((prev) => {
+  //     const isFirstFilter = Object.values(prev).every((arr) => !arr?.length);
+
+  //     if (isFirstFilter) {
+  //       setFirstFilteredColumn(key); // ⭐ store first filtered column
+  //     }
+
+  //     return { ...prev, [key]: value };
+  //   });
   // }, []);
+  // ✅ REPLACE handleFilterChange
   const handleFilterChange = useCallback((value, key) => {
-    // detect the first filter applied
-    setFilters((prev) => {
-      const isFirstFilter = Object.values(prev).every((arr) => !arr?.length);
-
-      if (isFirstFilter) {
-        setFirstFilteredColumn(key); // ⭐ store first filtered column
-      }
-
-      return { ...prev, [key]: value };
+    startTransition(() => {
+      setFilters((prev) => {
+        const isFirstFilter = Object.values(prev).every((arr) => !arr?.length);
+        if (isFirstFilter) {
+          setFirstFilteredColumn(key);
+        }
+        return { ...prev, [key]: value };
+      });
     });
   }, []);
-
   const debouncedSearch = useMemo(
     () =>
       debounce((val) => {
@@ -176,7 +190,12 @@ const PublisherRequest = ({ senderId, receiverId }) => {
 
             // Check if any role matches desired roles
             return roles.some((r) =>
-              ["advertiser_manager", "advertiser", "operations","adv_executive"].includes(r),
+              [
+                "advertiser_manager",
+                "advertiser",
+                "operations",
+                "adv_executive",
+              ].includes(r),
             );
           })
           ?.map((a) => a.username) || [];
@@ -261,19 +280,6 @@ const PublisherRequest = ({ senderId, receiverId }) => {
     },
     [requests, filters],
   );
-  useEffect(() => {
-    const valuesObj = {};
-
-    Object.keys(columnHeadingsMap).forEach((col) => {
-      const source = getExcelFilteredDataForColumn(col);
-
-      valuesObj[col] = [
-        ...new Set(source.map((row) => normalize(row[col]))),
-      ].sort((a, b) => a.localeCompare(b));
-    });
-
-    setUniqueValues(valuesObj);
-  }, [requests, filters, getExcelFilteredDataForColumn]);
 
   const handleCancel = () => {
     setGeoRows([]); // empty rows
@@ -433,6 +439,8 @@ const PublisherRequest = ({ senderId, receiverId }) => {
     userRole,
     handleFilterChange,
     handleUpdatePrm,
+    getExcelFilteredDataForColumn,
+    setUniqueValues,
   }) => {
     const cols = Object.keys(columnHeadingsMap).map((key) => ({
       title: (
@@ -581,6 +589,18 @@ const PublisherRequest = ({ senderId, receiverId }) => {
       filterDropdownProps: {
         destroyOnClose: false,
       },
+      onFilterDropdownOpenChange: (open) => {
+        if (!open) return;
+
+        startTransition(() => {
+          const source = getExcelFilteredDataForColumn(key);
+          const values = [
+            ...new Set(source.map((row) => normalize(row[key]))),
+          ].sort((a, b) => a.localeCompare(b));
+
+          setUniqueValues((prev) => ({ ...prev, [key]: values }));
+        });
+      },
     }));
 
     cols.push(
@@ -702,6 +722,8 @@ const PublisherRequest = ({ senderId, receiverId }) => {
       userRole,
       handleFilterChange,
       handleUpdatePrm,
+      getExcelFilteredDataForColumn,
+      setUniqueValues,
     });
     // ✅ Remove hidden columns
     return allColumns.filter((col) => !hiddenColumns.includes(col.key));
@@ -713,6 +735,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
     handleFilterChange,
     handleUpdatePrm,
     hiddenColumns,
+    getExcelFilteredDataForColumn,
   ]);
 
   return (

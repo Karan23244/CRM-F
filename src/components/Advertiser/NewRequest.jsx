@@ -1,4 +1,10 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, {
+  useEffect,
+  useState,
+  useMemo,
+  useCallback,
+  startTransition,
+} from "react";
 import {
   Table,
   Button,
@@ -199,32 +205,45 @@ const NewRequest = () => {
       });
     });
   };
-  useEffect(() => {
-    const valuesObj = {};
+  // useEffect(() => {
+  //   const valuesObj = {};
 
-    Object.keys(columnHeadings).forEach((col) => {
-      const source = getExcelFilteredDataForColumn(col);
+  //   Object.keys(columnHeadings).forEach((col) => {
+  //     const source = getExcelFilteredDataForColumn(col);
 
-      valuesObj[col] = [
-        ...new Set(source.map((row) => normalize(row[col]))),
-      ].sort((a, b) => a.localeCompare(b));
-    });
+  //     valuesObj[col] = [
+  //       ...new Set(source.map((row) => normalize(row[col]))),
+  //     ].sort((a, b) => a.localeCompare(b));
+  //   });
 
-    setUniqueValues(valuesObj);
-  }, [requests, filters]);
+  //   setUniqueValues(valuesObj);
+  // }, [requests, filters]);
 
+  // const handleFilterChange = useCallback((value, key) => {
+  //   // detect the first filter applied
+  //   setFilters((prev) => {
+  //     const isFirstFilter = Object.values(prev).every((arr) => !arr?.length);
+
+  //     if (isFirstFilter) {
+  //       setFirstFilteredColumn(key); // ⭐ store first filtered column
+  //     }
+
+  //     return { ...prev, [key]: value };
+  //   });
+  // }, []);
+  // ✅ REPLACE handleFilterChange
   const handleFilterChange = useCallback((value, key) => {
-    // detect the first filter applied
-    setFilters((prev) => {
-      const isFirstFilter = Object.values(prev).every((arr) => !arr?.length);
-
-      if (isFirstFilter) {
-        setFirstFilteredColumn(key); // ⭐ store first filtered column
-      }
-
-      return { ...prev, [key]: value };
+    startTransition(() => {
+      setFilters((prev) => {
+        const isFirstFilter = Object.values(prev).every((arr) => !arr?.length);
+        if (isFirstFilter) {
+          setFirstFilteredColumn(key);
+        }
+        return { ...prev, [key]: value };
+      });
     });
   }, []);
+
   // Filter requests based on filters and search text
   const filteredRequests = useMemo(() => {
     return requests.filter((row) => {
@@ -456,6 +475,18 @@ const NewRequest = () => {
             </div>
           );
         },
+        onFilterDropdownOpenChange: (open) => {
+          if (!open) return;
+
+          startTransition(() => {
+            const source = getExcelFilteredDataForColumn(key);
+            const values = [
+              ...new Set(source.map((row) => normalize(row[key]))),
+            ].sort((a, b) => a.localeCompare(b));
+
+            setUniqueValues((prev) => ({ ...prev, [key]: values }));
+          });
+        },
         filtered: !!filters[key],
       };
     });
@@ -661,19 +692,18 @@ const NewRequest = () => {
         {/* Left Section - Search + Filters */}
         <div className="flex lg:flex-row flex-col gap-3">
           <div>
-
-          {/* Search Input */}
-          <Input
-            placeholder="Search across all fields..."
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            allowClear
-            className="lg:max-w-[260px] w-auto px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            prefix={<span className="text-gray-400">🔍</span>}
-          />
-          </div> 
+            {/* Search Input */}
+            <Input
+              placeholder="Search across all fields..."
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              allowClear
+              className="lg:max-w-[260px] w-auto px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              prefix={<span className="text-gray-400">🔍</span>}
+            />
+          </div>
           {/* 📅 Created At Date Range */}
-         <div>
+          <div>
             <CustomRangePicker
               value={selectedDateRange}
               onChange={setSelectedDateRange}

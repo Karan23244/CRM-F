@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, startTransition } from "react";
 import {
   Table,
   Select,
@@ -238,22 +238,36 @@ const PublisherPayoutData = () => {
     return () => clearInterval(intervalId);
   }, [selectedDateRange]);
 
+  // const handleFilterChange = (values, key) => {
+  //   setFilters((prev) => {
+  //     const allValues = uniqueValues[key] || [];
+
+  //     // Excel behavior:
+  //     // If everything selected → treat as NO FILTER
+  //     if (values.length === allValues.length) {
+  //       const updated = { ...prev };
+  //       delete updated[key];
+  //       return updated;
+  //     }
+
+  //     return { ...prev, [key]: values };
+  //   });
+  // };
+
+  // ✅ REPLACE handleFilterChange
   const handleFilterChange = (values, key) => {
-    setFilters((prev) => {
-      const allValues = uniqueValues[key] || [];
-
-      // Excel behavior:
-      // If everything selected → treat as NO FILTER
-      if (values.length === allValues.length) {
-        const updated = { ...prev };
-        delete updated[key];
-        return updated;
-      }
-
-      return { ...prev, [key]: values };
+    startTransition(() => {
+      setFilters((prev) => {
+        const allValues = uniqueValues[key] || [];
+        if (values.length === allValues.length) {
+          const updated = { ...prev };
+          delete updated[key];
+          return updated;
+        }
+        return { ...prev, [key]: values };
+      });
     });
   };
-
   useEffect(() => {
     const normalize = (val) =>
       val === null || val === undefined || val.toString().trim() === ""
@@ -339,34 +353,34 @@ const PublisherPayoutData = () => {
     });
   };
   // regenerate unique values when filtered data changes
-  useEffect(() => {
-    const valuesObj = {};
+  // useEffect(() => {
+  //   const valuesObj = {};
 
-    // For each column:
-    Object.keys(columnHeadingsAdv).forEach((col) => {
-      const source = getExcelFilteredDataForColumn(col);
-      valuesObj[col] = sortDropdownValues(
-        Array.from(
-          new Set(
-            source.map((row) => {
-              let v;
-              // ✅ format pub_Apno to 2 decimals
-              if (col === "pub_Apno") {
-                v = row.pub_Apno;
-                return isNaN(v) ? "-" : Number(v).toFixed(2);
-              }
-              v = row[col];
-              return v === null || v === undefined || v === ""
-                ? "-"
-                : v.toString().trim();
-            }),
-          ),
-        ),
-      );
-    });
+  //   // For each column:
+  //   Object.keys(columnHeadingsAdv).forEach((col) => {
+  //     const source = getExcelFilteredDataForColumn(col);
+  //     valuesObj[col] = sortDropdownValues(
+  //       Array.from(
+  //         new Set(
+  //           source.map((row) => {
+  //             let v;
+  //             // ✅ format pub_Apno to 2 decimals
+  //             if (col === "pub_Apno") {
+  //               v = row.pub_Apno;
+  //               return isNaN(v) ? "-" : Number(v).toFixed(2);
+  //             }
+  //             v = row[col];
+  //             return v === null || v === undefined || v === ""
+  //               ? "-"
+  //               : v.toString().trim();
+  //           }),
+  //         ),
+  //       ),
+  //     );
+  //   });
 
-    setUniqueValues(valuesObj);
-  }, [selectedDateRange, filteredData]);
+  //   setUniqueValues(valuesObj);
+  // }, [selectedDateRange, filteredData]);
   const processedData = filteredData.map((item) => {
     const missingLabels = [];
 
@@ -537,12 +551,32 @@ const PublisherPayoutData = () => {
           );
         },
 
+        // ✅ REPLACE with this
         onFilterDropdownOpenChange: (open) => {
-          if (!open) {
-            setFilterSearch((prev) => ({
-              ...prev,
-              [key]: "",
-            }));
+          if (open) {
+            // Lazy compute only THIS column's values when dropdown opens
+            startTransition(() => {
+              const source = getExcelFilteredDataForColumn(key);
+              const values = sortDropdownValues(
+                Array.from(
+                  new Set(
+                    source.map((row) => {
+                      if (key === "pub_Apno") {
+                        const v = row.pub_Apno;
+                        return isNaN(v) ? "-" : Number(v).toFixed(2);
+                      }
+                      const v = row[key];
+                      return v === null || v === undefined || v === ""
+                        ? "-"
+                        : v.toString().trim();
+                    }),
+                  ),
+                ),
+              );
+              setUniqueValues((prev) => ({ ...prev, [key]: values }));
+            });
+          } else {
+            setFilterSearch((prev) => ({ ...prev, [key]: "" }));
           }
         },
       }));
