@@ -156,19 +156,33 @@ export default function OptimizationCampaignAnalysis({
 
   // 🔥 Role-based filtering
   let filteredData = [];
-  if (Array.isArray(user?.role) && user.role.includes("publisher")) {
-    // Publisher → only own username
-    filteredData = processed.filter((row) => row.pubam === user.username);
-  } else if (
-    Array.isArray(user?.role) &&
-    user.role.includes("publisher_manager")
-  ) {
-    // Publisher Manager → own + assigned subadmins
-    const allowedNames = [user.username, ...subAdmins.map((sa) => sa.label)];
-    filteredData = processed.filter((row) => allowedNames.includes(row.pubam));
-  } else {
-    // Default → all data (e.g. superadmin/admin)
-    filteredData = processed;
+
+  if (Array.isArray(user?.role)) {
+    const roles = user.role;
+
+    // 🔹 Pub Executive → only own data
+    if (roles.includes("pub_executive")) {
+      filteredData = processed.filter((row) => row.pubam === user.username);
+    }
+
+    // 🔹 Publisher OR Publisher Manager → own + assigned users
+    else if (
+      roles.includes("publisher") ||
+      roles.includes("publisher_manager")
+    ) {
+      const assignedNames = subAdmins?.map((sa) => sa.label) || [];
+
+      const allowedNames = [user.username, ...assignedNames];
+
+      filteredData = processed.filter((row) =>
+        allowedNames.includes(row.pubam),
+      );
+    }
+
+    // 🔹 Default (admin / superadmin)
+    else {
+      filteredData = processed;
+    }
   }
 
   // Step 3 – Group by PUB AM

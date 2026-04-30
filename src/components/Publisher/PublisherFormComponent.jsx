@@ -35,7 +35,9 @@ const PublisherIDDashboard = () => {
   const user = useSelector((state) => state.auth.user);
   const [activeTab, setActiveTab] = useState("yourData");
 
-  const showAssignPubTab = user?.role?.includes("publisher_manager");
+  const showAssignPubTab =
+    user?.role?.includes("publisher_manager") ||
+    user?.role?.includes("publisher");
 
   return (
     <div className="p-6 bg-[#F4F7FB] min-h-screen rounded-xl shadow-md">
