@@ -708,6 +708,7 @@ const AdvertiserData = () => {
   );
   const fieldonlyeditable = useMemo(
     () => [
+      "paused_date",
       "adv_payout",
       "pay_out",
       "fa",
@@ -1220,44 +1221,44 @@ const AdvertiserData = () => {
             //       </div>
             //     );
             //   }
-            // if (key === "paused_date") {
-            //   const pausedEditable = record.flag === "1";
-
+            if (key === "paused_date") {
+              const pausedEditable = record.flag === "1";
+              console.log("paused_date editable?", pausedEditable, "record:", record);
             // ❌ Not editable
-            // if (!pausedEditable) {
-            //   return (
-            //     <div style={{ color: "gray", cursor: "not-allowed" }}>
-            //       {value ? dayjs(value).format("YYYY-MM-DD") : "-"}
-            //     </div>
-            //   );
-            // }
+            if (!pausedEditable) {
+              return (
+                <div style={{ color: "gray", cursor: "not-allowed" }}>
+                  {value ? dayjs(value).format("YYYY-MM-DD") : "-"}
+                </div>
+              );
+            }
 
             // ✏️ Editable
-            // if (isEditing) {
-            //   return (
-            //     <DatePicker
-            //       allowClear
-            //       value={value ? dayjs(value) : null}
-            //       format="YYYY-MM-DD"
-            //       onChange={(date) => {
-            //         const finalDate = date ? date.format("YYYY-MM-DD") : null;
-            //         setSelectedPauseDate(finalDate);
-            //         setSelectedPauseRecord(record);
-            //         setShareModalVisible(true);
-            //       }}
-            //       onOpenChange={(open) => {
-            //         if (!open) setEditingCell({ key: null, field: null });
-            //       }}
-            //       autoFocus
-            //     />
-            //   );
-            // }
+            if (isEditing) {
+              return (
+                <DatePicker
+                  allowClear
+                  value={value ? dayjs(value) : null}
+                  format="YYYY-MM-DD"
+                  onChange={(date) => {
+                    const finalDate = date ? date.format("YYYY-MM-DD") : null;
+                    setSelectedPauseDate(finalDate);
+                    setSelectedPauseRecord(record);
+                    setShareModalVisible(true);
+                  }}
+                  onOpenChange={(open) => {
+                    if (!open) setEditingCell({ key: null, field: null });
+                  }}
+                  autoFocus
+                />
+              );
+            }
 
             // Default display (editable but not editing)
-            //   return (
-            //     <div>{value ? dayjs(value).format("YYYY-MM-DD") : "-"}</div>
-            //   );
-            // }
+              return (
+                <div>{value ? dayjs(value).format("YYYY-MM-DD") : "-"}</div>
+              );
+            }
 
             //   // ✔ Editable mode
             //   if (isEditing) {
@@ -1553,6 +1554,7 @@ const AdvertiserData = () => {
     },
     [columns, calculateAdvPayoutTotal],
   );
+  console.log("Rendering AdvertiserTable with data:", finalFilteredData);
   return (
     <div className="bg-gray-100 min-h-screen flex flex-col items-center">
       <div className="w-full bg-white p-6 rounded shadow-md relative">
@@ -1712,7 +1714,7 @@ const AdvertiserData = () => {
           )}
         </div>
       </div>
-      {/* <Modal
+      <Modal
         title="Select Campaign"
         open={shareModalVisible}
         onOk={handleSharePauseDateSave}
@@ -1740,7 +1742,7 @@ const AdvertiserData = () => {
             </Select.Option>
           ))}
         </Select>
-      </Modal> */}
+      </Modal>
     </div>
   );
 };

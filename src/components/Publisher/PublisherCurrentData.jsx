@@ -762,7 +762,8 @@ const PublisherPayoutData = () => {
                 deletePreset={deletePreset}
               />
               {/* Subadmins Dropdown */}
-              {user?.role?.includes("publisher_manager") && (
+              {(user?.role?.includes("publisher_manager") ||
+                user?.role?.includes("publisher")) && (
                 <Select
                   mode="multiple"
                   allowClear
