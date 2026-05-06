@@ -11,6 +11,7 @@ import {
 } from "antd";
 import dayjs from "dayjs";
 import axios from "axios";
+import { useSelector } from "react-redux";
 import StyledTable from "../../Utils/StyledTable";
 const { Option } = Select;
 const API = import.meta.env.VITE_API_URL5;
@@ -172,15 +173,24 @@ function AdvertiserAccount() {
   const [data, setData] = useState([]);
   const [month, setMonth] = useState(currentMonth);
   const [loading, setLoading] = useState(false);
-
+  const { user } = useSelector((state) => state.auth);
   /* Fetch Data */
   const fetchData = async (selectedMonth) => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API}/advertiser/account`, {
-        params: selectedMonth ? { month: selectedMonth } : {},
+      // const res = await axios.post(`${API}/advertiser/account`, {
+      //   params: selectedMonth ? { month: selectedMonth } : {},
+      // });
+      const res = await axios.post(`${API}/advertiser/account`, {
+        user_id: user?.id,
+        role: user?.role || [],
+        assigned_subadmins: user?.assigned_subadmins || [],
+        month: month || currentMonth,
       });
-      setData(res.data);
+      console.log("API RESPONSE:", res.data);
+
+      // ✅ Safe handling
+      setData(Array.isArray(res.data) ? res.data : res.data.data || []);
     } catch (err) {
       message.error("Failed to fetch data");
     } finally {
