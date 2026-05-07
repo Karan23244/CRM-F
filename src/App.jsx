@@ -30,7 +30,8 @@ import BlacklistManager from "./components/Publisher/BlacklistManager";
 import CampaignList from "./components/Advertiser/CampaignList";
 import CreateCampaign from "./components/Advertiser/CreateCampaignForm";
 import MyAccount from "./components/MyAccount";
-import CampaginAnalytics from "./components/Campaign_Analytics/CampainDashboard";
+import CampaginAnalytics from "./components/Campaign_Analytics/CampaignAnalyticsTable";
+import OldCampaginAnalytics from "./components/Campaign_Analytics/CampainDashboard";
 import PublisherCampaigns from "./components/Publisher/PublisherCampaigns";
 import PublisherCurrentData from "./components/Publisher/PublisherCurrentData";
 import PubIdTable from "./components/Publisher/PubIdTable";
@@ -57,6 +58,7 @@ import ForgotPassword from "./components/ForgetPassword";
 import CampianDataOptimization from "./components/Optimization/piddata";
 import TotalPidData from "./components/Optimization/CampaignPid";
 import AddDetails from "./components/PublisherAM/DetailsAdd";
+import CampaignConfigPage from "./components/Campaign_Analytics/Campaignconfigpage";
 const AppRoutes = () => (
   <Router>
     <Routes>
@@ -104,7 +106,8 @@ const AppRoutes = () => (
           <Route path="listpubform" element={<PublisherFormComponent />} />
           <Route path="makerequest" element={<MakeRequest />} />
           <Route path="blacklistpid" element={<BlacklistManager />} />
-          <Route path="analytics" element={<CampaginAnalytics />} />
+          <Route path="newanalytics" element={<CampaginAnalytics />} />
+          <Route path="old-analytics" element={<OldCampaginAnalytics />} />
           <Route path="campaigndata" element={<PublisherCampaigns />} />
           <Route path="pubidtable" element={<PubIdTable />} />
           <Route path="createadvform" element={<CreateAdvertiser />} />
@@ -131,8 +134,10 @@ const AppRoutes = () => (
           <Route path="adddetails" element={<AddDetails />} />
           <Route path="totalpiddata" element={<TotalPidData />} />
           <Route path="myaccount" element={<MyAccount />} />
+          <Route path="campaign-config" element={<CampaignConfigPage />} />
           {/* default redirect */}
           <Route index element={<Navigate to="home" replace />} />
+          
         </Route>
       </Route>
     </Routes>

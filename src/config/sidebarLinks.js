@@ -52,7 +52,7 @@ export const sidebarLinks = [
   // ==========================
   {
     label: "Advertiser",
-    roles: ["advertiser", "advertiser_manager", "operations" ,"adv_executive"],
+    roles: ["advertiser", "advertiser_manager", "operations", "adv_executive"],
     sublinks: [
       {
         to: "listadvform",
@@ -152,11 +152,7 @@ export const sidebarLinks = [
           {
             to: "currentpubdata",
             label: "PID Data",
-            roles: [
-              "publisher",
-              "publisher_manager",
-              "pub_executive",
-            ],
+            roles: ["publisher", "publisher_manager", "pub_executive"],
           },
           {
             to: "campaignlist",
@@ -274,6 +270,11 @@ export const sidebarLinks = [
     ],
     sublinks: [
       {
+        to: "campaign-config",
+        label: "Campaign Configuration",
+        roles: ["operations", "admin","publisher_manager","publisher"],
+      },
+      {
         to: "reportform",
         label: "Reports",
         roles: [
@@ -285,8 +286,8 @@ export const sidebarLinks = [
         ],
       },
       {
-        to: "analytics",
-        label: "Analytics",
+        to: "old-analytics",
+        label: "OldAnalytics",
         roles: [
           "admin",
           "advertiser",
@@ -297,6 +298,18 @@ export const sidebarLinks = [
           "optimization",
           "pub_executive",
           "adv_executive",
+        ],
+      },
+        {
+        to: "newanalytics",
+        label: "New Analytics",
+        roles: [
+          "admin",
+          "publisher",
+          "publisher_manager",
+          "operations",
+          "optimization",
+          "pub_executive",
         ],
       },
     ],
@@ -435,12 +448,10 @@ export const sidebarLinks = [
       "operations",
     ],
   },
-   {
+  {
     to: "adddetails",
     label: "Publisher Details",
-    roles: [
-     "publisher_external"
-    ],
+    roles: ["publisher_external"],
   },
   {
     to: "publisherbill",

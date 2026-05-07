@@ -15,6 +15,8 @@ import useNotifications from "../Utils/useNotifications";
 import dayjs from "dayjs";
 import { DatePicker } from "antd";
 import KPICard from "./KPICard";
+import PerformanceBarChart from "./Charts/PerformanceBarChart";
+import OSPieChart from "./Charts/OSPieChart";
 import {
   getKPIs,
   groupByDate,
@@ -22,6 +24,9 @@ import {
   groupByPublisher,
   groupByOS,
   groupByVertical,
+  groupByRecentCampaigns,
+  groupByRecentOS,
+  groupByRecentVerticals,
 } from "../Utils/dashboardUtils";
 
 import OffersTrendChart from "./Charts/OffersTrendChart";
@@ -52,21 +57,14 @@ export default function Dashboard() {
     user?.role?.includes("advertiser_manager") ||
     user?.role?.includes("operations");
 
-  console.log(isRestricted, user?.role);
   const fetchCounts = async () => {
     try {
-      console.log("Sending →", {
-        role: user?.role,
-        id: user?.id,
-      });
-
       // 1️⃣ total campaigns
       const total = await axios.post(`${apiUrl}/campaign-count`, {
         role: user?.role,
         id: user?.id,
       });
       setTotalCampaigns(total?.data?.campaign_count);
-      console.log("Received ←", total);
 
       // 2️⃣ paused PID count
       const paused = await axios.post(`${apiUrl}/geo-count`, {
@@ -74,7 +72,6 @@ export default function Dashboard() {
         id: user?.id,
       });
       setGeoCount(paused?.data?.totalGeo);
-      console.log("Received ←", paused);
       // 3️⃣ live PID count
       const live = await axios.post(`${apiUrl}/pid-count`, {
         role: user?.role,
@@ -87,14 +84,12 @@ export default function Dashboard() {
         id: user?.id,
       });
       setAdvCount(adv?.data?.totalAdv || 0);
-      console.log("Received ←", adv);
       // 3️⃣ live PID count
       const pub = await axios.post(`${apiUrl}/pub-count`, {
         role: user?.role,
         id: user?.id,
       });
       setPubCount(pub?.data?.totalPub || 0);
-      console.log("Received ←", pub);
     } catch (err) {
       console.log(err);
       message.error("Failed to load dashboard counts.");
@@ -312,13 +307,8 @@ const DashboardOverview = ({ user }) => {
         endDate: endDate.format("YYYY-MM-DD"),
       };
 
-      console.log("Sending payload:", payload);
-
-      const response = await axios.post(
-        `${API}/dashboard-adv-data`,
-        payload,
-      );
-
+      const response = await axios.post(`${API}/dashboard-adv-data`, payload);
+      console.log("Dashboard adv data response:", response.data); // ✅ DEBUG LOG
       if (response.data?.success) {
         setData(response.data.data || []);
       } else {
@@ -358,15 +348,25 @@ const DashboardOverview = ({ user }) => {
         />
       </div>
 
-      {/* CHART GRID */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <TopAdvertisersChart data={groupByAdvertiser(data)} role={user.role} />
-        <OSDistributionChart data={groupByOS(data)} />
-      </div>
+      {/* NEW PERFORMANCE CHARTS */}
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <TopPublishersChart data={groupByPublisher(data)} role={user.role} />
-        <VerticalDistributionChart data={groupByVertical(data)} />
+        <PerformanceBarChart
+          title="Top 5 Performing Verticals (PID Additions)"
+          data={groupByRecentVerticals(data)}
+        />
+        <OSPieChart
+          title="Top Performing OS (PID Additions)"
+          data={groupByRecentOS(data)}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 gap-6">
+        {" "}
+        <PerformanceBarChart
+          title="Top Performing Campaigns (Recent PID Additions)"
+          data={groupByRecentCampaigns(data)}
+        />
       </div>
     </div>
   );

@@ -394,9 +394,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
           }`,
           url: "/dashboard/view-request",
         });
-
         const res = await axios.put(`${apiUrl}/updatePubprm`, payload);
-
         if (res.data?.success) {
           // Update only the specific row in local state
           setRequests((prev) =>

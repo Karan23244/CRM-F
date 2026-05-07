@@ -71,6 +71,7 @@ const CampaignList = () => {
           user_id: user?.id || user?._id, // <-- sending user ID here
         },
       });
+      console.log("Fetched Campaigns:", res.data.data);
       setCampaigns(res.data.data || []);
     } catch (err) {
       console.error(err);

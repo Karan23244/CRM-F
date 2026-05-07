@@ -145,6 +145,7 @@ export default function OptimizationPage() {
         mDate.isSameOrBefore(selectedEnd, "day")
       );
     });
+
     // step 2: accumulate by pid
     const aggregated = campaignData.reduce((acc, curr) => {
       const key = curr.pid;
@@ -407,7 +408,7 @@ export default function OptimizationPage() {
 
             <Col span={24}>
               <PerformanceComparison
-                rawData={filteredData}
+                rawData={rawData}
                 selectedCampaign={selectedCampaign}
               />
             </Col>

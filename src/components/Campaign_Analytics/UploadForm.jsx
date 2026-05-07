@@ -7,6 +7,7 @@ import {
   Upload,
   Typography,
   Card,
+  Select,
 } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import axios from "axios";
@@ -42,6 +43,8 @@ export default function UploadForm({ onUploadSuccess }) {
   const [loading, setLoading] = useState(false); // 🔥 loading state
   const [submitted, setSubmitted] = useState(false); // 🔥 prevent resubmit
   const [socketId, setSocketId] = useState(null);
+  const [availableOS, setAvailableOS] = useState([]);
+  const [configuredCampaigns, setConfiguredCampaigns] = useState([]);
   // Track socket.id so we can send it to backend
   useEffect(() => {
     const handleConnect = () => {
@@ -59,7 +62,19 @@ export default function UploadForm({ onUploadSuccess }) {
       socket.off("connect", handleConnect);
     };
   }, []);
+  useEffect(() => {
+    const fetchConfiguredCampaigns = async () => {
+      try {
+        const res = await axios.get(`${apiUrl}/api/configured-campaigns`);
 
+        setConfiguredCampaigns(res.data.data || []);
+      } catch (err) {
+        console.error("Failed to fetch configured campaigns", err);
+      }
+    };
+
+    fetchConfiguredCampaigns();
+  }, []);
   const handleFinish = async (values) => {
     if (submitted) return; // prevent double submit
     setLoading(true);
@@ -67,7 +82,7 @@ export default function UploadForm({ onUploadSuccess }) {
 
     const data = new FormData();
     const formattedRange = `${values.dateRange[0].format(
-      "YYYY-MM-DD"
+      "YYYY-MM-DD",
     )} - ${values.dateRange[1].format("YYYY-MM-DD")}`;
 
     const cleanedCampaignName = values.campaignName.trim().replace(/\s+/g, " ");
@@ -137,7 +152,7 @@ export default function UploadForm({ onUploadSuccess }) {
           await notifyAllUsers(
             senderName,
             `📁 ${data.campaignName} file uploaded for ${dateRange}`,
-            "/dashboard/analytics"
+            "/dashboard/analytics",
           );
         } catch (err) {
           console.error("❌ Error sending notifications:", err);
@@ -187,11 +202,45 @@ export default function UploadForm({ onUploadSuccess }) {
               <span className="font-medium text-[#2F5D99]">Campaign Name</span>
             }
             rules={[{ required: true, message: "Please enter campaign name" }]}>
-            <Input
+            <Select
               size="large"
-              placeholder="Enter campaign name"
-              className="rounded-lg border-gray-300 focus:border-[#2F5D99] focus:ring-[#2F5D99]/40 transition-all"
-            />
+              placeholder="Select campaign"
+              showSearch
+              optionFilterProp="label"
+              className="rounded-lg"
+              onChange={(value) => {
+                const selectedCampaigns = configuredCampaigns.filter(
+                  (c) => c.display_name === value,
+                );
+
+                // get unique OS list
+                const osList = [...new Set(selectedCampaigns.map((c) => c.os))];
+
+                if (osList.length === 1) {
+                  // only one OS → auto select
+                  form.setFieldsValue({ os: osList[0] });
+                } else {
+                  // multiple OS → clear and let user select
+                  form.setFieldsValue({ os: undefined });
+                }
+
+                // store OS list in state
+                setAvailableOS(osList);
+              }}>
+              {configuredCampaigns.map((c) => (
+                <Select.Option
+                  key={c.id}
+                  value={c.display_name}
+                  label={`${c.display_name} ${c.os}`}
+                  os={c.os}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-semibold">{c.display_name}</div>
+                    </div>
+                  </div>
+                </Select.Option>
+              ))}
+            </Select>
           </Form.Item>
 
           {/* Operating System */}
@@ -202,12 +251,26 @@ export default function UploadForm({ onUploadSuccess }) {
                 Operating System
               </span>
             }
-            rules={[{ required: true, message: "Please enter OS" }]}>
-            <Input
-              size="large"
-              placeholder="e.g. iOS, Android"
-              className="rounded-lg border-gray-300 focus:border-[#2F5D99] focus:ring-[#2F5D99]/40 transition-all"
-            />
+            rules={[{ required: true, message: "Please select OS" }]}>
+            {availableOS.length > 1 ? (
+              <Select
+                size="large"
+                placeholder="Select OS"
+                className="rounded-lg">
+                {availableOS.map((os) => (
+                  <Select.Option key={os} value={os}>
+                    {os.toUpperCase()}
+                  </Select.Option>
+                ))}
+              </Select>
+            ) : (
+              <Input
+                size="large"
+                disabled
+                placeholder="OS auto selected"
+                className="rounded-lg"
+              />
+            )}
           </Form.Item>
 
           {/* Geo */}
