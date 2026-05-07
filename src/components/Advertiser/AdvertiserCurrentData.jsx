@@ -435,10 +435,10 @@ const AdvertiserData = () => {
     try {
       console.log("Sending payload:", payload);
 
-      // const res = await axios.post(
-      //   `${apiUrl1}/api/fix-empty-adv-fields`,
-      //   payload,
-      // );
+      const res = await axios.post(
+        `${apiUrl1}/api/fix-empty-adv-fields`,
+        payload,
+      );
 
       if (res?.data?.success) {
         await Swal.fire({
@@ -1223,38 +1223,43 @@ const AdvertiserData = () => {
             //   }
             if (key === "paused_date") {
               const pausedEditable = record.flag === "1";
-              console.log("paused_date editable?", pausedEditable, "record:", record);
-            // ❌ Not editable
-            if (!pausedEditable) {
-              return (
-                <div style={{ color: "gray", cursor: "not-allowed" }}>
-                  {value ? dayjs(value).format("YYYY-MM-DD") : "-"}
-                </div>
+              console.log(
+                "paused_date editable?",
+                pausedEditable,
+                "record:",
+                record,
               );
-            }
+              // ❌ Not editable
+              if (!pausedEditable) {
+                return (
+                  <div style={{ color: "gray", cursor: "not-allowed" }}>
+                    {value ? dayjs(value).format("YYYY-MM-DD") : "-"}
+                  </div>
+                );
+              }
 
-            // ✏️ Editable
-            if (isEditing) {
-              return (
-                <DatePicker
-                  allowClear
-                  value={value ? dayjs(value) : null}
-                  format="YYYY-MM-DD"
-                  onChange={(date) => {
-                    const finalDate = date ? date.format("YYYY-MM-DD") : null;
-                    setSelectedPauseDate(finalDate);
-                    setSelectedPauseRecord(record);
-                    setShareModalVisible(true);
-                  }}
-                  onOpenChange={(open) => {
-                    if (!open) setEditingCell({ key: null, field: null });
-                  }}
-                  autoFocus
-                />
-              );
-            }
+              // ✏️ Editable
+              if (isEditing) {
+                return (
+                  <DatePicker
+                    allowClear
+                    value={value ? dayjs(value) : null}
+                    format="YYYY-MM-DD"
+                    onChange={(date) => {
+                      const finalDate = date ? date.format("YYYY-MM-DD") : null;
+                      setSelectedPauseDate(finalDate);
+                      setSelectedPauseRecord(record);
+                      setShareModalVisible(true);
+                    }}
+                    onOpenChange={(open) => {
+                      if (!open) setEditingCell({ key: null, field: null });
+                    }}
+                    autoFocus
+                  />
+                );
+              }
 
-            // Default display (editable but not editing)
+              // Default display (editable but not editing)
               return (
                 <div>{value ? dayjs(value).format("YYYY-MM-DD") : "-"}</div>
               );
