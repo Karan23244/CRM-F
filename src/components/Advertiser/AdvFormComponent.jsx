@@ -388,7 +388,16 @@ const AdvertiserEditForm = () => {
 
   // ── Columns ──────────────────────────────────────────────────────────────
   const makeSortHeader = (key) => ({
-    sorter: (a, b) => (a[key] || "").localeCompare(b[key] || ""),
+    sorter: (a, b) => {
+      const valA = a[key];
+      const valB = b[key];
+
+      if (!isNaN(valA) && !isNaN(valB)) {
+        return Number(valA) - Number(valB);
+      }
+
+      return (valA || "").toString().localeCompare((valB || "").toString());
+    },
     sortOrder: sortInfo.columnKey === key ? sortInfo.order : null,
     onHeaderCell: () => ({
       onClick: () => {
@@ -397,7 +406,8 @@ const AdvertiserEditForm = () => {
             return { columnKey: key, order: "ascend" };
           if (prev.order === "ascend")
             return { columnKey: key, order: "descend" };
-          if (prev.order === "descend") return { columnKey: key, order: null };
+          if (prev.order === "descend")
+            return { columnKey: key, order: null };
           return { columnKey: key, order: "ascend" };
         });
       },
@@ -725,7 +735,7 @@ const AdvertiserEditForm = () => {
           {/* Assign User */}
           <div className="md:col-span-2">
             <label className="block text-[#2F5D99] text-base font-semibold mb-2">
-              Assign User
+              Operations
             </label>
             <select
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2F5D99] focus:border-[#2F5D99] transition-all"

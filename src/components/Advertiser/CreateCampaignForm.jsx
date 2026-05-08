@@ -1,5 +1,5 @@
 // src/components/Campaigns/CreateCampaignForm.jsx
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Form,
   Input,
@@ -10,6 +10,7 @@ import {
   Spin,
   Switch,
   Checkbox,
+  AutoComplete
 } from "antd";
 import axios from "axios";
 import { useSelector } from "react-redux";
@@ -65,6 +66,46 @@ const CreateCampaignForm = () => {
     Array.isArray(user?.role) &&
     (user.role.includes("publisher_manager") ||
       user.role.includes("publisher"));
+  const [campaignOptions, setCampaignOptions] = useState([]);
+  const campaignOptionsRef = useRef([]);
+  const [selectedCampaign, setSelectedCampaign] = useState({
+    name: "",
+    sub_campaign_id: null,
+  });
+
+  const fetchCampaignSuggestions = async (searchText) => {
+    try {
+      if (!searchText?.trim()) {
+        campaignOptionsRef.current = [];
+        setCampaignOptions([]);
+        return;
+      }
+
+      const res = await axios.get(`${apiUrl}/campaigns_list`);
+
+      const data = res?.data || [];
+
+      const filtered = data.filter((item) =>
+        item.campaign_name
+          ?.toLowerCase()
+          .includes(searchText.toLowerCase())
+      );
+
+      const formatted = filtered.map((item) => ({
+        value: item.campaign_name,
+        label: item.sub_campaign_id != null
+          ? `${item.campaign_name} (${item.os}) [${item.sub_campaign_id}]`
+          : `${item.campaign_name} (${item.os})`,
+        sub_campaign_id: item.sub_campaign_id,
+        original_name: item.campaign_name,
+      }));
+
+      campaignOptionsRef.current = formatted;
+      setCampaignOptions(formatted);
+    } catch (error) {
+      console.error("Campaign search error:", error);
+    }
+  };
   // const fetchCampaigns = useCallback(async () => {
   //   try {
   //     setLoading(true);
@@ -176,10 +217,36 @@ const CreateCampaignForm = () => {
     const payableEvents = values.geo_details.map((item) => [
       item.payable_event,
     ]);
+    const selectedOS = values.geo_details?.[0]?.os;
+
+    let preview_url = {};
+
+    if (selectedOS === "Android" && values.preview_url) {
+      preview_url.android = values.preview_url;
+    }
+
+    if (selectedOS === "iOS" && values.preview_url) {
+      preview_url.ios = values.preview_url;
+    }
+
+    if (selectedOS === "Web" && values.preview_url) {
+      preview_url.web = values.preview_url;
+    }
+
+    if (selectedOS === "both") {
+      if (values.preview_url_android) {
+        preview_url.android = values.preview_url_android;
+      }
+
+      if (values.preview_url_ios) {
+        preview_url.ios = values.preview_url_ios;
+      }
+    }
 
     const finalPayload = {
       Adv_name: values.Adv_name,
       campaign_name: values.campaign_name,
+      sub_campaign_id: selectedCampaign.sub_campaign_id,
       Vertical: values.Vertical,
       geo: geoArray,
       adv_payout: payoutValue,
@@ -190,7 +257,7 @@ const CreateCampaignForm = () => {
       adv_d: adv_d,
       kpi: values.kpi || "",
       tracking_url: values.tracking_url || "",
-      preview_url: values.preview_url || "",
+      preview_url,
       da: values.da,
       status: values.status,
       user_id: userId,
@@ -580,12 +647,47 @@ const CreateCampaignForm = () => {
               label="Campaign Name"
               name="campaign_name"
               rules={[
-                { required: true, message: "Please enter campaign name" },
-              ]}>
-              <Input
-                placeholder="Enter Campaign Name"
-                className="h-11 rounded-lg border-gray-200 bg-gray-50"
-              />
+                {
+                  required: true,
+                  message: "Please enter campaign name",
+                },
+              ]}
+            >
+              <AutoComplete
+                placement="bottomLeft"
+                getPopupContainer={(trigger) => trigger.parentNode}
+                options={campaignOptions}
+                disabled={!!editRecord}
+                onSearch={(text) => {
+                  fetchCampaignSuggestions(text);
+                  if (!text?.trim()) {
+                    setSelectedCampaign({ name: "", sub_campaign_id: null });
+                  }
+                }}
+                onSelect={(value) => {
+                  const found = campaignOptionsRef.current.find(
+                    (opt) => opt.value === value
+                  );
+                  setSelectedCampaign({
+                    name: found?.original_name || value,
+                    sub_campaign_id: found?.sub_campaign_id ?? null,
+                  });
+                }}
+                filterOption={false}
+              >
+                <Input
+                  placeholder="Type Campaign Name"
+                  className="h-11 rounded-lg border-gray-200 bg-gray-50"
+                  suffix={
+                    selectedCampaign.name != "" ? (
+                      <span className="text-xs bg-blue-50 text-blue-600 border border-blue-200 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
+                        {selectedCampaign.name}
+                        {selectedCampaign.sub_campaign_id != null ? ` [${selectedCampaign.sub_campaign_id}]` : ""}
+                      </span>
+                    ) : null
+                  }
+                />
+              </AutoComplete>
             </Form.Item>
 
             <Form.Item
@@ -706,7 +808,7 @@ const CreateCampaignForm = () => {
                               <Option value="Android">Android</Option>
                               <Option value="iOS">iOS</Option>
                               <Option value="Web">Web</Option>
-                              <Option value="both">Both</Option>
+                              <Option value="both" disabled={!!editRecord}>Both</Option>
                             </Select>
                           </Form.Item>
                         </div>
@@ -766,14 +868,63 @@ const CreateCampaignForm = () => {
                 className="h-11 rounded-lg border-gray-200 bg-gray-50"
               />
             </Form.Item>
-            <Form.Item
-              label="Preview Link"
-              name="preview_url"
-              rules={[{ required: true, message: "Please enter KPI" }]}>
-              <Input
-                placeholder="Enter KPI"
-                className="h-11 rounded-lg border-gray-200 bg-gray-50"
-              />
+            <Form.Item shouldUpdate noStyle>
+              {({ getFieldValue }) => {
+                const geoDetails = getFieldValue("geo_details") || [];
+                const selectedOS = geoDetails?.[0]?.os;
+
+                const urlValidator = (_, value) => {
+                  if (!value) return Promise.reject(new Error("Please enter preview URL"));
+
+                  const pattern =
+                    /^(https?:\/\/)?([\w\d-]+\.)+\w{2,}(\/.*)?$/i;
+
+                  return pattern.test(value)
+                    ? Promise.resolve()
+                    : Promise.reject(new Error("Please enter valid URL"));
+                };
+
+                if (selectedOS === "both") {
+                  return (
+                    <>
+                      <Form.Item
+                        label="Android Preview Link"
+                        name="preview_url_android"
+                        rules={[{ validator: urlValidator }]}
+                      >
+                        <Input
+                          placeholder="Enter Android Preview URL"
+                          className="h-11 rounded-lg border-gray-200 bg-gray-50"
+                        />
+                      </Form.Item>
+
+                      <Form.Item
+                        label="iOS Preview Link"
+                        name="preview_url_ios"
+                        rules={[{ validator: urlValidator }]}
+                      >
+                        <Input
+                          placeholder="Enter iOS Preview URL"
+                          className="h-11 rounded-lg border-gray-200 bg-gray-50"
+                        />
+                      </Form.Item>
+                    </>
+                  );
+                }
+
+                return (
+                  <Form.Item
+                    label="Preview Link"
+                    name="preview_url"
+                    rules={[{ validator: urlValidator }]}
+                  >
+                    <Input
+                      placeholder="Enter Preview URL"
+                      className="h-11 rounded-lg border-gray-200 bg-gray-50"
+                    />
+                  </Form.Item>
+                );
+              }}
             </Form.Item>
             <Form.Item label="Tracking Link" name="tracking_url">
               <Input

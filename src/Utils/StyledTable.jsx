@@ -4,6 +4,7 @@ import { Table } from "antd";
 const StyledTable = ({
   title,
   dataSource,
+  loading=false,
   columns,
   rowKey = "id",
   pagination = {
@@ -40,7 +41,6 @@ const StyledTable = ({
       };
     });
   }, [columns, defaultColWidth, minColWidth, maxColWidth]);
-
   return (
     <div className={className}>
       {title && (
@@ -50,11 +50,14 @@ const StyledTable = ({
       <Table
         bordered
         dataSource={dataSource}
+        loading={loading}
         columns={normalizedColumns}
         rowKey={rowKey}
         pagination={pagination}
         summary={summary}
         tableLayout="fixed"
+      
+        
         scroll={{
           x: normalizedColumns.reduce((sum, col) => sum + col.width, 0), // 🔥 hard table width
           y: 600,

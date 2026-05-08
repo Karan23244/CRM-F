@@ -70,6 +70,7 @@ const NewRequest = () => {
   const [selectedCampaignId, setSelectedCampaignId] = useState(null);
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [selectedRequestId, setSelectedRequestId] = useState(null);
+  const [loading, setLoading] = useState(true);
   // 📅 Date range filter state
   // const [dateRange, setDateRange] = useState(() => {
   //   return [dayjs().startOf("month"), dayjs().endOf("month")];
@@ -116,6 +117,7 @@ const NewRequest = () => {
 
   // ✅ Fetch campaigns list (for shared popup)
   const fetchCampaignList = async () => {
+    setLoading(true);
     try {
       const res = await axios.get(`${apiUrl1}/campaigns`, {
         params: {
@@ -136,6 +138,8 @@ const NewRequest = () => {
     } catch (err) {
       console.error(err);
       message.error("Failed to fetch campaign list");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -160,6 +164,7 @@ const NewRequest = () => {
   }, [selectedDateRange]);
 
   const fetchRequests = async () => {
+    setLoading(true);
     try {
       const [startDate, endDate] = selectedDateRange;
       const params = {
@@ -193,6 +198,8 @@ const NewRequest = () => {
     } catch (error) {
       message.error("Failed to fetch requests");
       setRequests([]); // fallback on error
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -269,7 +276,11 @@ const NewRequest = () => {
       // 🎯 Excel-style column filters
       return Object.entries(filters).every(([key, values]) => {
         if (!values || values.length === 0) return true;
-        return values.includes(normalize(row[key]));
+        const rowValue = row[key];
+        if (typeof rowValue === "number") {
+          return values.includes(rowValue);
+        }
+        return values.includes(normalize(rowValue));
       });
     });
   }, [requests, filters, searchText, selectedDateRange]);
@@ -780,6 +791,7 @@ const NewRequest = () => {
         <StyledTable
           bordered
           dataSource={filteredRequests}
+          loading={loading}
           columns={[
             ...visibleColumns,
             {
@@ -844,74 +856,6 @@ const NewRequest = () => {
                 </div>
               ),
               filtered: filters["prm"]?.length > 0,
-            },
-            // ✅ Priority + Action columns remain as before
-            {
-              title: (
-                <span
-                  style={{
-                    color:
-                      filters["priority"]?.length > 0 ? "#1677ff" : "inherit",
-                    fontWeight:
-                      filters["priority"]?.length > 0 ? "bold" : "normal",
-                  }}>
-                  Priority
-                </span>
-              ),
-              key: "priority",
-              dataIndex: "priority",
-              render: (value) =>
-                value ? value : <span style={{ color: "#999" }}>N/A</span>,
-              filterDropdown: () =>
-                uniqueValues["priority"]?.length > 0 ? (
-                  <div style={{ padding: 8 }}>
-                    <div style={{ marginBottom: 8 }}>
-                      <Checkbox
-                        indeterminate={
-                          filters["priority"]?.length > 0 &&
-                          filters["priority"]?.length <
-                            uniqueValues["priority"]?.length
-                        }
-                        checked={
-                          filters["priority"]?.length ===
-                          uniqueValues["priority"]?.length
-                        }
-                        onChange={(e) =>
-                          handleFilterChange(
-                            e.target.checked
-                              ? [...uniqueValues["priority"]]
-                              : [],
-                            "priority",
-                          )
-                        }>
-                        Select All
-                      </Checkbox>
-                    </div>
-                    <Select
-                      mode="multiple"
-                      allowClear
-                      showSearch
-                      placeholder="Select Priority"
-                      style={{ width: 200 }}
-                      value={filters["priority"] || []}
-                      onChange={(value) =>
-                        handleFilterChange(value, "priority")
-                      }
-                      optionLabelProp="label">
-                      {[...uniqueValues["priority"]]
-                        .filter((val) => val !== null && val !== undefined)
-                        .map((val) => (
-                          <Option key={val} value={val} label={val}>
-                            <Checkbox
-                              checked={filters["priority"]?.includes(val)}>
-                              {val}
-                            </Checkbox>
-                          </Option>
-                        ))}
-                    </Select>
-                  </div>
-                ) : null,
-              filtered: filters["priority"]?.length > 0,
             },
             actionColumn,
           ]}

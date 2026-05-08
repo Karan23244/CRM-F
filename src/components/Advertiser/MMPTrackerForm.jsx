@@ -15,9 +15,11 @@ const MMPTrackerForm = () => {
   const [editId, setEditId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [dataloading, setDataLoading] = useState(true);
 
   // ✅ Fetch MMP Trackers
   const fetchTrackers = async () => {
+    setDataLoading(true);
     try {
       const response = await axios.get(`${apiUrl}/get-mmptracker`);
       if (response.data?.success) {
@@ -25,6 +27,8 @@ const MMPTrackerForm = () => {
       }
     } catch (error) {
       console.error("Error fetching trackers:", error);
+    } finally {
+      setDataLoading(false);
     }
   };
 
@@ -167,6 +171,7 @@ const MMPTrackerForm = () => {
         <Table
           columns={columns}
           dataSource={filteredTrackers}
+          loading={dataloading}
           rowKey="id"
           pagination={{
             pageSizeOptions: ["10", "20", "50"],

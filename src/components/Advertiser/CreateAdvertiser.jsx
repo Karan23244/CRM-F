@@ -26,6 +26,9 @@ const AdvertiserCreateForm = () => {
   const [geo, setGeo] = useState("");
   const [billingDetails, setBillingDetails] = useState([]);
   const [availableIds, setAvailableIds] = useState([]);
+  const [subAdmins, setSubAdmins] = useState([]);
+  const [assign_id, setAssign_id] = useState("");
+  const [assign_user, setAssign_user] = useState("");
 
   const trimValues = (obj) =>
     Object.fromEntries(
@@ -47,6 +50,28 @@ const AdvertiserCreateForm = () => {
       }
     };
     fetchAvailableIds();
+    const fetchSubAdmins = async () => {
+      try {
+        const res = await fetch(`${apiUrl}/get-subadmin`);
+        const data = await res.json();
+
+        if (res.ok) {
+          setSubAdmins(
+            data.data.filter((a) =>
+              [
+                "advertiser_manager",
+                "advertiser",
+                "adv_executive",
+                "operations",
+              ].includes(a.role)
+            )
+          );
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchSubAdmins();
   }, []);
 
   const refreshAvailableIds = async () => {
@@ -79,6 +104,8 @@ const AdvertiserCreateForm = () => {
       adv_id: selectedId,
       geo,
       user_id: userId,
+      assign_id,
+      assign_user,
       billing_details: billingDetails.map((b) => trimValues(b)),
     });
 
@@ -117,6 +144,8 @@ const AdvertiserCreateForm = () => {
     setSelectedId("");
     setGeo("");
     setBillingDetails([]);
+    setAssign_id("");
+    setAssign_user("");
   };
 
   return (
@@ -172,6 +201,33 @@ const AdvertiserCreateForm = () => {
               ))}
             </Select>
           </div>
+        </div>
+        <div className="flex flex-col">
+          <label className="text-sm font-medium text-gray-700 mb-1">
+            Operations
+          </label>
+
+          <select
+            className="p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-gray-50 hover:bg-white transition-all"
+            value={assign_id}
+            onChange={(e) => {
+              const sid = e.target.value;
+
+              const selectedUser = subAdmins.find(
+                (a) => a.id.toString() === sid
+              );
+
+              setAssign_id(sid);
+              setAssign_user(selectedUser?.username || "");
+            }}
+          >
+            <option value="">Select Sub Admin</option>
+            {subAdmins.map((admin) => (
+              <option key={admin.id} value={admin.id}>
+                {admin.username}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* ── Billing Details ─────────────────────────────────── */}

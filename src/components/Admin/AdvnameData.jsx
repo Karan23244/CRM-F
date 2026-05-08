@@ -20,6 +20,7 @@ const AdvnameData = () => {
   const userId = user?.id || null;
 
   const [tableData, setTableData] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingAdv, setEditingAdv] = useState(null);
   console.log(tableData);
@@ -101,6 +102,7 @@ const AdvnameData = () => {
   // **Fetch advertiser data**
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       try {
         const response = await axios.get(`${apiUrl}/get-NameAdv/`);
 
@@ -116,6 +118,8 @@ const AdvnameData = () => {
       } catch (error) {
         console.error("Error fetching data:", error);
         setTableData([]);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -1288,6 +1292,7 @@ const AdvnameData = () => {
       {/* Table Component */}
       <StyledTable
         dataSource={finalFilteredData}
+        loading={loading}
         columns={columns}
         rowKey="id"
         pagination={{

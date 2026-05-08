@@ -72,6 +72,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
   const [blacklistPIDs, setBlacklistPIDs] = useState([]);
   const [filters, setFilters] = useState({});
   const [pinnedColumns, setPinnedColumns] = useState({});
+  const [loading, setLoading] = useState(true);
   const [hiddenColumns, setHiddenColumns] = useState(() => {
     const saved = localStorage.getItem("hiddenCampaignColumns");
     return saved ? JSON.parse(saved) : [];
@@ -216,6 +217,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
   }, [apiUrl1]);
 
   const fetchRequests = useCallback(async () => {
+    setLoading(true);
     try {
       const [startDate, endDate] = selectedDateRange;
       const res = await axios.get(`${apiUrl}/getAllPubRequests12`, {
@@ -231,6 +233,8 @@ const PublisherRequest = ({ senderId, receiverId }) => {
       console.error(err);
       message.error("Failed to load requests");
       setRequests([]);
+    } finally {
+      setLoading(false);
     }
   }, [apiUrl, selectedDateRange]);
   const showModal = () => {
@@ -1050,6 +1054,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
           rowKey="id"
           className=""
           dataSource={filteredRequests} // show latest data directly
+          loading={loading}
           columns={columns}
           scroll={{ x: "max-content" }}
           pagination={{
