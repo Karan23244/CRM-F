@@ -22,6 +22,7 @@ const PubnameData = () => {
   const user = useSelector((state) => state.auth.user);
   const userId = user?.id || null;
   const [tableData, setTableData] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingPub, setEditingPub] = useState(null);
   console.log(tableData);
@@ -103,6 +104,7 @@ const PubnameData = () => {
 
   // ✅ Make fetchData reusable
   const fetchData = async () => {
+    setLoading(true);
     try {
       const response = await axios.get(`${apiUrl}/get-Namepub/${userId}`);
       if (response.data && Array.isArray(response.data.data)) {
@@ -113,6 +115,8 @@ const PubnameData = () => {
       }
     } catch (error) {
       console.error("Error fetching data:", error);
+    } finally{
+      setLoading(false);
     }
   };
 
@@ -770,6 +774,7 @@ const PubnameData = () => {
       {/* Table Component */}
       <StyledTable
         dataSource={finalFilteredData}
+        loading={loading}
         columns={columns}
         rowKey="pub_id"
         pagination={{

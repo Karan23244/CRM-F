@@ -15,9 +15,11 @@ const PIDForm = () => {
   const [editId, setEditId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [dataloading, setDataLoading] = useState(true);
 
   // ✅ Fetch all PIDs
   const fetchPids = async () => {
+    setDataLoading(true);
     try {
       const response = await axios.get(`${apiUrl}/get-pid`);
       if (response.data?.success) {
@@ -25,6 +27,8 @@ const PIDForm = () => {
       }
     } catch (error) {
       console.error("Error fetching PIDs:", error);
+    } finally{
+      setDataLoading(false);
     }
   };
 
@@ -162,6 +166,7 @@ const PIDForm = () => {
         <Table
           columns={columns}
           dataSource={filteredPids}
+          loading={dataloading}
           rowKey="id"
           pagination={{
             pageSizeOptions: ["10", "20", "50", "100"],

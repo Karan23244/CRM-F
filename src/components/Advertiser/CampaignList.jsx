@@ -45,6 +45,7 @@ const CampaignList = () => {
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
   const [selectedLinks, setSelectedLinks] = useState([]);
   const [selectedCampaignName, setSelectedCampaignName] = useState("");
+  const [loading, setLoading] = useState(true);
   const [sortInfo, setSortInfo] = useState({
     columnKey: null,
     order: null,
@@ -65,6 +66,7 @@ const CampaignList = () => {
 
   // Fetch campaigns
   const fetchCampaigns = useCallback(async () => {
+    setLoading(true);
     try {
       const res = await axios.get(`${apiUrl}/campaigns`, {
         params: {
@@ -76,6 +78,8 @@ const CampaignList = () => {
     } catch (err) {
       console.error(err);
       Swal.fire("Error", "Failed to fetch campaigns", "error");
+    } finally {
+      setLoading(false);
     }
   }, [user]);
   useEffect(() => {
@@ -517,13 +521,12 @@ const CampaignList = () => {
       "campaign_name",
       "Campaign Name",
       (text, record) => (
-        <span
-          style={{ color: "#2F5D99", cursor: "pointer" }}
-          onClick={() => {
-            window.open(`/dashboard/createcampaign?id=${record.id}`, "_blank");
-          }}>
+        <a
+          href={`/dashboard/createcampaign?id=${record.id}`}
+          style={{ color: "#2F5D99" }}
+        >
           {text}
-        </span>
+        </a>
       ),
     ),
     getColumnWithFilterAndPin("id", "Campaign ID"),
@@ -672,6 +675,7 @@ const CampaignList = () => {
         <StyledTable
           rowKey="id"
           columns={visibleColumns}
+          loading={loading}
           dataSource={filteredCampaigns}
           bordered
           pagination={{

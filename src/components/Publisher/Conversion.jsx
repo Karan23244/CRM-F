@@ -206,11 +206,22 @@ const Conversion = () => {
 
       onHeaderCell: () => ({
         onClick: () => {
-          const order =
-            sortInfo.columnKey === key && sortInfo.order === "ascend"
-              ? "descend"
-              : "ascend";
-          setSortInfo({ columnKey: key, order });
+          let order = "ascend";
+
+          if (sortInfo.columnKey === key) {
+            if (sortInfo.order === "ascend") {
+              order = "descend";
+            } else if (sortInfo.order === "descend") {
+              order = null;
+            } else {
+              order = "ascend";
+            }
+          }
+
+          setSortInfo({
+            columnKey: order ? key : null,
+            order,
+          });
         },
       }),
 

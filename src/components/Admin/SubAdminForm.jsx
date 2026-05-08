@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Table,
   Input,
@@ -51,6 +51,8 @@ const SubAdminEdit = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRanges, setSelectedRanges] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [searchText, setSearchText] = useState("");
+  const [roleFilter, setRoleFilter] = useState(null);
   const handleView = (record) => {
     setSelectedUser(record.username);
     setSelectedRanges(record.ranges || []);
@@ -495,6 +497,17 @@ const SubAdminEdit = () => {
       ),
     },
   ];
+  const filteredSubAdmins = useMemo(() => {
+    return subAdmins.filter((admin) => {
+      const matchesSearch =
+        !searchText ||
+        admin.username?.toLowerCase().includes(searchText.toLowerCase()) ||
+        admin.role?.toLowerCase().includes(searchText.toLowerCase());
+      const matchesRole = !roleFilter || admin.role?.includes(roleFilter);
+      return matchesSearch && matchesRole;
+    });
+  }, [subAdmins, searchText, roleFilter]);
+
   const restrictedRoles = [
     "pub_executive",
     "adv_executive",
@@ -517,10 +530,36 @@ const SubAdminEdit = () => {
             <p className="text-red-500">{error}</p>
           ) : (
             <>
+              <div className="flex flex-wrap items-center gap-3 mb-4">
+                <Input
+                  placeholder="Search by username or role..."
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  prefix={<span className="text-gray-400">🔍</span>}
+                  allowClear
+                  style={{ width: 260 }}
+                />
+                <Select
+                  allowClear
+                  placeholder="Filter by role"
+                  value={roleFilter}
+                  onChange={setRoleFilter}
+                  style={{ width: 200 }}>
+                  <Option value="publisher">Publisher</Option>
+                  <Option value="advertiser">Advertiser</Option>
+                  <Option value="operations">Operations</Option>
+                  <Option value="accounts">Accounts</Option>
+                  <Option value="optimization">Optimization</Option>
+                  <Option value="advertiser_manager">Advertiser Manager</Option>
+                  <Option value="publisher_manager">Publisher Manager</Option>
+                  <Option value="pub_executive">Publisher Executive</Option>
+                  <Option value="adv_executive">Advertiser Executive</Option>
+                </Select>
+              </div>
               <StyledTable
                 columns={columns}
                 className="shadow-md rounded-lg header-center"
-                dataSource={subAdmins}
+                dataSource={filteredSubAdmins}
                 rowKey="id"
                 pagination={{
                   pageSizeOptions: ["10", "20", "50"],
@@ -673,7 +712,7 @@ const SubAdminEdit = () => {
                       placeholder="Select sub-admins"
                       className="w-full rounded-lg border-gray-200 bg-gray-50"
                       filterOption={(input, option) =>
-                        option.children
+                        String(option?.children)
                           .toLowerCase()
                           .includes(input.toLowerCase())
                       }>

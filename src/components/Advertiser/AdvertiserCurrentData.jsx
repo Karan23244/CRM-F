@@ -276,7 +276,7 @@ const AdvertiserData = () => {
     fetchSubAdminData(selectedSubAdmins);
   }, [selectedSubAdmins]);
 
-  const assignedSubAdmins = user?.assigned_subadmins || [];
+  const assignedSubAdmins = useMemo(() => user?.assigned_subadmins || [], [user?.assigned_subadmins]);
   useEffect(() => {
     const fetchSubAdmins = async () => {
       try {
@@ -1065,12 +1065,21 @@ const AdvertiserData = () => {
             if (e.target.closest(".ant-table-filter-trigger")) return;
             if (e.target.tagName === "INPUT") return;
 
-            const order =
-              sortInfo.columnKey === key && sortInfo.order === "ascend"
-                ? "descend"
-                : "ascend";
+            setSortInfo((prev) => {
+              if (prev.columnKey !== key) {
+                return { columnKey: key, order: "ascend" };
+              }
 
-            setSortInfo({ columnKey: key, order });
+              if (prev.order === "ascend") {
+                return { columnKey: key, order: "descend" };
+              }
+
+              if (prev.order === "descend") {
+                return { columnKey: null, order: null };
+              }
+
+              return { columnKey: key, order: "ascend" };
+            });
           },
         }),
 
