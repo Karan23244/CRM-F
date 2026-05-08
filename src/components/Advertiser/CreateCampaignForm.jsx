@@ -21,6 +21,7 @@ import StyledTable from "../../Utils/StyledTable";
 import { useNavigate } from "react-router-dom";
 import SettingsPage from "./SettingsPage";
 const apiUrl = import.meta.env.VITE_API_URL;
+const apiChatUrl = import.meta.env.VITE_API_CHAT_URL;
 const apiUrl2 = import.meta.env.VITE_API_URL3;
 const apiUrl3 = import.meta.env.VITE_API_URL1;
 const { Option } = Select;
@@ -203,7 +204,10 @@ const CreateCampaignForm = () => {
     setIsSubmitting(true);
 
     if (editRecord) {
-      await handleEditCampaign(values);
+      await Promise.all([
+        handleEditCampaign(values),
+        handlePartialEditCampaign(values),
+      ]);
       setIsSubmitting(false);
       return;
     }
@@ -311,6 +315,70 @@ const CreateCampaignForm = () => {
 
     setIsSubmitting(false);
   };
+  const handlePartialEditCampaign = async (values) => {
+    const adv_d = values.adv_d?.value || values.adv_d;
+    const newOS = values.geo_details[0].os;
+    const oldOS = editRecord.os;
+
+    let originalGeo = [];
+    if (Array.isArray(editRecord.geo)) {
+      originalGeo = editRecord.geo.flat(Infinity);
+    } else if (typeof editRecord.geo === "string") {
+      try {
+        const parsed = JSON.parse(editRecord.geo);
+        originalGeo = Array.isArray(parsed) ? parsed.flat(Infinity) : [parsed];
+      } catch {
+        originalGeo = editRecord.geo ? [editRecord.geo] : [];
+      }
+    }
+
+    const isDiff = (a, b) => {
+      if (Array.isArray(a) && Array.isArray(b)) {
+        return JSON.stringify([...a].sort()) !== JSON.stringify([...b].sort());
+      }
+      return String(a ?? "") !== String(b ?? "");
+    };
+
+    const newGeo = values.geo_details[0].geo;
+    const changedFields = {};
+
+    if (isDiff(values.Adv_name, editRecord.Adv_name)) changedFields.Adv_name = values.Adv_name;
+    if (isDiff(values.campaign_name, editRecord.campaign_name)) changedFields.campaign_name = values.campaign_name;
+    if (isDiff(values.Vertical, editRecord.Vertical)) changedFields.Vertical = values.Vertical;
+    if (isDiff(values.state_city, editRecord.state_city)) changedFields.state_city = values.state_city;
+    if (isDiff(values.mmp_tracker, editRecord.mmp_tracker)) changedFields.mmp_tracker = values.mmp_tracker;
+    if (isDiff(values.kpi, editRecord.kpi)) changedFields.kpi = values.kpi;
+    if (isDiff(values.tracking_url, editRecord.tracking_url)) changedFields.tracking_url = values.tracking_url;
+    if (isDiff(values.preview_url, editRecord.preview_url)) changedFields.preview_url = values.preview_url;
+    if (isDiff(values.da, editRecord.da)) changedFields.da = values.da;
+    if (isDiff(values.status, editRecord.status)) changedFields.status = values.status;
+    if (isDiff(adv_d, editRecord.adv_d)) changedFields.adv_d = adv_d;
+    if (isDiff(newGeo, originalGeo)) changedFields.geo = newGeo;
+    if (isDiff(newOS, oldOS)) {
+      changedFields.os_new = newOS;
+      changedFields.os_old = oldOS;
+    }
+    if (isDiff(values.geo_details[0].payout, editRecord.adv_payout)) {
+      changedFields.adv_payout = values.geo_details[0].payout;
+    }
+    if (isDiff(values.geo_details[0].payable_event, editRecord.payable_event)) {
+      changedFields.payable_event = values.geo_details[0].payable_event;
+    }
+
+    if (Object.keys(changedFields).length === 0) return;
+
+    const payload = {
+      campaign_id: String(editRecord.id),
+      sub_campaign_id: String(editRecord.sub_campaign_id ?? ""),
+      updates: [changedFields],
+    };
+    try {
+      await axios.post(`${apiChatUrl}/update-campaign-group-data`, payload);
+    } catch (error) {
+      console.error("PARTIAL EDIT CAMPAIGN ERROR:", error);
+    }
+  };
+
   const handleEditCampaign = async (values) => {
     // Extract ONLY the IDs
     const adv_id = values.advertiser?.value || values.advertiser;
