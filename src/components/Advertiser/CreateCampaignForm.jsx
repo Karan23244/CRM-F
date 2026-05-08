@@ -373,7 +373,7 @@ const CreateCampaignForm = () => {
       updates: [changedFields],
     };
     try {
-      await axios.post(`${apiChatUrl}/update-campaign-group-data`, payload);
+      await axios.post(`https://chat.pidmetric.com/api/update-campaign-group-data`, payload);
     } catch (error) {
       console.error("PARTIAL EDIT CAMPAIGN ERROR:", error);
     }
