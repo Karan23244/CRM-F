@@ -274,10 +274,13 @@ function AdvertiserAccount() {
       }
       onChange={(dates) => {
         const from = dates?.[0] ? dates[0].format("YYYY-MM-DD") : null;
+
         const to = dates?.[1] ? dates[1].format("YYYY-MM-DD") : null;
 
-        onSave("invoice_from", from);
-        onSave("invoice_to", to);
+        onSave({
+          invoice_from: from,
+          invoice_to: to,
+        });
       }}
       bordered={false}
       format="YYYY-MM-DD"
@@ -325,7 +328,29 @@ function AdvertiserAccount() {
     {
       title: <div style={{ textAlign: "center" }}>Raise Invoice</div>,
       render: (_, r) => (
-        <InvoiceRangeCell record={r} onSave={(k, v) => updateCell(r, k, v)} />
+        <InvoiceRangeCell
+          record={r}
+          onSave={(values) => {
+            const updated = {
+              ...r,
+              ...values,
+            };
+
+            setData((prev) =>
+              prev.map((row) =>
+                row.adv_id === r.adv_id && row.month === r.month
+                  ? updated
+                  : row,
+              ),
+            );
+
+            autoSaveRow({
+              adv_id: r.adv_id,
+              month: r.month,
+              ...values,
+            });
+          }}
+        />
       ),
     },
 
