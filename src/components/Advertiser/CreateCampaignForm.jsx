@@ -198,6 +198,25 @@ const CreateCampaignForm = () => {
       fetchCampaignById(campaignId);
     }
   }, [campaignId]);
+  const getNextSubCampaignId = async () => {
+    try {
+      const res = await axios.get(`${apiUrl}/campaigns_list`);
+
+      const data = res?.data || [];
+
+      const ids = data
+        .map((item) => Number(item.sub_campaign_id))
+        .filter((id) => !isNaN(id));
+
+      const maxId = ids.length ? Math.max(...ids) : 4000;
+
+      return maxId < 4001 ? 4001 : maxId + 1;
+    } catch (error) {
+      console.error("Failed to generate sub campaign id", error);
+
+      return 4001;
+    }
+  };
   const onFinish = async (values) => {
     trimAll(values);
     if (isSubmitting) return;
@@ -246,11 +265,15 @@ const CreateCampaignForm = () => {
         preview_url.ios = values.preview_url_ios;
       }
     }
+    let finalSubCampaignId = selectedCampaign.sub_campaign_id;
 
+    if (!finalSubCampaignId) {
+      finalSubCampaignId = await getNextSubCampaignId();
+    }
     const finalPayload = {
       Adv_name: values.Adv_name,
       campaign_name: values.campaign_name,
-      sub_campaign_id: selectedCampaign.sub_campaign_id,
+      sub_campaign_id: finalSubCampaignId,
       Vertical: values.Vertical,
       geo: geoArray,
       adv_payout: payoutValue,
@@ -373,7 +396,7 @@ const CreateCampaignForm = () => {
       updates: [changedFields],
     };
     try {
-      await axios.post(`https://chat.pidmetric.com/api/update-campaign-group-data`, payload);
+      await axios.put(`${apiChatUrl}/groups/update-campaign-group-data`, payload);
     } catch (error) {
       console.error("PARTIAL EDIT CAMPAIGN ERROR:", error);
     }
