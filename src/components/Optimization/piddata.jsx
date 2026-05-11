@@ -522,13 +522,12 @@ const CampianDataOptimization = () => {
                   const columnHeadings = columnHeadingsAdv;
 
                   // ❌ columns to remove
-                  const excludedKeys = ["adv_display", "pub_display"];
+                  const excludedKeys = ["adv_display", "pub_display","pub_am"];
 
                   // ✅ extra columns to add
                   const extraColumns = {
                     adv_id: "ADV ID",
                     pub_id: "PUB ID",
-                    pub_am: "PUB AM",
                   };
 
                   const visibleKeys = Object.keys(columnHeadings).filter(
@@ -546,7 +545,6 @@ const CampianDataOptimization = () => {
                     // ✅ manually add required fields
                     cleanedRow[extraColumns.adv_id] = row.adv_id;
                     cleanedRow[extraColumns.pub_id] = row.pub_id;
-                    cleanedRow[extraColumns.pub_am] = row.pub_am;
 
                     return cleanedRow;
                   });

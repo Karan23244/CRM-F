@@ -7,6 +7,7 @@ import StyledTable from "../../Utils/StyledTable";
 
 const { RangePicker } = DatePicker;
 const { Title } = Typography;
+const apiUrl = import.meta.env.VITE_API_URL2; // Replace with your actual API URL
 
 export default function CampaignTable() {
   const [data, setData] = useState([]);
@@ -30,7 +31,7 @@ export default function CampaignTable() {
   const fetchData = async (start, end) => {
     setLoading(true);
     try {
-      const res = await axios.get("http://localhost:2001/api/recentpid", {
+      const res = await axios.get(`${apiUrl}/api/recentpid`, {
         params: {
           startDate: start.format("YYYY-MM-DD"),
           endDate: end.format("YYYY-MM-DD"),

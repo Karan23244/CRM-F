@@ -272,7 +272,7 @@ export const sidebarLinks = [
       {
         to: "campaign-config",
         label: "Campaign Configuration",
-        roles: ["operations", "admin","publisher_manager","publisher"],
+        roles: ["operations", "admin","publisher_manager","publisher","optimization"],
       },
       {
         to: "reportform",
