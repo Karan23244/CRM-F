@@ -28,7 +28,7 @@ const Conversion = () => {
     setLoading(true);
     try {
       const res = await fetch(
-        `http://localhost:3000/api/get-conversions?startDate=${startDate}&endDate=${endDate}`,
+        `${apiUrl}/get-conversions?startDate=${startDate}&endDate=${endDate}`,
       );
       const json = await res.json();
       setData(json.data || []);
