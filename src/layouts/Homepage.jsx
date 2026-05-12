@@ -294,6 +294,7 @@ const DashboardOverview = ({ user }) => {
     dayjs().startOf("month"),
     dayjs().endOf("month"),
   ]);
+  console.log("user:", user); // ✅ DEBUG LOG
 
   const fetchAdvData = async () => {
     try {
@@ -303,6 +304,10 @@ const DashboardOverview = ({ user }) => {
         user_id: user.id,
         username: user.username,
         role: user.role[0],
+
+        // send assigned subadmin ids
+        assign_subadmin: user.assigned_subadmins || [],
+
         startDate: startDate.format("YYYY-MM-DD"),
         endDate: endDate.format("YYYY-MM-DD"),
       };
