@@ -1,292 +1,98 @@
-import React, { useEffect, useMemo, useState } from "react";
-import {
-  Table,
-  Select,
-  Input,
-  Checkbox,
-  Tooltip,
-  Button,
-  DatePicker,
-  Modal,
-  Spin,
-  Descriptions,
-} from "antd";
+import React, { useEffect, useState } from "react";
+import { Select, DatePicker, Spin, Button } from "antd";
 import dayjs from "dayjs";
 
 const { RangePicker } = DatePicker;
-
-import { PushpinOutlined, PushpinFilled } from "@ant-design/icons";
-import StyledTable from "../../Utils/StyledTable";
 const apiUrl = import.meta.env.VITE_API_URL;
 
-/* ---------------- COLUMN HEADINGS ---------------- */
-const columnHeadings = {
-  campaign_id: "Campaign ID",
-  total_clicks: "Total Clicks",
-  total_conversions: "Total Conversions",
-  conversion_rate: "Conversion Rate (%)",
-};
+const OPTIONAL_FIELDS = [
+  { key: "p1", label: "P1" },
+  { key: "p2", label: "P2" },
+  { key: "p3", label: "P3" },
+  { key: "p4", label: "P4" },
+  { key: "p5", label: "P5" },
+  { key: "total_payout", label: "Payout" },
+];
 
 const Conversion = () => {
   const [data, setData] = useState([]);
-  const [filteredData, setFilteredData] = useState([]);
-  const [filters, setFilters] = useState({});
-  const [uniqueValues, setUniqueValues] = useState({});
-  const [firstFilteredColumn, setFirstFilteredColumn] = useState(null);
-  const [stickyColumns, setStickyColumns] = useState([]);
-  const [hiddenColumns, setHiddenColumns] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [sortInfo, setSortInfo] = useState({
-    columnKey: null,
-    order: null,
-  });
-  const [modalOpen, setModalOpen] = useState(false);
-  const [popupData, setPopupData] = useState(null);
-  const [popupLoading, setPopupLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [selectedCampaign, setSelectedCampaign] = useState(null);
+  const [visibleOptionalFields, setVisibleOptionalFields] = useState([]);
   const [dateRange, setDateRange] = useState([
     dayjs().startOf("month"),
     dayjs().endOf("month"),
   ]);
+
   const fetchConversions = async (startDate, endDate) => {
-    const res = await fetch(
-      `${apiUrl}/get-conversions?startDate=${startDate}&endDate=${endDate}`,
-    );
-
-    const json = await res.json();
-    console.log("Fetched Conversions:", json);
-    const transformData = (data) =>
-      data.map((item) => ({
-        campaign_id: item.campaign_id,
-        total_clicks: item.total_clicks,
-        total_conversions: item.total_conversions,
-        conversion_rate: item.conversion_rate,
-      }));
-
-    const formatted = transformData(json.data || []);
-    setData(formatted);
-    setFilteredData(formatted);
-  };
-  const fetchConversionPopup = async (campaignId) => {
-    setPopupLoading(true);
-    setModalOpen(true);
-
+    setLoading(true);
     try {
-      const startDate = dateRange[0].format("YYYY-MM-DD");
-      const endDate = dateRange[1].format("YYYY-MM-DD");
-
       const res = await fetch(
-        `${apiUrl}/conversions/?campaign_id=${campaignId}&startDate=${startDate}&endDate=${endDate}`,
+        `${apiUrl}/get-conversions?startDate=${startDate}&endDate=${endDate}`,
       );
       const json = await res.json();
-      setPopupData(json.data);
+      setData(json.data || []);
     } catch (err) {
-      console.error(err);
+      console.error("Failed to fetch conversions:", err);
     } finally {
-      setPopupLoading(false);
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     if (!dateRange?.length) return;
-
     fetchConversions(
       dateRange[0].format("YYYY-MM-DD"),
       dateRange[1].format("YYYY-MM-DD"),
     );
   }, [dateRange]);
 
-  /* ---------------- PIN COLUMN ---------------- */
-  const toggleStickyColumn = (key) => {
-    setStickyColumns((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
-    );
-  };
-
-  /* ---------------- FILTER HANDLER ---------------- */
-  const handleFilterChange = (value, key) => {
-    setFilters((prev) => {
-      if (!firstFilteredColumn && value.length > 0) {
-        setFirstFilteredColumn(key);
-      }
-
-      const next = { ...prev, [key]: value };
-      const isEmpty = Object.values(next).every((v) => !v || v.length === 0);
-
-      if (isEmpty) setFirstFilteredColumn(null);
-
-      return next;
-    });
-  };
-
-  /* ---------------- APPLY SEARCH + FILTER ---------------- */
-  useEffect(() => {
-    const filtered = data.filter((row) => {
-      const matchesSearch = !searchTerm
-        ? true
-        : Object.values(row)
-            .join(" ")
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase());
-
-      const matchesFilters = Object.keys(filters).every((key) => {
-        if (!filters[key]?.length) return true;
-        return filters[key].includes(row[key]);
-      });
-
-      return matchesSearch && matchesFilters;
-    });
-
-    setFilteredData(filtered);
-  }, [data, filters, searchTerm]);
-
-  /* ---------------- DROPDOWN SOURCE LOGIC ---------------- */
-  const baseAccessibleData = useMemo(() => data, [data]);
-
-  const getDataForDropdown = (columnKey) => {
-    if (!firstFilteredColumn) return baseAccessibleData;
-    if (columnKey === firstFilteredColumn) return baseAccessibleData;
-    return filteredData;
-  };
-
-  /* ---------------- UNIQUE VALUES ---------------- */
-  useEffect(() => {
-    const values = {};
-    Object.keys(columnHeadings).forEach((col) => {
-      values[col] = Array.from(
-        new Set(getDataForDropdown(col).map((r) => r[col] ?? "-")),
+  const handleExport = async () => {
+    if (!selectedCampaign) return;
+    setExporting(true);
+    try {
+      const startDate = dateRange[0].format("YYYY-MM-DD");
+      const endDate = dateRange[1].format("YYYY-MM-DD");
+      const res = await fetch(
+        `${apiUrl}/get-conversions/${selectedCampaign}/export?startDate=${startDate}&endDate=${endDate}`,
       );
-    });
-    setUniqueValues(values);
-  }, [filteredData, firstFilteredColumn]);
+      if (!res.ok) throw new Error("Export failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download =
+        res.headers.get("Content-Disposition")?.match(/filename="(.+)"/)?.[1] ||
+        `campaign_${selectedCampaign}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Export error:", err);
+    } finally {
+      setExporting(false);
+    }
+  };
 
-  /* ---------------- COLUMNS ---------------- */
-  const columns = Object.keys(columnHeadings)
-    .filter((key) => !hiddenColumns.includes(key))
-    .map((key) => ({
-      title: (
-        <div className="flex items-center justify-between">
-          <span
-            style={{
-              color: filters[key]?.length ? "#1677ff" : "inherit",
-              fontWeight: filters[key]?.length ? 600 : 400,
-            }}>
-            {columnHeadings[key]}
-          </span>
+  const campaignOptions = data.map((item) => ({
+    value: item.campaign_id,
+    label: `${item.campaign_name} (ID: ${item.campaign_id})`,
+  }));
 
-          <Tooltip title={stickyColumns.includes(key) ? "Unpin" : "Pin"}>
-            <span
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleStickyColumn(key);
-              }}
-              style={{ cursor: "pointer" }}>
-              {stickyColumns.includes(key) ? (
-                <PushpinFilled style={{ color: "#1677ff" }} />
-              ) : (
-                <PushpinOutlined />
-              )}
-            </span>
-          </Tooltip>
-        </div>
-      ),
-      dataIndex: key,
-      key,
-      fixed: stickyColumns.includes(key) ? "left" : undefined,
+  const displayedData = selectedCampaign
+    ? data.filter((item) => item.campaign_id === selectedCampaign)
+    : data;
 
-      sorter: (a, b) => {
-        if (!isNaN(a[key]) && !isNaN(b[key])) {
-          return Number(a[key]) - Number(b[key]);
-        }
-        return (a[key] || "")
-          .toString()
-          .localeCompare((b[key] || "").toString());
-      },
-
-      sortOrder: sortInfo.columnKey === key ? sortInfo.order : null,
-
-      onHeaderCell: () => ({
-        onClick: () => {
-          let order = "ascend";
-
-          if (sortInfo.columnKey === key) {
-            if (sortInfo.order === "ascend") {
-              order = "descend";
-            } else if (sortInfo.order === "descend") {
-              order = null;
-            } else {
-              order = "ascend";
-            }
-          }
-
-          setSortInfo({
-            columnKey: order ? key : null,
-            order,
-          });
-        },
-      }),
-
-      filterDropdown: () => (
-        <div style={{ padding: 8 }}>
-          <div style={{ marginBottom: 8 }}>
-            {/* Select All */}
-            <Checkbox
-              indeterminate={
-                filters[key]?.length > 0 &&
-                filters[key]?.length < uniqueValues[key]?.length
-              }
-              checked={filters[key]?.length === uniqueValues[key]?.length}
-              onChange={(e) =>
-                handleFilterChange(
-                  e.target.checked ? [...uniqueValues[key]] : [],
-                  key,
-                )
-              }>
-              Select All
-            </Checkbox>
-          </div>
-          <Select
-            mode="multiple"
-            allowClear
-            showSearch
-            style={{ width: 240, marginTop: 8 }}
-            placeholder={`Select ${columnHeadings[key]}`}
-            value={filters[key] || []}
-            onChange={(val) => handleFilterChange(val, key)}
-            maxTagCount="responsive">
-            {uniqueValues[key]?.map((val) => (
-              <Select.Option key={val} value={val}>
-                <Checkbox checked={filters[key]?.includes(val)}>{val}</Checkbox>
-              </Select.Option>
-            ))}
-          </Select>
-        </div>
-      ),
-      filtered: filters[key]?.length > 0,
-
-      render: (text, record) => {
-        if (key === "total_conversions") {
-          return (
-            <span
-              style={{ color: "#1677ff", cursor: "pointer", fontWeight: 600 }}
-              onClick={() => fetchConversionPopup(record.campaign_id)}>
-              {text}
-            </span>
-          );
-        }
-        return text ?? "-";
-      },
-    }));
-
-  /* ---------------- UI ---------------- */
   return (
     <div className="p-6 bg-white rounded-xl shadow">
       <div className="py-5">
-        <h2 className="text-2xl font-semibold ">Conversions</h2>
+        <h2 className="text-2xl font-semibold">Conversions</h2>
         <p className="text-gray-600">
           View and manage conversion data for publishers and campaigns.
         </p>
       </div>
-      <div className="flex flex-col md:flex-row md:flex-wrap gap-3 mb-4 w-full">
+
+      <div className="flex flex-col md:flex-row md:flex-wrap gap-3 mb-6 w-full">
         <RangePicker
           value={dateRange}
           onChange={(dates) => {
@@ -297,81 +103,144 @@ const Conversion = () => {
           style={{ width: 260 }}
         />
 
-        <Input
-          placeholder="Search anything..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={{ width: 250 }}
+        <Select
+          allowClear
+          placeholder="Select Campaign"
+          value={selectedCampaign}
+          onChange={(val) => setSelectedCampaign(val ?? null)}
+          options={campaignOptions}
+          style={{ width: 260 }}
         />
+
+        {selectedCampaign && (
+          <Button
+            onClick={handleExport}
+            loading={exporting}
+            className="!bg-green-600 hover:!bg-green-700 !text-white !border-none">
+            Download Excel
+          </Button>
+        )}
 
         <Select
           mode="multiple"
           allowClear
-          placeholder="Hide columns"
-          value={hiddenColumns}
-          onChange={setHiddenColumns}
-          style={{ width: 250 }}>
-          {Object.keys(columnHeadings).map((key) => (
+          placeholder="Show optional fields..."
+          value={visibleOptionalFields}
+          onChange={setVisibleOptionalFields}
+          style={{ minWidth: 220 }}
+          maxTagCount="responsive">
+          {OPTIONAL_FIELDS.map(({ key, label }) => (
             <Select.Option key={key} value={key}>
-              {columnHeadings[key]}
+              {label}
             </Select.Option>
           ))}
         </Select>
-
-        <Button
-          danger
-          className="w-[150px] lg:w-full"
-          onClick={() => {
-            setFilters({});
-            setSortInfo({});
-            setStickyColumns([]);
-            setHiddenColumns([]);
-          }}>
-          Remove All Filters
-        </Button>
       </div>
 
-      <StyledTable
-        bordered
-        rowKey="campaign_id"
-        columns={columns}
-        dataSource={filteredData}
-        pagination={{
-          pageSizeOptions: ["10", "20", "50", "100"],
-          showSizeChanger: true,
-          defaultPageSize: 10,
-          showTotal: (total, range) =>
-            `${range[0]}-${range[1]} of ${total} items`,
-        }}
-        className="mt-5"
-        scroll={{ x: "max-content" }}
-      />
-      <Modal
-        open={modalOpen}
-        title="Conversion Details"
-        footer={null}
-        onCancel={() => {
-          setModalOpen(false);
-          setPopupData(null);
-        }}>
-        {popupLoading ? (
-          <Spin />
-        ) : popupData ? (
-          <Descriptions bordered column={1} size="small">
-            <Descriptions.Item label="Campaign ID">
-              {popupData.campaign_id}
-            </Descriptions.Item>
-            <Descriptions.Item label="Installs">
-              {popupData.installs}
-            </Descriptions.Item>
-            <Descriptions.Item label="Events">
-              {popupData.events}
-            </Descriptions.Item>
-          </Descriptions>
-        ) : (
-          <p>No data found</p>
-        )}
-      </Modal>
+      {loading ? (
+        <div className="flex justify-center py-16">
+          <Spin size="large" />
+        </div>
+      ) : !selectedCampaign ? (
+        <div className="text-center py-16 text-gray-400">
+          Select a campaign above to view its conversion data.
+        </div>
+      ) : displayedData.length === 0 ? (
+        <div className="text-center py-16 text-gray-400">
+          No conversion data found for this campaign.
+        </div>
+      ) : (
+        (() => {
+          const item = displayedData[0];
+          const totalEvents =
+            item.event_data?.reduce((sum, e) => sum + e.count, 0) ?? 0;
+
+          return (
+            <div className="border border-gray-200 rounded-xl p-6 shadow-sm bg-white w-full">
+              {/* Header */}
+              <div className="mb-5">
+                <span className="text-xs text-gray-400 font-medium">
+                  Campaign #{item.campaign_id}
+                </span>
+                <h3 className="text-2xl font-semibold text-gray-800 mt-0.5">
+                  {item.campaign_name}
+                </h3>
+              </div>
+
+              {/* Total Clicks */}
+              <div className="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-3 mb-5">
+                <span className="text-sm text-gray-500">Total Clicks</span>
+                <span className="font-semibold text-gray-800 text-base">
+                  {item.total_clicks}
+                </span>
+              </div>
+
+              {/* Optional Fields */}
+              {visibleOptionalFields.length > 0 && (
+                <div className="mb-5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {visibleOptionalFields.map((field) => {
+                    const label = OPTIONAL_FIELDS.find(
+                      (f) => f.key === field,
+                    )?.label;
+                    const value = item[field];
+                    return (
+                      <div
+                        key={field}
+                        className="bg-gray-50 rounded-lg px-4 py-3 flex flex-col">
+                        <span className="text-xs text-gray-400 mb-0.5">
+                          {label}
+                        </span>
+                        <span className="text-sm font-medium text-gray-700">
+                          {value !== null && value !== undefined ? value : "—"}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Events */}
+              <div className="mb-5">
+                <p className="text-xs text-gray-400 uppercase tracking-wide font-medium mb-3">
+                  Events
+                </p>
+                {item.event_data?.length ? (
+                  <div className="divide-y divide-gray-100 border border-gray-100 rounded-lg overflow-hidden">
+                    {item.event_data.map((ev) => (
+                      <div
+                        key={ev.event}
+                        className="flex justify-between items-center px-4 py-3 bg-white hover:bg-gray-50 transition-colors">
+                        <span className="capitalize text-gray-700 text-sm font-medium">
+                          {ev.event}
+                        </span>
+                        <span className="font-semibold text-gray-800">
+                          {ev.count}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400 italic">No events recorded</p>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="border-t border-gray-100 pt-4 flex justify-between items-center">
+                <div>
+                  <span className="text-sm text-gray-500">Total Events</span>
+                  <p className="text-xl font-bold text-gray-800">{totalEvents}</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-sm text-gray-500">Conversion Rate</span>
+                  <p className="text-xl font-bold text-blue-600">
+                    {item.conversion_rate}%
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
+        })()
+      )}
     </div>
   );
 };

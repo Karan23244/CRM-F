@@ -978,7 +978,7 @@ const AdvnameData = () => {
       render: (text) => (user?.role === "advertiser" ? "*****" : text),
     },
     {
-      title: "Assign User",
+      title: "Operations",
       key: "assign_user",
       dataIndex: "assign_user",
     },
@@ -1202,7 +1202,7 @@ const AdvnameData = () => {
             {/* Assign User */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Assign User
+                Operations
               </label>
               <select
                 className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:!border-[#2F5D99] focus:!ring-1 focus:!ring-[#2F5D99]"
