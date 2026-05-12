@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Select, DatePicker, Spin } from "antd";
+import { Select, DatePicker, Spin, Button } from "antd";
 import dayjs from "dayjs";
 
 const { RangePicker } = DatePicker;
@@ -17,6 +17,7 @@ const OPTIONAL_FIELDS = [
 const Conversion = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState(null);
   const [visibleOptionalFields, setVisibleOptionalFields] = useState([]);
   const [dateRange, setDateRange] = useState([
@@ -46,6 +47,32 @@ const Conversion = () => {
       dateRange[1].format("YYYY-MM-DD"),
     );
   }, [dateRange]);
+
+  const handleExport = async () => {
+    if (!selectedCampaign) return;
+    setExporting(true);
+    try {
+      const startDate = dateRange[0].format("YYYY-MM-DD");
+      const endDate = dateRange[1].format("YYYY-MM-DD");
+      const res = await fetch(
+        `${apiUrl}/get-conversions/${selectedCampaign}/export?startDate=${startDate}&endDate=${endDate}`,
+      );
+      if (!res.ok) throw new Error("Export failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download =
+        res.headers.get("Content-Disposition")?.match(/filename="(.+)"/)?.[1] ||
+        `campaign_${selectedCampaign}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Export error:", err);
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const campaignOptions = data.map((item) => ({
     value: item.campaign_id,
@@ -84,6 +111,15 @@ const Conversion = () => {
           options={campaignOptions}
           style={{ width: 260 }}
         />
+
+        {selectedCampaign && (
+          <Button
+            onClick={handleExport}
+            loading={exporting}
+            className="!bg-green-600 hover:!bg-green-700 !text-white !border-none">
+            Download Excel
+          </Button>
+        )}
 
         <Select
           mode="multiple"

@@ -94,6 +94,9 @@ const AdvertiserEditForm = () => {
   const { Option } = Select;
   const isAdvertiserManager = user?.role?.includes("advertiser_manager");
   const restrictedRoles = ["operation", "optimization"];
+  const isOperationsRole = user?.role?.some((r) =>
+    ["operations", "operation", "optimization"].includes(r),
+  );
 
   // ── Main form state ──────────────────────────────────────────────────────
   const [name, setName] = useState("");
@@ -737,24 +740,34 @@ const AdvertiserEditForm = () => {
             <label className="block text-[#2F5D99] text-base font-semibold mb-2">
               Operations
             </label>
-            <select
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2F5D99] focus:border-[#2F5D99] transition-all"
-              value={assign_id}
-              onChange={(e) => {
-                const sid = e.target.value;
-                const selectedUser = subAdmins.find(
-                  (a) => a.id.toString() === sid,
-                );
-                setAssign_id(sid);
-                setAssign_user(selectedUser?.username || "");
-              }}>
-              <option value="">Select Sub Admin</option>
-              {subAdmins.map((admin) => (
-                <option key={admin.id} value={admin.id}>
-                  {admin.username}
-                </option>
-              ))}
-            </select>
+            {isOperationsRole ? (
+              <input
+                type="text"
+                value={assign_user || ""}
+                className="w-full p-3 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+                disabled
+                readOnly
+              />
+            ) : (
+              <select
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2F5D99] focus:border-[#2F5D99] transition-all"
+                value={assign_id}
+                onChange={(e) => {
+                  const sid = e.target.value;
+                  const selectedUser = subAdmins.find(
+                    (a) => a.id.toString() === sid,
+                  );
+                  setAssign_id(sid);
+                  setAssign_user(selectedUser?.username || "");
+                }}>
+                <option value="">Select Sub Admin</option>
+                {subAdmins.map((admin) => (
+                  <option key={admin.id} value={admin.id}>
+                    {admin.username}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           {/* ── Billing Details ──────────────────────────────────────────────── */}

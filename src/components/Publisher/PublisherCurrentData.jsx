@@ -409,8 +409,8 @@ const PublisherPayoutData = () => {
           <div className="flex items-center justify-between">
             <span
               style={{
-                color: filters[key] ? "#1677ff" : "inherit",
-                fontWeight: filters[key] ? "bold" : "normal",
+                color: filters[key]?.length > 0 ? "#1677ff" : "inherit",
+                fontWeight: filters[key]?.length > 0 ? "bold" : "normal",
               }}>
               {columnHeadings[key] || key}
             </span>
