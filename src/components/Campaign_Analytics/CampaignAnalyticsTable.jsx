@@ -226,6 +226,7 @@ const colorMap = {
   gold: "#ffd700",
   black: "#262626",
   grey: "#bfbfbf",
+  purple: "#d3adf7",
 };
 
 // ================= TEXT COLOR =================
@@ -262,7 +263,13 @@ const CampaignAnalyticsTable = () => {
     },
   });
   // ================= USER ACCESS =================
-  const allowedRoles = ["publisher_manager", "publisher", "pub_executive"];
+  const allowedRoles = [
+    "publisher_manager",
+    "publisher",
+    "pub_executive",
+    "optimization",
+    "operations",
+  ];
 
   const hasAccess = user?.role?.some((r) => allowedRoles.includes(r));
 
@@ -404,7 +411,8 @@ const CampaignAnalyticsTable = () => {
       });
     });
   }, [roleFilteredData, filters]);
-  const getFilterDropdown = (key) => {
+  const getFilterDropdown = (key, props) => {
+    const { confirm } = props;
     const allValues = uniqueValues[key] || [];
     const selectedValues = filters[key] ?? allValues;
     const searchText = filterSearch[key] || "";
@@ -429,7 +437,12 @@ const CampaignAnalyticsTable = () => {
             allowClear
             placeholder="Search values"
             value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
+            onChange={(e) =>
+              setFilterSearch((prev) => ({
+                ...prev,
+                [key]: e.target.value,
+              }))
+            }
           />
         </div>
         {/* ☑ Select All */}
@@ -578,7 +591,7 @@ const CampaignAnalyticsTable = () => {
       dataIndex: "pubam",
       fixed: "left",
       width: 150,
-      filterDropdown: () => getFilterDropdown("pubam"),
+      filterDropdown: (props) => getFilterDropdown("pubam", props),
       onFilterDropdownOpenChange: (open) => {
         if (open) setColumnUniqueValues("pubam");
       },
@@ -588,7 +601,7 @@ const CampaignAnalyticsTable = () => {
       dataIndex: "pubid",
       fixed: "left",
       width: 120,
-      filterDropdown: () => getFilterDropdown("pubid"),
+      filterDropdown: (props) => getFilterDropdown("pubid", props),
       onFilterDropdownOpenChange: (open) => {
         if (open) setColumnUniqueValues("pubid");
       },
@@ -598,7 +611,7 @@ const CampaignAnalyticsTable = () => {
       dataIndex: "pid",
       fixed: "left",
       width: 220,
-      filterDropdown: () => getFilterDropdown("pid"),
+      filterDropdown: (props) => getFilterDropdown("pid", props),
       onFilterDropdownOpenChange: (open) => {
         if (open) setColumnUniqueValues("pid");
       },
@@ -632,7 +645,7 @@ const CampaignAnalyticsTable = () => {
   return (
     <>
       {user?.permissions?.can_see_input1 === 1 && (
-        <div >
+        <div>
           <UploadForm onUploadSuccess={fetchData} />
         </div>
       )}
@@ -779,11 +792,145 @@ const CampaignAnalyticsTable = () => {
                   showSizeChanger: true,
                   defaultPageSize: 10,
                 }}
+                summary={(pageData) => {
+                  // helper for normal numbers
+                  const sumNumber = (key) =>
+                    pageData.reduce((acc, row) => {
+                      return acc + (Number(row[key]) || 0);
+                    }, 0);
+
+                  // helper for values like "12 (5%)"
+                  const sumStringNumber = (key) =>
+                    pageData.reduce((acc, row) => {
+                      const raw = row[key];
+
+                      if (!raw) return acc;
+
+                      const num = parseFloat(raw.toString().split(" ")[0]);
+
+                      return acc + (num || 0);
+                    }, 0);
+
+                  return (
+                    <Table.Summary fixed>
+                      <Table.Summary.Row
+                        style={{
+                          background: "#f8fafc",
+                          fontWeight: 700,
+                        }}>
+                        {/* FIXED COLUMNS */}
+                        <Table.Summary.Cell index={0}>TOTAL</Table.Summary.Cell>
+
+                        <Table.Summary.Cell index={1} />
+                        <Table.Summary.Cell index={2} />
+
+                        {/* CLICKS */}
+                        <Table.Summary.Cell index={3}>
+                          {sumNumber("clicks_mtd")}
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell index={4}>
+                          {sumNumber(`clicks_${payload.windows.primary}d`)}
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell index={5}>
+                          {sumNumber(`clicks_${payload.windows.secondary}d`)}
+                        </Table.Summary.Cell>
+
+                        {/* INSTALLS */}
+                        <Table.Summary.Cell index={6}>
+                          {sumNumber("installs_mtd")}
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell index={7}>
+                          {sumNumber(`installs_${payload.windows.primary}d`)}
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell index={8}>
+                          {sumNumber(`installs_${payload.windows.secondary}d`)}
+                        </Table.Summary.Cell>
+
+                        {/* C2I */}
+                        <Table.Summary.Cell index={9} />
+                        <Table.Summary.Cell index={10} />
+                        <Table.Summary.Cell index={11} />
+
+                        {/* RT INSTALL */}
+                        <Table.Summary.Cell index={12}>
+                          {sumStringNumber("rt_install_mtd")}
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell index={13}>
+                          {sumStringNumber(
+                            `rt_install_${payload.windows.primary}d`,
+                          )}
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell index={14}>
+                          {sumStringNumber(
+                            `rt_install_${payload.windows.secondary}d`,
+                          )}
+                        </Table.Summary.Cell>
+
+                        {/* PA INSTALL */}
+                        <Table.Summary.Cell index={15}>
+                          {sumStringNumber("pa_install_mtd")}
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell index={16}>
+                          {sumStringNumber(
+                            `pa_install_${payload.windows.primary}d`,
+                          )}
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell index={17}>
+                          {sumStringNumber(
+                            `pa_install_${payload.windows.secondary}d`,
+                          )}
+                        </Table.Summary.Cell>
+
+                        {/* INSTALL FRAUD */}
+                        <Table.Summary.Cell index={18}>
+                          {sumStringNumber("install_fraud_mtd")}
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell index={19}>
+                          {sumStringNumber(
+                            `install_fraud_${payload.windows.primary}d`,
+                          )}
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell index={20}>
+                          {sumStringNumber(
+                            `install_fraud_${payload.windows.secondary}d`,
+                          )}
+                        </Table.Summary.Cell>
+
+                        {/* E1 */}
+                        <Table.Summary.Cell index={21}>
+                          {sumNumber("E1_count_mtd")}
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell index={22}>
+                          {sumNumber(`E1_count_${payload.windows.primary}d`)}
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell index={23}>
+                          {sumNumber(`E1_count_${payload.windows.secondary}d`)}
+                        </Table.Summary.Cell>
+
+                        {/* CR E1 */}
+                        <Table.Summary.Cell index={24} />
+                        <Table.Summary.Cell index={25} />
+                        <Table.Summary.Cell index={26} />
+
+                        {/* E2 */}
+                        <Table.Summary.Cell index={27}>
+                          {sumNumber("E2_count_mtd")}
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell index={28}>
+                          {sumNumber(`E2_count_${payload.windows.primary}d`)}
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell index={29}>
+                          {sumNumber(`E2_count_${payload.windows.secondary}d`)}
+                        </Table.Summary.Cell>
+                      </Table.Summary.Row>
+                    </Table.Summary>
+                  );
+                }}
               />
             )}
             <style jsx>{`
               .custom-table .ant-table {
-                border: 1px solid #d9e1ec; /* outer border */
+                border: 1px solid #d9e1ec;
               }
 
               .custom-table .ant-table-thead > tr > th {
@@ -820,14 +967,19 @@ const CampaignAnalyticsTable = () => {
                 background-color: #f8fafc !important;
                 font-weight: 600;
               }
-              /* Strong divider after each KPI group */
+
               .custom-table .group-divider {
                 border-right: 2px solid #b8c4d6 !important;
               }
 
-              /* Header also */
               .custom-table .ant-table-thead .group-divider {
                 border-right: 2px solid #b8c4d6 !important;
+              }
+
+              /* REMOVE ROW HOVER */
+              .custom-table .ant-table-tbody > tr.ant-table-row:hover > td {
+                background: none !important;
+                color: black !important;
               }
             `}</style>
           </div>
