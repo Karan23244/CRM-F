@@ -33,9 +33,25 @@ export const sidebarLinks = [
   },
   {
     label: "Users",
-    roles: ["admin", "advertiser_manager", "publisher_manager"],
+    roles: [
+      "admin",
+      "advertiser",
+      "advertiser_manager",
+      "publisher",
+      "publisher_manager",
+    ],
     sublinks: [
-      { to: "listsubadmin", label: "Existing Users", roles: ["admin"] },
+      {
+        to: "listsubadmin",
+        label: "Existing Users",
+        roles: [
+          "admin",
+          "advertiser",
+          "advertiser_manager",
+          "publisher",
+          "publisher_manager",
+        ],
+      },
       {
         to: "createsubadmin",
         label: "Create User",
