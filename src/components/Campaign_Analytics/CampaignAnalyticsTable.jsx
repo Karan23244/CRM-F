@@ -372,9 +372,16 @@ const CampaignAnalyticsTable = () => {
     const assignedNames = subadmins
       .filter((s) => assignedIds.includes(s.id))
       .map((s) => normalize(s.username));
-
     return data.filter((item) => {
       const pubam = normalize(item.pubam);
+
+      // operations & optimization can see all data
+      if (
+        user?.role?.includes("operations") ||
+        user?.role?.includes("optimization")
+      ) {
+        return true;
+      }
 
       // own data
       if (pubam === username) return true;
@@ -382,7 +389,7 @@ const CampaignAnalyticsTable = () => {
       // assigned subadmin data
       if (assignedNames.includes(pubam)) return true;
 
-      // only publisher_manager can see n/a
+      // publisher_manager extra access
       if (
         user?.role?.includes("publisher_manager") &&
         (pubam === "n/a" || pubam === "-")
@@ -978,7 +985,7 @@ const CampaignAnalyticsTable = () => {
 
               /* REMOVE ROW HOVER */
               .custom-table .ant-table-tbody > tr.ant-table-row:hover > td {
-                background: none !important;
+                background: white !important;
                 color: black !important;
               }
             `}</style>
