@@ -340,7 +340,13 @@ const DecisionTable = ({ campaign_name, os, lastdate }) => {
   const [uniqueValues, setUniqueValues] = useState({});
 
   // ================= ACCESS =================
-  const allowedRoles = ["publisher_manager", "publisher", "pub_executive"];
+  const allowedRoles = [
+    "publisher_manager",
+    "publisher",
+    "pub_executive",
+    "optimization",
+    "operations",
+  ];
 
   const hasAccess = user?.role?.some((r) => allowedRoles.includes(r));
 
@@ -410,10 +416,21 @@ const DecisionTable = ({ campaign_name, os, lastdate }) => {
     return dataSource.filter((item) => {
       const pubam = normalize(item.pubam);
 
+      // operations & optimization can see everything
+      if (
+        user?.role?.includes("operations") ||
+        user?.role?.includes("optimization")
+      ) {
+        return true;
+      }
+
+      // own data
       if (pubam === username) return true;
 
+      // assigned subadmin data
       if (assignedNames.includes(pubam)) return true;
 
+      // publisher manager extra access
       if (
         user?.role?.includes("publisher_manager") &&
         (pubam === "n/a" || pubam === "-")
@@ -730,21 +747,6 @@ const DecisionTable = ({ campaign_name, os, lastdate }) => {
       ),
     },
   ];
-
-  // ================= NO ACCESS =================
-  if (!hasAccess) {
-    return (
-      <div
-        style={{
-          padding: 20,
-          textAlign: "center",
-          color: "#ff4d4f",
-          fontWeight: 600,
-        }}>
-        You do not have permission to view this report
-      </div>
-    );
-  }
 
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
