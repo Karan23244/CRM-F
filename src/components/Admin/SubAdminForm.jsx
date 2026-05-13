@@ -32,8 +32,21 @@ import StyledTable from "../../Utils/StyledTable";
 const { Option } = Select;
 const apiUrl = import.meta.env.VITE_API_URL;
 
+const ASSIGNED_USER_ROLES = [
+  "advertiser",
+  "advertiser_manager",
+  "publisher",
+  "publisher_manager",
+];
+
 const SubAdminEdit = () => {
   const senderData = useSelector((state) => state.auth?.user);
+  const userRoles = Array.isArray(senderData?.role)
+    ? senderData.role
+    : [senderData?.role].filter(Boolean);
+  const isAssignedUserView = userRoles.some((r) =>
+    ASSIGNED_USER_ROLES.includes(r),
+  );
   const [subAdmins, setSubAdmins] = useState([]);
   const [selectedSubAdmin, setSelectedSubAdmin] = useState(null);
   const [username, setUsername] = useState("");
@@ -72,14 +85,27 @@ const SubAdminEdit = () => {
   const fetchSubAdmins = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${apiUrl}/get-subadmin`);
-      const data = await response.json();
-      console.log("Fetched Sub-Admins:", data); // Debug log
-      if (response.ok) {
-        // Exclude only those with role "admin"
-        setSubAdmins(data.data.filter((subAdmin) => subAdmin.role !== "admin"));
+      let response, data;
+      if (isAssignedUserView) {
+        response = await fetch(
+          `${apiUrl}/assigned-users?id=${senderData?.id}`,
+        );
+        data = await response.json();
+        if (data.success) {
+          setSubAdmins(data.data);
+        } else {
+          setError(data.message || "Failed to fetch assigned users.");
+        }
       } else {
-        setError(data.message || "Failed to fetch sub-admins.");
+        response = await fetch(`${apiUrl}/get-subadmin`);
+        data = await response.json();
+        console.log("Fetched Sub-Admins:", data); // Debug log
+        if (response.ok) {
+          // Exclude only those with role "admin"
+          setSubAdmins(data.data.filter((subAdmin) => subAdmin.role !== "admin"));
+        } else {
+          setError(data.message || "Failed to fetch sub-admins.");
+        }
       }
     } catch (err) {
       setError("An error occurred while fetching sub-admins.");
@@ -453,49 +479,57 @@ const SubAdminEdit = () => {
           </Tooltip>
         ),
     },
-    {
-      title: <div>Actions</div>,
-      key: "actions",
-      render: (record) => (
-        <div className="flex justify-center gap-3">
-          <Tooltip title="Edit User">
-            <Button
-              type="text"
-              icon={<EditOutlined style={{ color: "#2F5D99", fontSize: 18 }} />}
-              onClick={() => handleEdit(record)}
-            />
-          </Tooltip>
+    ...(!isAssignedUserView
+      ? [
+          {
+            title: <div>Actions</div>,
+            key: "actions",
+            render: (record) => (
+              <div className="flex justify-center gap-3">
+                <Tooltip title="Edit User">
+                  <Button
+                    type="text"
+                    icon={
+                      <EditOutlined style={{ color: "#2F5D99", fontSize: 18 }} />
+                    }
+                    onClick={() => handleEdit(record)}
+                  />
+                </Tooltip>
 
-          <Tooltip title="Delete User">
-            <Button
-              type="text"
-              icon={<DeleteOutlined style={{ color: "red", fontSize: 18 }} />}
-              onClick={() => handleDeleteSubAdmin(record.id)}
-            />
-          </Tooltip>
-        </div>
-      ),
-    },
-    {
-      title: <div>Account Status</div>,
-      key: "status",
-      render: (_, record) => (
-        <div className="flex justify-center">
-          <Tooltip
-            title={record.is_paused ? "Account Paused" : "Account Active"}>
-            <Switch
-              checked={record.pause === 1}
-              onChange={(checked) => handleTogglePause(record, checked)}
-              checkedChildren="Paused"
-              unCheckedChildren="Active"
-              style={{
-                backgroundColor: record.pause ? "#ff4d4f" : "#52c41a",
-              }}
-            />
-          </Tooltip>
-        </div>
-      ),
-    },
+                <Tooltip title="Delete User">
+                  <Button
+                    type="text"
+                    icon={
+                      <DeleteOutlined style={{ color: "red", fontSize: 18 }} />
+                    }
+                    onClick={() => handleDeleteSubAdmin(record.id)}
+                  />
+                </Tooltip>
+              </div>
+            ),
+          },
+          {
+            title: <div>Account Status</div>,
+            key: "status",
+            render: (_, record) => (
+              <div className="flex justify-center">
+                <Tooltip
+                  title={record.is_paused ? "Account Paused" : "Account Active"}>
+                  <Switch
+                    checked={record.pause === 1}
+                    onChange={(checked) => handleTogglePause(record, checked)}
+                    checkedChildren="Paused"
+                    unCheckedChildren="Active"
+                    style={{
+                      backgroundColor: record.pause ? "#ff4d4f" : "#52c41a",
+                    }}
+                  />
+                </Tooltip>
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
   const filteredSubAdmins = useMemo(() => {
     return subAdmins.filter((admin) => {
