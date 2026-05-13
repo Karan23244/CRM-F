@@ -7,8 +7,6 @@ import { FaEye, FaEyeSlash, FaUser, FaLock } from "react-icons/fa";
 
 const apiUrl =
   import.meta.env.VITE_API_URL;
-const apiChatUrl =
-  import.meta.env.VITE_API_CHAT_URL;
 
 const LoginForm = () => {
   const [username, setUsername] = useState("");
@@ -44,15 +42,6 @@ const LoginForm = () => {
       const data = await response.json();
       console.log("Login response:", data);
       if (data.success) {
-        fetch(`${apiChatUrl}/groups/sync-user`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            password: password.trim(),
-            subAdmin: data.subAdmin,
-          }),
-        }).catch(() => {});
-
         dispatch(
           setUser({
             ...data.subAdmin,
