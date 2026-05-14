@@ -49,7 +49,7 @@ const apiUrl = import.meta.env.VITE_API_URL;
 // Advertiser Column Headings
 const columnHeadingsAdv = {
   da: "DA",
-  username: "Input UserName",
+  username: "ADV AM",
   campaign_id: "Campaign ID",
   pub_name: "PUB AM",
   campaign_name: "Campaign Name",
