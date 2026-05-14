@@ -42,8 +42,8 @@ const { Option } = Select;
 const apiUrl = import.meta.env.VITE_API_URL1;
 const apiUrl1 = import.meta.env.VITE_API_URL;
 const columnHeadingsMap = {
-  pub_name: "Publisher",
-  adv_name: "Advertiser",
+  pub_name: "PUB AM",
+  adv_name: "ADV AM",
   campaign_name: "Campaign",
   note: "Note",
   payout: "PUB Payout $",

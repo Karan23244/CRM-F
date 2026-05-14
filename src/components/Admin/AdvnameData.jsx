@@ -36,6 +36,7 @@ const AdvnameData = () => {
   const [assign_user, setAssign_user] = useState("");
   const [assign_id, setAssign_id] = useState("");
   const [subAdmins, setSubAdmins] = useState([]);
+  const [operationsUsers, setOperationsUsers] = useState([]);
   const [filterSearch, setFilterSearch] = useState({});
   const [pinnedColumns, setPinnedColumns] = useState({});
   const [uniqueValues, setUniqueValues] = useState({});
@@ -138,6 +139,7 @@ const AdvnameData = () => {
             ),
           );
           setSubAdmins(filtered);
+          setOperationsUsers(data.data.filter((u) => u.role === "operations"));
         } else {
           console.log(data.message || "Failed to fetch sub-admins.");
         }
@@ -977,11 +979,19 @@ const AdvnameData = () => {
       key: "poc_email",
       render: (text) => (user?.role === "advertiser" ? "*****" : text),
     },
-    {
-      title: "Operations",
+    createExcelColumn({
       key: "assign_user",
-      dataIndex: "assign_user",
-    },
+      title: "Operations",
+      filters,
+      setFilters,
+      uniqueValues,
+      filterSearch,
+      setFilterSearch,
+      pinnedColumns,
+      togglePin,
+      sortInfo,
+      setSortInfo,
+    }),
     {
       title: "Transfer Adv AM",
       key: "user_id",
@@ -1209,14 +1219,14 @@ const AdvnameData = () => {
                 value={assign_id}
                 onChange={(e) => {
                   const selectedId = e.target.value;
-                  const selectedUser = subAdmins.find(
+                  const selectedUser = operationsUsers.find(
                     (admin) => admin.id.toString() === selectedId,
                   );
                   setAssign_id(selectedId);
                   setAssign_user(selectedUser ? selectedUser.username : "");
                 }}>
-                <option value="">Select Sub Admin</option>
-                {subAdmins.map((admin) => (
+                <option value="">Select Operations</option>
+                {operationsUsers.map((admin) => (
                   <option key={admin.id} value={admin.id}>
                     {admin.username}
                   </option>

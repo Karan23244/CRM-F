@@ -479,8 +479,6 @@ const SubAdminEdit = () => {
           </Tooltip>
         ),
     },
-    ...(!isAssignedUserView
-      ? [
           {
             title: <div>Actions</div>,
             key: "actions",
@@ -489,9 +487,7 @@ const SubAdminEdit = () => {
                 <Tooltip title="Edit User">
                   <Button
                     type="text"
-                    icon={
-                      <EditOutlined style={{ color: "#2F5D99", fontSize: 18 }} />
-                    }
+                    icon={<EditOutlined style={{ color: "#2F5D99", fontSize: 18 }} />}
                     onClick={() => handleEdit(record)}
                   />
                 </Tooltip>
@@ -499,9 +495,7 @@ const SubAdminEdit = () => {
                 <Tooltip title="Delete User">
                   <Button
                     type="text"
-                    icon={
-                      <DeleteOutlined style={{ color: "red", fontSize: 18 }} />
-                    }
+                    icon={<DeleteOutlined style={{ color: "red", fontSize: 18 }} />}
                     onClick={() => handleDeleteSubAdmin(record.id)}
                   />
                 </Tooltip>
@@ -528,9 +522,17 @@ const SubAdminEdit = () => {
               </div>
             ),
           },
-        ]
-      : []),
   ];
+  const availableRoles = useMemo(() => {
+    const seen = new Set();
+    subAdmins.forEach((u) => {
+      const r =
+        typeof u.role === "string" ? u.role.replace(/^["']|["']$/g, "").trim() : u.role;
+      if (r) seen.add(r);
+    });
+    return Array.from(seen).sort();
+  }, [subAdmins]);
+
   const filteredSubAdmins = useMemo(() => {
     return subAdmins.filter((admin) => {
       const matchesSearch =
@@ -579,15 +581,14 @@ const SubAdminEdit = () => {
                   value={roleFilter}
                   onChange={setRoleFilter}
                   style={{ width: 200 }}>
-                  <Option value="publisher">Publisher</Option>
-                  <Option value="advertiser">Advertiser</Option>
-                  <Option value="operations">Operations</Option>
-                  <Option value="accounts">Accounts</Option>
-                  <Option value="optimization">Optimization</Option>
-                  <Option value="advertiser_manager">Advertiser Manager</Option>
-                  <Option value="publisher_manager">Publisher Manager</Option>
-                  <Option value="pub_executive">Publisher Executive</Option>
-                  <Option value="adv_executive">Advertiser Executive</Option>
+                  {availableRoles.map((r) => (
+                    <Option key={r} value={r}>
+                      {r
+                        .split("_")
+                        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                        .join(" ")}
+                    </Option>
+                  ))}
                 </Select>
               </div>
               <StyledTable
