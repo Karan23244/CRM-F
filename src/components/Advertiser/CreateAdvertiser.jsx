@@ -57,14 +57,7 @@ const AdvertiserCreateForm = () => {
 
         if (res.ok) {
           setSubAdmins(
-            data.data.filter((a) =>
-              [
-                "advertiser_manager",
-                "advertiser",
-                "adv_executive",
-                "operations",
-              ].includes(a.role)
-            )
+            data.data.filter((a) => a.role === "operations")
           );
         }
       } catch (err) {
@@ -221,7 +214,7 @@ const AdvertiserCreateForm = () => {
               setAssign_user(selectedUser?.username || "");
             }}
           >
-            <option value="">Select Sub Admin</option>
+            <option value="">Select Operations</option>
             {subAdmins.map((admin) => (
               <option key={admin.id} value={admin.id}>
                 {admin.username}
