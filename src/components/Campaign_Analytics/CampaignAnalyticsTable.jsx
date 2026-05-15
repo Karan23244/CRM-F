@@ -514,11 +514,43 @@ const CampaignAnalyticsTable = () => {
   // ================= KPI CELL =================
   // ONLY TEXT COLOR
   const renderCell = (value, colorKey) => {
+    const color = colorMap[colorKey] || "#000";
+
+    // check if value contains percentage
+    const isPercentageString =
+      typeof value === "string" && value.includes("(") && value.includes("%");
+
+    if (isPercentageString) {
+      const match = value.match(/^(.+?)\s*\((.+?)\)$/);
+
+      if (match) {
+        const numberPart = match[1];
+        const percentPart = match[2];
+
+        return {
+          children: (
+            <span>
+              <span style={{ color: "#000", fontWeight: 600 }}>
+                {numberPart}
+              </span>{" "}
+              <span style={{ color, fontWeight: 600 }}>({percentPart})</span>
+            </span>
+          ),
+          props: {
+            style: {
+              textAlign: "center",
+              background: "transparent",
+            },
+          },
+        };
+      }
+    }
+
     return {
       children: value,
       props: {
         style: {
-          color: colorMap[colorKey] || "inherit",
+          color,
           textAlign: "center",
           fontWeight: 600,
           background: "transparent",
@@ -530,7 +562,7 @@ const CampaignAnalyticsTable = () => {
   // ================= KPI BUILDER =================
   // ================= KPI BUILDER =================
   // DYNAMIC WINDOW KEYS + DYNAMIC COLUMN TITLES
-
+  const KPI_COL_WIDTH = 110;
   const buildKPI = (title, key) => {
     const primaryWindow = payload.windows.primary;
     const secondaryWindow = payload.windows.secondary;
@@ -541,6 +573,7 @@ const CampaignAnalyticsTable = () => {
         {
           title: "MTD",
           dataIndex: `${key}_mtd`,
+          width: KPI_COL_WIDTH,
           sorter: (a, b) => {
             const valA = a[`${key}_mtd`] || 0;
             const valB = b[`${key}_mtd`] || 0;
@@ -552,6 +585,7 @@ const CampaignAnalyticsTable = () => {
         {
           title: `${primaryWindow}D`,
           dataIndex: `${key}_${primaryWindow}d`,
+          width: KPI_COL_WIDTH,
           sorter: (a, b) => {
             const valA = a[`${key}_mtd`] || 0;
             const valB = b[`${key}_mtd`] || 0;
@@ -566,6 +600,7 @@ const CampaignAnalyticsTable = () => {
         {
           title: `${secondaryWindow}D`,
           dataIndex: `${key}_${secondaryWindow}d`,
+          width: KPI_COL_WIDTH,
           sorter: (a, b) => {
             const valA = a[`${key}_mtd`] || 0;
             const valB = b[`${key}_mtd`] || 0;
@@ -622,6 +657,11 @@ const CampaignAnalyticsTable = () => {
       onFilterDropdownOpenChange: (open) => {
         if (open) setColumnUniqueValues("pid");
       },
+
+      onCell: () => ({
+        className: "pid-cell",
+      }),
+
       render: (text, row) => ({
         children: text,
         props: {
@@ -646,7 +686,7 @@ const CampaignAnalyticsTable = () => {
     buildKPI("CR E1", "cr_E1"),
     buildKPI("E2", "E2_count"),
     buildKPI("CR E2", "cr_E2"),
-    buildKPI("PA E2", "pa_E2"),
+    buildKPI("PA E2", "pae_E2"),
   ];
 
   return (
@@ -788,12 +828,14 @@ const CampaignAnalyticsTable = () => {
               <Spin />
             ) : (
               <Table
+                tableLayout="fixed"
                 className="custom-table"
                 columns={columns}
                 dataSource={filteredData}
                 rowKey={(row) => `${row.pid}_${row.pubid}`}
-                scroll={{ x: "max-content" }}
+                scroll={{ x: "max-content", y: "70vh" }}
                 bordered
+                sticky
                 pagination={{
                   pageSizeOptions: ["10", "20", "50", "100", "200", "500"],
                   showSizeChanger: true,
@@ -826,10 +868,22 @@ const CampaignAnalyticsTable = () => {
                           fontWeight: 700,
                         }}>
                         {/* FIXED COLUMNS */}
-                        <Table.Summary.Cell index={0}>TOTAL</Table.Summary.Cell>
+                        {/* FIXED COLUMNS */}
+                        <Table.Summary.Cell
+                          index={0}
+                          style={{ width: 150, minWidth: 150 }}>
+                          TOTAL
+                        </Table.Summary.Cell>
 
-                        <Table.Summary.Cell index={1} />
-                        <Table.Summary.Cell index={2} />
+                        <Table.Summary.Cell
+                          index={1}
+                          style={{ width: 120, minWidth: 120 }}
+                        />
+
+                        <Table.Summary.Cell
+                          index={2}
+                          style={{ width: 220, minWidth: 220 }}
+                        />
 
                         {/* CLICKS */}
                         <Table.Summary.Cell index={3}>
@@ -936,56 +990,46 @@ const CampaignAnalyticsTable = () => {
               />
             )}
             <style jsx>{`
-              .custom-table .ant-table {
-                border: 1px solid #d9e1ec;
-              }
-
-              .custom-table .ant-table-thead > tr > th {
-                background-color: #f3f6fb !important;
-                color: #2f5d99 !important;
-                font-weight: 600;
-                font-size: 14px;
-                text-align: center !important;
-                white-space: nowrap;
-                border-bottom: 1px solid #d9e1ec !important;
-              }
-
-              .custom-table .ant-table-tbody > tr > td {
-                text-align: center !important;
-                font-size: 13px;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                border-bottom: 1px solid #e6edf5 !important;
-              }
-
-              /* optional: vertical lines */
-              .custom-table .ant-table-thead > tr > th,
-              .custom-table .ant-table-tbody > tr > td {
-                border-right: 1px solid #e6edf5;
-              }
-
-              .custom-table .ant-table-thead > tr > th:last-child,
-              .custom-table .ant-table-tbody > tr > td:last-child {
-                border-right: none;
-              }
-
+              /* SUMMARY FIX */
               .custom-table .ant-table-summary {
-                background-color: #f8fafc !important;
-                font-weight: 600;
+                position: relative;
+                z-index: 2;
               }
 
-              .custom-table .group-divider {
-                border-right: 2px solid #b8c4d6 !important;
+              .custom-table .ant-table-summary > table {
+                table-layout: fixed !important;
+                width: max-content !important;
+                min-width: 100% !important;
               }
 
-              .custom-table .ant-table-thead .group-divider {
-                border-right: 2px solid #b8c4d6 !important;
+              /* MATCH BODY CELL STYLE */
+              .custom-table .ant-table-summary td {
+                text-align: center !important;
+                white-space: nowrap;
+                border-right: 1px solid #e6edf5 !important;
+                border-bottom: 1px solid #d9e1ec !important;
+                font-weight: 700;
+                background: #f8fafc !important;
               }
 
-              /* REMOVE ROW HOVER */
+              /* FIX FIXED COLUMN WIDTHS */
+              .custom-table .ant-table-summary td:nth-child(1) {
+                min-width: 150px !important;
+                width: 150px !important;
+              }
+
+              .custom-table .ant-table-summary td:nth-child(2) {
+                min-width: 120px !important;
+                width: 120px !important;
+              }
+
+              .custom-table .ant-table-summary td:nth-child(3) {
+                min-width: 220px !important;
+                width: 220px !important;
+              }
+              /* ROW HOVER */
               .custom-table .ant-table-tbody > tr.ant-table-row:hover > td {
-                background: white !important;
+                background: #fafafa !important;
                 color: black !important;
               }
             `}</style>
