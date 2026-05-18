@@ -55,6 +55,7 @@ const SubAdminEdit = () => {
   const [ranges, setRanges] = useState([{ start: "", end: "" }]);
   const [assignedSubAdmins, setAssignedSubAdmins] = useState([]);
   const [subAdminOptions, setSubAdminOptions] = useState([]);
+  const [allSubAdminsData, setAllSubAdminsData] = useState([]);
   const [permissionEditCondition, setPermissionEditCondition] = useState(false);
   const [permissionUploadFiles, setPermissionUploadFiles] = useState(false);
   const [permissionAddStore, setPermissionAddStore] = useState(false);
@@ -79,6 +80,7 @@ const SubAdminEdit = () => {
   };
   useEffect(() => {
     fetchSubAdmins();
+    fetchAllSubAdminOptions();
   }, []);
 
   // Fetch Sub-Admins
@@ -114,37 +116,36 @@ const SubAdminEdit = () => {
     }
   };
 
-  // Fetch filtered options for manager assignment
-  useEffect(() => {
-    if (subAdmins.length > 0) {
-      const cleanedOptions = subAdmins
-        .map((u) => {
-          // Normalize role string
-          let cleanedRole = u.role;
-
-          if (typeof cleanedRole === "string") {
-            cleanedRole = cleanedRole.replace(/"/g, "").trim(); // remove extra quotes
-          }
-
-          return {
+  // Always fetch all sub-admins for the Assign Sub-Admins dropdown options
+  const fetchAllSubAdminOptions = async () => {
+    try {
+      const response = await fetch(`${apiUrl}/get-subadmin`);
+      const data = await response.json();
+      if (response.ok) {
+        const cleaned = data.data
+          .filter((u) => u.role !== "admin")
+          .map((u) => ({
             ...u,
-            role: cleanedRole,
-          };
-        })
-        .filter((user) =>
-          [
-            "advertiser",
-            "publisher",
-            "publisher_manager",
-            "advertiser_manager",
-            "pub_executive",
-            "adv_executive",
-          ].includes(user.role),
+            role: typeof u.role === "string" ? u.role.replace(/"/g, "").trim() : u.role,
+          }));
+        setAllSubAdminsData(cleaned);
+        setSubAdminOptions(
+          cleaned.filter((user) =>
+            [
+              "advertiser",
+              "publisher",
+              "publisher_manager",
+              "advertiser_manager",
+              "pub_executive",
+              "adv_executive",
+            ].includes(user.role),
+          ),
         );
-
-      setSubAdminOptions(cleanedOptions);
+      }
+    } catch {
+      // silently fail — dropdown will just be empty
     }
-  }, [subAdmins]);
+  };
 
   const handleEdit = (subAdmin) => {
     console.log(subAdmin);
@@ -165,7 +166,11 @@ const SubAdminEdit = () => {
     setRole(parsedRole);
 
     // setRanges(subAdmin.ranges || [{ start: "", end: "" }]);
-    setAssignedSubAdmins(subAdmin.assigned_subadmins?.map((a) => a.id) || []);
+    // For non-admin users, assigned_subadmins may not be in the API response,
+    // so fall back to the full /get-subadmin data to get the correct pre-selected values.
+    const fullData = allSubAdminsData.find((u) => u.id === subAdmin.id);
+    const assignedSource = subAdmin.assigned_subadmins ?? fullData?.assigned_subadmins;
+    setAssignedSubAdmins(assignedSource?.map((a) => a.id) || []);
     setPermissionEditCondition(subAdmin.permissions?.can_see_button1 === 1);
     setPermissionUploadFiles(subAdmin.permissions?.can_see_input1 === 1);
     setPermissionAddStore(subAdmin.permissions?.can_add_store === 1);
