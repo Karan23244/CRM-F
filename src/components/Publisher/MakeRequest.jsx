@@ -863,7 +863,13 @@ const PublisherRequest = ({ senderId, receiverId }) => {
               rules={[
                 { required: true, message: "Please select an advertiser" },
               ]}>
-              <Select placeholder="Select Advertiser" className="rounded-lg">
+              <Select
+                placeholder="Select Advertiser"
+                className="rounded-lg"
+                showSearch
+                filterOption={(input, option) =>
+                  option.children.toLowerCase().includes(input.toLowerCase())
+                }>
                 {advertisers.map((name, index) => (
                   <Option key={index} value={name}>
                     {name}
