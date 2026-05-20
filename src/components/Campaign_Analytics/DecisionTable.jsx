@@ -763,7 +763,8 @@ const DecisionTable = ({ campaign_name, os, lastdate }) => {
             dataSource={filteredData}
             rowKey={(record, index) => index}
             bordered
-            scroll={{ x: 900 }}
+            scroll={{ x: "max-content", y: "70vh" }}
+            sticky
             className="rounded-xl overflow-hidden"
           />
         </Spin>

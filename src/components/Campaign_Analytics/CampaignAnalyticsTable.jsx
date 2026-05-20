@@ -1,194 +1,3 @@
-// // CampaignAnalyticsTable.jsx
-// import React, { useEffect, useState } from "react";
-// import { Table, Input, Select, Spin } from "antd";
-// import axios from "axios";
-// import DecisionTable from "./DecisionTable";
-// const { Option } = Select;
-
-// const colorMap = {
-//   green: "#d9f7be",
-//   red: "#ffa39e",
-//   orange: "#ffd591",
-//   yellow: "#fff566",
-//   blue: "#e6f7ff",
-
-//   // NEW PID COLORS
-//   gold: "#ffd700",
-//   black: "#262626",
-//   grey: "#d3adf7",
-// };
-
-// const CampaignAnalyticsTable = () => {
-//   const [data, setData] = useState([]);
-//   const [loading, setLoading] = useState(false);
-
-//   const [filters, setFilters] = useState({
-//     pubam: "",
-//     pubid: "",
-//     pid: "",
-//   });
-
-//   // ================= FETCH DATA =================
-//   const fetchData = async () => {
-//     setLoading(true);
-//     try {
-//       const res = await axios.post(
-//         `http://localhost:2001/api/campaign_analytics`,
-//         {
-//           campaign_name: "moneyview",
-//           os: "android",
-//           start_date: "2026-04-01",
-//           end_date: "2026-04-30",
-//           windows: { primary: 7, secondary: 3 },
-//         },
-//       );
-//       console.log("API Response:", res);
-//       setData(res.data.data);
-//     } catch (err) {
-//       console.error(err);
-//     }
-//     setLoading(false);
-//   };
-
-//   useEffect(() => {
-//     fetchData();
-//   }, []);
-
-//   // ================= FILTER =================
-//   const filteredData = data?.filter((row) => {
-//     return (
-//       row.pubam?.toLowerCase().includes(filters.pubam.toLowerCase()) &&
-//       row.pubid?.toString().includes(filters.pubid) &&
-//       row.pid?.toLowerCase().includes(filters.pid.toLowerCase())
-//     );
-//   });
-
-//   // ================= COMMON CELL =================
-//   const renderCell = (value, colorKey) => {
-//     return {
-//       children: value,
-//       props: {
-//         style: {
-//           background: colorMap[colorKey] || "transparent",
-//           textAlign: "center",
-//         },
-//       },
-//     };
-//   };
-
-//   // ================= KPI COLUMN BUILDER =================
-//   const buildKPI = (title, key) => ({
-//     title,
-//     children: [
-//       {
-//         title: "MTD",
-//         dataIndex: `${key}_mtd`,
-//         sorter: (a, b) => a[`${key}_mtd`] - b[`${key}_mtd`],
-//         render: (_, row) =>
-//           renderCell(row[`${key}_mtd`], row[`${key}_mtd_color`]),
-//       },
-//       {
-//         title: "7D",
-//         dataIndex: `${key}_7d`,
-//         sorter: (a, b) => a[`${key}_7d`] - b[`${key}_7d`],
-//         render: (_, row) =>
-//           renderCell(row[`${key}_7d`], row[`${key}_7d_color`]),
-//       },
-//       {
-//         title: "3D",
-//         dataIndex: `${key}_3d`,
-//         sorter: (a, b) => a[`${key}_3d`] - b[`${key}_3d`],
-//         render: (_, row) =>
-//           renderCell(row[`${key}_3d`], row[`${key}_3d_color`]),
-//       },
-//     ],
-//   });
-
-//   // ================= COLUMNS =================
-//   const columns = [
-//     {
-//       title: "POC (PubAM)",
-//       dataIndex: "pubam",
-//       fixed: "left",
-//       width: 150,
-//     },
-//     {
-//       title: "PubID",
-//       dataIndex: "pubid",
-//       fixed: "left",
-//       width: 120,
-//     },
-//     {
-//       title: "PID",
-//       dataIndex: "pid",
-//       fixed: "left",
-//       width: 200,
-//       render: (text, row) => ({
-//         children: text,
-//         props: {
-//           style: {
-//             background: colorMap[row.pid_color],
-//             fontWeight: "bold",
-//           },
-//         },
-//       }),
-//     },
-
-//     // ===== KPIs =====
-//     buildKPI("Clicks", "clicks"),
-//     buildKPI("Installs", "installs"),
-//     buildKPI("C2I", "c2i"),
-//     buildKPI("RT Install", "rt_install"),
-//     buildKPI("PA Install", "pa_install"),
-//     buildKPI("Install Fraud", "install_fraud"),
-//     buildKPI("E1", "E1_count"),
-//     buildKPI("CR E1", "cr_E1"),
-//     buildKPI("E2", "E2_count"),
-//     buildKPI("CR E2", "cr_E2"),
-//     buildKPI("PA E2", "pa_E2"),
-//   ];
-
-//   return (
-//     <>
-//     <div style={{ padding: 20 }}>
-//       <h2>Campaign Analytics</h2>
-
-//       {/* ================= FILTER UI ================= */}
-//       <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-//         <Input
-//           placeholder="Filter PubAM"
-//           onChange={(e) => setFilters({ ...filters, pubam: e.target.value })}
-//         />
-//         <Input
-//           placeholder="Filter PubID"
-//           onChange={(e) => setFilters({ ...filters, pubid: e.target.value })}
-//         />
-//         <Input
-//           placeholder="Filter PID"
-//           onChange={(e) => setFilters({ ...filters, pid: e.target.value })}
-//         />
-//       </div>
-
-//       {/* ================= TABLE ================= */}
-//       {loading ? (
-//         <Spin />
-//       ) : (
-//         <Table
-//           columns={columns}
-//           dataSource={filteredData}
-//           rowKey={(row) => row.pid + row.pubid}
-//           scroll={{ x: "max-content" }}
-//           bordered
-//         />
-//       )}
-//     </div>
-//     <DecisionTable />
-//     </>
-//   );
-// };
-
-// export default CampaignAnalyticsTable;
-
 // CampaignAnalyticsTable.jsx
 
 import React, { useEffect, useMemo, useState, startTransition } from "react";
@@ -202,14 +11,17 @@ import {
   Col,
   Typography,
   Checkbox,
+  Button,
 } from "antd";
+
+import { FileExcelOutlined } from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
 import DecisionTable from "./DecisionTable";
 import { sortDropdownValues } from "../../Utils/sortDropdownValues";
 import UploadForm from "./UploadForm";
 import { useSelector } from "react-redux";
-
+import { exportToExcel } from "../exportExcel";
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 const { Title } = Typography;
@@ -220,22 +32,18 @@ const colorMap = {
   red: "#ff4d4f",
   orange: "#fa8c16",
   yellow: "#fadb14",
-  blue: "#1677ff",
+  blue: "#fadb14",
 
   // PID COLORS
-  gold: "#ffd700",
-  black: "#262626",
+  gold: "#52c41a",
+  black: "#ff4d4f",
   grey: "#bfbfbf",
-  purple: "#d3adf7",
+  purple: "#fa8c16",
 };
 
 // ================= TEXT COLOR =================
 const getTextColor = (bg) => {
   if (!bg) return "#ffffff";
-
-  const darkColors = ["black", "blue", "red"];
-
-  return darkColors.includes(bg) ? "#ffffff" : "#000000";
 };
 const API = import.meta.env.VITE_API_URL2;
 const apiUrl = import.meta.env.VITE_API_URL;
@@ -562,7 +370,7 @@ const CampaignAnalyticsTable = () => {
   // ================= KPI BUILDER =================
   // ================= KPI BUILDER =================
   // DYNAMIC WINDOW KEYS + DYNAMIC COLUMN TITLES
-  const KPI_COL_WIDTH = 110;
+  const KPI_COL_WIDTH = 150;
   const buildKPI = (title, key) => {
     const primaryWindow = payload.windows.primary;
     const secondaryWindow = payload.windows.secondary;
@@ -626,6 +434,41 @@ const CampaignAnalyticsTable = () => {
 
     return Array.from({ length: diff }, (_, i) => i + 1);
   }, [payload.start_date, payload.end_date]);
+  // ================= DYNAMIC EVENTS =================
+  const dynamicEventColumns = useMemo(() => {
+    if (!data.length) return [];
+
+    const sampleRow = data[0];
+
+    // find E1_count, E2_count, E3_count etc
+    const eventNumbers = Array.from(
+      new Set(
+        Object.keys(sampleRow)
+          .filter((key) => /^E\d+_count_mtd$/.test(key))
+          .map((key) => key.match(/^E(\d+)_count_mtd$/)?.[1]),
+      ),
+    ).sort((a, b) => Number(a) - Number(b));
+
+    const cols = [];
+
+    eventNumbers.forEach((num) => {
+      // EVENT COUNT
+      cols.push(buildKPI(`E${num}`, `E${num}_count`));
+
+      // CR EVENT
+
+      if (sampleRow[`cr_E${num}_mtd`] !== undefined) {
+        cols.push(buildKPI(`CR E${num}`, `cr_E${num}`));
+      }
+      // PAE EVENT ONLY
+      // PAE EVENT (skip E1)
+      if (Number(num) !== 1 && sampleRow[`pae_E${num}_mtd`] !== undefined) {
+        cols.push(buildKPI(`PA E${num}`, `pae_E${num}`));
+      }
+    });
+
+    return cols;
+  }, [data, payload.windows]);
   // ================= COLUMNS =================
   const columns = [
     {
@@ -676,17 +519,15 @@ const CampaignAnalyticsTable = () => {
     },
 
     // ================= KPI =================
+    // ================= KPI =================
     buildKPI("Clicks", "clicks"),
     buildKPI("Installs", "installs"),
     buildKPI("C2I", "c2i"),
     buildKPI("RT Install", "rt_install"),
     buildKPI("PA Install", "pa_install"),
     buildKPI("Install Fraud", "install_fraud"),
-    buildKPI("E1", "E1_count"),
-    buildKPI("CR E1", "cr_E1"),
-    buildKPI("E2", "E2_count"),
-    buildKPI("CR E2", "cr_E2"),
-    buildKPI("PA E2", "pae_E2"),
+
+    ...dynamicEventColumns,
   ];
 
   return (
@@ -821,6 +662,38 @@ const CampaignAnalyticsTable = () => {
                   ))}
                 </Select>
               </Col>
+              {/* ================= ACTION BUTTONS ================= */}
+              <Row justify="end" style={{ marginBottom: 16 }}>
+                <Button
+                  type="primary"
+                  icon={<FileExcelOutlined />}
+                  onClick={() => {
+                    const exportData = filteredData.map((row) => {
+                      const obj = {};
+
+                      columns.forEach((col) => {
+                        // Skip grouped parent columns
+                        if (col.children) {
+                          col.children.forEach((child) => {
+                            obj[`${col.title} ${child.title}`] =
+                              row[child.dataIndex] ?? "";
+                          });
+                        } else {
+                          obj[col.title] = row[col.dataIndex] ?? "";
+                        }
+                      });
+
+                      return obj;
+                    });
+
+                    exportToExcel(
+                      exportData,
+                      `${payload.campaign_name || "campaign"}_${payload.os}.xlsx`,
+                    );
+                  }}>
+                  Download Excel
+                </Button>
+              </Row>
             </Row>
 
             {/* ================= TABLE ================= */}
@@ -842,13 +715,13 @@ const CampaignAnalyticsTable = () => {
                   defaultPageSize: 10,
                 }}
                 summary={(pageData) => {
-                  // helper for normal numbers
+                  // normal sum
                   const sumNumber = (key) =>
                     pageData.reduce((acc, row) => {
                       return acc + (Number(row[key]) || 0);
                     }, 0);
 
-                  // helper for values like "12 (5%)"
+                  // values like "12 (5%)"
                   const sumStringNumber = (key) =>
                     pageData.reduce((acc, row) => {
                       const raw = row[key];
@@ -860,6 +733,86 @@ const CampaignAnalyticsTable = () => {
                       return acc + (num || 0);
                     }, 0);
 
+                  // percentage formatter
+                  const calcPercent = (numerator, denominator) => {
+                    if (!denominator || denominator === 0) return "0%";
+
+                    return `${((numerator / denominator) * 100).toFixed(2)}%`;
+                  };
+
+                  // render helper
+                  const valueWithPercent = (value, percent) => (
+                    <span>
+                      <span style={{ fontWeight: 700 }}>{value}</span>{" "}
+                      <span style={{ color: "#1677ff", fontWeight: 700 }}>
+                        ({percent})
+                      </span>
+                    </span>
+                  );
+
+                  // ================= TOTALS =================
+
+                  const totalClicksMTD = sumNumber("clicks_mtd");
+                  const totalClicksPrimary = sumNumber(
+                    `clicks_${payload.windows.primary}d`,
+                  );
+                  const totalClicksSecondary = sumNumber(
+                    `clicks_${payload.windows.secondary}d`,
+                  );
+
+                  const totalInstallsMTD = sumNumber("installs_mtd");
+                  const totalInstallsPrimary = sumNumber(
+                    `installs_${payload.windows.primary}d`,
+                  );
+                  const totalInstallsSecondary = sumNumber(
+                    `installs_${payload.windows.secondary}d`,
+                  );
+
+                  const totalRTMTD = sumStringNumber("rt_install_mtd");
+                  const totalRTPrimary = sumStringNumber(
+                    `rt_install_${payload.windows.primary}d`,
+                  );
+                  const totalRTSecondary = sumStringNumber(
+                    `rt_install_${payload.windows.secondary}d`,
+                  );
+
+                  const totalPAMTD = sumStringNumber("pa_install_mtd");
+                  const totalPAPrimary = sumStringNumber(
+                    `pa_install_${payload.windows.primary}d`,
+                  );
+                  const totalPASecondary = sumStringNumber(
+                    `pa_install_${payload.windows.secondary}d`,
+                  );
+
+                  // ================= DYNAMIC SUMMARY HELPERS =================
+
+                  const getEventNumbers = () => {
+                    if (!pageData.length) return [];
+
+                    return Array.from(
+                      new Set(
+                        Object.keys(pageData[0])
+                          .filter((key) => /^E\d+_count_mtd$/.test(key))
+                          .map((key) => key.match(/^E(\d+)_count_mtd$/)?.[1]),
+                      ),
+                    ).sort((a, b) => Number(a) - Number(b));
+                  };
+
+                  const eventNumbers = getEventNumbers();
+
+                  const getMetricTotals = (metricKey, isString = false) => {
+                    const sumFn = isString ? sumStringNumber : sumNumber;
+
+                    return {
+                      mtd: sumFn(`${metricKey}_mtd`),
+                      primary: sumFn(
+                        `${metricKey}_${payload.windows.primary}d`,
+                      ),
+                      secondary: sumFn(
+                        `${metricKey}_${payload.windows.secondary}d`,
+                      ),
+                    };
+                  };
                   return (
                     <Table.Summary fixed>
                       <Table.Summary.Row
@@ -868,23 +821,19 @@ const CampaignAnalyticsTable = () => {
                           fontWeight: 700,
                         }}>
                         {/* FIXED COLUMNS */}
-                        {/* FIXED COLUMNS */}
                         <Table.Summary.Cell
                           index={0}
                           style={{ width: 150, minWidth: 150 }}>
                           TOTAL
                         </Table.Summary.Cell>
-
                         <Table.Summary.Cell
                           index={1}
                           style={{ width: 120, minWidth: 120 }}
                         />
-
                         <Table.Summary.Cell
                           index={2}
                           style={{ width: 220, minWidth: 220 }}
                         />
-
                         {/* CLICKS */}
                         <Table.Summary.Cell index={3}>
                           {sumNumber("clicks_mtd")}
@@ -895,7 +844,6 @@ const CampaignAnalyticsTable = () => {
                         <Table.Summary.Cell index={5}>
                           {sumNumber(`clicks_${payload.windows.secondary}d`)}
                         </Table.Summary.Cell>
-
                         {/* INSTALLS */}
                         <Table.Summary.Cell index={6}>
                           {sumNumber("installs_mtd")}
@@ -906,83 +854,230 @@ const CampaignAnalyticsTable = () => {
                         <Table.Summary.Cell index={8}>
                           {sumNumber(`installs_${payload.windows.secondary}d`)}
                         </Table.Summary.Cell>
-
                         {/* C2I */}
-                        <Table.Summary.Cell index={9} />
-                        <Table.Summary.Cell index={10} />
-                        <Table.Summary.Cell index={11} />
-
+                        <Table.Summary.Cell index={9}>
+                          {valueWithPercent(
+                            totalInstallsMTD,
+                            calcPercent(totalInstallsMTD, totalClicksMTD),
+                          )}
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell index={10}>
+                          {valueWithPercent(
+                            totalInstallsPrimary,
+                            calcPercent(
+                              totalInstallsPrimary,
+                              totalClicksPrimary,
+                            ),
+                          )}
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell index={11}>
+                          {valueWithPercent(
+                            totalInstallsSecondary,
+                            calcPercent(
+                              totalInstallsSecondary,
+                              totalClicksSecondary,
+                            ),
+                          )}
+                        </Table.Summary.Cell>
                         {/* RT INSTALL */}
                         <Table.Summary.Cell index={12}>
-                          {sumStringNumber("rt_install_mtd")}
-                        </Table.Summary.Cell>
-                        <Table.Summary.Cell index={13}>
-                          {sumStringNumber(
-                            `rt_install_${payload.windows.primary}d`,
-                          )}
-                        </Table.Summary.Cell>
-                        <Table.Summary.Cell index={14}>
-                          {sumStringNumber(
-                            `rt_install_${payload.windows.secondary}d`,
+                          {valueWithPercent(
+                            totalRTMTD,
+                            calcPercent(totalRTMTD, totalInstallsMTD),
                           )}
                         </Table.Summary.Cell>
 
+                        <Table.Summary.Cell index={13}>
+                          {valueWithPercent(
+                            totalRTPrimary,
+                            calcPercent(totalRTPrimary, totalInstallsPrimary),
+                          )}
+                        </Table.Summary.Cell>
+
+                        <Table.Summary.Cell index={14}>
+                          {valueWithPercent(
+                            totalRTSecondary,
+                            calcPercent(
+                              totalRTSecondary,
+                              totalInstallsSecondary,
+                            ),
+                          )}
+                        </Table.Summary.Cell>
                         {/* PA INSTALL */}
                         <Table.Summary.Cell index={15}>
-                          {sumStringNumber("pa_install_mtd")}
-                        </Table.Summary.Cell>
-                        <Table.Summary.Cell index={16}>
-                          {sumStringNumber(
-                            `pa_install_${payload.windows.primary}d`,
-                          )}
-                        </Table.Summary.Cell>
-                        <Table.Summary.Cell index={17}>
-                          {sumStringNumber(
-                            `pa_install_${payload.windows.secondary}d`,
+                          {valueWithPercent(
+                            totalPAMTD,
+                            calcPercent(totalPAMTD, totalInstallsMTD),
                           )}
                         </Table.Summary.Cell>
 
+                        <Table.Summary.Cell index={16}>
+                          {valueWithPercent(
+                            totalPAPrimary,
+                            calcPercent(totalPAPrimary, totalInstallsPrimary),
+                          )}
+                        </Table.Summary.Cell>
+
+                        <Table.Summary.Cell index={17}>
+                          {valueWithPercent(
+                            totalPASecondary,
+                            calcPercent(
+                              totalPASecondary,
+                              totalInstallsSecondary,
+                            ),
+                          )}
+                        </Table.Summary.Cell>
                         {/* INSTALL FRAUD */}
                         <Table.Summary.Cell index={18}>
-                          {sumStringNumber("install_fraud_mtd")}
+                          {valueWithPercent(
+                            totalRTMTD + totalPAMTD,
+                            calcPercent(
+                              totalRTMTD + totalPAMTD,
+                              totalInstallsMTD,
+                            ),
+                          )}
                         </Table.Summary.Cell>
                         <Table.Summary.Cell index={19}>
-                          {sumStringNumber(
-                            `install_fraud_${payload.windows.primary}d`,
+                          {valueWithPercent(
+                            totalRTPrimary + totalPAPrimary,
+                            calcPercent(
+                              totalRTPrimary + totalPAPrimary,
+                              totalInstallsPrimary,
+                            ),
                           )}
                         </Table.Summary.Cell>
                         <Table.Summary.Cell index={20}>
-                          {sumStringNumber(
-                            `install_fraud_${payload.windows.secondary}d`,
+                          {valueWithPercent(
+                            totalRTSecondary + totalPASecondary,
+                            calcPercent(
+                              totalRTSecondary + totalPASecondary,
+                              totalInstallsSecondary,
+                            ),
                           )}
                         </Table.Summary.Cell>
+                        {/* DYNAMIC EVENTS */}
+                        {(() => {
+                          let currentIndex = 21;
 
-                        {/* E1 */}
-                        <Table.Summary.Cell index={21}>
-                          {sumNumber("E1_count_mtd")}
-                        </Table.Summary.Cell>
-                        <Table.Summary.Cell index={22}>
-                          {sumNumber(`E1_count_${payload.windows.primary}d`)}
-                        </Table.Summary.Cell>
-                        <Table.Summary.Cell index={23}>
-                          {sumNumber(`E1_count_${payload.windows.secondary}d`)}
-                        </Table.Summary.Cell>
+                          return eventNumbers.flatMap((num) => {
+                            const eventTotals = getMetricTotals(
+                              `E${num}_count`,
+                            );
 
-                        {/* CR E1 */}
-                        <Table.Summary.Cell index={24} />
-                        <Table.Summary.Cell index={25} />
-                        <Table.Summary.Cell index={26} />
+                            const cells = [
+                              // EVENT COUNT
+                              <Table.Summary.Cell
+                                key={`e${num}-mtd`}
+                                index={currentIndex++}>
+                                {eventTotals.mtd}
+                              </Table.Summary.Cell>,
 
-                        {/* E2 */}
-                        <Table.Summary.Cell index={27}>
-                          {sumNumber("E2_count_mtd")}
-                        </Table.Summary.Cell>
-                        <Table.Summary.Cell index={28}>
-                          {sumNumber(`E2_count_${payload.windows.primary}d`)}
-                        </Table.Summary.Cell>
-                        <Table.Summary.Cell index={29}>
-                          {sumNumber(`E2_count_${payload.windows.secondary}d`)}
-                        </Table.Summary.Cell>
+                              <Table.Summary.Cell
+                                key={`e${num}-p`}
+                                index={currentIndex++}>
+                                {eventTotals.primary}
+                              </Table.Summary.Cell>,
+
+                              <Table.Summary.Cell
+                                key={`e${num}-s`}
+                                index={currentIndex++}>
+                                {eventTotals.secondary}
+                              </Table.Summary.Cell>,
+                            ];
+
+                            // CR EVENT
+                            // Skip E1 as it's handled differently
+
+                            if (pageData[0][`cr_E${num}_mtd`] !== undefined) {
+                              cells.push(
+                                <Table.Summary.Cell
+                                  key={`cr-e${num}-mtd`}
+                                  index={currentIndex++}>
+                                  {valueWithPercent(
+                                    eventTotals.mtd,
+                                    calcPercent(
+                                      eventTotals.mtd,
+                                      totalInstallsMTD,
+                                    ),
+                                  )}
+                                </Table.Summary.Cell>,
+
+                                <Table.Summary.Cell
+                                  key={`cr-e${num}-p`}
+                                  index={currentIndex++}>
+                                  {valueWithPercent(
+                                    eventTotals.primary,
+                                    calcPercent(
+                                      eventTotals.primary,
+                                      totalInstallsPrimary,
+                                    ),
+                                  )}
+                                </Table.Summary.Cell>,
+
+                                <Table.Summary.Cell
+                                  key={`cr-e${num}-s`}
+                                  index={currentIndex++}>
+                                  {valueWithPercent(
+                                    eventTotals.secondary,
+                                    calcPercent(
+                                      eventTotals.secondary,
+                                      totalInstallsSecondary,
+                                    ),
+                                  )}
+                                </Table.Summary.Cell>,
+                              );
+                            }
+
+                            // PAE EVENT
+                            // Skip E1 as it's handled differently
+                            if (
+                              Number(num) !== 1 &&
+                              pageData[0][`pae_E${num}_mtd`] !== undefined
+                            ) {
+                              const paeTotals = getMetricTotals(
+                                `pae_E${num}`,
+                                true,
+                              );
+
+                              cells.push(
+                                <Table.Summary.Cell
+                                  key={`pae-e${num}-mtd`}
+                                  index={currentIndex++}>
+                                  {valueWithPercent(
+                                    paeTotals.mtd,
+                                    calcPercent(paeTotals.mtd, eventTotals.mtd),
+                                  )}
+                                </Table.Summary.Cell>,
+
+                                <Table.Summary.Cell
+                                  key={`pae-e${num}-p`}
+                                  index={currentIndex++}>
+                                  {valueWithPercent(
+                                    paeTotals.primary,
+                                    calcPercent(
+                                      paeTotals.primary,
+                                      eventTotals.primary,
+                                    ),
+                                  )}
+                                </Table.Summary.Cell>,
+
+                                <Table.Summary.Cell
+                                  key={`pae-e${num}-s`}
+                                  index={currentIndex++}>
+                                  {valueWithPercent(
+                                    paeTotals.secondary,
+                                    calcPercent(
+                                      paeTotals.secondary,
+                                      eventTotals.secondary,
+                                    ),
+                                  )}
+                                </Table.Summary.Cell>,
+                              );
+                            }
+
+                            return cells;
+                          });
+                        })()}
                       </Table.Summary.Row>
                     </Table.Summary>
                   );
@@ -1030,7 +1125,6 @@ const CampaignAnalyticsTable = () => {
               /* ROW HOVER */
               .custom-table .ant-table-tbody > tr.ant-table-row:hover > td {
                 background: #fafafa !important;
-                color: black !important;
               }
             `}</style>
           </div>
