@@ -55,6 +55,7 @@ const AdvertiserData = () => {
 
   const [data, setData] = useState([]);
   const [savingTable, setSavingTable] = useState(false);
+  const [loadingData, setLoadingData] = useState(false);
   const [filterSearch, setFilterSearch] = useState({});
   const [sortInfo, setSortInfo] = useState({ columnKey: null, order: null });
   const [searchInput, setSearchInput] = useState(""); // fast UI typing
@@ -129,6 +130,7 @@ const AdvertiserData = () => {
     fetchData();
   }, [selectedDateRange]);
   const fetchData = useCallback(async () => {
+    setLoadingData(true);
     try {
       const [startDate, endDate] = selectedDateRange;
       console.log(`${apiUrl}/advdata-byuser/${userId}`);
@@ -156,6 +158,8 @@ const AdvertiserData = () => {
     } catch (error) {
       console.error("fetchData error:", error);
       message.error("Failed to fetch data");
+    } finally {
+      setLoadingData(false);
     }
   }, [userId, selectedDateRange]);
   const fetchCampaignList = async () => {
@@ -219,6 +223,7 @@ const AdvertiserData = () => {
   //   }
   // };
   const fetchSubAdminData = async (selectedAdmins) => {
+    setLoadingData(true);
     try {
       if (selectedAdmins.length === 0) {
         setRoleData([]);
@@ -248,20 +253,26 @@ const AdvertiserData = () => {
       console.log("New Role Data:", newRoleData);
       setRoleData(newRoleData);
 
-      const mergedData = [
-        ...data,
-        ...newRoleData.flatMap((r) =>
+      // Use functional update to avoid stale closure on `data`.
+      // Strip ALL existing sub-admin rows first, then re-add fresh rows for
+      // every currently selected admin. This prevents duplicates when a second
+      // admin is added and correctly removes rows when one is deselected.
+      setData((prev) => {
+        const baseRows = prev.filter((item) => !item.subadminId);
+        const subRows = newRoleData.flatMap((r) =>
           (r.data?.advertiser_data || r.data || []).map((item) => ({
             ...item,
             subadminId: r.adminId,
           })),
-        ),
-      ];
-      console.log("Merged Data:", mergedData);
-      setData(mergedData);
+        );
+        console.log("Merged Data:", [...baseRows, ...subRows]);
+        return [...baseRows, ...subRows];
+      });
     } catch (error) {
       console.error("Error fetching subadmin data:", error);
       message.error("Failed to fetch subadmin data");
+    } finally {
+      setLoadingData(false);
     }
   };
   useEffect(() => {
@@ -485,14 +496,16 @@ const AdvertiserData = () => {
   //     return { ...prev, [key]: values };
   //   });
   // };
-  const handleFilterChange = (values, key) => {
+  const handleFilterChange = (values, key, fromSelectAll = false) => {
     startTransition(() => {
       setFilters((prev) => {
-        const allValues = uniqueValues[key] || [];
-        if (values.length === allValues.length) {
-          const updated = { ...prev };
-          delete updated[key];
-          return updated;
+        if (fromSelectAll) {
+          const allValues = uniqueValues[key] || [];
+          if (values.length === allValues.length) {
+            const updated = { ...prev };
+            delete updated[key];
+            return updated;
+          }
         }
         return { ...prev, [key]: values };
       });
@@ -518,19 +531,6 @@ const AdvertiserData = () => {
     Object.keys(filters).forEach((key) => {
       const filterValue = filters[key];
       if (!filterValue || filterValue.length === 0) return;
-
-      // Date range on column
-      if (
-        Array.isArray(filterValue) &&
-        filterValue.length === 2 &&
-        dayjs(filterValue[0]).isValid()
-      ) {
-        const [start, end] = filterValue;
-        filtered = filtered.filter((item) =>
-          dayjs(item[key]).isBetween(start, end, null, "[]"),
-        );
-        return;
-      }
 
       const normalize = (val) =>
         val === null || val === undefined || val.toString().trim() === ""
@@ -1380,7 +1380,7 @@ const AdvertiserData = () => {
                   indeterminate={isIndeterminate}
                   checked={isAllSelected}
                   onChange={(e) =>
-                    handleFilterChange(e.target.checked ? allValues : [], key)
+                    handleFilterChange(e.target.checked ? allValues : [], key, true)
                   }>
                   <span className="font-medium text-base text-gray-700">
                     Select All
@@ -1705,10 +1705,14 @@ const AdvertiserData = () => {
             </div>
           ) : !showSubadminData ? (
             <StyledTable
-              loading={savingTable}
+              loading={savingTable || loadingData}
               columns={columns}
               dataSource={finalFilteredData}
-              rowKey="id"
+              rowKey={(record) =>
+                record.subadminId
+                  ? `sub-${record.subadminId}-${record.id}`
+                  : String(record.id)
+              }
               pagination={{
                 pageSizeOptions: ["10", "20", "50", "100", "200", "500"],
                 showSizeChanger: true,
