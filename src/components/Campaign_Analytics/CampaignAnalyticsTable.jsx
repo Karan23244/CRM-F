@@ -50,7 +50,7 @@ const apiUrl = import.meta.env.VITE_API_URL;
 
 const CampaignAnalyticsTable = () => {
   const user = useSelector((state) => state.auth.user);
-  console.log("User Permissions:", user);
+  console.log("User from Redux:", user);
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -63,8 +63,13 @@ const CampaignAnalyticsTable = () => {
   const [payload, setPayload] = useState({
     campaign_name: "",
     os: "android",
-    start_date: dayjs().subtract(30, "day").format("YYYY-MM-DD"),
+
+    // current month first date
+    start_date: dayjs().startOf("month").format("YYYY-MM-DD"),
+
+    // today
     end_date: dayjs().format("YYYY-MM-DD"),
+
     windows: {
       primary: 7,
       secondary: 3,
@@ -77,6 +82,9 @@ const CampaignAnalyticsTable = () => {
     "pub_executive",
     "optimization",
     "operations",
+    "advertiser",
+    "advertiser_manager",
+    "adv_executive",
   ];
 
   const hasAccess = user?.role?.some((r) => allowedRoles.includes(r));
@@ -101,15 +109,55 @@ const CampaignAnalyticsTable = () => {
   }, [hasAccess]);
 
   // ================= FETCH CAMPAIGNS =================
+  // const fetchCampaigns = async () => {
+  //   try {
+  //     const res = await axios.get(`${API}/api/campaign_analytics/campaigns`);
+
+  //     const uniqueCampaigns = [...new Set(res.data.data || [])];
+
+  //     setCampaigns(uniqueCampaigns);
+
+  //     // auto select first campaign
+  //     if (uniqueCampaigns.length > 0) {
+  //       setPayload((prev) => ({
+  //         ...prev,
+  //         campaign_name: uniqueCampaigns[0],
+  //       }));
+  //     }
+  //   } catch (err) {
+  //     console.error(err);
+  //   }
+  // };
   const fetchCampaigns = async () => {
     try {
-      const res = await axios.get(`${API}/api/campaign_analytics/campaigns`);
+      const restrictedRoles = [
+        "advertiser",
+        "advertiser_manager",
+        "adv_executive",
+      ];
 
+      let payload = {};
+
+      // only send for restricted advertiser roles
+      if (user?.role?.some((role) => restrictedRoles.includes(role))) {
+        console.log("User role is restricted. Sending user-specific payload.");
+
+        payload = {
+          user_id: user?.id,
+          role: user?.role,
+          assign_subadmins: user?.assigned_subadmins || [],
+        };
+      }
+      console.log("Campaigns API Payload:", payload);
+      const res = await axios.post(
+        `${API}/api/campaign_analytics/campaigns`,
+        payload,
+      );
+      console.log("Campaigns API Response:", res.data);
       const uniqueCampaigns = [...new Set(res.data.data || [])];
 
       setCampaigns(uniqueCampaigns);
 
-      // auto select first campaign
       if (uniqueCampaigns.length > 0) {
         setPayload((prev) => ({
           ...prev,
@@ -120,16 +168,14 @@ const CampaignAnalyticsTable = () => {
       console.error(err);
     }
   };
-
   // ================= FETCH DATA =================
   const fetchData = async () => {
     if (!payload.campaign_name) return;
 
     setLoading(true);
-    console.log(payload);
     try {
       const res = await axios.post(`${API}/api/campaign_analytics`, payload);
-      console.log("API Response:", res);
+      console.log("API Response:", res.data);
       setData(res.data.data || []);
     } catch (err) {
       console.error(err);
@@ -186,7 +232,10 @@ const CampaignAnalyticsTable = () => {
       // operations & optimization can see all data
       if (
         user?.role?.includes("operations") ||
-        user?.role?.includes("optimization")
+        user?.role?.includes("optimization") ||
+        user?.role?.includes("advertiser") ||
+        user?.role?.includes("advertiser_manager") ||
+        user?.role?.includes("adv_executive")
       ) {
         return true;
       }
@@ -601,6 +650,10 @@ const CampaignAnalyticsTable = () => {
                 <RangePicker
                   style={{ width: "100%" }}
                   value={[dayjs(payload.start_date), dayjs(payload.end_date)]}
+                  // disable future dates
+                  disabledDate={(current) =>
+                    current && current > dayjs().endOf("day")
+                  }
                   onChange={(dates) => {
                     if (!dates) return;
 
