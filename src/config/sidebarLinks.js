@@ -288,7 +288,13 @@ export const sidebarLinks = [
       {
         to: "campaign-config",
         label: "Campaign Configuration",
-        roles: ["operations", "admin","publisher_manager","publisher","optimization"],
+        roles: [
+          "operations",
+          "admin",
+          "publisher_manager",
+          "publisher",
+          "optimization",
+        ],
       },
       {
         to: "reportform",
@@ -316,7 +322,7 @@ export const sidebarLinks = [
           "adv_executive",
         ],
       },
-        {
+      {
         to: "newanalytics",
         label: "New Analytics",
         roles: [
@@ -326,6 +332,9 @@ export const sidebarLinks = [
           "operations",
           "optimization",
           "pub_executive",
+          "adv_executive",
+          "advertiser",
+          "advertiser_manager",
         ],
       },
     ],
