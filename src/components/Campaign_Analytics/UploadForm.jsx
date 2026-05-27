@@ -45,6 +45,7 @@ export default function UploadForm({ onUploadSuccess }) {
   const [socketId, setSocketId] = useState(null);
   const [availableOS, setAvailableOS] = useState([]);
   const [configuredCampaigns, setConfiguredCampaigns] = useState([]);
+  console.log("Configured campaigns state:", configuredCampaigns);
   // Track socket.id so we can send it to backend
   useEffect(() => {
     const handleConnect = () => {
@@ -66,7 +67,7 @@ export default function UploadForm({ onUploadSuccess }) {
     const fetchConfiguredCampaigns = async () => {
       try {
         const res = await axios.get(`${apiUrl}/api/configured-campaigns`);
-
+        console.log("Configured campaigns:", res.data);
         setConfiguredCampaigns(res.data.data || []);
       } catch (err) {
         console.error("Failed to fetch configured campaigns", err);
@@ -174,6 +175,12 @@ export default function UploadForm({ onUploadSuccess }) {
     socket.on("uploadComplete", handler);
     return () => socket.off("uploadComplete", handler);
   }, [user]);
+  // unique campaigns by display_name
+  const uniqueCampaigns = [
+    ...new Map(
+      configuredCampaigns.map((item) => [item.display_name, item]),
+    ).values(),
+  ];
   return (
     <div className=" flex items-center justify-center bg-gradient-to-br from-[#EAF1FA] via-[#F6F9FC] to-[#FFFFFF] p-8">
       <Card
@@ -202,7 +209,7 @@ export default function UploadForm({ onUploadSuccess }) {
               <span className="font-medium text-[#2F5D99]">Campaign Name</span>
             }
             rules={[{ required: true, message: "Please enter campaign name" }]}>
-            <Select
+            {/* <Select
               size="large"
               placeholder="Select campaign"
               showSearch
@@ -236,6 +243,50 @@ export default function UploadForm({ onUploadSuccess }) {
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="font-semibold">{c.display_name}</div>
+                    </div>
+                  </div>
+                </Select.Option>
+              ))}
+            </Select> */}
+            <Select
+              size="large"
+              placeholder="Select campaign"
+              showSearch
+              optionFilterProp="label"
+              className="rounded-lg"
+              onChange={(value) => {
+                const selectedCampaigns = configuredCampaigns.filter(
+                  (c) => c.display_name === value,
+                );
+
+                // get unique OS list
+                const osList = [...new Set(selectedCampaigns.map((c) => c.os))];
+
+                if (osList.length === 1) {
+                  form.setFieldsValue({ os: osList[0] });
+                } else {
+                  form.setFieldsValue({ os: undefined });
+                }
+
+                setAvailableOS(osList);
+              }}>
+              {uniqueCampaigns.map((c) => (
+                <Select.Option
+                  key={c.display_name}
+                  value={c.display_name}
+                  label={c.display_name}>
+                  <div className="flex items-center justify-between">
+                    <div className="font-semibold">{c.display_name}</div>
+
+                    {/* show available OS */}
+                    <div className="text-xs text-gray-400">
+                      {[
+                        ...new Set(
+                          configuredCampaigns
+                            .filter((x) => x.display_name === c.display_name)
+                            .map((x) => x.os),
+                        ),
+                      ].join(" / ")}
                     </div>
                   </div>
                 </Select.Option>

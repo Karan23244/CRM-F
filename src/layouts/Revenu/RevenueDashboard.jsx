@@ -4,11 +4,12 @@ import axios from "axios";
 import dayjs from "dayjs";
 import RevenueSection from "./RevenueSection";
 import { useSelector } from "react-redux";
+import { assign } from "lodash";
 
 const { TabPane } = Tabs;
 const apiUrl = import.meta.env.VITE_API_URL;
 
-const API = `${apiUrl}/analytics/revenue`;
+const API = `http://localhost:2001/analytics/revenue`;
 
 const RevenueDashboard = () => {
   const user = useSelector((state) => state.auth?.user);
@@ -18,17 +19,31 @@ const RevenueDashboard = () => {
 
   const fetchData = async () => {
     setLoading(true);
+
     try {
-      const res = await axios.post(API, {
+      const payload = {
         user_id: user.id,
         role: user.role[0],
         month: month.format("YYYY-MM"),
-      });
+
+        assign_subadmin:
+          user.role[0] === "publisher_manager"
+            ? user.assigned_subadmins || []
+            : [],
+      };
+
+      console.log("Payload:", payload);
+
+      const res = await axios.post(API, payload);
+
+      console.log("Revenue data:", res.data);
 
       setData(res.data);
     } catch (err) {
+      console.log(err);
       message.error("Failed to load revenue data");
     }
+
     setLoading(false);
   };
 
