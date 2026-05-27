@@ -41,8 +41,14 @@ function AdvertiserAccount() {
   const [pinnedColumns, setPinnedColumns] = useState({});
   const [filterSearch, setFilterSearch] = useState({});
   const [uniqueValues, setUniqueValues] = useState({});
-  const normalize = (val) => {
+  const normalize = (val, key = "") => {
     if (val === null || val === undefined || val === "") return "-";
+
+    // ✅ Format date fields without time
+    if (key === "payment_date" || key === "invoice_date") {
+      return dayjs(val).isValid() ? dayjs(val).format("DD-MM-YYYY") : "-";
+    }
+
     return val.toString().trim();
   };
 
@@ -85,15 +91,27 @@ function AdvertiserAccount() {
   /* ============================= */
 
   const DueStatusCell = ({ record }) => {
-    if (record.payment_status === "Paid") {
-      return <Tag color="green">PAID</Tag>;
+    // ✅ Payment received
+    if (record.payment_date) {
+      return <Tag color="green">RECEIVED</Tag>;
     }
 
+    // ✅ Invoice not raised
     if (!record.invoice_date) {
       return <Tag color="blue">NOT ISSUED</Tag>;
     }
 
-    const isOverdue = dayjs().isAfter(dayjs(record.invoice_date));
+    // ✅ Parse payment terms
+    let days = 0;
+
+    if (record.payment_terms) {
+      days = parseInt(record.payment_terms.replace("d", ""));
+    }
+
+    // ✅ Due date
+    const dueDate = dayjs(record.invoice_date).add(days, "day");
+
+    const isOverdue = dayjs().isAfter(dueDate, "day");
 
     return isOverdue ? (
       <Tag color="red">OVERDUE</Tag>
@@ -103,10 +121,19 @@ function AdvertiserAccount() {
   };
 
   const AmountUseCell = ({ record }) => {
-    const overdue =
-      record.payment_status !== "Paid" &&
-      record.invoice_date &&
-      dayjs().isAfter(dayjs(record.invoice_date));
+    let overdue = false;
+
+    if (!record.payment_date && record.invoice_date) {
+      let days = 0;
+
+      if (record.payment_terms) {
+        days = parseInt(record.payment_terms.replace("d", ""));
+      }
+
+      const dueDate = dayjs(record.invoice_date).add(days, "day");
+
+      overdue = dayjs().isAfter(dueDate, "day");
+    }
 
     return (
       <span
@@ -249,7 +276,7 @@ function AdvertiserAccount() {
     data.forEach((row) => {
       Object.keys(row).forEach((key) => {
         if (!valuesObj[key]) valuesObj[key] = new Set();
-        valuesObj[key].add(normalize(row[key]));
+        valuesObj[key].add(normalize(row[key], key));
       });
     });
 
@@ -263,7 +290,7 @@ function AdvertiserAccount() {
   const filteredData = data.filter((row) => {
     return Object.entries(filters).every(([key, values]) => {
       if (!values || values.length === 0) return true;
-      return values.includes(normalize(row[key]));
+      return values.includes(normalize(row[key], key));
     });
   });
   /* ============================= */
@@ -279,21 +306,24 @@ function AdvertiserAccount() {
       </Tooltip>
     )),
 
-    getColumnWithFilterAndPin("month", "Month"),
+    getColumnWithFilterAndPin("month", "Activity Month"),
 
-    getColumnWithFilterAndPin("total_amount", "Amount ($)", (_, r) => (
-      <AmountUseCell record={r} />
-    )),
+    getColumnWithFilterAndPin(
+      "total_amount",
+      "PID Metric Amount ($)",
+      (_, r) => <AmountUseCell record={r} />,
+    ),
 
     getColumnWithFilterAndPin("payment_status", "Due Status", (_, r) => (
       <DueStatusCell record={r} />
     )),
 
-    getColumnWithFilterAndPin("invoice_number", "Invoice"),
+    getColumnWithFilterAndPin("invoice_number", "Invoice Number"),
 
-    getColumnWithFilterAndPin("payment_date", "Payment Status Date"),
-
-    getColumnWithFilterAndPin("payment_receive_date", "Payment Receive Date"),
+    {
+      ...getColumnWithFilterAndPin("payment_date", "Payment Received Date"),
+      render: (value) => (value ? dayjs(value).format("DD-MM-YYYY") : "-"),
+    },
   ];
 
   return (

@@ -1,419 +1,3 @@
-// // pages/CampaignConfigPage.jsx
-// import React, { useEffect, useState, useCallback } from "react";
-// import {
-//   Select,
-//   InputNumber,
-//   Checkbox,
-//   Button,
-//   Form,
-//   message,
-//   Spin,
-//   Divider,
-//   Badge,
-// } from "antd";
-// import {
-//   SaveOutlined,
-//   SettingOutlined,
-//   ThunderboltOutlined,
-//   FunnelPlotOutlined,
-// } from "@ant-design/icons";
-// import { useSelector } from "react-redux";
-// import EventConfiguration from "./EventConfiguration";
-// import CRParameterCard from "./CRParameterCard";
-// import {
-//   createCampaignConfig,
-//   getCampaignConfig,
-//   updateCampaignConfig,
-// } from "../../Utils/campaign-config-api";
-// import axios from "axios";
-// import Swal from "sweetalert2";
-// const apiUrl = import.meta.env.VITE_API_URL;
-
-// const { Option } = Select;
-
-// // ─── Constants ────────────────────────────────────────────────────────────────
-// const IGNORE_METRICS = ["C2I", "Install Fraud", "I2E2", "PA E2"];
-
-// const RULE1_BASE_PARAMS = ["CTI", "ITE1", "ITE2"];
-// const RULE2_PARAMS = ["RI", "PI", "Total Install Fraud", "PA E2"];
-
-// // ─── Section Wrapper ──────────────────────────────────────────────────────────
-// const Section = ({ icon, title, badge, children }) => (
-//   <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-5">
-//     <div className="flex items-center gap-3 mb-5">
-//       <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 text-base">
-//         {icon}
-//       </div>
-//       <div>
-//         <h2 className="text-sm font-bold text-gray-800 leading-none">
-//           {title}
-//         </h2>
-//         {badge && (
-//           <span className="text-xs text-gray-400 mt-0.5 block">{badge}</span>
-//         )}
-//       </div>
-//     </div>
-//     {children}
-//   </div>
-// );
-
-// // ─── Main Component ───────────────────────────────────────────────────────────
-// const CampaignConfigPage = () => {
-//   const user = useSelector((state) => state.auth.user);
-//   const [form] = Form.useForm();
-
-//   // Campaign list
-//   const [campaigns, setCampaigns] = useState([]);
-//   const [campaignsLoading, setCampaignsLoading] = useState(false);
-
-//   // Selected campaign meta
-//   const [selectedCampaign, setSelectedCampaign] = useState(null);
-
-//   // Events
-//   const [events, setEvents] = useState(["E1", "E2"]);
-
-//   // Rule 1 params: CTI, ITE1, ITE2, + dynamic ITEn from events beyond E2
-//   const [rule1Params, setRule1Params] = useState(() =>
-//     Object.fromEntries(RULE1_BASE_PARAMS.map((p) => [p, {}])),
-//   );
-
-//   // Rule 2 params
-//   const [rule2Params, setRule2Params] = useState(() =>
-//     Object.fromEntries(RULE2_PARAMS.map((p) => [p, {}])),
-//   );
-
-//   // Ignore metrics
-//   const [ignoreMetrics, setIgnoreMetrics] = useState([]);
-
-//   // Submission state
-//   const [submitting, setSubmitting] = useState(false);
-//   const [existingConfigId, setExistingConfigId] = useState(null);
-//   // Fetch campaigns
-//   const fetchCampaigns = useCallback(async () => {
-//     try {
-//       const res = await axios.get(`${apiUrl}/campaigns`, {
-//         params: {
-//           user_id: user?.id || user?._id,
-//         },
-//       });
-
-//       const campaignsData = res.data.data || [];
-//       console.log("Fetched Campaigns:", campaignsData);
-//       setCampaigns(campaignsData);
-
-//       return campaignsData; // ✅ return data
-//     } catch (err) {
-//       console.error(err);
-//       Swal.fire("Error", "Failed to fetch campaigns", "error");
-//       return []; // ✅ avoid undefined
-//     }
-//   }, [user]);
-
-//   // ── Load campaigns ─────────────────────────────────────────
-//   useEffect(() => {
-//     const load = async () => {
-//       setCampaignsLoading(true);
-//       try {
-//         await fetchCampaigns(); // ✅ no need to store in variable
-//       } catch (err) {
-//         message.error("Failed to load campaigns");
-//       } finally {
-//         setCampaignsLoading(false);
-//       }
-//     };
-
-//     if (user) {
-//       load(); // ✅ only call when user exists
-//     }
-//   }, [fetchCampaigns, user]); // ✅ add dependencies
-
-//   // ── Sync dynamic ITE params from events ────────────────────────────────────
-//   useEffect(() => {
-//     setRule1Params((prev) => {
-//       const next = { ...prev };
-//       // Add ITE params for events beyond E2 (index >= 2)
-//       events.forEach((_, i) => {
-//         if (i >= 2) {
-//           const key = `ITE${i + 1}`;
-//           if (!next[key]) next[key] = {};
-//         }
-//       });
-//       // Remove stale ITE params that no longer have a corresponding event
-//       Object.keys(next).forEach((key) => {
-//         if (key.startsWith("ITE") && !["ITE1", "ITE2"].includes(key)) {
-//           const idx = parseInt(key.replace("ITE", ""), 10) - 1;
-//           if (idx >= events.length) delete next[key];
-//         }
-//       });
-//       return next;
-//     });
-//   }, [events]);
-
-//   // ── Load existing config when campaign changes ──────────────────────────────
-//   const handleCampaignChange = useCallback(
-//     async (campaignId) => {
-//       const found = campaigns.find((c) => c.id === campaignId);
-//       setSelectedCampaign(found || null);
-//       form.setFieldValue("id", campaignId);
-
-//       try {
-//         const config = await getCampaignConfig(campaignId);
-//         if (config) {
-//           setExistingConfigId(config.id);
-//           form.setFieldsValue({
-//             clicks_per_day: config.clicks_per_day,
-//             installs_per_day: config.installs_per_day,
-//           });
-//           if (config.events) setEvents(config.events);
-//           if (config.rule1_params) setRule1Params(config.rule1_params);
-//           if (config.rule2_params) setRule2Params(config.rule2_params);
-//           if (config.ignore_metrics) setIgnoreMetrics(config.ignore_metrics);
-//           message.info("Existing config loaded");
-//         }
-//       } catch {
-//         // No existing config – reset form for fresh entry
-//         setExistingConfigId(null);
-//         form.resetFields(["clicks_per_day", "installs_per_day"]);
-//         setEvents(["E1", "E2"]);
-//         setRule1Params(
-//           Object.fromEntries(RULE1_BASE_PARAMS.map((p) => [p, {}])),
-//         );
-//         setRule2Params(Object.fromEntries(RULE2_PARAMS.map((p) => [p, {}])));
-//         setIgnoreMetrics([]);
-//       }
-//     },
-//     [campaigns, form],
-//   );
-
-//   // ── Build payload ───────────────────────────────────────────────────────────
-//   const buildPayload = (values) => ({
-//     campaign_id: selectedCampaign?.id,
-//     campaign_name: selectedCampaign?.campaign_name,
-//     clicks_per_day: values.clicks_per_day,
-//     installs_per_day: values.installs_per_day,
-//     events,
-//     rule1_params: rule1Params,
-//     rule2_params: rule2Params,
-//     ignore_metrics: ignoreMetrics,
-//   });
-//   console.log("Built payload:", buildPayload(form.getFieldsValue())); // ✅ debug log
-//   // ── Submit ──────────────────────────────────────────────────────────────────
-//   const handleSubmit = async () => {
-//     try {
-//       const values = await form.validateFields();
-//       setSubmitting(true);
-//       const payload = buildPayload(values);
-
-//       if (existingConfigId) {
-//         await updateCampaignConfig(existingConfigId, payload);
-//         message.success("Campaign config updated!");
-//       } else {
-//         await createCampaignConfig(payload);
-//         message.success("Campaign config saved!");
-//       }
-//     } catch (err) {
-//       if (err?.errorFields) {
-//         message.warning("Please fill all required fields");
-//       } else {
-//         message.error("Failed to save config");
-//       }
-//     } finally {
-//       setSubmitting(false);
-//     }
-//   };
-
-//   // ── Derive dynamic Rule 1 param keys in order ───────────────────────────────
-//   const rule1Keys = ["CTI", ...events.map((_, i) => `ITE${i + 1}`)];
-
-//   // ─────────────────────────────────────────────────────────────────────────────
-//   return (
-//     <div className="min-h-screen bg-gray-50 px-4 py-8">
-//       <div className="mx-auto">
-//         {/* Header */}
-//         <div className="mb-8">
-//           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-//             Campaign Configuration
-//           </h1>
-//           <p className="text-sm text-gray-500 mt-1">
-//             Configure daily targets, events, and CR parameters for a campaign.
-//           </p>
-//         </div>
-
-//         <Form form={form} layout="vertical" requiredMark={false}>
-//           {/* ── 1. Select Campaign ── */}
-//           <Section icon={<FunnelPlotOutlined />} title="Select Campaign">
-//             <Form.Item
-//               name="campaign_id"
-//               label={
-//                 <span className="text-sm font-medium text-gray-700">
-//                   Campaign
-//                 </span>
-//               }
-//               rules={[{ required: true, message: "Please select a campaign" }]}>
-//               <Select
-//                 showSearch
-//                 multi
-//                 placeholder="Search and select a campaign..."
-//                 loading={campaignsLoading}
-//                 onChange={handleCampaignChange}
-//                 optionFilterProp="label"
-//                 size="large"
-//                 className="w-full">
-//                 {campaigns.map((c) => (
-//                   <Option
-//                     key={c.id}
-//                     value={c.id}
-//                     label={`${c.campaign_name} (${c.id})`}>
-//                     <div className="flex items-center justify-between py-0.5">
-//                       <span className="font-medium text-gray-800">
-//                         {c.campaign_name} ({c.id}) ({c.os})
-//                       </span>
-//                     </div>
-//                   </Option>
-//                 ))}
-//               </Select>
-//             </Form.Item>
-//             {selectedCampaign && (
-//               <div className="bg-indigo-50 rounded-xl px-4 py-2.5 flex gap-6 text-sm">
-//                 <span>
-//                   <span className="text-gray-500">Name: </span>
-//                   <span className="font-semibold text-indigo-700">
-//                     {selectedCampaign.campaign_name}
-//                   </span>
-//                 </span>
-//                 <span>
-//                   <span className="text-gray-500">ID: </span>
-//                   <span className="font-semibold text-indigo-700">
-//                     {selectedCampaign.id}
-//                   </span>
-//                 </span>
-//               </div>
-//             )}
-//           </Section>
-
-//           {/* ── 2. Daily Targets ── */}
-//           <Section icon={<ThunderboltOutlined />} title="Daily Targets">
-//             <div className="grid grid-cols-2 gap-4">
-//               <Form.Item
-//                 name="clicks_per_day"
-//                 label={
-//                   <span className="text-sm font-medium text-gray-700">
-//                     Clicks Per Day
-//                   </span>
-//                 }
-//                 rules={[{ required: true, message: "Required" }]}>
-//                 <InputNumber
-//                   size="large"
-//                   min={0}
-//                   placeholder="e.g. 5000"
-//                   className="w-full"
-//                 />
-//               </Form.Item>
-//               <Form.Item
-//                 name="installs_per_day"
-//                 label={
-//                   <span className="text-sm font-medium text-gray-700">
-//                     Installs Per Day
-//                   </span>
-//                 }
-//                 rules={[{ required: true, message: "Required" }]}>
-//                 <InputNumber
-//                   size="large"
-//                   min={0}
-//                   placeholder="e.g. 200"
-//                   className="w-full"
-//                 />
-//               </Form.Item>
-//             </div>
-//           </Section>
-
-//           {/* ── 3. Event Configuration ── */}
-//           <Section
-//             icon={<SettingOutlined />}
-//             title="Event Configuration"
-//             badge="Edit event names · Add or remove events">
-//             <EventConfiguration value={events} onChange={setEvents} />
-//           </Section>
-
-//           {/* ── 4a. CR Parameters – Rule 1 ── */}
-//           <Section
-//             icon={<span className="font-bold text-xs">R1</span>}
-//             title="CR Parameter Configuration – Rule 1"
-//             badge="CTI · ITE1 · ITE2 · Additional ITE(n)">
-//             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-//               {rule1Keys.map((param) => (
-//                 <CRParameterCard
-//                   key={param}
-//                   label={param}
-//                   rule="rule1"
-//                   value={rule1Params[param] || {}}
-//                   onChange={(v) =>
-//                     setRule1Params((prev) => ({ ...prev, [param]: v }))
-//                   }
-//                 />
-//               ))}
-//             </div>
-//           </Section>
-
-//           {/* ── 4b. CR Parameters – Rule 2 ── */}
-//           <Section
-//             icon={<span className="font-bold text-xs">R2</span>}
-//             title="CR Parameter Configuration – Rule 2"
-//             badge="RI · PI · Total Install Fraud · PA E2">
-//             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-//               {RULE2_PARAMS.map((param) => (
-//                 <CRParameterCard
-//                   key={param}
-//                   label={param}
-//                   rule="rule2"
-//                   value={rule2Params[param] || {}}
-//                   onChange={(v) =>
-//                     setRule2Params((prev) => ({ ...prev, [param]: v }))
-//                   }
-//                 />
-//               ))}
-//             </div>
-//           </Section>
-
-//           {/* ── 5. Ignore Metrics ── */}
-//           <Section title="Ignore Metrics" icon={<span>✕</span>}>
-//             <Checkbox.Group
-//               value={ignoreMetrics}
-//               onChange={setIgnoreMetrics}
-//               className="flex flex-wrap gap-3">
-//               {IGNORE_METRICS.map((metric) => (
-//                 <Checkbox
-//                   key={metric}
-//                   value={metric}
-//                   className="border border-gray-200 rounded-lg px-4 py-2 bg-white hover:border-indigo-400 transition-colors">
-//                   <span className="text-sm font-medium text-gray-700">
-//                     {metric}
-//                   </span>
-//                 </Checkbox>
-//               ))}
-//             </Checkbox.Group>
-//           </Section>
-
-//           {/* ── Submit ── */}
-//           <div className="flex justify-end pb-10">
-//             <Button
-//               type="primary"
-//               size="large"
-//               icon={<SaveOutlined />}
-//               onClick={handleSubmit}
-//               loading={submitting}
-//               className="px-10 h-11 rounded-xl font-semibold bg-indigo-600 border-indigo-600 hover:bg-indigo-700">
-//               {existingConfigId ? "Update Configuration" : "Save Configuration"}
-//             </Button>
-//           </div>
-//         </Form>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default CampaignConfigPage;
-
 // pages/CampaignConfigPage.jsx
 import React, { useEffect, useState, useCallback } from "react";
 import {
@@ -601,6 +185,60 @@ const CampaignConfigPage = () => {
   // ─────────────────────────────────────────────────────────
   // Load Existing Config
   // ─────────────────────────────────────────────────────────
+  // const handleCampaignChange = useCallback(
+  //   async (campaignIds) => {
+  //     const foundCampaigns = campaigns.filter((c) =>
+  //       campaignIds.includes(c.id),
+  //     );
+
+  //     setSelectedCampaigns(foundCampaigns);
+
+  //     // Optional:
+  //     // Load config only when single campaign selected
+  //     if (campaignIds.length !== 1) {
+  //       setExistingConfigId(null);
+  //       return;
+  //     }
+
+  //     try {
+  //       const config = await getCampaignConfig(campaignIds[0]);
+
+  //       if (config) {
+  //         setExistingConfigId(config.id);
+
+  //         form.setFieldsValue({
+  //           clicks_per_day: config.clicks_per_day,
+  //           installs_per_day: config.installs_per_day,
+  //         });
+
+  //         if (config.events) setEvents(config.events);
+
+  //         if (config.rule1_params) setRule1Params(config.rule1_params);
+
+  //         if (config.rule2_params) setRule2Params(config.rule2_params);
+
+  //         if (config.ignore_metrics) setIgnoreMetrics(config.ignore_metrics);
+
+  //         message.success("Existing configuration loaded");
+  //       }
+  //     } catch {
+  //       setExistingConfigId(null);
+
+  //       form.resetFields(["clicks_per_day", "installs_per_day"]);
+
+  //       setEvents(["E1", "E2"]);
+
+  //       setRule1Params(
+  //         Object.fromEntries(RULE1_BASE_PARAMS.map((p) => [p, {}])),
+  //       );
+
+  //       setRule2Params(Object.fromEntries(RULE2_PARAMS.map((p) => [p, {}])));
+
+  //       setIgnoreMetrics([]);
+  //     }
+  //   },
+  //   [campaigns, form],
+  // );
   const handleCampaignChange = useCallback(
     async (campaignIds) => {
       const foundCampaigns = campaigns.filter((c) =>
@@ -609,35 +247,8 @@ const CampaignConfigPage = () => {
 
       setSelectedCampaigns(foundCampaigns);
 
-      // Optional:
-      // Load config only when single campaign selected
-      if (campaignIds.length !== 1) {
-        setExistingConfigId(null);
-        return;
-      }
-
-      try {
-        const config = await getCampaignConfig(campaignIds[0]);
-
-        if (config) {
-          setExistingConfigId(config.id);
-
-          form.setFieldsValue({
-            clicks_per_day: config.clicks_per_day,
-            installs_per_day: config.installs_per_day,
-          });
-
-          if (config.events) setEvents(config.events);
-
-          if (config.rule1_params) setRule1Params(config.rule1_params);
-
-          if (config.rule2_params) setRule2Params(config.rule2_params);
-
-          if (config.ignore_metrics) setIgnoreMetrics(config.ignore_metrics);
-
-          message.success("Existing configuration loaded");
-        }
-      } catch {
+      // Reset when nothing selected
+      if (!campaignIds.length) {
         setExistingConfigId(null);
 
         form.resetFields(["clicks_per_day", "installs_per_day"]);
@@ -651,6 +262,42 @@ const CampaignConfigPage = () => {
         setRule2Params(Object.fromEntries(RULE2_PARAMS.map((p) => [p, {}])));
 
         setIgnoreMetrics([]);
+
+        return;
+      }
+
+      try {
+        // IMPORTANT
+        // send ALL selected campaign ids
+        const config = await getCampaignConfig(campaignIds);
+
+        if (config) {
+          setExistingConfigId(config.id);
+
+          // VERY IMPORTANT
+          // restore ALL campaign ids
+          form.setFieldsValue({
+            campaign_ids: config.campaign_ids,
+            clicks_per_day: config.clicks_per_day,
+            installs_per_day: config.installs_per_day,
+          });
+
+          setSelectedCampaigns(
+            campaigns.filter((c) => config.campaign_ids.includes(c.id)),
+          );
+
+          if (config.events) setEvents(config.events);
+
+          if (config.rule1_params) setRule1Params(config.rule1_params);
+
+          if (config.rule2_params) setRule2Params(config.rule2_params);
+
+          if (config.ignore_metrics) setIgnoreMetrics(config.ignore_metrics);
+
+          message.success("Existing configuration loaded");
+        }
+      } catch (err) {
+        setExistingConfigId(null);
       }
     },
     [campaigns, form],
@@ -661,7 +308,7 @@ const CampaignConfigPage = () => {
   // ─────────────────────────────────────────────────────────
   const buildPayload = (values) => ({
     campaign_ids: selectedCampaigns.map((c) => c.id),
-    campaign_names: selectedCampaigns.map((c) => c.campaign_name),
+    campaign_names: [...new Set(selectedCampaigns.map((c) => c.campaign_name))],
     os: selectedCampaigns?.[0]?.os,
     clicks_per_day: values.clicks_per_day,
     installs_per_day: values.installs_per_day,
@@ -763,7 +410,43 @@ const CampaignConfigPage = () => {
     }
   };
   const rule1Keys = ["CTI", ...events.map((_, i) => `ITE${i + 1}`)];
+  // Add above return()
+  const selectedIds = form.getFieldValue("campaign_ids") || [];
 
+  const sortedCampaigns = React.useMemo(() => {
+    const firstSelected = campaigns.find((x) => selectedIds.includes(x.id));
+
+    return [...campaigns].sort((a, b) => {
+      // no selection yet
+      if (!firstSelected) {
+        return `${a.campaign_name} ${a.os}`.localeCompare(
+          `${b.campaign_name} ${b.os}`,
+        );
+      }
+
+      const aRelated =
+        a.campaign_name === firstSelected.campaign_name &&
+        a.os === firstSelected.os;
+
+      const bRelated =
+        b.campaign_name === firstSelected.campaign_name &&
+        b.os === firstSelected.os;
+
+      // selected always first
+      if (selectedIds.includes(a.id) && !selectedIds.includes(b.id)) return -1;
+
+      if (!selectedIds.includes(a.id) && selectedIds.includes(b.id)) return 1;
+
+      // related campaigns next
+      if (aRelated && !bRelated) return -1;
+      if (!aRelated && bRelated) return 1;
+
+      // alphabetical
+      return `${a.campaign_name} ${a.os}`.localeCompare(
+        `${b.campaign_name} ${b.os}`,
+      );
+    });
+  }, [campaigns, selectedIds]);
   // ─────────────────────────────────────────────────────────
   // UI
   // ─────────────────────────────────────────────────────────
@@ -813,38 +496,48 @@ const CampaignConfigPage = () => {
               <Select
                 mode="multiple"
                 showSearch
+                allowClear
                 size="large"
                 loading={campaignsLoading}
                 placeholder="Search campaign name or ID..."
                 onChange={handleCampaignChange}
                 optionFilterProp="label"
                 maxTagCount="responsive"
-                className="campaign-select">
-                {campaigns.map((c) => {
-                  // Currently selected campaigns
+                className="campaign-select"
+                filterOption={(input, option) =>
+                  (option?.label ?? "")
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
+                }>
+                {sortedCampaigns.map((c) => {
                   const selectedCampaigns =
                     campaigns.filter((x) =>
                       form.getFieldValue("campaign_ids")?.includes(x.id),
                     ) || [];
 
-                  // First selected campaign
                   const firstSelected = selectedCampaigns[0];
 
-                  // Disable different campaign name or OS
                   const disabled =
                     firstSelected &&
                     (c.campaign_name !== firstSelected.campaign_name ||
                       c.os !== firstSelected.os);
+
+                  const isSelected = selectedIds.includes(c.id);
+
+                  const isRelated =
+                    firstSelected &&
+                    c.campaign_name === firstSelected.campaign_name &&
+                    c.os === firstSelected.os;
 
                   return (
                     <Option
                       key={c.id}
                       value={c.id}
                       disabled={disabled}
-                      label={`${c.campaign_name} (${c.id})`}>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-semibold text-gray-800">
+                      label={`${c.campaign_name} (${c.id}) ${c.os}`}>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="font-semibold text-gray-800 truncate">
                             {c.campaign_name} ({c.id})
                           </div>
 
@@ -853,9 +546,16 @@ const CampaignConfigPage = () => {
                           </div>
                         </div>
 
-                        {disabled && (
-                          <Tag color="red">Different Campaign / OS</Tag>
-                        )}
+                        <div className="flex items-center gap-2">
+
+                          {!isSelected && isRelated && !disabled && (
+                            <Tag color="blue">Related</Tag>
+                          )}
+
+                          {disabled && (
+                            <Tag color="red">Different Campaign / OS</Tag>
+                          )}
+                        </div>
                       </div>
                     </Option>
                   );
