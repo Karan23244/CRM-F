@@ -12,8 +12,10 @@ import {
   Typography,
   Checkbox,
   Button,
+  Popconfirm,
+  message,
 } from "antd";
-
+import Swal from "sweetalert2";
 import { FileExcelOutlined } from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
@@ -50,7 +52,8 @@ const apiUrl = import.meta.env.VITE_API_URL;
 
 const CampaignAnalyticsTable = () => {
   const user = useSelector((state) => state.auth.user);
-  console.log("User from Redux:", user);
+  const canDeleteCampaignData =
+    user?.role?.includes("optimization") || user?.role?.includes("admin");
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -60,14 +63,14 @@ const CampaignAnalyticsTable = () => {
   const [filterSearch, setFilterSearch] = useState({});
   const [uniqueValues, setUniqueValues] = useState({});
   // ================= PAYLOAD =================
+  // ================= PAYLOAD =================
   const [payload, setPayload] = useState({
     campaign_name: "",
-    os: "android",
+    campaign_ids: [],
+    os: "",
+    geo: [],
 
-    // current month first date
     start_date: dayjs().startOf("month").format("YYYY-MM-DD"),
-
-    // today
     end_date: dayjs().format("YYYY-MM-DD"),
 
     windows: {
@@ -136,34 +139,26 @@ const CampaignAnalyticsTable = () => {
         "adv_executive",
       ];
 
-      let payload = {};
+      let requestPayload = {};
 
-      // only send for restricted advertiser roles
       if (user?.role?.some((role) => restrictedRoles.includes(role))) {
-        console.log("User role is restricted. Sending user-specific payload.");
-
-        payload = {
+        requestPayload = {
           user_id: user?.id,
           role: user?.role,
           assign_subadmins: user?.assigned_subadmins || [],
         };
       }
-      console.log("Campaigns API Payload:", payload);
+
       const res = await axios.post(
         `${API}/api/campaign_analytics/campaigns`,
-        payload,
+        requestPayload,
       );
-      console.log("Campaigns API Response:", res.data);
-      const uniqueCampaigns = [...new Set(res.data.data || [])];
 
-      setCampaigns(uniqueCampaigns);
+      console.log("Campaign API Response:", res.data);
 
-      if (uniqueCampaigns.length > 0) {
-        setPayload((prev) => ({
-          ...prev,
-          campaign_name: uniqueCampaigns[0],
-        }));
-      }
+      setCampaigns(res.data.data || []);
+
+      // ❌ REMOVE AUTO SELECT
     } catch (err) {
       console.error(err);
     }
@@ -518,6 +513,60 @@ const CampaignAnalyticsTable = () => {
 
     return cols;
   }, [data, payload.windows]);
+  const handleDeleteCampaignData = async () => {
+    const result = await Swal.fire({
+      title: "Delete Campaign Data?",
+      html: `
+      <b>${payload.campaign_name}</b><br/>
+      OS: ${payload.os}<br/>
+      This action cannot be undone.
+    `,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, Delete",
+      cancelButtonText: "Cancel",
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      const res = await axios.delete(
+        `${API}/api/campaign_analytics/delete-campaign-data`,
+        {
+          data: {
+            campaign_name: payload.campaign_name,
+            campaign_ids: payload.campaign_ids,
+            os: payload.os,
+            geo: payload.geo,
+          },
+        },
+      );
+
+      await Swal.fire({
+        icon: "success",
+        title: "Deleted Successfully",
+        html: `
+        Metrics Deleted: <b>${res.data.deleted_metrics || 0}</b><br/>
+        Events Deleted: <b>${res.data.deleted_events || 0}</b>
+      `,
+      });
+
+      setData([]);
+      fetchCampaigns();
+    } catch (error) {
+      console.error(error);
+
+      Swal.fire({
+        icon: "error",
+        title: "Delete Failed",
+        text:
+          error?.response?.data?.message ||
+          "Something went wrong while deleting data",
+      });
+    }
+  };
   // ================= COLUMNS =================
   const columns = [
     {
@@ -594,34 +643,85 @@ const CampaignAnalyticsTable = () => {
             {/* ================= TOP FILTERS ================= */}
             <Row gutter={[12, 12]} style={{ marginBottom: 20 }}>
               {/* Campaign */}
-              <Col xs={24} md={6}>
+              <Col xs={24} md={4}>
                 <div style={{ fontSize: 12, marginBottom: 4 }}>
                   Select Campaign
                 </div>
+
                 <Select
                   showSearch
                   allowClear
                   style={{ width: "100%" }}
-                  value={payload.campaign_name}
+                  value={
+                    payload.campaign_name
+                      ? `${payload.campaign_name}_${payload.os}`
+                      : undefined
+                  }
                   placeholder="Select Campaign"
-                  // SEARCH FILTER
                   optionFilterProp="children"
                   filterOption={(input, option) =>
                     option?.children
                       ?.toLowerCase()
                       ?.includes(input.toLowerCase())
                   }
-                  onChange={(value) =>
+                  onChange={(value) => {
+                    const selectedCampaign = campaigns.find(
+                      (item) =>
+                        `${item.campaign_name}_${item.os}_${item.geo}` ===
+                        value,
+                    );
+
+                    if (!selectedCampaign) {
+                      setPayload((prev) => ({
+                        ...prev,
+                        campaign_name: "",
+                        campaign_ids: [],
+                        os: "",
+                        geo: [],
+                      }));
+
+                      return;
+                    }
+
                     setPayload((prev) => ({
                       ...prev,
-                      campaign_name: value || "",
-                    }))
-                  }>
-                  {campaigns.map((campaign) => (
-                    <Option key={campaign} value={campaign}>
-                      {campaign}
-                    </Option>
-                  ))}
+
+                      campaign_name: selectedCampaign.campaign_name,
+
+                      os:
+                        selectedCampaign.os?.toLowerCase() === "ios"
+                          ? "iOS"
+                          : "Android",
+
+                      geo: (() => {
+                        try {
+                          return JSON.parse(selectedCampaign.geo || "[]");
+                        } catch {
+                          return [];
+                        }
+                      })(),
+
+                      campaign_ids: selectedCampaign.campaign_ids || [],
+                    }));
+                  }}>
+                  {campaigns.map((campaign, index) => {
+                    const geoParsed = (() => {
+                      try {
+                        return JSON.parse(campaign.geo || "[]").join(", ");
+                      } catch {
+                        return campaign.geo;
+                      }
+                    })();
+
+                    return (
+                      <Option
+                        key={index}
+                        value={`${campaign.campaign_name}_${campaign.os}_${campaign.geo}`}>
+                        {campaign.campaign_name} -{" "}
+                        {campaign.campaign_ids?.join(", ")}
+                      </Option>
+                    );
+                  })}
                 </Select>
               </Col>
 
@@ -716,7 +816,22 @@ const CampaignAnalyticsTable = () => {
                 </Select>
               </Col>
               {/* ================= ACTION BUTTONS ================= */}
-              <Row justify="end" style={{ marginBottom: 16 }}>
+              <Row
+                justify="end"
+                align="middle"
+                style={{
+                  marginBottom: 16,
+                  gap: 12,
+                }}>
+                {canDeleteCampaignData && (
+                  <Button
+                    danger
+                    disabled={!payload.campaign_name}
+                    onClick={handleDeleteCampaignData}>
+                    Delete Campaign Data
+                  </Button>
+                )}
+
                 <Button
                   type="primary"
                   icon={<FileExcelOutlined />}
@@ -725,7 +840,6 @@ const CampaignAnalyticsTable = () => {
                       const obj = {};
 
                       columns.forEach((col) => {
-                        // Skip grouped parent columns
                         if (col.children) {
                           col.children.forEach((child) => {
                             obj[`${col.title} ${child.title}`] =
@@ -745,6 +859,14 @@ const CampaignAnalyticsTable = () => {
                     );
                   }}>
                   Download Excel
+                </Button>
+                <Button
+                  onClick={() => {
+                    // clear table filters
+                    setFilters({});
+                    setFilterSearch({});
+                  }}>
+                  Clear All Filters
                 </Button>
               </Row>
             </Row>
@@ -1186,6 +1308,8 @@ const CampaignAnalyticsTable = () => {
             campaign_name={payload.campaign_name}
             os={payload.os}
             lastdate={payload.end_date}
+            geo={payload.geo}
+            campaign_ids={payload.campaign_ids}
           />
         </>
       ) : (
