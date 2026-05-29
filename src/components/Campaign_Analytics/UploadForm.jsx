@@ -86,7 +86,10 @@ export default function UploadForm({ onUploadSuccess }) {
       "YYYY-MM-DD",
     )} - ${values.dateRange[1].format("YYYY-MM-DD")}`;
 
-    const cleanedCampaignName = values.campaignName.trim().replace(/\s+/g, " ");
+    const cleanedCampaignName = values.campaignName
+      .split("-")[0]
+      .trim()
+      .replace(/\s+/g, " ");
     data.append("campaignName", cleanedCampaignName);
     data.append("os", values.os.trim());
 
@@ -95,7 +98,7 @@ export default function UploadForm({ onUploadSuccess }) {
       : JSON.stringify(values.geo.split(",").map((g) => g.trim()));
     data.append("geo", geoInput);
     data.append("dateRange", formattedRange);
-
+    data.append("campaign_ids", JSON.stringify(values.campaign_ids));
     // 🔹 Append socketId to identify user
     if (socketId) {
       data.append("socketId", socketId);
@@ -176,11 +179,7 @@ export default function UploadForm({ onUploadSuccess }) {
     return () => socket.off("uploadComplete", handler);
   }, [user]);
   // unique campaigns by display_name
-  const uniqueCampaigns = [
-    ...new Map(
-      configuredCampaigns.map((item) => [item.display_name, item]),
-    ).values(),
-  ];
+  const uniqueCampaigns = configuredCampaigns;
   return (
     <div className=" flex items-center justify-center bg-gradient-to-br from-[#EAF1FA] via-[#F6F9FC] to-[#FFFFFF] p-8">
       <Card
@@ -253,47 +252,40 @@ export default function UploadForm({ onUploadSuccess }) {
               placeholder="Select campaign"
               showSearch
               optionFilterProp="label"
+              optionLabelProp="label"
               className="rounded-lg"
-              onChange={(value) => {
-                const selectedCampaigns = configuredCampaigns.filter(
-                  (c) => c.display_name === value,
-                );
+              onChange={(value, option) => {
+                form.setFieldsValue({
+                  os: option.os,
+                  campaign_ids: option.campaignIds,
+                });
 
-                // get unique OS list
-                const osList = [...new Set(selectedCampaigns.map((c) => c.os))];
-
-                if (osList.length === 1) {
-                  form.setFieldsValue({ os: osList[0] });
-                } else {
-                  form.setFieldsValue({ os: undefined });
-                }
-
-                setAvailableOS(osList);
+                setAvailableOS([option.os]);
               }}>
               {uniqueCampaigns.map((c) => (
                 <Select.Option
-                  key={c.display_name}
-                  value={c.display_name}
-                  label={c.display_name}>
-                  <div className="flex items-center justify-between">
-                    <div className="font-semibold">{c.display_name}</div>
+                  key={`${c.config_id}-${c.os}`}
+                  value={`${c.campaign_name}-${c.campaign_ids[0]}-${c.os}`}
+                  label={`${c.campaign_name} (${c.campaign_ids.join(", ")}) - ${c.os}`}
+                  campaignName={c.campaign_name}
+                  campaignIds={c.campaign_ids}
+                  os={c.os}>
+                  <div className="flex items-center justify-between w-full">
+                    <div>
+                      <div className="font-semibold">
+                        {c.campaign_name} ({c.campaign_ids.join(", ")})
+                      </div>
 
-                    {/* show available OS */}
-                    <div className="text-xs text-gray-400">
-                      {[
-                        ...new Set(
-                          configuredCampaigns
-                            .filter((x) => x.display_name === c.display_name)
-                            .map((x) => x.os),
-                        ),
-                      ].join(" / ")}
+                      <div className="text-xs text-gray-400">OS: {c.os}</div>
                     </div>
                   </div>
                 </Select.Option>
               ))}
             </Select>
           </Form.Item>
-
+          <Form.Item name="campaign_ids" hidden>
+            <Input />
+          </Form.Item>
           {/* Operating System */}
           <Form.Item
             name="os"
@@ -303,25 +295,16 @@ export default function UploadForm({ onUploadSuccess }) {
               </span>
             }
             rules={[{ required: true, message: "Please select OS" }]}>
-            {availableOS.length > 1 ? (
-              <Select
-                size="large"
-                placeholder="Select OS"
-                className="rounded-lg">
-                {availableOS.map((os) => (
-                  <Select.Option key={os} value={os}>
-                    {os.toUpperCase()}
-                  </Select.Option>
-                ))}
-              </Select>
-            ) : (
-              <Input
-                size="large"
-                disabled
-                placeholder="OS auto selected"
-                className="rounded-lg"
-              />
-            )}
+            <Select
+              size="large"
+              placeholder="OS auto selected"
+              className="rounded-lg">
+              {availableOS.map((os) => (
+                <Select.Option key={os} value={os}>
+                  {os}
+                </Select.Option>
+              ))}
+            </Select>
           </Form.Item>
 
           {/* Geo */}

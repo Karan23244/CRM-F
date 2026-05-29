@@ -327,7 +327,7 @@ const apiUrl = import.meta.env.VITE_API_URL;
 
 const { Title } = Typography;
 
-const DecisionTable = ({ campaign_name, os, lastdate }) => {
+const DecisionTable = ({ campaign_name, os, lastdate, geo, campaign_ids }) => {
   const user = useSelector((state) => state.auth.user);
 
   const [loading, setLoading] = useState(false);
@@ -346,6 +346,10 @@ const DecisionTable = ({ campaign_name, os, lastdate }) => {
     "pub_executive",
     "optimization",
     "operations",
+    "advertiser_manager",
+    "advertiser",
+    "adv_executive",
+    "admin",
   ];
 
   const hasAccess = user?.role?.some((r) => allowedRoles.includes(r));
@@ -370,12 +374,14 @@ const DecisionTable = ({ campaign_name, os, lastdate }) => {
         campaign_name,
         os,
         date: lastdate,
+        geo,
+        campaign_ids,
       };
 
       console.log("Fetching decision data with payload:", payload);
 
       const res = await axios.post(`${API}/api/decision`, payload);
-
+      console.log("API response:", res);
       if (res.data?.success) {
         setDataSource(res.data.data || []);
       } else {
@@ -417,9 +423,14 @@ const DecisionTable = ({ campaign_name, os, lastdate }) => {
       const pubam = normalize(item.pubam);
 
       // operations & optimization can see everything
+      // full access roles
       if (
         user?.role?.includes("operations") ||
-        user?.role?.includes("optimization")
+        user?.role?.includes("optimization") ||
+        user?.role?.includes("advertiser_manager") ||
+        user?.role?.includes("advertiser") ||
+        user?.role?.includes("adv_executive") ||
+        user?.role?.includes("admin")
       ) {
         return true;
       }
