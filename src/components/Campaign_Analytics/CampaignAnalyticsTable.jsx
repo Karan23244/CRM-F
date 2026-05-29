@@ -540,6 +540,10 @@ const CampaignAnalyticsTable = () => {
             campaign_ids: payload.campaign_ids,
             os: payload.os,
             geo: payload.geo,
+
+            // ADD THESE
+            start_date: payload.start_date,
+            end_date: payload.end_date,
           },
         },
       );
@@ -548,9 +552,11 @@ const CampaignAnalyticsTable = () => {
         icon: "success",
         title: "Deleted Successfully",
         html: `
-        Metrics Deleted: <b>${res.data.deleted_metrics || 0}</b><br/>
-        Events Deleted: <b>${res.data.deleted_events || 0}</b>
-      `,
+  <b>${payload.campaign_name}</b><br/>
+  OS: ${payload.os}<br/>
+  Date Range: ${payload.start_date} → ${payload.end_date}<br/><br/>
+  This action cannot be undone.
+`,
       });
 
       setData([]);
@@ -627,7 +633,11 @@ const CampaignAnalyticsTable = () => {
 
     ...dynamicEventColumns,
   ];
-
+  const sortedData = useMemo(() => {
+    return [...filteredData].sort((a, b) => {
+      return (b.clicks_mtd || 0) - (a.clicks_mtd || 0); // highest clicks first
+    });
+  }, [filteredData]);
   return (
     <>
       {user?.permissions?.can_see_input1 === 1 && (
@@ -660,9 +670,10 @@ const CampaignAnalyticsTable = () => {
                   placeholder="Select Campaign"
                   optionFilterProp="children"
                   filterOption={(input, option) =>
-                    option?.children
-                      ?.toLowerCase()
-                      ?.includes(input.toLowerCase())
+                    (option?.label ?? "")
+                      .toString()
+                      .toLowerCase()
+                      .includes(input.toLowerCase())
                   }
                   onChange={(value) => {
                     const selectedCampaign = campaigns.find(
@@ -716,7 +727,8 @@ const CampaignAnalyticsTable = () => {
                     return (
                       <Option
                         key={index}
-                        value={`${campaign.campaign_name}_${campaign.os}_${campaign.geo}`}>
+                        value={`${campaign.campaign_name}_${campaign.os}_${campaign.geo}`}
+                        label={`${campaign.campaign_name} - ${campaign.campaign_ids?.join(", ")}`}>
                         {campaign.campaign_name} -{" "}
                         {campaign.campaign_ids?.join(", ")}
                       </Option>
@@ -879,7 +891,7 @@ const CampaignAnalyticsTable = () => {
                 tableLayout="fixed"
                 className="custom-table"
                 columns={columns}
-                dataSource={filteredData}
+                dataSource={sortedData}
                 rowKey={(row) => `${row.pid}_${row.pubid}`}
                 scroll={{ x: "max-content", y: "70vh" }}
                 bordered
