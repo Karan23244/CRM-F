@@ -297,11 +297,42 @@ function AdvertiserAccount() {
   /* Table Columns (READ ONLY) */
   /* ============================= */
 
-  const columns = [
+  // const columns = [
+  //   getColumnWithFilterAndPin("adv_id", "Advid (Adv Name)", (_, r) => (
+  //     <Tooltip title={r.note || "No Legal Billing Address"}>
+  //       <span style={{ color: "#1677ff", fontWeight: 500 }}>
+  //         {r.adv_name ? `${r.adv_id} (${r.adv_name})` : r.adv_id}
+  //       </span>
+  //     </Tooltip>
+  //   )),
+
+  //   getColumnWithFilterAndPin("month", "Activity Month"),
+
+  //   getColumnWithFilterAndPin(
+  //     "total_amount",
+  //     "PID Metric Amount ($)",
+  //     (_, r) => <AmountUseCell record={r} />,
+  //   ),
+
+  //   getColumnWithFilterAndPin("payment_status", "Due Status", (_, r) => (
+  //     <DueStatusCell record={r} />
+  //   )),
+
+  //   getColumnWithFilterAndPin("invoice_number", "Invoice Number"),
+
+  //   {
+  //     ...getColumnWithFilterAndPin("payment_date", "Payment Received Date"),
+  //     render: (value) => (value ? dayjs(value).format("DD-MM-YYYY") : "-"),
+  //   },
+  // ];
+  const isAdmin =
+    user?.role?.includes("admin") || user?.role?.includes("accounts");
+
+  const baseColumns = [
     getColumnWithFilterAndPin("adv_id", "Advid (Adv Name)", (_, r) => (
       <Tooltip title={r.note || "No Legal Billing Address"}>
         <span style={{ color: "#1677ff", fontWeight: 500 }}>
-          {r.adv_id} ({r.adv_name})
+          {r.adv_name ? `${r.adv_id} (${r.adv_name})` : r.adv_id}
         </span>
       </Tooltip>
     )),
@@ -326,6 +357,27 @@ function AdvertiserAccount() {
     },
   ];
 
+  const adminColumns = [
+    getColumnWithFilterAndPin("invoice_date", "Invoice Date", (value) =>
+      value ? dayjs(value).format("DD-MM-YYYY") : "-",
+    ),
+
+    getColumnWithFilterAndPin("payment_terms", "Payment Terms"),
+
+    getColumnWithFilterAndPin("invoice_from", "Invoice From", (value) =>
+      value ? dayjs(value).format("DD-MM-YYYY") : "-",
+    ),
+
+    getColumnWithFilterAndPin("invoice_to", "Invoice To", (value) =>
+      value ? dayjs(value).format("DD-MM-YYYY") : "-",
+    ),
+
+    getColumnWithFilterAndPin("amount_raised", "Actual Amount Raised"),
+
+    getColumnWithFilterAndPin("currency", "Currency"),
+  ];
+
+  const columns = isAdmin ? [...baseColumns, ...adminColumns] : baseColumns;
   return (
     <div
       style={{
