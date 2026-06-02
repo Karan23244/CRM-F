@@ -92,6 +92,7 @@ const AdvertiserEditForm = () => {
   const user = useSelector((state) => state.auth.user);
   const userId = user?.id || null;
   const { Option } = Select;
+  const isAdmin = user?.role === "admin" || (Array.isArray(user?.role) && user.role.includes("admin"));
   const isAdvertiserManager = user?.role?.includes("advertiser_manager");
   const restrictedRoles = ["operation", "optimization"];
   const isOperationsRole = user?.role?.some((r) =>
@@ -176,11 +177,16 @@ const AdvertiserEditForm = () => {
   const fetchAdvertisers = async () => {
     if (!userId) return;
     try {
-      const { data } = await axios.get(`${apiUrl}/advid-data/${userId}`);
-      // const { data } = await axios.get(`http://localhost:5200/api/advid-data/${userId}`);
-
-      if (data.success && Array.isArray(data.advertisements)) {
-        setAdvertisers(data.advertisements);
+      if (isAdmin) {
+        const { data } = await axios.get(`${apiUrl}/get-NameAdv/`);
+        if (data && Array.isArray(data.data)) {
+          setAdvertisers(data.data);
+        }
+      } else {
+        const { data } = await axios.get(`${apiUrl}/advid-data/${userId}`);
+        if (data.success && Array.isArray(data.advertisements)) {
+          setAdvertisers(data.advertisements);
+        }
       }
     } catch {
       setAdvertisers([]);
