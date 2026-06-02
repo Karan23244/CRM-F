@@ -94,6 +94,7 @@ export default PublisherIDDashboard;
 const PublisherEditForm = () => {
   const user = useSelector((state) => state.auth.user);
   const userId = user?.id || null;
+  const isAdmin = user?.role === "admin" || (Array.isArray(user?.role) && user.role.includes("admin"));
   const isPublisherManager = user?.role?.includes("publisher_manager");
   const [publishers, setPublishers] = useState([]);
   const [editingPub, setEditingPub] = useState(null);
@@ -151,10 +152,16 @@ const PublisherEditForm = () => {
     if (!userId) return;
     setLoading(true);
     try {
-      const { data } = await axios.get(`${apiUrl}/pubid-data/${userId}`);
-      console.log("Fetched publishers data:", data);
-      if (data.success && Array.isArray(data.publishers)) {
-        setPublishers(data.publishers);
+      if (isAdmin) {
+        const { data } =await axios.get(`${apiUrl}/get-Namepub?user_id=${userId}`);
+        if (data && Array.isArray(data.data)) {
+          setPublishers(data.data);
+        }
+      } else {
+        const { data } = await axios.get(`${apiUrl}/pubid-data/${userId}`);
+        if (data.success && Array.isArray(data.publishers)) {
+          setPublishers(data.publishers);
+        }
       }
     } catch (err) {
       console.error("Error fetching publishers:", err);

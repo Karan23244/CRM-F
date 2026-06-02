@@ -60,20 +60,21 @@ export const sidebarLinks = [
     ],
   },
   // { to: "review", label: "Review", roles: ["admin"] },
-  { to: "advertiser-data", label: "Advertiser Data", roles: ["admin"] },
-  { to: "publisher-data", label: "Publisher Data", roles: ["admin"] },
+  // { to: "advertiser-data", label: "Advertiser Data", roles: ["admin"] },
+  // { to: "publisher-data", label: "Publisher Data", roles: ["admin"] },
 
   // ==========================
   // 🔹 ADVERTISER SECTION
   // ==========================
   {
     label: "Advertiser",
-    roles: ["advertiser", "advertiser_manager", "operations", "adv_executive"],
+    roles: ["admin", "advertiser", "advertiser_manager", "operations", "adv_executive"],
     sublinks: [
       {
         to: "listadvform",
         label: "Existing Advertisers",
         roles: [
+          "admin",
           "advertiser",
           "advertiser_manager",
           "adv_executive",
@@ -83,7 +84,7 @@ export const sidebarLinks = [
       {
         to: "createadvform",
         label: "Add New Advertiser",
-        roles: ["advertiser_manager"],
+        roles: ["admin", "advertiser_manager"],
       },
     ],
   },
@@ -93,17 +94,17 @@ export const sidebarLinks = [
   // ==========================
   {
     label: "Publisher",
-    roles: ["publisher", "publisher_manager", "pub_executive"],
+    roles: ["admin", "publisher", "publisher_manager", "pub_executive"],
     sublinks: [
       {
         to: "listpubform",
         label: "Existing Publishers",
-        roles: ["publisher", "publisher_manager", "pub_executive"],
+        roles: ["admin", "publisher", "publisher_manager", "pub_executive"],
       },
       {
         to: "createpubform",
         label: "Add New Publisher",
-        roles: ["publisher_manager"],
+        roles: ["admin", "publisher_manager"],
       },
     ],
   },
@@ -267,7 +268,7 @@ export const sidebarLinks = [
     roles: ["publisher", "pub_executive", "publisher_manager", "admin"],
   },
   { to: "totalpiddata", label: "Recent PID", roles: ["optimization"] },
-  { to: "optimizationalldata", label: "PID Data", roles: ["optimization"] },
+  { to: "optimizationalldata", label: "PID Data", roles: ["admin", "optimization"] },
   // ==========================
   // 🔹 ANALYTICS / REPORTS
   // ==========================
@@ -467,7 +468,7 @@ export const sidebarLinks = [
   {
     to: "adddetails",
     label: "Publisher Details",
-    roles: ["publisher_external"],
+    roles: ["admin", "publisher_external"],
   },
   {
     to: "publisherbill",
