@@ -644,86 +644,81 @@ const PublisherEditForm = () => {
         );
       },
     },
-    /* ✅ CONDITIONAL COLUMN */
-    ...(isPublisherManager
-      ? [
-          {
-            title: "Transfer PUB AM",
-            key: "user_id",
-            render: (_, record) => {
-              const isEditing = editingAssignRowId === record.pub_id;
+    {
+      title: "Transfer PUB AM",
+      key: "user_id",
+      render: (_, record) => {
+        const isEditing = editingAssignRowId === record.pub_id;
 
-              if (isEditing) {
-                return (
-                  <Select
-                    autoFocus
-                    value={record.username?.toString()}
-                    onChange={async (newUserId) => {
-                      try {
-                        const selectedAdmin = subAdmins.find(
-                          (admin) => admin.id.toString() === newUserId,
-                        );
-                        if (!selectedAdmin) {
-                          Swal.fire("Error", "Invalid user selected", "error");
-                          return;
-                        }
-                        const response = await axios.put(
-                          `${apiUrl}/update-pubid`,
-                          {
-                            ...record,
-                            user_id: selectedAdmin.id,
-                            username: selectedAdmin.username,
-                          },
-                        );
-                        console.log({
-                          ...record,
-                          user_id: selectedAdmin.id,
-                          username: selectedAdmin.username,
-                        });
-                        if (response.data.success) {
-                          Swal.fire(
-                            "Success",
-                            "User transferred successfully!",
-                            "success",
-                          );
-                          fetchPublishers();
-                        } else {
-                          Swal.fire(
-                            "Error",
-                            "Failed to transfer user",
-                            "error",
-                          );
-                        }
-                      } catch (error) {
-                        console.error("User transfer error:", error);
-                        Swal.fire("Error", "Something went wrong", "error");
-                      } finally {
-                        setEditingAssignRowId(null);
-                      }
-                    }}
-                    onBlur={() => setEditingAssignRowId(null)}
-                    className="min-w-[150px]">
-                    {subAdmins.map((admin) => (
-                      <Option key={admin.id} value={admin.id.toString()}>
-                        {admin.username}
-                      </Option>
-                    ))}
-                  </Select>
-                );
-              }
+        if (isEditing) {
+          return (
+            <Select
+              autoFocus
+              value={record.username?.toString()}
+              onChange={async (newUserId) => {
+                try {
+                  const selectedAdmin = subAdmins.find(
+                    (admin) => admin.id.toString() === newUserId,
+                  );
+                  if (!selectedAdmin) {
+                    Swal.fire("Error", "Invalid user selected", "error");
+                    return;
+                  }
+                  const response = await axios.put(
+                    `${apiUrl}/update-pubid`,
+                    {
+                      ...record,
+                      user_id: selectedAdmin.id,
+                      username: selectedAdmin.username,
+                    },
+                  );
+                  console.log({
+                    ...record,
+                    user_id: selectedAdmin.id,
+                    username: selectedAdmin.username,
+                  });
+                  if (response.data.success) {
+                    Swal.fire(
+                      "Success",
+                      "User transferred successfully!",
+                      "success",
+                    );
+                    fetchPublishers();
+                  } else {
+                    Swal.fire(
+                      "Error",
+                      "Failed to transfer user",
+                      "error",
+                    );
+                  }
+                } catch (error) {
+                  console.error("User transfer error:", error);
+                  Swal.fire("Error", "Something went wrong", "error");
+                } finally {
+                  setEditingAssignRowId(null);
+                }
+              }}
+              onBlur={() => setEditingAssignRowId(null)}
+              className="min-w-[150px]">
+              {subAdmins.map((admin) => (
+                <Option key={admin.id} value={admin.id.toString()}>
+                  {admin.username}
+                </Option>
+              ))}
+            </Select>
+          );
+        }
 
-              return (
-                <span
-                  onClick={() => setEditingAssignRowId(record.pub_id)}
-                  className="cursor-pointer hover:underline"
-                  title="Click to change user">
-                  {record.username || "Select Sub Admin"}
-                </span>
-              );
-            },
-          },
-        ]
-      : []),
+        return (
+          <span
+            onClick={() => setEditingAssignRowId(record.pub_id)}
+            className="cursor-pointer hover:underline"
+            title="Click to change user">
+            {record.username || "Select Sub Admin"}
+          </span>
+        );
+      },
+    },
     {
       title: <div style={{ textAlign: "center" }}>Action</div>,
       key: "actions",
