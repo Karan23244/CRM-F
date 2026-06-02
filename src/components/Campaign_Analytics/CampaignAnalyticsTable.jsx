@@ -53,7 +53,9 @@ const apiUrl = import.meta.env.VITE_API_URL;
 const CampaignAnalyticsTable = () => {
   const user = useSelector((state) => state.auth.user);
   const canDeleteCampaignData =
-    user?.role?.includes("optimization") || user?.role?.includes("admin");
+    user?.role?.includes("optimization") ||
+    user?.role?.includes("admin") ||
+    user?.username?.toLowerCase() === "akshat";
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -242,11 +244,15 @@ const CampaignAnalyticsTable = () => {
       if (assignedNames.includes(pubam)) return true;
 
       // publisher_manager extra access
+      // Hide N/A records for publisher roles
       if (
-        user?.role?.includes("publisher_manager") &&
-        (pubam === "n/a" || pubam === "-")
+        user?.role?.includes("publisher_manager") ||
+        user?.role?.includes("publisher") ||
+        user?.role?.includes("pub_executive")
       ) {
-        return true;
+        if (pubam === "n/a" || pubam === "-") {
+          return false;
+        }
       }
 
       return false;
@@ -638,6 +644,8 @@ const CampaignAnalyticsTable = () => {
       return (b.clicks_mtd || 0) - (a.clicks_mtd || 0); // highest clicks first
     });
   }, [filteredData]);
+  console.log("campaign", campaigns);
+  console.log("campaign_ids", campaigns.campaign_ids);
   return (
     <>
       {user?.permissions?.can_see_input1 === 1 && (
@@ -662,13 +670,18 @@ const CampaignAnalyticsTable = () => {
                   showSearch
                   allowClear
                   style={{ width: "100%" }}
-                  value={
-                    payload.campaign_name
-                      ? `${payload.campaign_name}_${payload.os}`
-                      : undefined
-                  }
+                  dropdownStyle={{
+                    minWidth: 300,
+                  }}
                   placeholder="Select Campaign"
-                  optionFilterProp="children"
+                  optionFilterProp="label"
+                  value={
+                    campaigns.find(
+                      (c) =>
+                        c.campaign_name === payload.campaign_name &&
+                        c.os?.toLowerCase() === payload.os?.toLowerCase(),
+                    )?.config_id
+                  }
                   filterOption={(input, option) =>
                     (option?.label ?? "")
                       .toString()
@@ -677,9 +690,7 @@ const CampaignAnalyticsTable = () => {
                   }
                   onChange={(value) => {
                     const selectedCampaign = campaigns.find(
-                      (item) =>
-                        `${item.campaign_name}_${item.os}_${item.geo}` ===
-                        value,
+                      (item) => item.config_id === value,
                     );
 
                     if (!selectedCampaign) {
@@ -690,20 +701,13 @@ const CampaignAnalyticsTable = () => {
                         os: "",
                         geo: [],
                       }));
-
                       return;
                     }
 
                     setPayload((prev) => ({
                       ...prev,
-
                       campaign_name: selectedCampaign.campaign_name,
-
-                      os:
-                        selectedCampaign.os?.toLowerCase() === "ios"
-                          ? "iOS"
-                          : "Android",
-
+                      os: selectedCampaign.os,
                       geo: (() => {
                         try {
                           return JSON.parse(selectedCampaign.geo || "[]");
@@ -711,25 +715,24 @@ const CampaignAnalyticsTable = () => {
                           return [];
                         }
                       })(),
-
                       campaign_ids: selectedCampaign.campaign_ids || [],
                     }));
                   }}>
-                  {campaigns.map((campaign, index) => {
+                  {campaigns.map((campaign) => {
                     const geoParsed = (() => {
                       try {
                         return JSON.parse(campaign.geo || "[]").join(", ");
                       } catch {
-                        return campaign.geo;
+                        return campaign.geo || "";
                       }
                     })();
 
                     return (
                       <Option
-                        key={index}
-                        value={`${campaign.campaign_name}_${campaign.os}_${campaign.geo}`}
-                        label={`${campaign.campaign_name} - ${campaign.campaign_ids?.join(", ")}`}>
-                        {campaign.campaign_name} -{" "}
+                        key={campaign.config_id}
+                        value={campaign.config_id}
+                        label={`${campaign.campaign_name} (${campaign.os})`}>
+                        {campaign.campaign_name} ({campaign.os}) | IDs:{" "}
                         {campaign.campaign_ids?.join(", ")}
                       </Option>
                     );
