@@ -47,6 +47,7 @@ const SubAdminEdit = () => {
   const isAssignedUserView = userRoles.some((r) =>
     ASSIGNED_USER_ROLES.includes(r),
   );
+  const isAdmin = userRoles.includes("admin");
   const [subAdmins, setSubAdmins] = useState([]);
   const [selectedSubAdmin, setSelectedSubAdmin] = useState(null);
   const [username, setUsername] = useState("");
@@ -497,13 +498,15 @@ const SubAdminEdit = () => {
                   />
                 </Tooltip>
 
-                <Tooltip title="Delete User">
-                  <Button
-                    type="text"
-                    icon={<DeleteOutlined style={{ color: "red", fontSize: 18 }} />}
-                    onClick={() => handleDeleteSubAdmin(record.id)}
-                  />
-                </Tooltip>
+                {isAdmin && (
+                  <Tooltip title="Delete User">
+                    <Button
+                      type="text"
+                      icon={<DeleteOutlined style={{ color: "red", fontSize: 18 }} />}
+                      onClick={() => handleDeleteSubAdmin(record.id)}
+                    />
+                  </Tooltip>
+                )}
               </div>
             ),
           },
