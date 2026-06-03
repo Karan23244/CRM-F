@@ -476,6 +476,13 @@ const CampaignAnalyticsTable = () => {
       ],
     };
   };
+  const selectedCampaign = campaigns.find(
+    (c) =>
+      c.campaign_name === payload.campaign_name &&
+      c.os?.toLowerCase() === payload.os?.toLowerCase(),
+  );
+
+  const availableDates = selectedCampaign?.available_dates || [];
   const dayOptions = useMemo(() => {
     const start = dayjs(payload.start_date);
     const end = dayjs(payload.end_date);
@@ -693,6 +700,9 @@ const CampaignAnalyticsTable = () => {
                       (item) => item.config_id === value,
                     );
 
+                    const availableDates =
+                      selectedCampaign?.available_dates || [];
+
                     if (!selectedCampaign) {
                       setPayload((prev) => ({
                         ...prev,
@@ -703,19 +713,45 @@ const CampaignAnalyticsTable = () => {
                       }));
                       return;
                     }
+                    const dates = selectedCampaign.available_dates || [];
+
+                    const currentMonthDates = dates.filter((d) =>
+                      dayjs(d).isSame(dayjs(), "month"),
+                    );
+
+                    const startDate =
+                      currentMonthDates.length > 0
+                        ? currentMonthDates[0]
+                        : dates[0];
+
+                    const endDate =
+                      currentMonthDates.length > 0
+                        ? currentMonthDates[currentMonthDates.length - 1]
+                        : dates[dates.length - 1];
 
                     setPayload((prev) => ({
                       ...prev,
                       campaign_name: selectedCampaign.campaign_name,
                       os: selectedCampaign.os,
-                      geo: (() => {
-                        try {
-                          return JSON.parse(selectedCampaign.geo || "[]");
-                        } catch {
-                          return [];
-                        }
-                      })(),
+
+                      geo: Array.isArray(selectedCampaign.geo)
+                        ? [
+                            ...new Set(
+                              selectedCampaign.geo.flatMap((g) => {
+                                try {
+                                  return JSON.parse(g);
+                                } catch {
+                                  return [];
+                                }
+                              }),
+                            ),
+                          ]
+                        : [],
+
                       campaign_ids: selectedCampaign.campaign_ids || [],
+
+                      start_date: startDate,
+                      end_date: endDate,
                     }));
                   }}>
                   {campaigns.map((campaign) => {
@@ -743,17 +779,9 @@ const CampaignAnalyticsTable = () => {
               {/* OS */}
               <Col xs={24} md={4}>
                 <div style={{ fontSize: 12, marginBottom: 4 }}>Select OS</div>
-                <Select
-                  style={{ width: "100%" }}
-                  value={payload.os}
-                  onChange={(value) =>
-                    setPayload((prev) => ({
-                      ...prev,
-                      os: value,
-                    }))
-                  }>
-                  <Option value="android">Android</Option>
-                  <Option value="ios">iOS</Option>
+                <Select style={{ width: "100%" }} value={payload.os} disabled>
+                  <Option value="Android">Android</Option>
+                  <Option value="iOS">iOS</Option>
                 </Select>
               </Col>
 
@@ -766,9 +794,13 @@ const CampaignAnalyticsTable = () => {
                   style={{ width: "100%" }}
                   value={[dayjs(payload.start_date), dayjs(payload.end_date)]}
                   // disable future dates
-                  disabledDate={(current) =>
-                    current && current > dayjs().endOf("day")
-                  }
+                  disabledDate={(current) => {
+                    if (!current) return false;
+
+                    return !availableDates.includes(
+                      current.format("YYYY-MM-DD"),
+                    );
+                  }}
                   onChange={(dates) => {
                     if (!dates) return;
 
@@ -779,6 +811,14 @@ const CampaignAnalyticsTable = () => {
                     }));
                   }}
                 />
+                <div style={{ fontSize: 12, color: "#888", marginTop: 4 }}>
+                  Available Range:{" "}
+                  {availableDates.length
+                    ? `${availableDates[0]} → ${
+                        availableDates[availableDates.length - 1]
+                      }`
+                    : "No data"}
+                </div>
               </Col>
 
               {/* Primary Window */}
