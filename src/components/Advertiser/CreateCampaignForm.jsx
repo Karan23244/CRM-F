@@ -1148,6 +1148,7 @@ const GenrateLink = ({ campaignId, trackingurl }) => {
   const [trackingUrl, setTrackingUrl] = useState("");
   const [hideReferrer, setHideReferrer] = useState(false);
   const [publisherOfferApi, setPublisherOfferApi] = useState("");
+  const [impressionLink, setImpressionLink] = useState("");
   useEffect(() => {
     fetchPublisherIds();
   }, []);
@@ -1178,11 +1179,15 @@ const GenrateLink = ({ campaignId, trackingurl }) => {
       // Example: { link: "https://track.com/campaign/5543?pub=100" }
       const url = res.data?.publisher_link;
       const offerApi = res.data?.publisher_offer_api;
+      const impressionlink = res.data?.impression_link;
       if (url) {
         setTrackingUrl(url);
       }
       if (offerApi) {
         setPublisherOfferApi(offerApi);
+      }
+      if (impressionlink) {
+        setImpressionLink(impressionlink);
       }
     } catch (err) {
       alert("Error generating link");
@@ -1310,6 +1315,26 @@ const GenrateLink = ({ campaignId, trackingurl }) => {
                     <Button
                       className="!bg-blue-600 hover:!bg-blue-700 !text-white !rounded-lg"
                       onClick={() => copyToClipboard(publisherOfferApi)}>
+                      Copy
+                    </Button>
+                  </div>
+                </div>
+              )}
+              {impressionLink && (
+                <div>
+                  <p className="text-gray-700 font-medium mb-2">
+                    Impression Link:
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border rounded-lg bg-white text-gray-700"
+                      value={impressionLink}
+                      readOnly
+                    />
+                    <Button
+                      className="!bg-blue-600 hover:!bg-blue-700 !text-white !rounded-lg"
+                      onClick={() => copyToClipboard(impressionLink)}>
                       Copy
                     </Button>
                   </div>
