@@ -501,7 +501,15 @@ function AdvertiserAccount() {
       Object.keys(row).forEach((key) => {
         if (!valuesObj[key]) valuesObj[key] = new Set();
 
-        valuesObj[key].add(normalize(row[key]));
+        if (key === "adv_id") {
+          valuesObj[key].add(
+            row.adv_name
+              ? `${row.adv_id} (${row.adv_name})`
+              : String(row.adv_id),
+          );
+        } else {
+          valuesObj[key].add(normalize(row[key]));
+        }
       });
     });
 
@@ -524,6 +532,14 @@ function AdvertiserAccount() {
   const filteredData = data.filter((row) => {
     return Object.entries(filters).every(([key, values]) => {
       if (!values || values.length === 0) return true;
+
+      if (key === "adv_id") {
+        const advDisplay = row.adv_name
+          ? `${row.adv_id} (${row.adv_name})`
+          : String(row.adv_id);
+
+        return values.includes(advDisplay);
+      }
 
       return values.includes(normalize(row[key]));
     });
@@ -583,7 +599,7 @@ function AdvertiserAccount() {
         const searchText = filterSearch[dataIndex] || "";
 
         const visibleValues = allValues.filter((val) =>
-          val.toLowerCase().includes(searchText.toLowerCase()),
+          String(val).toLowerCase().includes(searchText.toLowerCase()),
         );
 
         const isAllSelected = selectedValues.length === allValues.length;
@@ -748,7 +764,7 @@ function AdvertiserAccount() {
             label: "90 Days",
             value: "90d",
           },
-            {
+          {
             label: "120 Days",
             value: "120d",
           },
@@ -867,6 +883,28 @@ function AdvertiserAccount() {
             dataSource={filteredData}
             bordered
             scroll={{ x: "max-content" }}
+            summary={() => {
+              const totalPIDAmount = filteredData.reduce(
+                (sum, row) => sum + Number(row.total_amount || 0),
+                0,
+              );
+
+              return (
+                <Table.Summary.Row>
+                  <Table.Summary.Cell index={0}>
+                    <strong>Total</strong>
+                  </Table.Summary.Cell>
+
+                  <Table.Summary.Cell index={1} colSpan={2} />
+
+                  <Table.Summary.Cell index={3}>
+                    <strong>{totalPIDAmount.toFixed(2)}</strong>
+                  </Table.Summary.Cell>
+
+                  <Table.Summary.Cell index={4} colSpan={columns.length} />
+                </Table.Summary.Row>
+              );
+            }}
           />
         </Spin>
       </div>

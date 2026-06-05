@@ -1029,6 +1029,31 @@ export default function BillingAdvertiser() {
                 dataSource={filteredPidData}
                 columns={[
                   {
+                    title: "PID",
+                    width: 220,
+                    ...getColumnFilter("pid", true),
+                    render: (_, r, i) => (
+                      <EditablePidCell
+                        value={r.pid}
+                        onCommit={(v) => {
+                          updateRowsSafely((prev) =>
+                            prev.map((row) =>
+                              (row.billing_id || row._tmp_id) === detailsRowId
+                                ? {
+                                    ...row,
+                                    pid_data: row.pid_data.map((p, pIndex) =>
+                                      pIndex === i ? { ...p, pid: v } : p,
+                                    ),
+                                  }
+                                : row,
+                            ),
+                          );
+                        }}
+                        disabled={activeRow.status === "locked"}
+                      />
+                    ),
+                  },
+                  {
                     title: "OS",
                     width: 180,
                     ...getColumnFilter("os", true),
@@ -1056,31 +1081,6 @@ export default function BillingAdvertiser() {
                         <Option value="Android">Android</Option>
                         <Option value="iOS">iOS</Option>
                       </Select>
-                    ),
-                  },
-                  {
-                    title: "PID",
-                    width: 220,
-                    ...getColumnFilter("pid", true),
-                    render: (_, r, i) => (
-                      <EditablePidCell
-                        value={r.pid}
-                        onCommit={(v) => {
-                          updateRowsSafely((prev) =>
-                            prev.map((row) =>
-                              (row.billing_id || row._tmp_id) === detailsRowId
-                                ? {
-                                    ...row,
-                                    pid_data: row.pid_data.map((p, pIndex) =>
-                                      pIndex === i ? { ...p, pid: v } : p,
-                                    ),
-                                  }
-                                : row,
-                            ),
-                          );
-                        }}
-                        disabled={activeRow.status === "locked"}
-                      />
                     ),
                   },
                   {
