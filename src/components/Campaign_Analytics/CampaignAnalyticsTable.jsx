@@ -646,11 +646,15 @@ const CampaignAnalyticsTable = () => {
     {
       title: "Impressions",
       dataIndex: "impressions",
-      fixed: "left",
-      width: 120,
+      width: 150,
+
+      sorter: (a, b) =>
+        getSortableValue(a.impressions) - getSortableValue(b.impressions),
+
       filterDropdown: (props) => getFilterDropdown("impressions", props),
       onFilterDropdownOpenChange: (open) =>
         handleFilterDropdownOpenChange("impressions", open),
+
       render: (text) => (
         <span className="font-bold text-gray-800">{text ?? 0}</span>
       ),

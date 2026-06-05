@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
+  Table,
   Tooltip,
   message,
   DatePicker,
@@ -276,7 +277,15 @@ function AdvertiserAccount() {
     data.forEach((row) => {
       Object.keys(row).forEach((key) => {
         if (!valuesObj[key]) valuesObj[key] = new Set();
-        valuesObj[key].add(normalize(row[key], key));
+        if (key === "adv_id") {
+          valuesObj[key].add(
+            row.adv_name
+              ? `${row.adv_id} (${row.adv_name})`
+              : String(row.adv_id),
+          );
+        } else {
+          valuesObj[key].add(normalize(row[key], key));
+        }
       });
     });
 
@@ -290,6 +299,14 @@ function AdvertiserAccount() {
   const filteredData = data.filter((row) => {
     return Object.entries(filters).every(([key, values]) => {
       if (!values || values.length === 0) return true;
+      if (key === "adv_id") {
+        const advDisplay = row.adv_name
+          ? `${row.adv_id} (${row.adv_name})`
+          : String(row.adv_id);
+
+        return values.includes(advDisplay);
+      }
+
       return values.includes(normalize(row[key], key));
     });
   });
@@ -338,16 +355,26 @@ function AdvertiserAccount() {
     )),
 
     getColumnWithFilterAndPin("month", "Activity Month"),
-
+    getColumnWithFilterAndPin("invoice_date", "Invoice Date", (value) =>
+      value ? dayjs(value).format("DD-MM-YYYY") : "-",
+    ),
     getColumnWithFilterAndPin(
       "total_amount",
       "PID Metric Amount ($)",
       (_, r) => <AmountUseCell record={r} />,
     ),
-
+    getColumnWithFilterAndPin("payment_terms", "Payment Terms"),
     getColumnWithFilterAndPin("payment_status", "Due Status", (_, r) => (
       <DueStatusCell record={r} />
     )),
+    getColumnWithFilterAndPin("invoice_from", "Invoice From", (value) =>
+      value ? dayjs(value).format("DD-MM-YYYY") : "-",
+    ),
+
+    getColumnWithFilterAndPin("invoice_to", "Invoice To", (value) =>
+      value ? dayjs(value).format("DD-MM-YYYY") : "-",
+    ),
+    getColumnWithFilterAndPin("amount_raised", "Actual Amount Raised"),
 
     getColumnWithFilterAndPin("invoice_number", "Invoice Number"),
 
@@ -357,27 +384,9 @@ function AdvertiserAccount() {
     },
   ];
 
-  const adminColumns = [
-    getColumnWithFilterAndPin("invoice_date", "Invoice Date", (value) =>
-      value ? dayjs(value).format("DD-MM-YYYY") : "-",
-    ),
+  const adminColumns = [];
 
-    getColumnWithFilterAndPin("payment_terms", "Payment Terms"),
-
-    getColumnWithFilterAndPin("invoice_from", "Invoice From", (value) =>
-      value ? dayjs(value).format("DD-MM-YYYY") : "-",
-    ),
-
-    getColumnWithFilterAndPin("invoice_to", "Invoice To", (value) =>
-      value ? dayjs(value).format("DD-MM-YYYY") : "-",
-    ),
-
-    getColumnWithFilterAndPin("amount_raised", "Actual Amount Raised"),
-
-    getColumnWithFilterAndPin("currency", "Currency"),
-  ];
-
-  const columns = isAdmin ? [...baseColumns, ...adminColumns] : baseColumns;
+  const columns = [...baseColumns, ...adminColumns];
   return (
     <div
       style={{
@@ -411,6 +420,28 @@ function AdvertiserAccount() {
             columns={columns}
             dataSource={filteredData}
             bordered
+            summary={() => {
+              const totalPIDAmount = filteredData.reduce(
+                (sum, row) => sum + Number(row.total_amount || 0),
+                0,
+              );
+
+              return (
+                <Table.Summary.Row>
+                  <Table.Summary.Cell index={0}>
+                    <strong>Total</strong>
+                  </Table.Summary.Cell>
+
+                  <Table.Summary.Cell index={1} colSpan={2} />
+
+                  <Table.Summary.Cell index={3}>
+                    <strong>{totalPIDAmount.toFixed(2)}</strong>
+                  </Table.Summary.Cell>
+
+                  <Table.Summary.Cell index={4} colSpan={columns.length} />
+                </Table.Summary.Row>
+              );
+            }}
           />
         </Spin>
       </div>
