@@ -89,7 +89,11 @@ const DecisionTable = ({ campaign_name, os, lastdate, geo, campaign_ids }) => {
       setLoading(false);
     }
   };
-
+  useEffect(() => {
+    setFilters({});
+    setFilterSearch({});
+    setUniqueValues({});
+  }, [campaign_name, os, lastdate]);
   useEffect(() => {
     if (hasAccess) {
       fetchDecisionData();
@@ -298,17 +302,23 @@ const DecisionTable = ({ campaign_name, os, lastdate, geo, campaign_ids }) => {
     );
   };
 
-  // ================= STATUS COLOR =================
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
-      case "live":
+      case "stable":
         return "green";
+
+      case "optimise":
+      case "optimize":
+        return "#faad14";
 
       case "pause":
         return "red";
 
+      case "not eligible":
+        return "default";
+
       default:
-        return "orange";
+        return "default";
     }
   };
 
@@ -374,7 +384,16 @@ const DecisionTable = ({ campaign_name, os, lastdate, geo, campaign_ids }) => {
       </div>
     );
   };
-
+  const handleFilterDropdownOpenChange = (key, open) => {
+    if (open) {
+      setColumnUniqueValues(key);
+    } else {
+      setFilterSearch((prev) => ({
+        ...prev,
+        [key]: "",
+      }));
+    }
+  };
   // ================= TABLE COLUMNS =================
   const columns = [
     {
@@ -385,9 +404,8 @@ const DecisionTable = ({ campaign_name, os, lastdate, geo, campaign_ids }) => {
 
       filterDropdown: (props) => getFilterDropdown("pubam", props),
 
-      onFilterDropdownOpenChange: (open) => {
-        if (open) setColumnUniqueValues("pubam");
-      },
+      onFilterDropdownOpenChange: (open) =>
+        handleFilterDropdownOpenChange("pubam", open),
 
       render: (text) => (
         <span className="font-medium text-gray-800">{text}</span>
@@ -402,9 +420,8 @@ const DecisionTable = ({ campaign_name, os, lastdate, geo, campaign_ids }) => {
 
       filterDropdown: (props) => getFilterDropdown("pubid", props),
 
-      onFilterDropdownOpenChange: (open) => {
-        if (open) setColumnUniqueValues("pubid");
-      },
+      onFilterDropdownOpenChange: (open) =>
+        handleFilterDropdownOpenChange("pubid", open),
     },
 
     {
@@ -415,9 +432,8 @@ const DecisionTable = ({ campaign_name, os, lastdate, geo, campaign_ids }) => {
 
       filterDropdown: (props) => getFilterDropdown("pid", props),
 
-      onFilterDropdownOpenChange: (open) => {
-        if (open) setColumnUniqueValues("pid");
-      },
+      onFilterDropdownOpenChange: (open) =>
+        handleFilterDropdownOpenChange("pid", open),
     },
 
     {
@@ -428,12 +444,13 @@ const DecisionTable = ({ campaign_name, os, lastdate, geo, campaign_ids }) => {
 
       filterDropdown: (props) => getFilterDropdown("status", props),
 
-      onFilterDropdownOpenChange: (open) => {
-        if (open) setColumnUniqueValues("status");
-      },
+      onFilterDropdownOpenChange: (open) =>
+        handleFilterDropdownOpenChange("status", open),
 
       render: (status) => (
-        <Tag color={getStatusColor(status)} className="px-3 py-1 rounded-md">
+        <Tag
+          color={getStatusColor(status)}
+          className="px-3 py-1 rounded-md font-semibold">
           {status}
         </Tag>
       ),

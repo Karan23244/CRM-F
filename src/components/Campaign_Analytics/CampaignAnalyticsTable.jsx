@@ -47,6 +47,15 @@ const colorMap = {
 const getTextColor = (bg) => {
   if (!bg) return "#ffffff";
 };
+const getSortableValue = (value) => {
+  if (value === null || value === undefined) return 0;
+
+  if (typeof value === "string") {
+    return parseFloat(value.split(" ")[0]) || 0;
+  }
+
+  return Number(value) || 0;
+};
 const API = import.meta.env.VITE_API_URL2;
 const apiUrl = import.meta.env.VITE_API_URL;
 
@@ -432,11 +441,9 @@ const CampaignAnalyticsTable = () => {
           title: "MTD",
           dataIndex: `${key}_mtd`,
           width: KPI_COL_WIDTH,
-          sorter: (a, b) => {
-            const valA = a[`${key}_mtd`] || 0;
-            const valB = b[`${key}_mtd`] || 0;
-            return valA - valB;
-          },
+          sorter: (a, b) =>
+            getSortableValue(a[`${key}_mtd`]) -
+            getSortableValue(b[`${key}_mtd`]),
           render: (_, row) =>
             renderCell(row[`${key}_mtd`], row[`${key}_mtd_color`]),
         },
@@ -444,11 +451,9 @@ const CampaignAnalyticsTable = () => {
           title: `${primaryWindow}D`,
           dataIndex: `${key}_${primaryWindow}d`,
           width: KPI_COL_WIDTH,
-          sorter: (a, b) => {
-            const valA = a[`${key}_mtd`] || 0;
-            const valB = b[`${key}_mtd`] || 0;
-            return valA - valB;
-          },
+          sorter: (a, b) =>
+            getSortableValue(a[`${key}_${primaryWindow}d`]) -
+            getSortableValue(b[`${key}_${primaryWindow}d`]),
           render: (_, row) =>
             renderCell(
               row[`${key}_${primaryWindow}d`],
@@ -459,11 +464,9 @@ const CampaignAnalyticsTable = () => {
           title: `${secondaryWindow}D`,
           dataIndex: `${key}_${secondaryWindow}d`,
           width: KPI_COL_WIDTH,
-          sorter: (a, b) => {
-            const valA = a[`${key}_mtd`] || 0;
-            const valB = b[`${key}_mtd`] || 0;
-            return valA - valB;
-          },
+          sorter: (a, b) =>
+            getSortableValue(a[`${key}_${secondaryWindow}d`]) -
+            getSortableValue(b[`${key}_${secondaryWindow}d`]),
           // ⭐ IMPORTANT: add class here
           className: "group-divider",
 
@@ -586,6 +589,16 @@ const CampaignAnalyticsTable = () => {
       });
     }
   };
+  const handleFilterDropdownOpenChange = (key, open) => {
+    if (open) {
+      setColumnUniqueValues(key);
+    } else {
+      setFilterSearch((prev) => ({
+        ...prev,
+        [key]: "",
+      }));
+    }
+  };
   // ================= COLUMNS =================
   const columns = [
     {
@@ -594,9 +607,8 @@ const CampaignAnalyticsTable = () => {
       fixed: "left",
       width: 150,
       filterDropdown: (props) => getFilterDropdown("pubam", props),
-      onFilterDropdownOpenChange: (open) => {
-        if (open) setColumnUniqueValues("pubam");
-      },
+      onFilterDropdownOpenChange: (open) =>
+        handleFilterDropdownOpenChange("pubam", open),
     },
     {
       title: "PubID",
@@ -604,9 +616,8 @@ const CampaignAnalyticsTable = () => {
       fixed: "left",
       width: 120,
       filterDropdown: (props) => getFilterDropdown("pubid", props),
-      onFilterDropdownOpenChange: (open) => {
-        if (open) setColumnUniqueValues("pubid");
-      },
+      onFilterDropdownOpenChange: (open) =>
+        handleFilterDropdownOpenChange("pubid", open),
     },
     {
       title: "PID",
@@ -614,10 +625,8 @@ const CampaignAnalyticsTable = () => {
       fixed: "left",
       width: 220,
       filterDropdown: (props) => getFilterDropdown("pid", props),
-      onFilterDropdownOpenChange: (open) => {
-        if (open) setColumnUniqueValues("pid");
-      },
-
+      onFilterDropdownOpenChange: (open) =>
+        handleFilterDropdownOpenChange("pid", open),
       onCell: () => ({
         className: "pid-cell",
       }),
@@ -634,7 +643,18 @@ const CampaignAnalyticsTable = () => {
         },
       }),
     },
-
+    {
+      title: "Impressions",
+      dataIndex: "impressions",
+      fixed: "left",
+      width: 120,
+      filterDropdown: (props) => getFilterDropdown("impressions", props),
+      onFilterDropdownOpenChange: (open) =>
+        handleFilterDropdownOpenChange("impressions", open),
+      render: (text) => (
+        <span className="font-bold text-gray-800">{text ?? 0}</span>
+      ),
+    },
     // ================= KPI =================
     // ================= KPI =================
     buildKPI("Clicks", "clicks"),
@@ -648,7 +668,7 @@ const CampaignAnalyticsTable = () => {
   ];
   const sortedData = useMemo(() => {
     return [...filteredData].sort((a, b) => {
-      return (b.clicks_mtd || 0) - (a.clicks_mtd || 0); // highest clicks first
+      return (b.clicks_mtd || 0) - (a.clicks_mtd || 0);
     });
   }, [filteredData]);
   console.log("campaign", campaigns);
@@ -702,7 +722,9 @@ const CampaignAnalyticsTable = () => {
 
                     const availableDates =
                       selectedCampaign?.available_dates || [];
-
+                    setFilters({});
+                    setFilterSearch({});
+                    setUniqueValues({});
                     if (!selectedCampaign) {
                       setPayload((prev) => ({
                         ...prev,
@@ -981,7 +1003,7 @@ const CampaignAnalyticsTable = () => {
                   );
 
                   // ================= TOTALS =================
-
+                  const totalImpressions = sumNumber("impressions");
                   const totalClicksMTD = sumNumber("clicks_mtd");
                   const totalClicksPrimary = sumNumber(
                     `clicks_${payload.windows.primary}d`,
@@ -1064,34 +1086,38 @@ const CampaignAnalyticsTable = () => {
                           index={2}
                           style={{ width: 220, minWidth: 220 }}
                         />
-                        {/* CLICKS */}
+                        {/* IMPRESSIONS */}
                         <Table.Summary.Cell index={3}>
+                          {sumNumber("impressions")}
+                        </Table.Summary.Cell>
+                        {/* CLICKS */}
+                        <Table.Summary.Cell index={4}>
                           {sumNumber("clicks_mtd")}
                         </Table.Summary.Cell>
-                        <Table.Summary.Cell index={4}>
+                        <Table.Summary.Cell index={5}>
                           {sumNumber(`clicks_${payload.windows.primary}d`)}
                         </Table.Summary.Cell>
-                        <Table.Summary.Cell index={5}>
+                        <Table.Summary.Cell index={6}>
                           {sumNumber(`clicks_${payload.windows.secondary}d`)}
                         </Table.Summary.Cell>
                         {/* INSTALLS */}
-                        <Table.Summary.Cell index={6}>
+                        <Table.Summary.Cell index={7}>
                           {sumNumber("installs_mtd")}
                         </Table.Summary.Cell>
-                        <Table.Summary.Cell index={7}>
+                        <Table.Summary.Cell index={8}>
                           {sumNumber(`installs_${payload.windows.primary}d`)}
                         </Table.Summary.Cell>
-                        <Table.Summary.Cell index={8}>
+                        <Table.Summary.Cell index={9}>
                           {sumNumber(`installs_${payload.windows.secondary}d`)}
                         </Table.Summary.Cell>
                         {/* C2I */}
-                        <Table.Summary.Cell index={9}>
+                        <Table.Summary.Cell index={10}>
                           {valueWithPercent(
                             totalInstallsMTD,
                             calcPercent(totalInstallsMTD, totalClicksMTD),
                           )}
                         </Table.Summary.Cell>
-                        <Table.Summary.Cell index={10}>
+                        <Table.Summary.Cell index={11}>
                           {valueWithPercent(
                             totalInstallsPrimary,
                             calcPercent(
@@ -1100,7 +1126,7 @@ const CampaignAnalyticsTable = () => {
                             ),
                           )}
                         </Table.Summary.Cell>
-                        <Table.Summary.Cell index={11}>
+                        <Table.Summary.Cell index={12}>
                           {valueWithPercent(
                             totalInstallsSecondary,
                             calcPercent(
@@ -1110,21 +1136,21 @@ const CampaignAnalyticsTable = () => {
                           )}
                         </Table.Summary.Cell>
                         {/* RT INSTALL */}
-                        <Table.Summary.Cell index={12}>
+                        <Table.Summary.Cell index={13}>
                           {valueWithPercent(
                             totalRTMTD,
                             calcPercent(totalRTMTD, totalInstallsMTD),
                           )}
                         </Table.Summary.Cell>
 
-                        <Table.Summary.Cell index={13}>
+                        <Table.Summary.Cell index={14}>
                           {valueWithPercent(
                             totalRTPrimary,
                             calcPercent(totalRTPrimary, totalInstallsPrimary),
                           )}
                         </Table.Summary.Cell>
 
-                        <Table.Summary.Cell index={14}>
+                        <Table.Summary.Cell index={15}>
                           {valueWithPercent(
                             totalRTSecondary,
                             calcPercent(
@@ -1134,21 +1160,21 @@ const CampaignAnalyticsTable = () => {
                           )}
                         </Table.Summary.Cell>
                         {/* PA INSTALL */}
-                        <Table.Summary.Cell index={15}>
+                        <Table.Summary.Cell index={16}>
                           {valueWithPercent(
                             totalPAMTD,
                             calcPercent(totalPAMTD, totalInstallsMTD),
                           )}
                         </Table.Summary.Cell>
 
-                        <Table.Summary.Cell index={16}>
+                        <Table.Summary.Cell index={17}>
                           {valueWithPercent(
                             totalPAPrimary,
                             calcPercent(totalPAPrimary, totalInstallsPrimary),
                           )}
                         </Table.Summary.Cell>
 
-                        <Table.Summary.Cell index={17}>
+                        <Table.Summary.Cell index={18}>
                           {valueWithPercent(
                             totalPASecondary,
                             calcPercent(
@@ -1158,7 +1184,7 @@ const CampaignAnalyticsTable = () => {
                           )}
                         </Table.Summary.Cell>
                         {/* INSTALL FRAUD */}
-                        <Table.Summary.Cell index={18}>
+                        <Table.Summary.Cell index={19}>
                           {valueWithPercent(
                             totalRTMTD + totalPAMTD,
                             calcPercent(
@@ -1167,7 +1193,7 @@ const CampaignAnalyticsTable = () => {
                             ),
                           )}
                         </Table.Summary.Cell>
-                        <Table.Summary.Cell index={19}>
+                        <Table.Summary.Cell index={20}>
                           {valueWithPercent(
                             totalRTPrimary + totalPAPrimary,
                             calcPercent(
@@ -1176,7 +1202,7 @@ const CampaignAnalyticsTable = () => {
                             ),
                           )}
                         </Table.Summary.Cell>
-                        <Table.Summary.Cell index={20}>
+                        <Table.Summary.Cell index={21}>
                           {valueWithPercent(
                             totalRTSecondary + totalPASecondary,
                             calcPercent(
@@ -1187,7 +1213,7 @@ const CampaignAnalyticsTable = () => {
                         </Table.Summary.Cell>
                         {/* DYNAMIC EVENTS */}
                         {(() => {
-                          let currentIndex = 21;
+                          let currentIndex = 22;
 
                           return eventNumbers.flatMap((num) => {
                             const eventTotals = getMetricTotals(
