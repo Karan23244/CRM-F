@@ -484,7 +484,7 @@ const AdvertiserEditForm = () => {
         );
       },
     },
-    ...(isAdvertiserManager
+    ...(isAdvertiserManager || isAdmin
       ? [
           {
             title: "Transfer Adv AM",
