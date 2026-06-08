@@ -284,6 +284,7 @@ const CreateCampaignForm = () => {
       adv_d: adv_d,
       kpi: values.kpi || "",
       tracking_url: values.tracking_url || "",
+      advertiser_impression_url: values.advertiser_impression_url || "",
       preview_url,
       da: values.da,
       status: values.status,
@@ -311,6 +312,7 @@ const CreateCampaignForm = () => {
           const advertiserPayload = {
             campaign_id: campaignId,
             advertiser_link: values.tracking_url, // advertiser link
+            advertiser_impression_url: values.advertiser_impression_url || "",
             adv_id: values.adv_d?.value, // default if not available
             click_id_param: "click_id",
           };
@@ -435,6 +437,7 @@ const CreateCampaignForm = () => {
 
       kpi: values.kpi || "",
       tracking_url: values.tracking_url || "",
+      advertiser_impression_url: values.advertiser_impression_url || "",
       preview_url: values.preview_url || "",
       da: values.da,
       status: values.status,
@@ -551,6 +554,7 @@ const CreateCampaignForm = () => {
 
       preview_url: editRecord.preview_url,
       tracking_url: editRecord.tracking_url,
+      advertiser_impression_url: editRecord.advertiser_impression_url,
       da: editRecord.da,
       status: editRecord.status,
     });
@@ -1017,9 +1021,15 @@ const CreateCampaignForm = () => {
                 );
               }}
             </Form.Item>
-            <Form.Item label="Tracking Link" name="tracking_url">
+            <Form.Item label="Click Tracking Link" name="tracking_url">
               <Input
-                placeholder="Enter Tracking Link"
+                placeholder="Enter Click Tracking Link"
+                className="h-11 rounded-lg border-gray-200 bg-gray-50"
+              />
+            </Form.Item>
+            <Form.Item label="Impression Tracking Link" name="advertiser_impression_url">
+              <Input
+                placeholder="Enter Impression Tracking Link"
                 className="h-11 rounded-lg border-gray-200 bg-gray-50"
               />
             </Form.Item>
@@ -1299,6 +1309,27 @@ const GenrateLink = ({ campaignId, trackingurl }) => {
                 </div>
               </div>
 
+              {impressionLink && (
+                <div>
+                  <p className="text-gray-700 font-medium mb-2">
+                    Impression Link:
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border rounded-lg bg-white text-gray-700"
+                      value={impressionLink}
+                      readOnly
+                    />
+                    <Button
+                      className="!bg-blue-600 hover:!bg-blue-700 !text-white !rounded-lg"
+                      onClick={() => copyToClipboard(impressionLink)}>
+                      Copy
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               {/* Publisher Offer API */}
               {publisherOfferApi && (
                 <div>
@@ -1315,26 +1346,6 @@ const GenrateLink = ({ campaignId, trackingurl }) => {
                     <Button
                       className="!bg-blue-600 hover:!bg-blue-700 !text-white !rounded-lg"
                       onClick={() => copyToClipboard(publisherOfferApi)}>
-                      Copy
-                    </Button>
-                  </div>
-                </div>
-              )}
-              {impressionLink && (
-                <div>
-                  <p className="text-gray-700 font-medium mb-2">
-                    Impression Link:
-                  </p>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="text"
-                      className="w-full px-3 py-2 border rounded-lg bg-white text-gray-700"
-                      value={impressionLink}
-                      readOnly
-                    />
-                    <Button
-                      className="!bg-blue-600 hover:!bg-blue-700 !text-white !rounded-lg"
-                      onClick={() => copyToClipboard(impressionLink)}>
                       Copy
                     </Button>
                   </div>
