@@ -137,10 +137,17 @@ const Conversion = () => {
   const tableData = useMemo(() => {
     const rows = [];
     displayedData.forEach((item) => {
+      const installEvent = item.event_data?.find(
+        (ev) => ev.event?.toLowerCase() === "install",
+      );
+      const otherEvents =
+        item.event_data?.filter((ev) => ev.event?.toLowerCase() !== "install") ?? [];
+
       const baseRow = {
         campaign_id: item.campaign_id,
         campaign_name: item.campaign_name,
         total_clicks: item.total_clicks,
+        installs: installEvent?.count ?? 0,
         conversion_rate: item.conversion_rate,
         ...OPTIONAL_FIELDS.reduce((acc, f) => {
           acc[f.key] = item[f.key];
@@ -148,8 +155,8 @@ const Conversion = () => {
         }, {}),
       };
 
-      if (item.event_data?.length) {
-        item.event_data.forEach((ev, idx) => {
+      if (otherEvents.length) {
+        otherEvents.forEach((ev, idx) => {
           rows.push({
             ...baseRow,
             key: `${item.campaign_id}-${ev.event}-${idx}`,
@@ -191,6 +198,13 @@ const Conversion = () => {
         key: "total_clicks",
         width: 130,
         sorter: (a, b) => (a.total_clicks ?? 0) - (b.total_clicks ?? 0),
+      },
+      {
+        title: "Installs",
+        dataIndex: "installs",
+        key: "installs",
+        width: 110,
+        sorter: (a, b) => (a.installs ?? 0) - (b.installs ?? 0),
       },
       {
         title: "Event",
