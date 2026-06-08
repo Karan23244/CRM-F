@@ -679,7 +679,7 @@ const AdvertiserEditForm = () => {
               </div>
             </>
           )} */}
-          {user?.role == "advertiser_manager" && (
+          {(user?.role == "advertiser_manager" || isAdmin) && (
             <>
               <div>
                 <label className="block text-[#2F5D99] text-base font-semibold mb-2">
