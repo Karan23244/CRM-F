@@ -157,6 +157,7 @@ const Conversion = () => {
         campaign_name: item.campaign_name,
         total_clicks: item.total_clicks,
         publisher_id: item.publisher_id,
+        total_impressions: item.total_impressions,
         installs: installEvent?.count ?? 0,
         conversion_rate: item.conversion_rate,
         ...OPTIONAL_FIELDS.reduce((acc, f) => {
@@ -240,6 +241,14 @@ const Conversion = () => {
         render: (val) =>
           val !== null && val !== undefined ? val : <span className="text-gray-400">—</span>,
         sorter: (a, b) => (a.event_count ?? 0) - (b.event_count ?? 0),
+      },
+      {
+        title: "Impressions",
+        dataIndex: "total_impressions",
+        key: "total_impressions",
+        width: 130,
+        sorter: (a, b) => (a.total_impressions ?? 0) - (b.total_impressions ?? 0),
+        render: (val) => (val !== null && val !== undefined ? val : <span className="text-gray-400">—</span>),
       },
       {
         title: "Conversion Rate",
