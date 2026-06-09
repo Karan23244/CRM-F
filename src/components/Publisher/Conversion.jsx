@@ -124,10 +124,19 @@ const Conversion = () => {
     [],
   );
 
-  const campaignOptions = data.map((item) => ({
-    value: item.campaign_id,
-    label: `${item.campaign_name} (ID: ${item.campaign_id})`,
-  }));
+  const campaignOptions = useMemo(() => {
+    const seen = new Set();
+    return data
+      .filter((item) => {
+        if (seen.has(item.campaign_id)) return false;
+        seen.add(item.campaign_id);
+        return true;
+      })
+      .map((item) => ({
+        value: item.campaign_id,
+        label: `${item.campaign_name} (ID: ${item.campaign_id})`,
+      }));
+  }, [data]);
 
   const displayedData = useMemo(() => {
     if (selectedCampaigns.length === 0) return [];
@@ -147,6 +156,8 @@ const Conversion = () => {
         campaign_id: item.campaign_id,
         campaign_name: item.campaign_name,
         total_clicks: item.total_clicks,
+        publisher_id: item.publisher_id,
+        total_impressions: item.total_impressions,
         installs: installEvent?.count ?? 0,
         conversion_rate: item.conversion_rate,
         ...OPTIONAL_FIELDS.reduce((acc, f) => {
@@ -159,7 +170,7 @@ const Conversion = () => {
         otherEvents.forEach((ev, idx) => {
           rows.push({
             ...baseRow,
-            key: `${item.campaign_id}-${ev.event}-${idx}`,
+            key: `${item.campaign_id}-${item.publisher_id}-${ev.event}-${idx}`,
             event_name: ev.event,
             event_count: ev.count,
           });
@@ -167,7 +178,7 @@ const Conversion = () => {
       } else {
         rows.push({
           ...baseRow,
-          key: `${item.campaign_id}-no-events`,
+          key: `${item.campaign_id}-${item.publisher_id}-no-events`,
           event_name: null,
           event_count: null,
         });
@@ -184,6 +195,13 @@ const Conversion = () => {
         key: "campaign_id",
         width: 120,
         sorter: (a, b) => a.campaign_id - b.campaign_id,
+      },
+      {
+        title: "Publisher ID",
+        dataIndex: "publisher_id",
+        key: "publisher_id",
+        width: 120,
+        sorter: (a, b) => a.publisher_id - b.publisher_id,
       },
       {
         title: "Campaign Name",
@@ -223,6 +241,14 @@ const Conversion = () => {
         render: (val) =>
           val !== null && val !== undefined ? val : <span className="text-gray-400">—</span>,
         sorter: (a, b) => (a.event_count ?? 0) - (b.event_count ?? 0),
+      },
+      {
+        title: "Impressions",
+        dataIndex: "total_impressions",
+        key: "total_impressions",
+        width: 130,
+        sorter: (a, b) => (a.total_impressions ?? 0) - (b.total_impressions ?? 0),
+        render: (val) => (val !== null && val !== undefined ? val : <span className="text-gray-400">—</span>),
       },
       {
         title: "Conversion Rate",
