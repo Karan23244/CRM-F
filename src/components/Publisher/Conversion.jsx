@@ -74,16 +74,24 @@ const Conversion = () => {
   }, [dateRange]);
 
   const handleDownload = async () => {
-    if (checkedRowKeys.length === 0) {
+    const selectedCampaignIds = [
+      ...new Set(
+        checkedRowKeys
+          .map((k) => tableData.find((r) => r.key === k)?.campaign_id)
+          .filter((id) => id !== undefined),
+      ),
+    ];
+
+    if (selectedCampaignIds.length === 0) {
       messageApi.error("Please select a campaign to download.");
       return;
     }
-    if (checkedRowKeys.length > 1) {
+    if (selectedCampaignIds.length > 1) {
       messageApi.error("Please select only one campaign to download.");
       return;
     }
 
-    const campaignId = checkedRowKeys[0];
+    const campaignId = selectedCampaignIds[0];
     setDownloading(true);
     try {
       const startDate = dateRange[0].format("YYYY-MM-DD");
@@ -126,38 +134,47 @@ const Conversion = () => {
     return data.filter((item) => selectedCampaigns.includes(item.campaign_id));
   }, [data, selectedCampaigns]);
 
-  const allEventKeys = useMemo(() => {
-    const keys = new Set();
-    displayedData.forEach((item) =>
-      item.event_data?.forEach((ev) => keys.add(ev.event)),
-    );
-    return [...keys];
-  }, [displayedData]);
+  const tableData = useMemo(() => {
+    const rows = [];
+    displayedData.forEach((item) => {
+      const installEvent = item.event_data?.find(
+        (ev) => ev.event?.toLowerCase() === "install",
+      );
+      const otherEvents =
+        item.event_data?.filter((ev) => ev.event?.toLowerCase() !== "install") ?? [];
 
-  const tableData = useMemo(
-    () =>
-      displayedData.map((item) => {
-        const eventMap = {};
-        item.event_data?.forEach((ev) => {
-          eventMap[ev.event] = ev.count;
+      const baseRow = {
+        campaign_id: item.campaign_id,
+        campaign_name: item.campaign_name,
+        total_clicks: item.total_clicks,
+        installs: installEvent?.count ?? 0,
+        conversion_rate: item.conversion_rate,
+        ...OPTIONAL_FIELDS.reduce((acc, f) => {
+          acc[f.key] = item[f.key];
+          return acc;
+        }, {}),
+      };
+
+      if (otherEvents.length) {
+        otherEvents.forEach((ev, idx) => {
+          rows.push({
+            ...baseRow,
+            key: `${item.campaign_id}-${ev.event}-${idx}`,
+            event_name: ev.event,
+            event_count: ev.count,
+          });
         });
-        const totalEvents = item.event_data?.reduce((s, e) => s + e.count, 0) ?? 0;
-        return {
-          key: item.campaign_id,
-          campaign_id: item.campaign_id,
-          campaign_name: item.campaign_name,
-          total_clicks: item.total_clicks,
-          total_events: totalEvents,
-          conversion_rate: item.conversion_rate,
-          ...eventMap,
-          ...OPTIONAL_FIELDS.reduce((acc, f) => {
-            acc[f.key] = item[f.key];
-            return acc;
-          }, {}),
-        };
-      }),
-    [displayedData],
-  );
+      } else {
+        rows.push({
+          ...baseRow,
+          key: `${item.campaign_id}-no-events`,
+          event_name: null,
+          event_count: null,
+        });
+      }
+    });
+    return rows;
+  }, [displayedData]);
 
   const rawColumns = useMemo(() => {
     const base = [
@@ -182,20 +199,30 @@ const Conversion = () => {
         width: 130,
         sorter: (a, b) => (a.total_clicks ?? 0) - (b.total_clicks ?? 0),
       },
-      ...allEventKeys.map((event) => ({
-        title: <span className="capitalize">{event}</span>,
-        dataIndex: event,
-        key: event,
-        width: 130,
-        render: (val) => val ?? 0,
-        sorter: (a, b) => (a[event] ?? 0) - (b[event] ?? 0),
-      })),
       {
-        title: "Total Events",
-        dataIndex: "total_events",
-        key: "total_events",
+        title: "Installs",
+        dataIndex: "installs",
+        key: "installs",
+        width: 110,
+        sorter: (a, b) => (a.installs ?? 0) - (b.installs ?? 0),
+      },
+      {
+        title: "Event",
+        dataIndex: "event_name",
+        key: "event_name",
+        width: 160,
+        render: (val) =>
+          val ? <span className="capitalize">{val}</span> : <span className="text-gray-400">—</span>,
+        sorter: (a, b) => (a.event_name || "").localeCompare(b.event_name || ""),
+      },
+      {
+        title: "Event Count",
+        dataIndex: "event_count",
+        key: "event_count",
         width: 130,
-        sorter: (a, b) => a.total_events - b.total_events,
+        render: (val) =>
+          val !== null && val !== undefined ? val : <span className="text-gray-400">—</span>,
+        sorter: (a, b) => (a.event_count ?? 0) - (b.event_count ?? 0),
       },
       {
         title: "Conversion Rate",
@@ -224,7 +251,7 @@ const Conversion = () => {
     });
 
     return [...base, ...optionalCols];
-  }, [allEventKeys, visibleOptionalFields]);
+  }, [visibleOptionalFields]);
 
   const columns = useMemo(
     () =>
@@ -361,7 +388,7 @@ const Conversion = () => {
           bordered
           dataSource={tableData}
           columns={columns}
-          rowKey="campaign_id"
+          rowKey="key"
           loading={loading}
           tableLayout="fixed"
           rowSelection={rowSelection}
