@@ -1180,9 +1180,9 @@ export default function BillingAdvertiser() {
   // ── render ─────────────────────────────────────
   return (
     <>
-      <div className="p-5">
+      <div>
         {/* toolbar */}
-        <div className="flex gap-3 mb-4 flex-wrap items-center">
+        <div className="flex gap-3 flex-wrap items-center px-5">
           <Select
             showSearch
             placeholder="Select Publisher"

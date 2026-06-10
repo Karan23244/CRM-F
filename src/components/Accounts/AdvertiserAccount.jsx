@@ -825,8 +825,6 @@ function AdvertiserAccount() {
   return (
     <div
       style={{
-        padding: 24,
-        background: "#f5f7fa",
         minHeight: "100vh",
       }}>
       <div
