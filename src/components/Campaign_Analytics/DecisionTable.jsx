@@ -129,7 +129,8 @@ const DecisionTable = ({ campaign_name, os, lastdate, geo, campaign_ids }) => {
       if (isNARecord) {
         return (
           user?.role?.includes("operations") ||
-          user?.role?.includes("optimization")
+          user?.role?.includes("optimization") ||
+          user?.role?.includes("admin")
         );
       }
 

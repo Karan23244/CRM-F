@@ -99,6 +99,7 @@ const CampaignAnalyticsTable = () => {
     "advertiser",
     "advertiser_manager",
     "adv_executive",
+    "admin"
   ];
 
   const hasAccess = user?.role?.some((r) => allowedRoles.includes(r));
@@ -241,7 +242,8 @@ const CampaignAnalyticsTable = () => {
         user?.role?.includes("optimization") ||
         user?.role?.includes("advertiser") ||
         user?.role?.includes("advertiser_manager") ||
-        user?.role?.includes("adv_executive")
+        user?.role?.includes("adv_executive") ||
+        user?.role?.includes("admin")
       ) {
         return true;
       }
