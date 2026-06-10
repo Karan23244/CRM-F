@@ -390,8 +390,6 @@ function AdvertiserAccount() {
   return (
     <div
       style={{
-        padding: 24,
-        background: "#f5f7fa",
         minHeight: "100vh",
       }}>
       <div
@@ -401,7 +399,7 @@ function AdvertiserAccount() {
           borderRadius: 14,
           boxShadow: "0 6px 25px rgba(0,0,0,0.05)",
         }}>
-        <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
           <DatePicker
             picker="month"
             allowClear={false}

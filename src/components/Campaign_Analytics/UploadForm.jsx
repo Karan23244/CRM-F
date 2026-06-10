@@ -90,7 +90,7 @@ export default function UploadForm({ onUploadSuccess }) {
       .split("-")[0]
       .trim()
       .replace(/\s+/g, " ");
-    data.append("campaignName", cleanedCampaignName);
+    data.append("campaignName", values.campaignName);
     data.append("os", values.os.trim());
 
     const geoInput = values.geo.includes("[")
@@ -255,9 +255,28 @@ export default function UploadForm({ onUploadSuccess }) {
               optionLabelProp="label"
               className="rounded-lg"
               onChange={(value, option) => {
+                let geoString = "";
+
+                if (option.geos?.length) {
+                  const uniqueGeos = [
+                    ...new Set(
+                      option.geos.flatMap((geo) => {
+                        try {
+                          return JSON.parse(geo);
+                        } catch {
+                          return [geo];
+                        }
+                      }),
+                    ),
+                  ];
+
+                  geoString = uniqueGeos.join(", ");
+                }
+
                 form.setFieldsValue({
                   os: option.os,
                   campaign_ids: option.campaignIds,
+                  geo: geoString,
                 });
 
                 setAvailableOS([option.os]);
@@ -265,10 +284,10 @@ export default function UploadForm({ onUploadSuccess }) {
               {uniqueCampaigns.map((c) => (
                 <Select.Option
                   key={`${c.config_id}-${c.os}`}
-                  value={`${c.campaign_name}-${c.campaign_ids[0]}-${c.os}`}
+                  value={c.campaign_name}
                   label={`${c.campaign_name} (${c.campaign_ids.join(", ")}) - ${c.os}`}
-                  campaignName={c.campaign_name}
                   campaignIds={c.campaign_ids}
+                  geos={c.geos}
                   os={c.os}>
                   <div className="flex items-center justify-between w-full">
                     <div>
