@@ -190,11 +190,11 @@ const Conversion = () => {
   const rawColumns = useMemo(() => {
     const base = [
       {
-        title: "Campaign ID",
-        dataIndex: "campaign_id",
-        key: "campaign_id",
-        width: 120,
-        sorter: (a, b) => a.campaign_id - b.campaign_id,
+        title: "Campaign Name (ID)",
+        key: "campaign",
+        width: 220,
+        sorter: (a, b) => (a.campaign_name || "").localeCompare(b.campaign_name || ""),
+        render: (_, record) => `${record.campaign_name} (${record.campaign_id})`,
       },
       {
         title: "Publisher ID",
@@ -203,12 +203,13 @@ const Conversion = () => {
         width: 120,
         sorter: (a, b) => a.publisher_id - b.publisher_id,
       },
-      {
-        title: "Campaign Name",
-        dataIndex: "campaign_name",
-        key: "campaign_name",
-        width: 200,
-        sorter: (a, b) => (a.campaign_name || "").localeCompare(b.campaign_name || ""),
+       {
+        title: "Impressions",
+        dataIndex: "total_impressions",
+        key: "total_impressions",
+        width: 130,
+        sorter: (a, b) => (a.total_impressions ?? 0) - (b.total_impressions ?? 0),
+        render: (val) => (val !== null && val !== undefined ? val : <span className="text-gray-400">—</span>),
       },
       {
         title: "Total Clicks",
@@ -241,14 +242,6 @@ const Conversion = () => {
         render: (val) =>
           val !== null && val !== undefined ? val : <span className="text-gray-400">—</span>,
         sorter: (a, b) => (a.event_count ?? 0) - (b.event_count ?? 0),
-      },
-      {
-        title: "Impressions",
-        dataIndex: "total_impressions",
-        key: "total_impressions",
-        width: 130,
-        sorter: (a, b) => (a.total_impressions ?? 0) - (b.total_impressions ?? 0),
-        render: (val) => (val !== null && val !== undefined ? val : <span className="text-gray-400">—</span>),
       },
       {
         title: "Conversion Rate",
