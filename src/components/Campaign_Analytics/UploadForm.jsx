@@ -274,6 +274,7 @@ export default function UploadForm({ onUploadSuccess }) {
                 }
 
                 form.setFieldsValue({
+                  campaignName: option.campaignName,
                   os: option.os,
                   campaign_ids: option.campaignIds,
                   geo: geoString,
@@ -284,8 +285,9 @@ export default function UploadForm({ onUploadSuccess }) {
               {uniqueCampaigns.map((c) => (
                 <Select.Option
                   key={`${c.config_id}-${c.os}`}
-                  value={c.campaign_name}
+                  value={`${c.campaign_name}-${c.os}`}
                   label={`${c.campaign_name} (${c.campaign_ids.join(", ")}) - ${c.os}`}
+                  campaignName={c.campaign_name}
                   campaignIds={c.campaign_ids}
                   geos={c.geos}
                   os={c.os}>
