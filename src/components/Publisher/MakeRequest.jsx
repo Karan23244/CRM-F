@@ -72,7 +72,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
   const [blacklistPIDs, setBlacklistPIDs] = useState([]);
   const [filters, setFilters] = useState({});
   const [pinnedColumns, setPinnedColumns] = useState({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [hiddenColumns, setHiddenColumns] = useState(() => {
     const saved = localStorage.getItem("hiddenCampaignColumns");
     return saved ? JSON.parse(saved) : [];
@@ -217,7 +217,6 @@ const PublisherRequest = ({ senderId, receiverId }) => {
   }, [apiUrl1]);
 
   const fetchRequests = useCallback(async () => {
-    setLoading(true);
     try {
       const [startDate, endDate] = selectedDateRange;
       const res = await axios.get(`${apiUrl}/getAllPubRequests12`, {
@@ -233,8 +232,6 @@ const PublisherRequest = ({ senderId, receiverId }) => {
       console.error(err);
       message.error("Failed to load requests");
       setRequests([]);
-    } finally {
-      setLoading(false);
     }
   }, [apiUrl, selectedDateRange]);
   const showModal = () => {
@@ -614,11 +611,18 @@ const PublisherRequest = ({ senderId, receiverId }) => {
         render: (_, record) =>
           userRole?.some((r) => ["publisher_manager", "admin"].includes(r)) ? (
             <Select
-              value={record.priority}
-              style={{ width: 80 }}
-              onChange={(val) =>
-                handleUpdatePrm(record, { priority: val, prm: record.prm })
-              }>
+              value={record.prm === 2 ? "__disallow__" : record.priority}
+              style={{ width: 110 }}
+              onChange={(val) => {
+                if (val === "__disallow__") {
+                  handleUpdatePrm(record, { priority: record.priority, prm: 2 });
+                } else {
+                  handleUpdatePrm(record, { priority: val, prm: 1 });
+                }
+              }}>
+                <Option value="__disallow__" style={{ color: "red", fontWeight: 600 }}>
+                ❌ Disallow
+                </Option>
               {(record.available_priorities || []).map((p) => (
                 <Option key={p} value={p}>
                   {p}
@@ -665,51 +669,24 @@ const PublisherRequest = ({ senderId, receiverId }) => {
         key: "prm",
         dataIndex: "prm",
         fixed: pinnedColumns["prm"] || undefined,
-        render: (_, record) =>
-          userRole?.some((r) => ["publisher_manager", "admin"].includes(r)) ? (
-            <Select
-              value={record.prm}
-              style={{
-                width: 130,
-                fontWeight: 600,
-                backgroundColor:
-                  record.prm === 1
-                    ? "#e6ffed" // ✅ Allow
-                    : record.prm === 2
-                      ? "#ffe6e6" // ❌ Disallow
-                      : "#fff3cd", // 🟡 Hold
-                color:
-                  record.prm === 1
-                    ? "green"
-                    : record.prm === 2
-                      ? "red"
-                      : "#b8860b",
-              }}
-              onChange={(val) =>
-                handleUpdatePrm(record, { priority: record.priority, prm: val })
-              }>
-              <Option value={0}>🟡 Hold</Option>
-              <Option value={1}>✅ Allow</Option>
-              <Option value={2}>❌ Disallow</Option>
-            </Select>
-          ) : (
-            <span
-              style={{
-                color:
-                  record.prm === 1
-                    ? "green"
-                    : record.prm === 2
-                      ? "red"
-                      : "#b8860b",
-                fontWeight: 600,
-              }}>
-              {record.prm === 1
-                ? "✅ Allow"
-                : record.prm === 2
-                  ? "❌ Disallow"
-                  : "🟡 Hold"}
-            </span>
-          ),
+        render: (_, record) => (
+          <span
+            style={{
+              color:
+                record.prm === 1
+                  ? "green"
+                  : record.prm === 2
+                    ? "red"
+                    : "#b8860b",
+              fontWeight: 600,
+            }}>
+            {record.prm === 1
+              ? "✅ Allow"
+              : record.prm === 2
+                ? "❌ Disallow"
+                : "🟡 Hold"}
+          </span>
+        ),
       },
     );
 
