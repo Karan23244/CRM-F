@@ -80,17 +80,12 @@ export default function UploadForm({ onUploadSuccess }) {
     if (submitted) return; // prevent double submit
     setLoading(true);
     setSubmitted(true);
-
+    const cleanCampaignName = values.campaignName.split("(")[0].trim();
     const data = new FormData();
     const formattedRange = `${values.dateRange[0].format(
       "YYYY-MM-DD",
     )} - ${values.dateRange[1].format("YYYY-MM-DD")}`;
-
-    const cleanedCampaignName = values.campaignName
-      .split("-")[0]
-      .trim()
-      .replace(/\s+/g, " ");
-    data.append("campaignName", values.campaignName);
+    data.append("campaignName", cleanCampaignName);
     data.append("os", values.os.trim());
 
     const geoInput = values.geo.includes("[")
@@ -262,7 +257,11 @@ export default function UploadForm({ onUploadSuccess }) {
                     ...new Set(
                       option.geos.flatMap((geo) => {
                         try {
-                          return JSON.parse(geo);
+                          const parsed = JSON.parse(geo);
+
+                          return Array.isArray(parsed)
+                            ? parsed.flat(Infinity)
+                            : [parsed];
                         } catch {
                           return [geo];
                         }
@@ -272,9 +271,7 @@ export default function UploadForm({ onUploadSuccess }) {
 
                   geoString = uniqueGeos.join(", ");
                 }
-
                 form.setFieldsValue({
-                  campaignName: option.campaignName,
                   os: option.os,
                   campaign_ids: option.campaignIds,
                   geo: geoString,
@@ -285,7 +282,7 @@ export default function UploadForm({ onUploadSuccess }) {
               {uniqueCampaigns.map((c) => (
                 <Select.Option
                   key={`${c.config_id}-${c.os}`}
-                  value={`${c.campaign_name}-${c.os}`}
+                  value={`${c.campaign_name}-${c.config_id}-${c.os}`}
                   label={`${c.campaign_name} (${c.campaign_ids.join(", ")}) - ${c.os}`}
                   campaignName={c.campaign_name}
                   campaignIds={c.campaign_ids}
