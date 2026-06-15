@@ -113,7 +113,15 @@ export default function UploadForm({ onUploadSuccess }) {
         Swal.showLoading();
       },
     });
-
+    console.log("Submitting data:", {
+      campaignName: cleanCampaignName,
+      os: values.os.trim(), 
+      geo: geoInput,
+      dateRange: formattedRange,
+      campaign_ids: values.campaign_ids,
+      files: fileList.map((file) => file.name),
+      socketId,
+    });
     try {
       await axios.post(`${apiUrl}/api/metrics`, data);
 
@@ -282,8 +290,8 @@ export default function UploadForm({ onUploadSuccess }) {
               {uniqueCampaigns.map((c) => (
                 <Select.Option
                   key={`${c.config_id}-${c.os}`}
-                  value={`${c.campaign_name}-${c.config_id}-${c.os}`}
-                  label={`${c.campaign_name} (${c.campaign_ids.join(", ")}) - ${c.os}`}
+                  value={`${c.campaign_name} (${c.config_id}) (${c.os})`}
+                  label={`${c.campaign_name} (${c.campaign_ids.join(", ")}) (${c.os})`}
                   campaignName={c.campaign_name}
                   campaignIds={c.campaign_ids}
                   geos={c.geos}
