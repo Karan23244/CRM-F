@@ -275,10 +275,12 @@ export default function BillingAdvertiser() {
       fetchBilling();
     }
   }, [selectedAdvId, month]);
+  console.log(user);
   const fetchDropdowns = async () => {
     const res = await axios.post(`${API}/billing/dropdowns`, {
       roles: user.role,
       user_id: user.id,
+      assigned_to: user.assigned_subadmins,
     });
     console.log("Fetched advertisers:", res); // Debug log
     setAdvertisers(res.data.advertisers || []);

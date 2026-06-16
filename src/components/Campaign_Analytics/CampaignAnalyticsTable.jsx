@@ -76,6 +76,7 @@ const CampaignAnalyticsTable = () => {
   // ================= PAYLOAD =================
   // ================= PAYLOAD =================
   const [payload, setPayload] = useState({
+    config_id: null,
     campaign_name: "",
     campaign_ids: [],
     os: "",
@@ -99,7 +100,7 @@ const CampaignAnalyticsTable = () => {
     "advertiser",
     "advertiser_manager",
     "adv_executive",
-    "admin"
+    "admin",
   ];
 
   const hasAccess = user?.role?.some((r) => allowedRoles.includes(r));
@@ -482,9 +483,7 @@ const CampaignAnalyticsTable = () => {
     };
   };
   const selectedCampaign = campaigns.find(
-    (c) =>
-      c.campaign_name === payload.campaign_name &&
-      c.os?.toLowerCase() === payload.os?.toLowerCase(),
+    (c) => c.config_id === payload.config_id,
   );
 
   const availableDates = selectedCampaign?.available_dates || [];
@@ -708,13 +707,7 @@ const CampaignAnalyticsTable = () => {
                   }}
                   placeholder="Select Campaign"
                   optionFilterProp="label"
-                  value={
-                    campaigns.find(
-                      (c) =>
-                        c.campaign_name === payload.campaign_name &&
-                        c.os?.toLowerCase() === payload.os?.toLowerCase(),
-                    )?.config_id
-                  }
+                  value={payload.config_id}
                   filterOption={(input, option) =>
                     (option?.label ?? "")
                       .toString()
@@ -759,6 +752,7 @@ const CampaignAnalyticsTable = () => {
 
                     setPayload((prev) => ({
                       ...prev,
+                      config_id: selectedCampaign.config_id,
                       campaign_name: selectedCampaign.campaign_name,
                       os: selectedCampaign.os,
 
