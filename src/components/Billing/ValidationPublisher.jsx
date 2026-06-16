@@ -299,6 +299,7 @@ export default function BillingAdvertiser() {
       .post(`${API}/billing/dropdowns`, {
         roles: user.role,
         user_id: user.id,
+        assigned_to: user.assigned_subadmins,
       })
       .then((r) => setPublishers(r.data.publishers || []));
   }, []);
@@ -1180,7 +1181,7 @@ export default function BillingAdvertiser() {
   // ── render ─────────────────────────────────────
   return (
     <>
-      <div>
+      <div className="pt-5">
         {/* toolbar */}
         <div className="flex gap-3 flex-wrap items-center px-5">
           <Select
