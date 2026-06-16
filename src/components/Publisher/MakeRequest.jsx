@@ -372,7 +372,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
           id: record.id,
           campaign_name: record.campaign_name,
           pid: record.pid,
-          priority: values.priority ?? 20,
+          priority: values.priority,
           prm: values.prm,
         };
         // 🧠 Dynamic sender (logged-in user)
