@@ -423,8 +423,8 @@ const PublisherRequest = ({ senderId, receiverId }) => {
       } catch (err) {
         Swal.fire({
           icon: "error",
-          title: "Server Error",
-          text: "Failed to update record",
+          title: "Error",
+          text: err.response?.data?.message || err.message || "Failed to update record",
         });
       }
     },

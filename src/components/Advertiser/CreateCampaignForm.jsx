@@ -10,7 +10,8 @@ import {
   Spin,
   Switch,
   Checkbox,
-  AutoComplete
+  AutoComplete,
+  Modal,
 } from "antd";
 import axios from "axios";
 import { useSelector } from "react-redux";
@@ -62,6 +63,13 @@ const CreateCampaignForm = () => {
   const [geoRows, setGeoRows] = useState([{ geo: "", payout: "", os: "" }]);
   const [updatedStatus, setUpdatedStatus] = useState({});
   const [searchText, setSearchText] = useState("");
+  const [allPubs, setAllPubs] = useState([]);
+  const [selectedPub, setSelectedPub] = useState(null);
+  const [hideReferrer, setHideReferrer] = useState(false);
+  const [pubLoading, setPubLoading] = useState(false);
+  const [pubSubmitting, setPubSubmitting] = useState(false);
+  const [approvedPublishers, setApprovedPublishers] = useState([]);
+  const [viewingPub, setViewingPub] = useState(null);
   const campaignStatus = (editRecord?.status || "").toLowerCase();
   const isPublisherRole =
     Array.isArray(user?.role) &&
@@ -612,6 +620,91 @@ const CreateCampaignForm = () => {
 
     fetchPidInfo();
   }, [editRecord]);
+
+  useEffect(() => {
+    if (!editRecord?.tracking_url) return;
+    const fetchPubs = async () => {
+      try {
+        setPubLoading(true);
+        const res = await axios.get(`${apiUrl}/get-allpub`);
+        setAllPubs(res?.data?.data?.map((i) => i.pub_id) || []);
+      } finally {
+        setPubLoading(false);
+      }
+    };
+    fetchPubs();
+  }, [editRecord]);
+
+  useEffect(() => {
+    if (!editRecord?.tracking_url) return;
+    const fetchExistingLinks = async () => {
+      try {
+        const res = await axios.get(`${apiUrl2}/link/publisher`, {
+          params: { campaign_id: editRecord.id },
+        });
+        const publishers = (res.data?.data || [])
+          .filter((row) => row.status === "approved")
+          .map((row) => ({
+            pub_id: row.publisher_id,
+            publisher_link: row.generated_link,
+            impression_link: row.impression_link,
+            offer_api: row.publisher_offer_api || "",
+            status: row.status,
+          }));
+        setApprovedPublishers(publishers);
+      } catch {
+        // non-critical, silently ignore
+      }
+    };
+    fetchExistingLinks();
+  }, [editRecord]);
+
+  const handleGenerateLink = async () => {
+    if (!selectedPub) return;
+    try {
+      setPubSubmitting(true);
+      const res = await axios.post(`${apiUrl2}/link/publisher`, {
+        publisher_id: selectedPub,
+        campaign_id: editRecord.id,
+        hide_referrer: hideReferrer ? 1 : 0,
+      });
+      setApprovedPublishers((prev) => [
+        ...prev,
+        {
+          pub_id: selectedPub,
+          publisher_link: res.data?.publisher_link || "",
+          impression_link: res.data?.impression_link || "",
+          offer_api: res.data?.publisher_offer_api || "",
+          status: "approved",
+        },
+      ]);
+      setSelectedPub(null);
+      setHideReferrer(false);
+    } catch {
+      Swal.fire("Error", "Error generating link", "error");
+    } finally {
+      setPubSubmitting(false);
+    }
+  };
+
+  const handleDisapprove = async (pub_id) => {
+    try {
+      await axios.post(`${apiUrl2}/link/publisher/disapprove`, {
+        campaign_id: editRecord.id,
+        publisher_id: pub_id,
+      });
+      setApprovedPublishers((prev) => prev.filter((p) => p.pub_id !== pub_id));
+      if (viewingPub?.pub_id === pub_id) setViewingPub(null);
+    } catch {
+      Swal.fire("Error", "Failed to disapprove publisher", "error");
+    }
+  };
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+    Swal.fire({ icon: "success", title: "Copied!", text: "Copied to clipboard.", timer: 1500, showConfirmButton: false });
+  };
+
   // TOGGLE HANDLER
   const handleToggle = (record) => {
     const original = (record.status || "").toLowerCase();
@@ -1080,66 +1173,158 @@ const CreateCampaignForm = () => {
           {/* 👇 Only NON-publisher roles can see below components */}
           {!isPublisherRole && (
             <>
-              <GenrateLink
-                campaignId={editRecord.id}
-                trackingurl={editRecord.tracking_url}
-                className="w-full"
-              />
+              {editRecord.tracking_url ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                  <Card title="Approved Publishers" className="shadow-md border-gray-100 rounded-2xl">
+                    {approvedPublishers.length === 0 ? (
+                      <p className="text-gray-400 text-center py-8">
+                        No approved publishers yet. Select a Publisher ID and click Approve.
+                      </p>
+                    ) : (
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-gray-50 text-gray-600 text-left">
+                            <th className="px-4 py-2 font-semibold">Publisher ID</th>
+                            <th className="px-4 py-2 font-semibold">Links</th>
+                            <th className="px-4 py-2 font-semibold">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {approvedPublishers.map((pub) => (
+                            <tr key={pub.pub_id} className="border-t border-gray-100 hover:bg-gray-50">
+                              <td className="px-4 py-3 font-medium text-[#2F5D99]">{pub.pub_id}</td>
+                              <td className="px-4 py-3">
+                                <Button size="small" type="default"
+                                  onClick={() => setViewingPub(pub)}>
+                                  View
+                                </Button>
+                              </td>
+                              <td className="px-4 py-3">
+                                <Button size="small" danger
+                                  onClick={() => handleDisapprove(pub.pub_id)}>
+                                  Disapprove
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </Card>
 
-              <div className="flex items-center justify-between m-4">
-                <h2 className="text-xl font-semibold text-gray-700">
-                  Edit PID Status
-                </h2>
+                  <Modal
+                    title={`Links for Publisher ${viewingPub?.pub_id}`}
+                    open={!!viewingPub}
+                    onCancel={() => setViewingPub(null)}
+                    footer={null}
+                    centered>
+                    {viewingPub && (
+                      <div className="space-y-4 mt-2">
+                        {viewingPub.publisher_link && (
+                          <div>
+                            <p className="text-gray-600 text-sm font-medium mb-1">Publisher Tracking Link:</p>
+                            <div className="flex items-center gap-2">
+                              <input type="text" readOnly value={viewingPub.publisher_link}
+                                className="w-full px-3 py-1.5 border rounded-lg bg-white text-gray-700 text-sm" />
+                              <Button size="small" className="!bg-green-600 hover:!bg-green-700 !text-white !rounded-lg"
+                                onClick={() => copyToClipboard(viewingPub.publisher_link)}>Copy</Button>
+                            </div>
+                          </div>
+                        )}
+                        {viewingPub.impression_link && (
+                          <div>
+                            <p className="text-gray-600 text-sm font-medium mb-1">Impression Link:</p>
+                            <div className="flex items-center gap-2">
+                              <input type="text" readOnly value={viewingPub.impression_link}
+                                className="w-full px-3 py-1.5 border rounded-lg bg-white text-gray-700 text-sm" />
+                              <Button size="small" className="!bg-blue-600 hover:!bg-blue-700 !text-white !rounded-lg"
+                                onClick={() => copyToClipboard(viewingPub.impression_link)}>Copy</Button>
+                            </div>
+                          </div>
+                        )}
+                        {viewingPub.offer_api && (
+                          <div>
+                            <p className="text-gray-600 text-sm font-medium mb-1">Publisher Offer API:</p>
+                            <div className="flex items-center gap-2">
+                              <input type="text" readOnly value={viewingPub.offer_api}
+                                className="w-full px-3 py-1.5 border rounded-lg bg-white text-gray-700 text-sm" />
+                              <Button size="small" className="!bg-blue-600 hover:!bg-blue-700 !text-white !rounded-lg"
+                                onClick={() => copyToClipboard(viewingPub.offer_api)}>Copy</Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </Modal>
 
-                <div className="flex items-center gap-4 w-full max-w-sm ml-4">
-                  <Input
-                    placeholder="Search PID..."
-                    value={searchText}
-                    onChange={(e) => setSearchText(e.target.value)}
-                    allowClear
-                  />
-                  <Button
-                    type="primary"
-                    disabled={
-                      campaignStatus === "pause" ||
-                      Object.keys(updatedStatus).length === 0
-                    }
-                    onClick={handleSaveChanges}
-                    className="px-6">
-                    Save Changes
-                  </Button>
+                  {/* RIGHT — publisher selector + approve */}
+                  <Card title="Not Approved Publishers" className="shadow-md border-gray-100 rounded-2xl">
+                    <div className="flex flex-col gap-4">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-sm font-semibold text-gray-700">Publisher ID</label>
+                        <Select
+                          placeholder="Select Publisher ID"
+                          value={selectedPub}
+                          onChange={(val) => setSelectedPub(val)}
+                          showSearch
+                          size="large"
+                          loading={pubLoading}
+                          className="rounded-lg w-full">
+                          {allPubs
+                            .filter((pid) => !approvedPublishers.find((a) => a.pub_id === pid))
+                            .map((pid) => (
+                              <Select.Option key={pid} value={pid}>{pid}</Select.Option>
+                            ))}
+                        </Select>
+                      </div>
+                      <div className="flex items-center px-4 py-2 border rounded-lg bg-white">
+                        <Checkbox checked={hideReferrer} onChange={(e) => setHideReferrer(e.target.checked)}>
+                          <span className="text-gray-700 font-medium">Hide Google Referrer</span>
+                        </Checkbox>
+                      </div>
+                      <Button
+                        type="primary"
+                        size="large"
+                        loading={pubSubmitting}
+                        disabled={!selectedPub}
+                        onClick={handleGenerateLink}
+                        className="!bg-[#2F5D99] hover:!bg-[#24487A] !text-white !rounded-xl !h-[48px] !text-lg !font-semibold !border-none !shadow-lg">
+                        Approve
+                      </Button>
+                    </div>
+                  </Card>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card
-                  title="Live PID's"
-                  className="shadow-md border-gray-100 rounded-2xl">
-                  {loading ? (
-                    <Spin />
-                  ) : (
-                    <StyledTable
-                      columns={columns}
-                      dataSource={filteredLivePids}
-                      rowKey="id"
-                    />
-                  )}
-                </Card>
-
-                <Card
-                  title="Paused PID's"
-                  className="shadow-md border-gray-100 rounded-2xl">
-                  {loading ? (
-                    <Spin />
-                  ) : (
-                    <StyledTable
-                      columns={columns}
-                      dataSource={filteredPausedPids}
-                      rowKey="id"
-                    />
-                  )}
-                </Card>
-              </div>
+              ) : (
+                /* ── No tracking link: show Edit PID Status ── */
+                <>
+                  <div className="flex items-center justify-between m-4">
+                    <h2 className="text-xl font-semibold text-gray-700">Edit PID Status</h2>
+                    <div className="flex items-center gap-4 w-full max-w-sm ml-4">
+                      <Input
+                        placeholder="Search PID..."
+                        value={searchText}
+                        onChange={(e) => setSearchText(e.target.value)}
+                        allowClear
+                      />
+                      <Button
+                        type="primary"
+                        disabled={campaignStatus === "pause" || Object.keys(updatedStatus).length === 0}
+                        onClick={handleSaveChanges}
+                        className="px-6">
+                        Save Changes
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <Card title="Live PID's" className="shadow-md border-gray-100 rounded-2xl">
+                      {loading ? <Spin /> : <StyledTable columns={columns} dataSource={filteredLivePids} rowKey="id" />}
+                    </Card>
+                    <Card title="Paused PID's" className="shadow-md border-gray-100 rounded-2xl">
+                      {loading ? <Spin /> : <StyledTable columns={columns} dataSource={filteredPausedPids} rowKey="id" />}
+                    </Card>
+                  </div>
+                </>
+              )}
             </>
           )}
         </div>
@@ -1150,211 +1335,3 @@ const CreateCampaignForm = () => {
 
 export default CreateCampaignForm;
 
-const GenrateLink = ({ campaignId, trackingurl }) => {
-  const [allPubs, setAllPubs] = useState([]);
-  const [selectedPub, setSelectedPub] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [trackingUrl, setTrackingUrl] = useState("");
-  const [hideReferrer, setHideReferrer] = useState(false);
-  const [publisherOfferApi, setPublisherOfferApi] = useState("");
-  const [impressionLink, setImpressionLink] = useState("");
-  useEffect(() => {
-    fetchPublisherIds();
-  }, []);
-
-  const fetchPublisherIds = async () => {
-    try {
-      setLoading(true);
-      const res = await axios.get(`${apiUrl}/get-allpub`);
-      const pubList = res?.data?.data?.map((i) => i.pub_id) || [];
-      setAllPubs(pubList);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!selectedPub) return;
-
-    try {
-      setSubmitting(true);
-
-      const res = await axios.post(`${apiUrl2}/link/publisher`, {
-        publisher_id: selectedPub,
-        campaign_id: campaignId,
-        hide_referrer: hideReferrer ? 1 : 0,
-      });
-      // ⬇ THIS should be returned by your backend
-      // Example: { link: "https://track.com/campaign/5543?pub=100" }
-      const url = res.data?.publisher_link;
-      const offerApi = res.data?.publisher_offer_api;
-      const impressionlink = res.data?.impression_link;
-      if (url) {
-        setTrackingUrl(url);
-      }
-      if (offerApi) {
-        setPublisherOfferApi(offerApi);
-      }
-      if (impressionlink) {
-        setImpressionLink(impressionlink);
-      }
-    } catch (err) {
-      alert("Error generating link");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-
-    Swal.fire({
-      icon: "success",
-      title: "Copied!",
-      text: "Copied to clipboard.",
-      timer: 1500,
-      showConfirmButton: false,
-    });
-  };
-
-  return (
-    <Card className="m-6 rounded-2xl border border-gray-200 shadow-lg p-6 bg-white">
-      <h3 className="text-xl font-semibold text-gray-700 mb-4">
-        Generate Tracking Link
-      </h3>
-
-      {loading ? (
-        <div className="flex items-center justify-center py-6">
-          <Spin size="large" />
-        </div>
-      ) : (
-        <>
-          <div className="bg-white rounded-2xl shadow-lg p-6">
-            <div className="flex flex-col lg:flex-row gap-6 items-end">
-              {/* Left Controls */}
-              <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Publisher Select */}
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-semibold text-gray-700">
-                    Publisher ID
-                  </label>
-                  <Select
-                    placeholder="Select Publisher ID"
-                    value={selectedPub}
-                    onChange={(val) => setSelectedPub(val)}
-                    showSearch
-                    size="large"
-                    className="rounded-lg">
-                    {allPubs.map((pid) => (
-                      <Select.Option key={pid} value={pid}>
-                        {pid}
-                      </Select.Option>
-                    ))}
-                  </Select>
-                </div>
-
-                {/* Checkbox */}
-                <div className="flex flex-col gap-2 border border-white">
-                  <label className="text-sm font-semibold text-gray-700">
-                    Referrer Settings
-                  </label>
-                  <div className="h-[40px] flex items-center px-4 border rounded-lg bg-white">
-                    <Checkbox
-                      checked={hideReferrer}
-                      onChange={(e) => setHideReferrer(e.target.checked)}>
-                      <span className="text-gray-700 font-medium">
-                        Hide Google Referrer
-                      </span>
-                    </Checkbox>
-                  </div>
-                </div>
-              </div>
-
-              {/* CTA Button */}
-              <Button
-                type="primary"
-                size="large"
-                loading={submitting}
-                onClick={handleSubmit}
-                className="!bg-[#2F5D99] hover:!bg-[#24487A] 
-                 !text-white !rounded-xl 
-                 !px-10 !h-[48px] 
-                 !text-lg !font-semibold 
-                 !border-none !shadow-lg">
-                Generate Tracking Link
-              </Button>
-            </div>
-          </div>
-
-          {trackingUrl && (
-            <div className="mt-6 p-4 border border-gray-300 rounded-xl bg-gray-50 shadow-sm space-y-4">
-              {/* Publisher Tracking Link */}
-              <div>
-                <p className="text-gray-700 font-medium mb-2">
-                  Publisher Tracking Link:
-                </p>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border rounded-lg bg-white text-gray-700"
-                    value={trackingUrl}
-                    readOnly
-                  />
-                  <Button
-                    className="!bg-green-600 hover:!bg-green-700 !text-white !rounded-lg"
-                    onClick={() => copyToClipboard(trackingUrl)}>
-                    Copy
-                  </Button>
-                </div>
-              </div>
-
-              {impressionLink && (
-                <div>
-                  <p className="text-gray-700 font-medium mb-2">
-                    Impression Link:
-                  </p>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="text"
-                      className="w-full px-3 py-2 border rounded-lg bg-white text-gray-700"
-                      value={impressionLink}
-                      readOnly
-                    />
-                    <Button
-                      className="!bg-blue-600 hover:!bg-blue-700 !text-white !rounded-lg"
-                      onClick={() => copyToClipboard(impressionLink)}>
-                      Copy
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* Publisher Offer API */}
-              {publisherOfferApi && (
-                <div>
-                  <p className="text-gray-700 font-medium mb-2">
-                    Publisher Offer API:
-                  </p>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="text"
-                      className="w-full px-3 py-2 border rounded-lg bg-white text-gray-700"
-                      value={publisherOfferApi}
-                      readOnly
-                    />
-                    <Button
-                      className="!bg-blue-600 hover:!bg-blue-700 !text-white !rounded-lg"
-                      onClick={() => copyToClipboard(publisherOfferApi)}>
-                      Copy
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </>
-      )}
-    </Card>
-  );
-};
