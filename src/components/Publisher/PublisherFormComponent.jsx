@@ -739,8 +739,8 @@ const PublisherEditForm = () => {
       key: "details",
       align: "center",
       render: (_, record) => {
-        const mail = record.mail || "-";
-        const password = record.password || "-";
+        const mail = record.publisher_mail || record.mail || "-";
+        const password = record.publisher_password || record.password || "-";
 
         const copyToClipboard = () => {
           const text = `Email: ${mail}\nPassword: ${password}`;

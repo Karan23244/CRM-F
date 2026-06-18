@@ -139,7 +139,7 @@ const Conversion = () => {
   }, [data]);
 
   const displayedData = useMemo(() => {
-    if (selectedCampaigns.length === 0) return [];
+    if (selectedCampaigns.length === 0) return data;
     return data.filter((item) => selectedCampaigns.includes(item.campaign_id));
   }, [data, selectedCampaigns]);
 
@@ -155,6 +155,7 @@ const Conversion = () => {
       const baseRow = {
         campaign_id: item.campaign_id,
         campaign_name: item.campaign_name,
+        geo: item.geo,
         total_clicks: item.total_clicks,
         publisher_id: item.publisher_id,
         total_impressions: item.total_impressions,
@@ -202,6 +203,21 @@ const Conversion = () => {
         key: "publisher_id",
         width: 120,
         sorter: (a, b) => a.publisher_id - b.publisher_id,
+      },
+      {
+        title: "Geo",
+        dataIndex: "geo",
+        key: "geo",
+        width: 140,
+        sorter: (a, b) => (a.geo || "").localeCompare(b.geo || ""),
+        render: (val) => {
+          try {
+            const geos = JSON.parse(val);
+            return geos.join(", ");
+          } catch {
+            return val || <span className="text-gray-400">—</span>;
+          }
+        },
       },
        {
         title: "Impressions",
@@ -317,7 +333,7 @@ const Conversion = () => {
         <Select
           mode="multiple"
           allowClear
-          placeholder="Filter by campaign(s)..."
+          placeholder="Filter by campaign(s)... (showing all by default)"
           value={selectedCampaigns}
           onChange={(vals) => {
             setSelectedCampaigns(vals ?? []);
@@ -376,31 +392,10 @@ const Conversion = () => {
         </div>
       )}
 
-      {/* Table / empty state */}
+      {/* Table */}
       {loading ? (
         <div className="flex justify-center py-20">
           <Spin size="large" />
-        </div>
-      ) : selectedCampaigns.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-gray-400">
-          <svg
-            width="56"
-            height="56"
-            fill="none"
-            viewBox="0 0 24 24"
-            className="mb-4 opacity-40">
-            <path
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M3 10h18M3 14h18M10 3v18M14 3v18M3 6a3 3 0 013-3h12a3 3 0 013 3v12a3 3 0 01-3 3H6a3 3 0 01-3-3V6z"
-            />
-          </svg>
-          <p className="text-base font-medium">No campaign selected</p>
-          <p className="text-sm mt-1">
-            Select one or more campaigns above to view their conversion data.
-          </p>
         </div>
       ) : (
         <Table

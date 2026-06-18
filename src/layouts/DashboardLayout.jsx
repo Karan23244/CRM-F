@@ -231,56 +231,53 @@ const DashboardLayout = () => {
       const hasChildren = link.sublinks?.length > 0;
       const isActive = link.to && location.pathname.endsWith(link.to);
 
+      const itemClass = `flex justify-between items-center px-3 py-2 rounded-md cursor-pointer transition-all ${
+        isActive
+          ? "bg-[#79A2CE] text-white"
+          : "hover:bg-[#3f6faf] text-gray-100"
+      }`;
+
+      const innerContent = (
+        <>
+          <span className="text-sm font-medium flex items-center gap-2">
+            {link.label}
+            {link.to === "view-request" && sidebarDots.advertiserRequests && (
+              <span className="w-2 h-2 bg-red-500 rounded-full" />
+            )}
+            {link.to === "makerequest" && sidebarDots.publisherRequests && (
+              <span className="w-2 h-2 bg-red-500 rounded-full" />
+            )}
+          </span>
+          {hasChildren &&
+            (isOpen ? (
+              <FaChevronUp className="text-xs" />
+            ) : (
+              <FaChevronDown className="text-xs" />
+            ))}
+        </>
+      );
+
       return (
         <div key={link.label} className={`mt-1 ${level > 0 ? "ml-4" : ""}`}>
-          <a
-            href={`/dashboard/${link.to}`}
-            onClick={(e) => {
-              if (hasChildren) {
-                e.preventDefault();
-                toggleMenu(link.label);
-                return;
-              }
-
-              // 🔕 CLEAR DOTS ON CLICK
-              if (link.to === "view-request") {
-                setSidebarDots((prev) => ({
-                  ...prev,
-                  advertiserRequests: false,
-                }));
-              }
-
-              if (link.to === "makerequest") {
-                setSidebarDots((prev) => ({
-                  ...prev,
-                  publisherRequests: false,
-                }));
-              }
-            }}
-            className={`flex justify-between items-center px-3 py-2 rounded-md cursor-pointer transition-all ${
-              isActive
-                ? "bg-[#79A2CE] text-white"
-                : "hover:bg-[#3f6faf] text-gray-100"
-            }`}>
-            <span className="text-sm font-medium flex items-center gap-2">
-              {link.label}
-
-              {link.to === "view-request" && sidebarDots.advertiserRequests && (
-                <span className="w-2 h-2 bg-red-500 rounded-full" />
-              )}
-
-              {link.to === "makerequest" && sidebarDots.publisherRequests && (
-                <span className="w-2 h-2 bg-red-500 rounded-full" />
-              )}
-            </span>
-
-            {hasChildren &&
-              (isOpen ? (
-                <FaChevronUp className="text-xs" />
-              ) : (
-                <FaChevronDown className="text-xs" />
-              ))}
-          </a>
+          {hasChildren ? (
+            <div onClick={() => toggleMenu(link.label)} className={itemClass}>
+              {innerContent}
+            </div>
+          ) : (
+            <Link
+              to={`/dashboard/${link.to}`}
+              onClick={() => {
+                if (link.to === "view-request") {
+                  setSidebarDots((prev) => ({ ...prev, advertiserRequests: false }));
+                }
+                if (link.to === "makerequest") {
+                  setSidebarDots((prev) => ({ ...prev, publisherRequests: false }));
+                }
+              }}
+              className={itemClass}>
+              {innerContent}
+            </Link>
+          )}
 
           {hasChildren && isOpen && (
             <div className="mt-1 ml-3 border-l border-blue-300 pl-2">
