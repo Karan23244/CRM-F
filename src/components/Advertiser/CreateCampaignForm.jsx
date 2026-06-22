@@ -63,13 +63,13 @@ const CreateCampaignForm = () => {
   const [geoRows, setGeoRows] = useState([{ geo: "", payout: "", os: "" }]);
   const [updatedStatus, setUpdatedStatus] = useState({});
   const [searchText, setSearchText] = useState("");
-  const [allPubs, setAllPubs] = useState([]);
-  const [selectedPub, setSelectedPub] = useState(null);
-  const [hideReferrer, setHideReferrer] = useState(false);
-  const [pubLoading, setPubLoading] = useState(false);
-  const [pubSubmitting, setPubSubmitting] = useState(false);
-  const [approvedPublishers, setApprovedPublishers] = useState([]);
-  const [viewingPub, setViewingPub] = useState(null);
+  const [_allPubs, setAllPubs] = useState([]);
+  const [_selectedPub, setSelectedPub] = useState(null);
+  const [_hideReferrer, setHideReferrer] = useState(false);
+  const [_pubLoading, setPubLoading] = useState(false);
+  const [_pubSubmitting, setPubSubmitting] = useState(false);
+  const [_approvedPublishers, setApprovedPublishers] = useState([]);
+  const [_viewingPub, setViewingPub] = useState(null);
   const campaignStatus = (editRecord?.status || "").toLowerCase();
   const isPublisherRole =
     Array.isArray(user?.role) &&
@@ -659,19 +659,19 @@ const CreateCampaignForm = () => {
     fetchExistingLinks();
   }, [editRecord]);
 
-  const handleGenerateLink = async () => {
-    if (!selectedPub) return;
+  const _handleGenerateLink = async () => {
+    if (!_selectedPub) return;
     try {
       setPubSubmitting(true);
       const res = await axios.post(`${apiUrl2}/link/publisher`, {
-        publisher_id: selectedPub,
+        publisher_id: _selectedPub,
         campaign_id: editRecord.id,
-        hide_referrer: hideReferrer ? 1 : 0,
+        hide_referrer: _hideReferrer ? 1 : 0,
       });
       setApprovedPublishers((prev) => [
         ...prev,
         {
-          pub_id: selectedPub,
+          pub_id: _selectedPub,
           publisher_link: res.data?.publisher_link || "",
           impression_link: res.data?.impression_link || "",
           offer_api: res.data?.publisher_offer_api || "",
@@ -687,20 +687,20 @@ const CreateCampaignForm = () => {
     }
   };
 
-  const handleDisapprove = async (pub_id) => {
+  const _handleDisapprove = async (pub_id) => {
     try {
       await axios.post(`${apiUrl2}/link/publisher/disapprove`, {
         campaign_id: editRecord.id,
         publisher_id: pub_id,
       });
       setApprovedPublishers((prev) => prev.filter((p) => p.pub_id !== pub_id));
-      if (viewingPub?.pub_id === pub_id) setViewingPub(null);
+      if (_viewingPub?.pub_id === pub_id) setViewingPub(null);
     } catch {
       Swal.fire("Error", "Failed to disapprove publisher", "error");
     }
   };
 
-  const copyToClipboard = (text) => {
+  const _copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
     Swal.fire({ icon: "success", title: "Copied!", text: "Copied to clipboard.", timer: 1500, showConfirmButton: false });
   };
@@ -1173,6 +1173,7 @@ const CreateCampaignForm = () => {
           {/* 👇 Only NON-publisher roles can see below components */}
           {!isPublisherRole && (
             <>
+              {/* ── Approved / Not Approved Publishers (commented out temporarily) ──
               {editRecord.tracking_url ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                   <Card title="Approved Publishers" className="shadow-md border-gray-100 rounded-2xl">
@@ -1257,7 +1258,6 @@ const CreateCampaignForm = () => {
                     )}
                   </Modal>
 
-                  {/* RIGHT — publisher selector + approve */}
                   <Card title="Not Approved Publishers" className="shadow-md border-gray-100 rounded-2xl">
                     <div className="flex flex-col gap-4">
                       <div className="flex flex-col gap-1">
@@ -1295,36 +1295,38 @@ const CreateCampaignForm = () => {
                   </Card>
                 </div>
               ) : (
-                /* ── No tracking link: show Edit PID Status ── */
-                <>
-                  <div className="flex items-center justify-between m-4">
-                    <h2 className="text-xl font-semibold text-gray-700">Edit PID Status</h2>
-                    <div className="flex items-center gap-4 w-full max-w-sm ml-4">
-                      <Input
-                        placeholder="Search PID..."
-                        value={searchText}
-                        onChange={(e) => setSearchText(e.target.value)}
-                        allowClear
-                      />
-                      <Button
-                        type="primary"
-                        disabled={campaignStatus === "pause" || Object.keys(updatedStatus).length === 0}
-                        onClick={handleSaveChanges}
-                        className="px-6">
-                        Save Changes
-                      </Button>
-                    </div>
+              ── end commented out ── */}
+
+              {/* ── Always show Edit PID Status ── */}
+              <>
+                <div className="flex items-center justify-between m-4">
+                  <h2 className="text-xl font-semibold text-gray-700">Edit PID Status</h2>
+                  <div className="flex items-center gap-4 w-full max-w-sm ml-4">
+                    <Input
+                      placeholder="Search PID..."
+                      value={searchText}
+                      onChange={(e) => setSearchText(e.target.value)}
+                      allowClear
+                    />
+                    <Button
+                      type="primary"
+                      disabled={campaignStatus === "pause" || Object.keys(updatedStatus).length === 0}
+                      onClick={handleSaveChanges}
+                      className="px-6">
+                      Save Changes
+                    </Button>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Card title="Live PID's" className="shadow-md border-gray-100 rounded-2xl">
-                      {loading ? <Spin /> : <StyledTable columns={columns} dataSource={filteredLivePids} rowKey="id" />}
-                    </Card>
-                    <Card title="Paused PID's" className="shadow-md border-gray-100 rounded-2xl">
-                      {loading ? <Spin /> : <StyledTable columns={columns} dataSource={filteredPausedPids} rowKey="id" />}
-                    </Card>
-                  </div>
-                </>
-              )}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Card title="Live PID's" className="shadow-md border-gray-100 rounded-2xl">
+                    {loading ? <Spin /> : <StyledTable columns={columns} dataSource={filteredLivePids} rowKey="id" />}
+                  </Card>
+                  <Card title="Paused PID's" className="shadow-md border-gray-100 rounded-2xl">
+                    {loading ? <Spin /> : <StyledTable columns={columns} dataSource={filteredPausedPids} rowKey="id" />}
+                  </Card>
+                </div>
+              {/* )} */}
+              </>
             </>
           )}
         </div>
