@@ -484,6 +484,29 @@ const AdvertiserEditForm = () => {
         );
       },
     },
+    {
+      title: "Event Postback",
+      dataIndex: "postback_url",
+      key: "event_postback",
+      render: (text) => {
+        if (!text) return "-";
+        let value;
+        if (text.includes("&event={}")) {
+          value = text.replace("&event={}", "&event={event_goal}");
+        } else if (!text.includes("&event=")) {
+          value = `${text}&event={event_goal}`;
+        } else {
+          value = text;
+        }
+        return (
+          <div className="w-[250px] overflow-hidden whitespace-nowrap relative group">
+            <div className="inline-block animate-marquee group-hover:pause">
+              {value}
+            </div>
+          </div>
+        );
+      },
+    },
     ...(isAdvertiserManager || isAdmin
       ? [
           {
