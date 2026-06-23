@@ -102,7 +102,6 @@ const PublisherEditForm = () => {
   const [searchTextPub, setSearchTextPub] = useState("");
   const [editingLinkId, setEditingLinkId] = useState(null);
   const [placeLinkValue, setPlaceLinkValue] = useState("");
-  const [apiUrls, setApiUrls] = useState({});
   const [filters, setFilters] = useState({});
   const [filterSearch, setFilterSearch] = useState({});
   const [uniqueValues, setUniqueValues] = useState({});
@@ -174,26 +173,6 @@ const PublisherEditForm = () => {
   useEffect(() => {
     fetchPublishers();
   }, [userId]);
-
-  useEffect(() => {
-    const pubsWithUrl = publishers.filter((p) => p.postback_url);
-    if (!pubsWithUrl.length) return;
-
-    Promise.allSettled(
-      pubsWithUrl.map((p) =>
-        axios.get(`${apiUrl1}/link/publisher-api-url?publisher_id=${p.pub_id}`)
-      )
-    ).then((results) => {
-      const updates = {};
-      results.forEach((result, i) => {
-        if (result.status === "fulfilled") {
-          const d = result.value.data;
-          updates[pubsWithUrl[i].pub_id] = d?.api_url || d?.url || JSON.stringify(d);
-        }
-      });
-      setApiUrls((prev) => ({ ...prev, ...updates }));
-    });
-  }, [publishers]);
   const getExcelFilteredDataForColumn = (columnKey) => {
     return publishers.filter((row) =>
       Object.entries(filters).every(([key, values]) => {
@@ -328,7 +307,7 @@ const PublisherEditForm = () => {
       setLoading(true);
       console.log(`${apiUrl1}/postback/place-link`);
       const res = await axios.put(
-        `${apiUrl1}/postback/place-link`,
+        "https://track.pidmetric.com/postback/place-link",
         {
           pub_id: record.pub_id,
           user_id: userId,
@@ -346,18 +325,6 @@ const PublisherEditForm = () => {
         const { data } = await axios.get(`${apiUrl}/pubid-data/${userId}`);
         if (data.success && Array.isArray(data.Publisher)) {
           setPublishers(data.Publisher);
-        }
-
-        try {
-          const apiUrlRes = await axios.get(
-            `${apiUrl1}/link/publisher-api-url?publisher_id=${record.pub_id}`
-          );
-          setApiUrls((prev) => ({
-            ...prev,
-            [record.pub_id]: apiUrlRes.data?.api_url || apiUrlRes.data?.url || JSON.stringify(apiUrlRes.data),
-          }));
-        } catch (apiErr) {
-          console.error("Failed to fetch publisher API URL:", apiErr);
         }
       }
     } catch (err) {
@@ -673,22 +640,6 @@ const PublisherEditForm = () => {
             ) : (
               <span className="text-gray-400">Click to add link</span>
             )}
-          </div>
-        );
-      },
-    },
-    {
-      title: <div style={{ textAlign: "center" }}>API URL</div>,
-      key: "apiurl",
-      width: 300,
-      render: (_, record) => {
-        const value = apiUrls[record.pub_id];
-        if (!value) return <span className="text-gray-400">-</span>;
-        return (
-          <div className="w-[260px] overflow-hidden whitespace-nowrap group cursor-pointer">
-            <div className="inline-block min-w-full transition-transform duration-700 ease-in-out group-hover:-translate-x-full">
-              {value}
-            </div>
           </div>
         );
       },

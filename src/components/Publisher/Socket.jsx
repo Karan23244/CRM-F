@@ -7,14 +7,19 @@ const socket = io(import.meta.env.VITE_API_URL1, {
   withCredentials: true, // Optional, if you need to include credentials
 });
 
-// Function to subscribe to events — removes old listeners first to prevent accumulation
+// Function to subscribe to events
 export const subscribeToNotifications = (callback) => {
-  socket.off("welcome");
-  socket.off("pub_request_added");
-  socket.off("adv_res_updated");
-  socket.on("welcome", callback);
-  socket.on("pub_request_added", callback);
-  socket.on("adv_res_updated", callback);
+  socket.on("welcome", (message) => {
+    callback(message);
+  });
+  //request
+  socket.on("pub_request_added", (data) => {
+    callback(data);
+  });
+  //update link
+  socket.on("adv_res_updated", (data) => {
+    callback(data);
+  });
 };
 
 // Function to emit events to the server
