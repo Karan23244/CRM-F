@@ -498,6 +498,27 @@ const AdvertiserData = () => {
       });
     });
   };
+  const getColumnValue = (row, key) => {
+    if (key === "adv_payout_total") {
+      const total = calculateAdvPayoutTotal(row);
+
+      return isNaN(total) ? "-" : total.toFixed(2);
+    }
+
+    if (key === "pub_Apno") {
+      return row.pub_Apno === null ||
+        row.pub_Apno === undefined ||
+        row.pub_Apno === ""
+        ? "-"
+        : Number(row.pub_Apno).toFixed(1);
+    }
+
+    const v = row[key];
+
+    return v === null || v === undefined || v === ""
+      ? "-"
+      : v.toString().trim();
+  };
   // Filters / search / date range memoized
   const finalFilteredData = useMemo(() => {
     let filtered = [...data];
@@ -540,14 +561,13 @@ const AdvertiserData = () => {
       if (Array.isArray(filterValue)) {
         filtered = filtered.filter((item) =>
           filterValue.some(
-            (val) =>
-              normalize(item[key]) === val.toString().trim().toLowerCase(),
+            (val) => normalize(getColumnValue(item, key)) === normalize(val),
           ),
         );
       } else {
         filtered = filtered.filter(
           (item) =>
-            normalize(item[key]) ===
+            normalize(getColumnValue(item, key)) ===
             filterValue.toString().trim().toLowerCase(),
         );
       }
@@ -596,19 +616,7 @@ const AdvertiserData = () => {
         if (key === columnKey) return true;
         if (!values || values.length === 0) return true;
 
-        let rowValue;
-
-        // 🔹 computed column support
-        if (key === "adv_payout_total") {
-          const total = Number(row.adv_payout) * Number(row.adv_approved_no);
-          rowValue = isNaN(total) ? "-" : total.toFixed(2);
-        } else if (key === "pub_Apno") {
-          rowValue = isNaN(row.pub_Apno)
-            ? "-"
-            : Number(row.pub_Apno).toFixed(2);
-        } else {
-          rowValue = row[key];
-        }
+        const rowValue = getColumnValue(row, key);
 
         const normalizedRowVal = normalize(rowValue);
 
@@ -620,24 +628,11 @@ const AdvertiserData = () => {
   useEffect(() => {
     const valuesObj = {};
 
-    // For each column:
     Object.keys(columnHeadingsAdv).forEach((col) => {
-      const source = getExcelFilteredDataForColumn(col); // 🔥 critical
+      const source = getExcelFilteredDataForColumn(col);
+
       valuesObj[col] = sortDropdownValues(
-        Array.from(
-          new Set(
-            source.map((row) => {
-              const v = row[col];
-              // 🔥 force 2 decimals for payout total
-              if (col === "adv_payout_total" && !isNaN(v)) {
-                return Number(v).toFixed(2);
-              }
-              return v === null || v === undefined || v === ""
-                ? "-"
-                : v.toString().trim();
-            }),
-          ),
-        ),
+        Array.from(new Set(source.map((row) => getColumnValue(row, col)))),
       );
     });
 
@@ -1421,23 +1416,7 @@ const AdvertiserData = () => {
 
             const values = sortDropdownValues(
               Array.from(
-                new Set(
-                  source.map((row) => {
-                    if (key === "adv_payout_total") {
-                      const total =
-                        Number(row.adv_payout) * Number(row.adv_approved_no);
-                      return !row.adv_payout ||
-                        !row.adv_approved_no ||
-                        isNaN(total)
-                        ? "-"
-                        : total.toFixed(2);
-                    }
-                    const v = row[key];
-                    return v === null || v === undefined || v === ""
-                      ? "-"
-                      : v.toString().trim();
-                  }),
-                ),
+                new Set(source.map((row) => getColumnValue(row, key))),
               ),
             );
 

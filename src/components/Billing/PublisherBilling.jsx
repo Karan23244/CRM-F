@@ -80,6 +80,7 @@ export default function PublisherAccount() {
   const [pinnedColumns, setPinnedColumns] = useState({});
   const [filterSearch, setFilterSearch] = useState({});
   const [uniqueValues, setUniqueValues] = useState({});
+  const [sortInfo, setSortInfo] = useState({});
   const normalize = (val) => {
     if (val === null || val === undefined || val === "") return "-";
     return val.toString().trim();
@@ -88,8 +89,12 @@ export default function PublisherAccount() {
     setFilters({});
     setPinnedColumns({});
     setFilterSearch({});
+    setSortInfo({});
     message.success("All filters & pins cleared");
   };
+  useEffect(() => {
+    updateUniqueValuesForColumn("payment_status");
+  }, [data]);
   const togglePin = (key) =>
     setPinnedColumns((prev) => ({ ...prev, [key]: !prev[key] }));
   const fetchData = async (m) => {
@@ -97,13 +102,16 @@ export default function PublisherAccount() {
       setLoading(true);
 
       const res = await axios.post(`${API}/publisher/account`, {
+        pubid: user?.pubid,
         user_id: user?.id,
         role: user?.role || [],
         assigned_subadmins: user?.assigned_subadmins || [],
         month: month || currentMonth,
       });
-      console.log("API Response:", res.data);
-      setData(res.data.data); // ⚠️ important (your backend sends { success, data })
+      console.log("FULL RESPONSE", res.data);
+      console.log("DATA ARRAY", res.data.data);
+
+      setData(res.data.data || []);
     } catch (err) {
       console.error(err);
       message.error("Failed to fetch data");
@@ -115,25 +123,23 @@ export default function PublisherAccount() {
   useEffect(() => {
     fetchData(month);
   }, [month]);
+  const updateUniqueValuesForColumn = (columnKey) => {
+    const source = getExcelFilteredDataForColumn(columnKey);
 
-  /* ============================= */
-  /* TABLE COLUMNS (READ ONLY) */
-  /* ============================= */
-  useEffect(() => {
-    const valuesObj = {};
+    const values = [
+      ...new Set(source.map((row) => getCellValue(row, columnKey))),
+    ].sort((a, b) => String(a).localeCompare(String(b)));
 
-    columnsRaw.forEach((col) => {
-      const key = col.key;
-      if (!key) return;
-
-      valuesObj[key] = [...new Set(data.map((row) => normalize(row[key])))];
-    });
-
-    setUniqueValues(valuesObj);
-  }, [data]);
+    setUniqueValues((prev) => ({
+      ...prev,
+      [columnKey]: values,
+    }));
+  };
   const getColumnWithFilterAndPin = (dataIndex, title, renderFn) => {
     const isPinned = pinnedColumns[dataIndex];
-    const isFiltered = !!filters[dataIndex];
+    const isFiltered =
+      filters[dataIndex] &&
+      filters[dataIndex].length !== (uniqueValues[dataIndex] || []).length;
 
     return {
       title: (
@@ -176,10 +182,35 @@ export default function PublisherAccount() {
       key: dataIndex,
       dataIndex,
       fixed: isPinned ? "left" : false,
+      sorter: true,
 
+      sortOrder: sortInfo.columnKey === dataIndex ? sortInfo.order : null,
+
+      onHeaderCell: () => ({
+        onClick: () => {
+          setSortInfo((prev) => {
+            if (prev.columnKey !== dataIndex) {
+              return {
+                columnKey: dataIndex,
+                order: "ascend",
+              };
+            }
+
+            if (prev.order === "ascend") {
+              return {
+                columnKey: dataIndex,
+                order: "descend",
+              };
+            }
+
+            return {};
+          });
+        },
+      }),
       filterDropdown: () => {
         const allValues = uniqueValues[dataIndex] || [];
-        const selectedValues = filters[dataIndex] ?? allValues;
+        const selectedValues =
+          filters[dataIndex] === undefined ? allValues : filters[dataIndex];
         const searchText = filterSearch[dataIndex] || "";
 
         const visibleValues = allValues.filter((val) =>
@@ -257,65 +288,78 @@ export default function PublisherAccount() {
           </div>
         );
       },
+      onFilterDropdownOpenChange: (open) => {
+        if (!open) return;
 
+        updateUniqueValuesForColumn(dataIndex);
+      },
       render: renderFn
         ? (text, record) => renderFn(text, record)
         : (text) => displayValue(text),
     };
   };
-  const filteredData = data.filter((row) => {
-    return Object.entries(filters).every(([key, values]) => {
-      if (!values || values.length === 0) return true;
-      return values.includes(normalize(row[key]));
+  const getCellValue = (row, key) => {
+    switch (key) {
+      case "pub_id":
+        return row.pub_name
+          ? `${row.pub_id} (${row.pub_name})`
+          : String(row.pub_id);
+
+      case "payment_status":
+        if (row.payment_status === "Paid") {
+          return "PAID";
+        }
+
+        if (!row.invoice_date) {
+          return "NOT ISSUED";
+        }
+
+        const overdue = dayjs().isAfter(dayjs(row.invoice_date));
+
+        return overdue ? "OVERDUE" : "NOT DUE";
+
+      default:
+        return normalize(row[key]);
+    }
+  };
+  const getExcelFilteredDataForColumn = (columnKey) => {
+    return data.filter((row) => {
+      return Object.entries(filters).every(([key, values]) => {
+        if (key === columnKey) return true;
+
+        if (!values || values.length === 0) return true;
+
+        return values.includes(getCellValue(row, key));
+      });
     });
-  });
-  // const columns = [
-  //   {
-  //     title: <div style={{ textAlign: "center" }}>PubID (Publisher)</div>,
-  //     render: (_, r) => (
-  //       <Tooltip title={r.note || "No note"}>
-  //         <span style={{ color: "#1677ff", fontWeight: 500 }}>
-  //           {r.pub_id} ({r.pub_name})
-  //         </span>
-  //       </Tooltip>
-  //     ),
-  //   },
+  };
+  const filteredData = React.useMemo(() => {
+    let result = data.filter((row) => {
+      return Object.entries(filters).every(([key, values]) => {
+        if (!values || values.length === 0) return true;
 
-  //   {
-  //     title: <div style={{ textAlign: "center" }}>Month</div>,
-  //     dataIndex: "month",
-  //   },
+        return values.includes(getCellValue(row, key));
+      });
+    });
 
-  //   {
-  //     title: <div style={{ textAlign: "center" }}>Payment Invoice Date</div>,
-  //     render: (_, r) => displayValue(r.invoice_date),
-  //   },
+    if (sortInfo?.columnKey && sortInfo?.order) {
+      result = [...result].sort((a, b) => {
+        const key = sortInfo.columnKey;
 
-  //   {
-  //     title: <div style={{ textAlign: "center" }}>Due Status</div>,
-  //     render: (_, r) => <DueStatusCell record={r} />,
-  //   },
+        const valA = getCellValue(a, key);
+        const valB = getCellValue(b, key);
 
-  //   {
-  //     title: <div style={{ textAlign: "center" }}>Invoice Received</div>,
-  //     render: (_, r) => displayValue(r.invoice_number),
-  //   },
+        const comparison =
+          !isNaN(valA) && !isNaN(valB)
+            ? Number(valA) - Number(valB)
+            : String(valA).localeCompare(String(valB));
 
-  //   {
-  //     title: <div style={{ textAlign: "center" }}>Invoice Amount Raised</div>,
-  //     render: (_, r) =>
-  //       displayValue(
-  //         r.amount_paid !== null && r.amount_paid !== undefined
-  //           ? Number(r.amount_paid).toFixed(2)
-  //           : null,
-  //       ),
-  //   },
+        return sortInfo.order === "ascend" ? comparison : -comparison;
+      });
+    }
 
-  //   {
-  //     title: <div style={{ textAlign: "center" }}>Payment Status Date</div>,
-  //     render: (_, r) => displayValue(r.payment_date),
-  //   },
-  // ];
+    return result;
+  }, [data, filters, sortInfo]);
   const columnsRaw = [
     getColumnWithFilterAndPin("pub_id", "PubID (Publisher)", (_, r) => (
       <Tooltip title={r.note || "No note"}>
@@ -346,30 +390,40 @@ export default function PublisherAccount() {
     getColumnWithFilterAndPin("payment_date", "Payment Status Date"),
   ];
   return (
-    <div style={{ padding: 24 }}>
-      <div style={{ background: "#fff", padding: 24, borderRadius: 12 }}>
-        <div
-          style={{ display: "flex", justifyContent: "space-between" }}
-          className="mb-5">
-          <h2 className="text-xl font-bold">Publisher Account Overview</h2>
+    <div
+      style={{
+        minHeight: "100vh",
+      }}>
+      <div
+        style={{
+          background: "#fff",
+          padding: 24,
+          borderRadius: 14,
+          boxShadow: "0 6px 25px rgba(0,0,0,0.05)",
+        }}>
+        <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
+          <DatePicker
+            picker="month"
+            value={dayjs(month)}
+            allowClear={false}
+            onChange={(d) => {
+              setFilters({});
+              setFilterSearch({});
+              setUniqueValues({});
+              setSortInfo({});
 
-          <div style={{ display: "flex", gap: 10 }}>
-            <DatePicker
-              picker="month"
-              value={dayjs(month)}
-              allowClear={false}
-              onChange={(d) => setMonth(d.format("YYYY-MM"))}
-            />
+              setMonth(d.format("YYYY-MM"));
+            }}
+          />
 
-            <Button icon={<ClearOutlined />} onClick={clearAllFilters}>
-              Clear Filters
-            </Button>
-          </div>
+          <Button icon={<ClearOutlined />} onClick={clearAllFilters}>
+            Clear Filters
+          </Button>
         </div>
 
         <Spin spinning={loading}>
           <StyledTable
-            rowKey={(r) => `${r.pub_id}-${r.month}`}
+            rowKey={(r) => `${r.id}`}
             columns={columnsRaw}
             dataSource={filteredData}
             bordered

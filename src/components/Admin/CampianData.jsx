@@ -75,7 +75,26 @@ const columnHeadingsAdv = {
   pub_Apno: "PUB Approved Numbers",
   adv_payout_total: "ADV Payout Total ($)",
 };
+const getColumnValue = (row, key) => {
+  if (key === "adv_payout_total") {
+    const total =
+      (Number(row.adv_payout) || 0) * (Number(row.adv_approved_no) || 0);
 
+    return isNaN(total) ? "-" : total.toFixed(2);
+  }
+
+  if (key === "pub_Apno") {
+    const v = row.pub_Apno;
+
+    return v === null || v === undefined || v === "" ? "-" : Number(v);
+  }
+
+  const value = row[key];
+
+  return value === null || value === undefined || value === ""
+    ? "-"
+    : value.toString().trim();
+};
 const CampianData = () => {
   const userId = useSelector((state) => state.auth.user.id);
   const allColumns = Object.keys(columnHeadingsAdv);
@@ -106,7 +125,7 @@ const CampianData = () => {
       (key) => !hiddenColumns.includes(key),
     );
   };
-
+  console.log("uniqueValues:", uniqueValues);
   const [sortInfo, setSortInfo] = useState({
     columnKey: null,
     order: null,
@@ -212,21 +231,23 @@ const CampianData = () => {
         const filterVal = filters[key];
         if (!filterVal || filterVal.length === 0) return true;
 
-        const rawVal = item[key];
-        const itemVal =
-          rawVal === null ||
-          rawVal === undefined ||
-          rawVal.toString().trim() === ""
-            ? "-"
-            : rawVal.toString().trim().toLowerCase();
+        const normalize = (val) => {
+          if (val === null || val === undefined || val === "") return "-";
+
+          if (!isNaN(val)) return Number(val).toFixed(2);
+
+          return val.toString().trim().toLowerCase();
+        };
+
+        const rowValue = getColumnValue(item, key);
 
         if (Array.isArray(filterVal)) {
           return filterVal.some(
-            (val) => itemVal === val?.toString().trim().toLowerCase(),
+            (val) => normalize(rowValue) === normalize(val),
           );
         }
 
-        return itemVal === filterVal?.toString().trim().toLowerCase();
+        return normalize(rowValue) === normalize(filterVal);
       });
 
       if (!passesAdvancedFilters) return false;
@@ -241,10 +262,13 @@ const CampianData = () => {
     });
   }, [advData, selectedType, filters, searchTerm, selectedDateRange]);
   const getExcelFilteredDataForColumn = (columnKey) => {
-    const normalize = (val) =>
-      val === null || val === undefined || val.toString().trim() === ""
-        ? "-"
-        : val.toString().trim().toLowerCase();
+    const normalize = (val) => {
+      if (val === null || val === undefined || val === "") return "-";
+
+      if (!isNaN(val)) return Number(val).toFixed(2);
+
+      return val.toString().trim().toLowerCase();
+    };
 
     return advData.filter((row) => {
       /* 🔹 1. DATE RANGE FILTER (same as filteredData) */
@@ -269,19 +293,19 @@ const CampianData = () => {
         if (key === columnKey) return true;
         if (!values || values.length === 0) return true;
 
-        let rowValue;
+        const rowValue = getColumnValue(row, key);
 
-        // 🔹 computed column support
-        if (key === "adv_payout_total") {
-          const total = Number(row.adv_payout) * Number(row.adv_approved_no);
-          rowValue = isNaN(total) ? "-" : total.toFixed(2);
-        } else if (key === "pub_Apno") {
-          rowValue = isNaN(row.pub_Apno)
-            ? "-"
-            : Number(row.pub_Apno).toFixed(2);
-        } else {
-          rowValue = row[key];
-        }
+        // // 🔹 computed column support
+        // if (key === "adv_payout_total") {
+        //   const total = Number(row.adv_payout) * Number(row.adv_approved_no);
+        //   rowValue = isNaN(total) ? "-" : total.toFixed(2);
+        // } else if (key === "pub_Apno") {
+        //   rowValue = isNaN(row.pub_Apno)
+        //     ? "-"
+        //     : Number(row.pub_Apno).toFixed(2);
+        // } else {
+        //   rowValue = row[key];
+        // }
 
         const normalizedRowVal = normalize(rowValue);
 
@@ -720,27 +744,7 @@ const CampianData = () => {
               const source = getExcelFilteredDataForColumn(key);
               const values = sortDropdownValues(
                 Array.from(
-                  new Set(
-                    source.map((row) => {
-                      if (key === "adv_payout_total") {
-                        const { adv_payout, adv_approved_no } = row;
-                        if (!adv_payout || !adv_approved_no) return "-";
-                        const total =
-                          Number(adv_payout) * Number(adv_approved_no);
-                        return isNaN(total) ? "-" : total.toFixed(2);
-                      }
-                      if (key === "pub_Apno") {
-                        const v = row.pub_Apno;
-                        if (v === null || v === undefined || v === "")
-                          return "-";
-                        return isNaN(v) ? "-" : Number(v);
-                      }
-                      const v = row[key];
-                      return v === null || v === undefined || v === ""
-                        ? "-"
-                        : v.toString().trim();
-                    }),
-                  ),
+                  new Set(source.map((row) => getColumnValue(row, key))),
                 ),
               );
               setUniqueValues((prev) => ({ ...prev, [key]: values }));

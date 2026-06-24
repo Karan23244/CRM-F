@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import React,{ useEffect, useState, useCallback, useMemo } from "react";
 import {
   Select,
   DatePicker,
@@ -263,6 +263,8 @@ export default function BillingAdvertiser() {
   const [pidFilters, setPidFilters] = useState({});
   const [filterSearch, setFilterSearch] = useState({});
   const [uniqueValues, setUniqueValues] = useState({});
+  const [sortInfo, setSortInfo] = useState({});
+  const [pidSortInfo, setPidSortInfo] = useState({});
   const isNewBilling = (month) => {
     if (!month) return false;
 
@@ -284,7 +286,22 @@ export default function BillingAdvertiser() {
     val === null || val === undefined || val === ""
       ? "Pending"
       : String(val).trim();
+  const getCellValue = (row, key, isPid = false) => {
+    const actualKey = isPid && key.startsWith("pid_") ? key.slice(4) : key;
 
+    switch (actualKey) {
+      case "total_payout":
+        return row.total_payout == null ? "Pending" : String(row.total_payout);
+
+      case "payout_amount":
+        return row.payout_amount == null
+          ? "Pending"
+          : String(row.payout_amount);
+
+      default:
+        return normalize(row[actualKey]);
+    }
+  };
   // true only when every campaign has ≥1 PID and all are verified
   const allPidsVerified =
     rows.length > 0 &&
@@ -304,89 +321,6 @@ export default function BillingAdvertiser() {
       .then((r) => setPublishers(r.data.publishers || []));
   }, []);
 
-  // ── fetch & group flat rows by campaign_id ────
-  // const fetchBilling = async () => {
-  //   if (!selectedPubId || !month) return;
-  //   setLoading(true);
-  //   try {
-  //     const res = await axios.post(`${API}/billing/publisher-data`, {
-  //       id: selectedPubId,
-  //       month,
-  //     });
-  //     console.log("Raw billing data:", res.data);
-  //     const flat = res.data.data || [];
-  //     const locked = res.data.billing_locked || false;
-  //     setBillingLocked(locked);
-
-  //     const map = new Map();
-
-  //     flat.forEach((row) => {
-  //       const key = [
-  //         row.campaign_name,
-  //         row.geo,
-  //         row.vertical,
-  //         row.payable_event,
-  //         Number(row.pay_out || 0),
-  //       ].join("|");
-
-  //       if (!map.has(key)) {
-  //         map.set(key, {
-  //           _tmp_id: nanoid(),
-  //           campaign_name: row.campaign_name,
-  //           geo: row.geo,
-  //           vertical: row.vertical,
-  //           payable_event: row.payable_event,
-  //           pay_out: Number(row.pay_out || 0),
-
-  //           osSet: new Set(), // ✅ important
-
-  //           adv_total_number: 0,
-  //           pub_apno: 0,
-  //           payout_amount: 0,
-
-  //           pid_data: [],
-  //         });
-  //       }
-
-  //       const group = map.get(key);
-
-  //       // ✅ collect OS
-  //       if (row.os) group.osSet.add(row.os);
-
-  //       const adv = Number(row.adv_total_no || 0);
-  //       const apno = Number(row.pub_Apno || 0);
-  //       const payout = Number(row.pay_out || 0);
-
-  //       group.adv_total_number += adv;
-  //       group.pub_apno += apno;
-  //       group.payout_amount += apno * payout;
-
-  //       group.pid_data.push({
-  //         adv_data_id: row.adv_data_id,
-  //         pid: row.pid,
-  //         os: row.os,
-  //         adv_total_no: adv,
-  //         pub_Apno: apno,
-  //         payout_amount: apno * payout,
-  //         status: row.status,
-  //       });
-  //     });
-
-  //     const finalRows = Array.from(map.values()).map((r) => ({
-  //       ...r,
-  //       os: Array.from(r.osSet).join(", "), // 🔥 final OS output
-  //       adv_total_number: Number(r.adv_total_number.toFixed(2)),
-  //       pub_apno: Number(r.pub_apno.toFixed(2)),
-  //       payout_amount: Number(r.payout_amount.toFixed(2)),
-  //     }));
-
-  //     setRows(finalRows);
-  //   } catch (err) {
-  //     console.error("fetchBilling error:", err);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
   const getValidNumber = (val) => {
     return val === null || val === undefined || val === "" ? null : Number(val);
   };
@@ -497,49 +431,43 @@ export default function BillingAdvertiser() {
   // ── active modal row ───────────────────────────
   const activeRow = rows.find((r) => r._tmp_id === detailsRowId);
   const activeIndex = rows.findIndex((r) => r._tmp_id === detailsRowId);
+  const getExcelFilteredDataForColumn = (columnKey) => {
+    return rows.filter((row) => {
+      return Object.entries(filters).every(([key, values]) => {
+        if (key === columnKey) return true;
 
-  // ── unique filter values ───────────────────────
-  useEffect(() => {
-    const keys = [
-      "campaign_name",
-      "geo",
-      "os",
-      "payable_event",
-      "pay_out",
-      "adv_total_no",
-      "pub_Apno",
-      "total_payout",
-    ];
-    const obj = {};
-    keys.forEach((k) => {
-      obj[k] = [...new Set(rows.map((r) => normalize(r[k])))];
-    });
-    setUniqueValues(obj);
-  }, [rows]);
+        if (!values || values.length === 0) return true;
 
-  // useEffect(() => {
-  //   if (!activeRow) return;
-  //   const keys = ["os", "pid", "adv_total_no", "pub_Apno"];
-  //   const obj = {};
-  //   keys.forEach((k) => {
-  //     obj[k] = [
-  //       ...new Set((activeRow.pid_data || []).map((p) => normalize(p[k]))),
-  //     ];
-  //   });
-  //   setUniqueValues((prev) => ({ ...prev, ...obj }));
-  // }, [activeRow]);
-  useEffect(() => {
-    if (!activeRow) return;
-    const keys = ["os", "pid", "adv_total_no", "pub_Apno"];
-    const obj = {};
-    keys.forEach((k) => {
-      // ✅ prefix with "pid_" so they never overwrite campaign-level keys
-      obj[`pid_${k}`] = [
-        ...new Set((activeRow.pid_data || []).map((p) => normalize(p[k]))),
-      ];
+        return values.includes(getCellValue(row, key));
+      });
     });
-    setUniqueValues((prev) => ({ ...prev, ...obj }));
-  }, [activeRow]);
+  };
+
+  const getExcelFilteredPidDataForColumn = (columnKey) => {
+    return (activeRow?.pid_data || []).filter((row) => {
+      return Object.entries(pidFilters).every(([key, values]) => {
+        if (key === columnKey) return true;
+
+        if (!values || values.length === 0) return true;
+
+        return values.includes(getCellValue(row, key, true));
+      });
+    });
+  };
+  const updateUniqueValuesForColumn = (columnKey, isPid = false) => {
+    const source = isPid
+      ? getExcelFilteredPidDataForColumn(columnKey)
+      : getExcelFilteredDataForColumn(columnKey);
+
+    const values = [
+      ...new Set(source.map((row) => getCellValue(row, columnKey, isPid))),
+    ].sort((a, b) => String(a).localeCompare(String(b)));
+
+    setUniqueValues((prev) => ({
+      ...prev,
+      [columnKey]: values,
+    }));
+  };
   // ── local state updaters (no DB write) ────────
   const updateCampaignComposite = (record, values) => {
     setRows((prev) =>
@@ -891,8 +819,12 @@ export default function BillingAdvertiser() {
     filterDropdown: () => {
       const allValues = uniqueValues[dataIndex] || [];
       const selected = isPid
-        ? (pidFilters[dataIndex] ?? allValues)
-        : (filters[dataIndex] ?? allValues);
+        ? pidFilters[dataIndex] === undefined
+          ? allValues
+          : pidFilters[dataIndex]
+        : filters[dataIndex] === undefined
+          ? allValues
+          : filters[dataIndex];
       const search = filterSearch[dataIndex] || "";
       const visible = allValues.filter((v) =>
         v.toString().toLowerCase().includes(search.toLowerCase()),
@@ -969,6 +901,46 @@ export default function BillingAdvertiser() {
         </div>
       );
     },
+    onFilterDropdownOpenChange: (open) => {
+      if (!open) return;
+
+      updateUniqueValuesForColumn(dataIndex, isPid);
+    },
+    sorter: true,
+
+    sortOrder: isPid
+      ? pidSortInfo.columnKey === dataIndex
+        ? pidSortInfo.order
+        : null
+      : sortInfo.columnKey === dataIndex
+        ? sortInfo.order
+        : null,
+
+    onHeaderCell: () => ({
+      onClick: () => {
+        const setter = isPid ? setPidSortInfo : setSortInfo;
+
+        const current = isPid ? pidSortInfo : sortInfo;
+
+        setter(() => {
+          if (current.columnKey !== dataIndex) {
+            return {
+              columnKey: dataIndex,
+              order: "ascend",
+            };
+          }
+
+          if (current.order === "ascend") {
+            return {
+              columnKey: dataIndex,
+              order: "descend",
+            };
+          }
+
+          return {};
+        });
+      },
+    }),
     filterIcon: () => {
       const allValues = uniqueValues[dataIndex] || [];
       const selected = isPid
@@ -985,22 +957,38 @@ export default function BillingAdvertiser() {
   });
 
   // ── filtered data ──────────────────────────────
-  const filteredRows = useMemo(() => {
-    return rows.filter((row) =>
-      Object.entries(filters).every(([k, vals]) => {
-        if (!vals || vals.length === 0) return true;
-        return vals.includes(normalize(row[k]));
-      }),
-    );
-  }, [rows, filters]);
+  const filteredRows = React.useMemo(() => {
+    let result = rows.filter((row) => {
+      return Object.entries(filters).every(([key, values]) => {
+        if (!values || values.length === 0) return true;
+
+        return values.includes(getCellValue(row, key));
+      });
+    });
+
+    if (sortInfo?.columnKey && sortInfo?.order) {
+      result = [...result].sort((a, b) => {
+        const valA = getCellValue(a, sortInfo.columnKey);
+        const valB = getCellValue(b, sortInfo.columnKey);
+
+        const comparison =
+          !isNaN(valA) && !isNaN(valB)
+            ? Number(valA) - Number(valB)
+            : String(valA).localeCompare(String(valB));
+
+        return sortInfo.order === "ascend" ? comparison : -comparison;
+      });
+    }
+
+    return result;
+  }, [rows, filters, sortInfo]);
 
   const filteredPidData = useMemo(() => {
     return (activeRow?.pid_data || []).filter((row) =>
       Object.entries(pidFilters).every(([k, vals]) => {
         if (!vals || vals.length === 0) return true;
-        // ✅ strip "pid_" prefix to match actual data keys
-        const actualKey = k.startsWith("pid_") ? k.slice(4) : k;
-        return vals.includes(normalize(row[actualKey]));
+
+        return vals.includes(getCellValue(row, k, true));
       }),
     );
   }, [activeRow, pidFilters]);
@@ -1171,6 +1159,8 @@ export default function BillingAdvertiser() {
     setFilters({});
     setPidFilters({});
     setFilterSearch({});
+    setSortInfo({});
+    setPidSortInfo({});
   };
 
   const publisherOptions = (publishers || []).map((p) => ({
@@ -1181,9 +1171,9 @@ export default function BillingAdvertiser() {
   // ── render ─────────────────────────────────────
   return (
     <>
-      <div className="pt-5">
+      <div className="p-5">
         {/* toolbar */}
-        <div className="flex gap-3 flex-wrap items-center px-5">
+        <div className="flex gap-3 flex-wrap items-center mb-4">
           <Select
             showSearch
             placeholder="Select Publisher"
@@ -1201,6 +1191,8 @@ export default function BillingAdvertiser() {
               setSelectedPubId(v ?? null);
               setRows([]);
               setBillingLocked(false);
+              setSortInfo({});
+              setPidSortInfo({});
               resetFilters();
             }}
           />
@@ -1211,6 +1203,8 @@ export default function BillingAdvertiser() {
               setMonth(s);
               setRows([]);
               setBillingLocked(false);
+              setSortInfo({});
+              setPidSortInfo({});
               resetFilters();
             }}
           />
