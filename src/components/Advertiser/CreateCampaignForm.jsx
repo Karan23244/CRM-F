@@ -63,13 +63,13 @@ const CreateCampaignForm = () => {
   const [geoRows, setGeoRows] = useState([{ geo: "", payout: "", os: "" }]);
   const [updatedStatus, setUpdatedStatus] = useState({});
   const [searchText, setSearchText] = useState("");
-  const [_allPubs, setAllPubs] = useState([]);
-  const [_selectedPub, setSelectedPub] = useState(null);
-  const [_hideReferrer, setHideReferrer] = useState(false);
-  const [_pubLoading, setPubLoading] = useState(false);
-  const [_pubSubmitting, setPubSubmitting] = useState(false);
-  const [_approvedPublishers, setApprovedPublishers] = useState([]);
-  const [_viewingPub, setViewingPub] = useState(null);
+  const [allPubs, setAllPubs] = useState([]);
+  const [selectedPub, setSelectedPub] = useState(null);
+  const [hideReferrer, setHideReferrer] = useState(false);
+  const [pubLoading, setPubLoading] = useState(false);
+  const [pubSubmitting, setPubSubmitting] = useState(false);
+  const [approvedPublishers, setApprovedPublishers] = useState([]);
+  const [viewingPub, setViewingPub] = useState(null);
   const campaignStatus = (editRecord?.status || "").toLowerCase();
   const isPublisherRole =
     Array.isArray(user?.role) &&
@@ -659,19 +659,19 @@ const CreateCampaignForm = () => {
     fetchExistingLinks();
   }, [editRecord]);
 
-  const _handleGenerateLink = async () => {
-    if (!_selectedPub) return;
+  const handleGenerateLink = async () => {
+    if (!selectedPub) return;
     try {
       setPubSubmitting(true);
       const res = await axios.post(`${apiUrl2}/link/publisher`, {
-        publisher_id: _selectedPub,
+        publisher_id: selectedPub,
         campaign_id: editRecord.id,
-        hide_referrer: _hideReferrer ? 1 : 0,
+        hide_referrer: hideReferrer ? 1 : 0,
       });
       setApprovedPublishers((prev) => [
         ...prev,
         {
-          pub_id: _selectedPub,
+          pub_id: selectedPub,
           publisher_link: res.data?.publisher_link || "",
           impression_link: res.data?.impression_link || "",
           offer_api: res.data?.publisher_offer_api || "",
@@ -687,20 +687,20 @@ const CreateCampaignForm = () => {
     }
   };
 
-  const _handleDisapprove = async (pub_id) => {
+  const handleDisapprove = async (pub_id) => {
     try {
       await axios.post(`${apiUrl2}/link/publisher/disapprove`, {
         campaign_id: editRecord.id,
         publisher_id: pub_id,
       });
       setApprovedPublishers((prev) => prev.filter((p) => p.pub_id !== pub_id));
-      if (_viewingPub?.pub_id === pub_id) setViewingPub(null);
+      if (viewingPub?.pub_id === pub_id) setViewingPub(null);
     } catch {
       Swal.fire("Error", "Failed to disapprove publisher", "error");
     }
   };
 
-  const _copyToClipboard = (text) => {
+  const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
     Swal.fire({ icon: "success", title: "Copied!", text: "Copied to clipboard.", timer: 1500, showConfirmButton: false });
   };
@@ -1173,8 +1173,7 @@ const CreateCampaignForm = () => {
           {/* 👇 Only NON-publisher roles can see below components */}
           {!isPublisherRole && (
             <>
-              {/* ── Approved / Not Approved Publishers (commented out temporarily) ──
-              {editRecord.tracking_url ? (
+              {editRecord.tracking_url && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                   <Card title="Approved Publishers" className="shadow-md border-gray-100 rounded-2xl">
                     {approvedPublishers.length === 0 ? (
@@ -1294,11 +1293,9 @@ const CreateCampaignForm = () => {
                     </div>
                   </Card>
                 </div>
-              ) : (
-              ── end commented out ── */}
+              )}
 
-              {/* ── Always show Edit PID Status ── */}
-              <>
+              {!editRecord.tracking_url && <>
                 <div className="flex items-center justify-between m-4">
                   <h2 className="text-xl font-semibold text-gray-700">Edit PID Status</h2>
                   <div className="flex items-center gap-4 w-full max-w-sm ml-4">
@@ -1325,8 +1322,7 @@ const CreateCampaignForm = () => {
                     {loading ? <Spin /> : <StyledTable columns={columns} dataSource={filteredPausedPids} rowKey="id" />}
                   </Card>
                 </div>
-              {/* )} */}
-              </>
+              </>}
             </>
           )}
         </div>
