@@ -102,6 +102,7 @@ const PublisherEditForm = () => {
   const [searchTextPub, setSearchTextPub] = useState("");
   const [editingLinkId, setEditingLinkId] = useState(null);
   const [placeLinkValue, setPlaceLinkValue] = useState("");
+  const [apiUrls, setApiUrls] = useState({});
   const [filters, setFilters] = useState({});
   const [filterSearch, setFilterSearch] = useState({});
   const [uniqueValues, setUniqueValues] = useState({});
@@ -173,6 +174,26 @@ const PublisherEditForm = () => {
   useEffect(() => {
     fetchPublishers();
   }, [userId]);
+
+  useEffect(() => {
+    const pubsWithUrl = publishers.filter((p) => p.postback_url);
+    if (!pubsWithUrl.length) return;
+
+    Promise.allSettled(
+      pubsWithUrl.map((p) =>
+        axios.get(`${apiUrl1}/link/publisher-api-url?publisher_id=${p.pub_id}`)
+      )
+    ).then((results) => {
+      const updates = {};
+      results.forEach((result, i) => {
+        if (result.status === "fulfilled") {
+          const d = result.value.data;
+          updates[pubsWithUrl[i].pub_id] = d?.api_url || d?.url || JSON.stringify(d);
+        }
+      });
+      setApiUrls((prev) => ({ ...prev, ...updates }));
+    });
+  }, [publishers]);
   const getExcelFilteredDataForColumn = (columnKey) => {
     return publishers.filter((row) =>
       Object.entries(filters).every(([key, values]) => {
@@ -307,7 +328,7 @@ const PublisherEditForm = () => {
       setLoading(true);
       console.log(`${apiUrl1}/postback/place-link`);
       const res = await axios.put(
-        "https://track.pidmetric.com/postback/place-link",
+        `${apiUrl1}/postback/place-link`,
         {
           pub_id: record.pub_id,
           user_id: userId,
@@ -323,8 +344,20 @@ const PublisherEditForm = () => {
 
         // Refresh data
         const { data } = await axios.get(`${apiUrl}/pubid-data/${userId}`);
-        if (data.success && Array.isArray(data.Publisher)) {
-          setPublishers(data.Publisher);
+        if (data.success && Array.isArray(data.publishers)) {
+          setPublishers(data.publishers);
+        }
+
+        try {
+          const apiUrlRes = await axios.get(
+            `${apiUrl1}/link/publisher-api-url?publisher_id=${record.pub_id}`
+          );
+          setApiUrls((prev) => ({
+            ...prev,
+            [record.pub_id]: apiUrlRes.data?.api_url || apiUrlRes.data?.url || JSON.stringify(apiUrlRes.data),
+          }));
+        } catch (apiErr) {
+          console.error("Failed to fetch publisher API URL:", apiErr);
         }
       }
     } catch (err) {
@@ -623,23 +656,61 @@ const PublisherEditForm = () => {
         }
 
         return (
-          <div
-            className="cursor-pointer min-h-[32px]"
-            onClick={() => {
-              setEditingLinkId(record.pub_id);
-              setPlaceLinkValue(text || "");
-            }}>
-            {text ? (
-              <a
-                href={text}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}>
-                {text}
-              </a>
-            ) : (
-              <span className="text-gray-400">Click to add link</span>
+          <div className="flex items-center gap-2 min-h-[32px] max-w-[280px]">
+            <div
+              className="cursor-pointer flex-1 truncate"
+              onClick={() => {
+                setEditingLinkId(record.pub_id);
+                setPlaceLinkValue(text || "");
+              }}>
+              {text ? (
+                <a
+                  href={text}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="truncate block"
+                  onClick={(e) => e.stopPropagation()}>
+                  {text}
+                </a>
+              ) : (
+                <span className="text-gray-400">Click to add link</span>
+              )}
+            </div>
+            {text && (
+              <Tooltip title="Copy Postback URL">
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<CopyOutlined />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigator.clipboard.writeText(text);
+                  }}
+                />
+              </Tooltip>
             )}
+          </div>
+        );
+      },
+    },
+    {
+      title: <div style={{ textAlign: "center" }}>API URL</div>,
+      key: "apiurl",
+      width: 300,
+      render: (_, record) => {
+        const value = apiUrls[record.pub_id];
+        if (!value) return <span className="text-gray-400">-</span>;
+        return (
+          <div className="flex items-center gap-2 max-w-[280px]">
+            <span className="truncate text-sm flex-1">{value}</span>
+            <Tooltip title="Copy API URL">
+              <Button
+                type="text"
+                size="small"
+                icon={<CopyOutlined />}
+                onClick={() => navigator.clipboard.writeText(value)}
+              />
+            </Tooltip>
           </div>
         );
       },
