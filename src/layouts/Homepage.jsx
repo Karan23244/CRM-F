@@ -9,12 +9,11 @@ import { FaUsers } from "react-icons/fa";
 import { useSelector } from "react-redux";
 import StyledTable from "../Utils/StyledTable";
 import axios from "axios";
-import { Switch, message } from "antd";
+import { Switch } from "antd";
 import Swal from "sweetalert2";
 import useNotifications from "../Utils/useNotifications";
 import dayjs from "dayjs";
 import { DatePicker } from "antd";
-import KPICard from "./KPICard";
 import {
   getKPIs,
   groupByRecentCampaigns,
@@ -42,6 +41,7 @@ export default function Dashboard() {
 
   const [loadReq, setLoadReq] = useState(false);
   const [loadCamp, setLoadCamp] = useState(false);
+
   const isRestricted =
     user?.role?.includes("advertiser") ||
     user?.role?.includes("advertiser_manager") ||
@@ -104,49 +104,12 @@ export default function Dashboard() {
   useEffect(() => {
     fetchRequestToggle();
     fetchCampaignToggle();
-    fetchCounts();
+
   }, []);
   const role = user?.role || "";
 
   const isAdmin = role.includes("admin");
-  const isAdvertiser =
-    role.includes("advertiser") || role.includes("advertiser_manager");
 
-  const isPublisher =
-    role.includes("publisher") || role.includes("publisher_manager");
-
-  const cards = [
-    {
-      title: "Active Campaigns",
-      value: totalCampaigns,
-      color: "from-blue-500 to-indigo-500",
-      show: true,
-    },
-    {
-      title: "Live PIDs",
-      value: liveCount,
-      color: "from-orange-500 to-red-500",
-      show: true,
-    },
-    {
-      title: "Total GEO",
-      value: geoCount,
-      color: "from-purple-500 to-pink-500",
-      show: true,
-    },
-    {
-      title: "Publishers",
-      value: pubCount,
-      color: "from-green-500 to-emerald-500",
-      show: isPublisher || isAdmin,
-    },
-    {
-      title: "Advertisers",
-      value: advCount,
-      color: "from-teal-500 to-cyan-500",
-      show: isAdvertiser || isAdmin,
-    },
-  ].filter((card) => card.show);
 
   return (
     <div className="p-6 bg-gradient-to-br from-[#eef3fb] to-[#e6ecf5] min-h-screen space-y-8">
