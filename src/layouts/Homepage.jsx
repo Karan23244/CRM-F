@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, lazy, Suspense } from "react";
 import {
   FaBullhorn,
   FaPauseCircle,
@@ -15,26 +15,21 @@ import useNotifications from "../Utils/useNotifications";
 import dayjs from "dayjs";
 import { DatePicker } from "antd";
 import KPICard from "./KPICard";
-import PerformanceBarChart from "./Charts/PerformanceBarChart";
-import OSPieChart from "./Charts/OSPieChart";
 import {
   getKPIs,
-  groupByDate,
-  groupByAdvertiser,
-  groupByPublisher,
-  groupByOS,
-  groupByVertical,
   groupByRecentCampaigns,
   groupByRecentOS,
   groupByRecentVerticals,
 } from "../Utils/dashboardUtils";
 
-import OffersTrendChart from "./Charts/OffersTrendChart";
-import TopAdvertisersChart from "./Charts/TopAdvertisersChart";
-import TopPublishersChart from "./Charts/TopPublishersChart";
-import OSDistributionChart from "./Charts/OSDistributionChart";
-import VerticalDistributionChart from "./Charts/VerticalDistributionChart";
-import RevenueDashboard from "./Revenu/RevenueDashboard";
+const PerformanceBarChart = lazy(() => import("./Charts/PerformanceBarChart"));
+const OSPieChart = lazy(() => import("./Charts/OSPieChart"));
+const OffersTrendChart = lazy(() => import("./Charts/OffersTrendChart"));
+const TopAdvertisersChart = lazy(() => import("./Charts/TopAdvertisersChart"));
+const TopPublishersChart = lazy(() => import("./Charts/TopPublishersChart"));
+const OSDistributionChart = lazy(() => import("./Charts/OSDistributionChart"));
+const VerticalDistributionChart = lazy(() => import("./Charts/VerticalDistributionChart"));
+const RevenueDashboard = lazy(() => import("./Revenu/RevenueDashboard"));
 const { RangePicker } = DatePicker;
 const apiUrl = import.meta.env.VITE_API_URL;
 const API = import.meta.env.VITE_API_URL5;
@@ -47,54 +42,10 @@ export default function Dashboard() {
 
   const [loadReq, setLoadReq] = useState(false);
   const [loadCamp, setLoadCamp] = useState(false);
-  const [totalCampaigns, setTotalCampaigns] = useState(0);
-  const [geoCount, setGeoCount] = useState(0);
-  const [liveCount, setLiveCount] = useState(0);
-  const [advCount, setAdvCount] = useState(0);
-  const [pubCount, setPubCount] = useState(0);
   const isRestricted =
     user?.role?.includes("advertiser") ||
     user?.role?.includes("advertiser_manager") ||
     user?.role?.includes("operations");
-
-  const fetchCounts = async () => {
-    try {
-      // 1️⃣ total campaigns
-      const total = await axios.post(`${apiUrl}/campaign-count`, {
-        role: user?.role,
-        id: user?.id,
-      });
-      setTotalCampaigns(total?.data?.campaign_count);
-
-      // 2️⃣ paused PID count
-      const paused = await axios.post(`${apiUrl}/geo-count`, {
-        role: user?.role,
-        id: user?.id,
-      });
-      setGeoCount(paused?.data?.totalGeo);
-      // 3️⃣ live PID count
-      const live = await axios.post(`${apiUrl}/pid-count`, {
-        role: user?.role,
-        id: user?.id,
-      });
-      setLiveCount(live?.data?.totalPid || 0);
-      // 3️⃣ live PID count
-      const adv = await axios.post(`${apiUrl}/adv-count`, {
-        role: user?.role,
-        id: user?.id,
-      });
-      setAdvCount(adv?.data?.totalAdv || 0);
-      // 3️⃣ live PID count
-      const pub = await axios.post(`${apiUrl}/pub-count`, {
-        role: user?.role,
-        id: user?.id,
-      });
-      setPubCount(pub?.data?.totalPub || 0);
-    } catch (err) {
-      console.log(err);
-      message.error("Failed to load dashboard counts.");
-    }
-  };
 
   // 🟡 Fetch Request Toggle
   const fetchRequestToggle = async () => {
@@ -283,7 +234,13 @@ export default function Dashboard() {
           </div>
         )}
       </section>
-      <div>{!isRestricted && <RevenueDashboard />}</div>
+      <div>
+        {!isRestricted && (
+          <Suspense fallback={<div className="text-center py-8 text-gray-400">Loading...</div>}>
+            <RevenueDashboard />
+          </Suspense>
+        )}
+      </div>
     </div>
   );
 }
@@ -354,25 +311,25 @@ const DashboardOverview = ({ user }) => {
       </div>
 
       {/* NEW PERFORMANCE CHARTS */}
+      <Suspense fallback={<div className="text-center py-8 text-gray-400">Loading charts...</div>}>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <PerformanceBarChart
+            title="Top 5 Performing Verticals (PID Additions)"
+            data={groupByRecentVerticals(data)}
+          />
+          <OSPieChart
+            title="Top Performing OS (PID Additions)"
+            data={groupByRecentOS(data)}
+          />
+        </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <PerformanceBarChart
-          title="Top 5 Performing Verticals (PID Additions)"
-          data={groupByRecentVerticals(data)}
-        />
-        <OSPieChart
-          title="Top Performing OS (PID Additions)"
-          data={groupByRecentOS(data)}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 gap-6">
-        {" "}
-        <PerformanceBarChart
-          title="Top Performing Campaigns (Recent PID Additions)"
-          data={groupByRecentCampaigns(data)}
-        />
-      </div>
+        <div className="grid grid-cols-1 gap-6">
+          <PerformanceBarChart
+            title="Top Performing Campaigns (Recent PID Additions)"
+            data={groupByRecentCampaigns(data)}
+          />
+        </div>
+      </Suspense>
     </div>
   );
 };
