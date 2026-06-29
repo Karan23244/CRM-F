@@ -14,6 +14,8 @@ import {
 import { FilterOutlined } from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
+import isBetween from "dayjs/plugin/isBetween";
+dayjs.extend(isBetween);
 import ColumnSettings from "../../Utils/ColumnSettings";
 import "../../index.css";
 import geoData from "../../Data/geoData.json";

@@ -16,6 +16,8 @@ import {
 import { EditOutlined, SaveOutlined } from "@ant-design/icons";
 import { useSelector } from "react-redux";
 import dayjs from "dayjs";
+import isBetween from "dayjs/plugin/isBetween";
+dayjs.extend(isBetween);
 import { exportToExcel } from "../exportExcel";
 import AdvertiserAssignData from "./AdvertiserAssignData";
 
