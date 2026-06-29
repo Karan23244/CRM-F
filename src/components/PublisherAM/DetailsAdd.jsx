@@ -5,6 +5,7 @@ import { Table, message, Spin } from "antd";
 import StyledTable from "../../Utils/StyledTable";
 import Swal from "sweetalert2";
 const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl3 = import.meta.env.VITE_API_URL3;
 
 const PublisherBilling = () => {
   const user = useSelector((state) => state.auth.user);
@@ -15,6 +16,9 @@ const PublisherBilling = () => {
 
   const [tableData, setTableData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [publisherApiUrl, setPublisherApiUrl] = useState("");
+  const [apiUrlLoading, setApiUrlLoading] = useState(false);
+  const [hasPostback, setHasPostback] = useState(false);
 
   // ================= API CALL: FETCH =================
   const fetchBilling = useCallback(async () => {
@@ -50,6 +54,31 @@ const PublisherBilling = () => {
   useEffect(() => {
     fetchBilling();
   }, [fetchBilling]);
+
+  useEffect(() => {
+    if (!user?.pubid) return;
+    const fetchApiUrl = async () => {
+      setApiUrlLoading(true);
+      try {
+        // First check if postback is set via pubid-data
+        const pubRes = await axios.get(`${apiUrl}/pubid-data/${user.id}`);
+        const publishers = pubRes.data?.publishers || [];
+        const thisPublisher = publishers.find((p) => p.pub_id === user.pubid);
+        if (!thisPublisher?.postback_url) return;
+
+        setHasPostback(true);
+        const res = await axios.get(`${apiUrl3}/link/publisher-api-url`, {
+          params: { publisher_id: user.pubid },
+        });
+        setPublisherApiUrl(res.data?.api_url || "");
+      } catch {
+        // silently ignore
+      } finally {
+        setApiUrlLoading(false);
+      }
+    };
+    fetchApiUrl();
+  }, [user?.pubid, user?.id]);
 
   // ================= FORM HANDLERS =================
   const updateBillingEntry = (index, field, value) => {
@@ -144,8 +173,34 @@ const PublisherBilling = () => {
     { title: "Tax ID", dataIndex: "tax_id" },
   ];
 
+  const copyApiUrl = () => {
+    if (!publisherApiUrl) return;
+    navigator.clipboard.writeText(publisherApiUrl);
+    message.success("API URL copied to clipboard");
+  };
+
   return (
     <div className="p-6 space-y-6">
+      {/* ================= API URL CARD ================= */}
+      <div className="bg-white p-6 rounded-xl shadow border border-blue-100">
+        <h2 className="text-lg font-semibold text-gray-800 mb-1">Publisher API URL</h2>
+        <p className="text-sm text-gray-500 mb-4">Use this URL to access your publisher offer feed.</p>
+        {apiUrlLoading ? (
+          <Spin size="small" />
+        ) : publisherApiUrl ? (
+          <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
+            <span className="text-sm text-gray-700 break-all flex-1">{publisherApiUrl}</span>
+            <button
+              onClick={copyApiUrl}
+              className="shrink-0 bg-[#2F5D99] hover:bg-[#24487A] text-white text-xs font-medium px-4 py-2 rounded-lg transition-all">
+              Copy
+            </button>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-400">No API URL generated yet. Please contact your manager.</p>
+        )}
+      </div>
+
       {/* ================= FORM ================= */}
       <div className="bg-white p-6 rounded-xl shadow">
         <h2 className="text-lg font-semibold mb-4">Add Billing</h2>
