@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   DatePicker,
   Table,
@@ -11,10 +11,13 @@ import {
 } from "antd";
 import axios from "axios";
 import { useSelector } from "react-redux";
-import { FilterFilled } from "@ant-design/icons";
+import {
+  FilterFilled,
+  PushpinOutlined,
+  PushpinFilled,
+} from "@ant-design/icons";
 import { nanoid } from "nanoid";
 import StyledTable from "../../Utils/StyledTable";
-import OldValidationPublisherExternal from "./OldValidationPublisherExternal";
 
 const API = import.meta.env.VITE_API_URL5;
 
@@ -33,20 +36,68 @@ export default function PublisherExternalBilling() {
   const [filterSearch, setFilterSearch] = useState({});
   const [uniqueValues, setUniqueValues] = useState({});
   const [pidFilters, setPidFilters] = useState({});
-  const isNewBilling = (month) => {
-    if (!month) return false;
-
-    const selected = new Date(`${month}-01T00:00:00`);
-    const cutoff = new Date("2026-02-01T00:00:00");
-
-    return selected >= cutoff;
-  };
-
-  const isOld = isNewBilling(month);
+  const [sortInfo, setSortInfo] = useState({});
+  const [pidSortInfo, setPidSortInfo] = useState({});
+  const [pinnedColumns, setPinnedColumns] = useState({});
   const normalize = (val) =>
     val === null || val === undefined || val === ""
       ? "Pending"
       : String(val).trim();
+  const togglePin = (key) => {
+    setPinnedColumns((prev) => {
+      const current = prev[key];
+
+      let next;
+
+      if (!current) next = "left";
+      else if (current === "left") next = "right";
+      else next = null;
+
+      return {
+        ...prev,
+        [key]: next,
+      };
+    });
+  };
+  const getCellValue = (row, key) => {
+    switch (key) {
+      case "campaign_name":
+        return row.campaign_name || "Pending";
+
+      case "geo":
+        return row.geo || "Pending";
+
+      case "os":
+        return row.os || "Pending";
+
+      case "vertical":
+        return row.vertical || "Pending";
+
+      case "payable_event":
+        return row.payable_event || "Pending";
+
+      case "pay_out":
+        return String(safeNum(row.pay_out));
+
+      case "adv_total_no":
+        return String(safeNum(row.adv_total_no));
+
+      case "pub_Apno":
+        return String(safeNum(row.pub_Apno));
+
+      case "total_payout":
+        return String(safeNum(row.total_payout));
+
+      case "pid":
+        return row.pid || "Pending";
+
+      case "payout_amount":
+        return String(safeNum(row.payout_amount));
+
+      default:
+        return normalize(row[key]);
+    }
+  };
   // ─────────────────────────────────────────────
   // FETCH DATA
   // ─────────────────────────────────────────────
@@ -174,7 +225,29 @@ export default function PublisherExternalBilling() {
   useEffect(() => {
     if (month) fetchBilling();
   }, [month]);
+  const getExcelFilteredDataForColumn = (columnKey) => {
+    return rows.filter((row) => {
+      return Object.entries(filters).every(([key, values]) => {
+        if (key === columnKey) return true;
 
+        if (!values || values.length === 0) return true;
+
+        return values.includes(getCellValue(row, key));
+      });
+    });
+  };
+
+  const getExcelFilteredPidDataForColumn = (columnKey) => {
+    return (activeRow?.pid_data || []).filter((row) => {
+      return Object.entries(pidFilters).every(([key, values]) => {
+        if (key === columnKey) return true;
+
+        if (!values || values.length === 0) return true;
+
+        return values.includes(getCellValue(row, key));
+      });
+    });
+  };
   const getColumnFilter = (dataIndex, isPid = false) => ({
     filterDropdown: () => {
       const allValues = uniqueValues[dataIndex] || [];
@@ -270,13 +343,108 @@ export default function PublisherExternalBilling() {
         />
       );
     },
-  });
-  const filteredRows = rows.filter((row) =>
-    Object.entries(filters).every(([k, vals]) => {
-      if (!vals || vals.length === 0) return true;
-      return vals.includes(normalize(row[k]));
+    onFilterDropdownOpenChange: (open) => {
+      if (!open) return;
+
+      const source = isPid
+        ? getExcelFilteredPidDataForColumn(dataIndex)
+        : getExcelFilteredDataForColumn(dataIndex);
+
+      const values = [
+        ...new Set(source.map((row) => getCellValue(row, dataIndex))),
+      ].sort((a, b) => String(a).localeCompare(String(b)));
+
+      setUniqueValues((prev) => ({
+        ...prev,
+        [dataIndex]: values,
+      }));
+    },
+    sorter: true,
+
+    sortOrder: isPid
+      ? pidSortInfo.columnKey === dataIndex
+        ? pidSortInfo.order
+        : null
+      : sortInfo.columnKey === dataIndex
+        ? sortInfo.order
+        : null,
+
+    onHeaderCell: () => ({
+      onClick: () => {
+        const setter = isPid ? setPidSortInfo : setSortInfo;
+
+        const current = isPid ? pidSortInfo : sortInfo;
+
+        setter(() => {
+          if (current.columnKey !== dataIndex) {
+            return {
+              columnKey: dataIndex,
+              order: "ascend",
+            };
+          }
+
+          if (current.order === "ascend") {
+            return {
+              columnKey: dataIndex,
+              order: "descend",
+            };
+          }
+
+          return {};
+        });
+      },
     }),
-  );
+  });
+  const filteredRows = React.useMemo(() => {
+    let result = rows.filter((row) => {
+      return Object.entries(filters).every(([key, values]) => {
+        if (!values || values.length === 0) return true;
+
+        return values.includes(getCellValue(row, key));
+      });
+    });
+
+    if (sortInfo?.columnKey && sortInfo?.order) {
+      result = [...result].sort((a, b) => {
+        const valA = getCellValue(a, sortInfo.columnKey);
+        const valB = getCellValue(b, sortInfo.columnKey);
+
+        const comparison =
+          !isNaN(valA) && !isNaN(valB)
+            ? Number(valA) - Number(valB)
+            : String(valA).localeCompare(String(valB));
+
+        return sortInfo.order === "ascend" ? comparison : -comparison;
+      });
+    }
+
+    return result;
+  }, [rows, filters, sortInfo]);
+  const filteredPidData = React.useMemo(() => {
+    let result = (activeRow?.pid_data || []).filter((row) => {
+      return Object.entries(pidFilters).every(([key, values]) => {
+        if (!values || values.length === 0) return true;
+
+        return values.includes(getCellValue(row, key));
+      });
+    });
+
+    if (pidSortInfo?.columnKey && pidSortInfo?.order) {
+      result = [...result].sort((a, b) => {
+        const valA = getCellValue(a, pidSortInfo.columnKey);
+        const valB = getCellValue(b, pidSortInfo.columnKey);
+
+        const comparison =
+          !isNaN(valA) && !isNaN(valB)
+            ? Number(valA) - Number(valB)
+            : String(valA).localeCompare(String(valB));
+
+        return pidSortInfo.order === "ascend" ? comparison : -comparison;
+      });
+    }
+
+    return result;
+  }, [activeRow, pidFilters, pidSortInfo]);
   // ─────────────────────────────────────────────
   // TABLE COLUMNS
   // ─────────────────────────────────────────────
@@ -401,7 +569,6 @@ export default function PublisherExternalBilling() {
       </Table.Summary.Row>
     );
   };
-  console.log(isOld);
   // ─────────────────────────────────────────────
   // RENDER
   // ─────────────────────────────────────────────
@@ -410,29 +577,26 @@ export default function PublisherExternalBilling() {
       <div className="p-5">
         <div className="flex gap-3 mb-4">
           <DatePicker picker="month" onChange={(_, s) => setMonth(s)} />
-                 {isOld ? (
           <Button
             onClick={() => {
               setFilters({});
+              setPidFilters({});
               setFilterSearch({});
+              setUniqueValues({});
+              setSortInfo({});
+              setPidSortInfo({});
+              setPinnedColumns({});
             }}>
             Clear Filters
           </Button>
-            ) : (
-         <></>
-        )}
         </div>
 
-        {isOld ? (
-          <StyledTable
-            rowKey={(r) => r._tmp_id}
-            dataSource={filteredRows}
-            columns={columns}
-            summary={summary}
-          />
-        ) : (
-          <OldValidationPublisherExternal month={month} pubid={user?.pubid} />
-        )}
+        <StyledTable
+          rowKey={(r) => r._tmp_id}
+          dataSource={filteredRows}
+          columns={columns}
+          summary={summary}
+        />
       </div>
 
       {/* MODAL */}
@@ -459,7 +623,7 @@ export default function PublisherExternalBilling() {
               size="small"
               pagination={false}
               rowKey={(r, i) => i}
-              dataSource={activeRow.pid_data || []}
+              dataSource={filteredPidData}
               columns={[
                 {
                   title: "OS",

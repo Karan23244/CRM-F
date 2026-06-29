@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
   Select,
   DatePicker,
@@ -242,9 +242,31 @@ export default function BillingAdvertiser() {
   const [pidFilters, setPidFilters] = useState({});
   const [filterSearch, setFilterSearch] = useState({});
   const [uniqueValues, setUniqueValues] = useState({});
+  const [sortInfo, setSortInfo] = useState({});
+  const [pidSortInfo, setPidSortInfo] = useState({});
   const normalize = (val) => {
     if (val === null || val === undefined || val === "") return "Pending";
     return String(val).trim();
+  };
+  const getCellValue = (row, key, isPid = false) => {
+    switch (key) {
+      case "campaign_name":
+        return row.campaign_name || "Pending";
+
+      case "geo":
+        return row.geo || "Pending";
+
+      case "os":
+        return row.os || "Pending";
+
+      case "payout_amount":
+        return row.approved_no == null
+          ? "Pending"
+          : String(row.approved_no * row.adv_payout);
+
+      default:
+        return normalize(row[key]);
+    }
   };
   const updateCampaignComposite = (rowIndex, values) => {
     updateRowsSafely((prev) =>
@@ -275,14 +297,12 @@ export default function BillingAdvertiser() {
       fetchBilling();
     }
   }, [selectedAdvId, month]);
-  console.log(user);
   const fetchDropdowns = async () => {
     const res = await axios.post(`${API}/billing/dropdowns`, {
       roles: user.role,
       user_id: user.id,
       assigned_to: user.assigned_subadmins,
     });
-    console.log("Fetched advertisers:", res); // Debug log
     setAdvertisers(res.data.advertisers || []);
   };
 
@@ -302,64 +322,6 @@ export default function BillingAdvertiser() {
     );
     setLoading(false);
   };
-  // const triggerAutosave = (nextRows) => {
-  //   if (!selectedAdvId || !month) return;
-
-  //   clearTimeout(autosaveTimer.current);
-
-  //   autosaveTimer.current = setTimeout(async () => {
-  //     try {
-  //       const res = await axios.post(`${API}/billing/advertiser-save`, {
-  //         adv_id: selectedAdvId,
-  //         month,
-  //         data: nextRows,
-  //       });
-  //       // SUCCESS CONDITION
-  //       if (res.data?.success || res.data?.message) {
-  //         await fetchBilling();
-
-  //         if (res.data.rows) {
-  //           setRows((prev) =>
-  //             prev.map((r) => {
-  //               const fresh = res.data.rows.find((f) => f.id === r.billing_id);
-  //               if (!fresh) return r;
-
-  //               return {
-  //                 ...r,
-  //                 billing_id: fresh.id,
-  //                 total_no: fresh.total_no,
-  //                 deductions: fresh.deductions,
-  //                 approved_no: fresh.approved_no,
-  //                 status: fresh.status,
-  //               };
-  //             }),
-  //           );
-  //         }
-
-  //         Swal.fire({
-  //           icon: "success",
-  //           title: res.data.title || "Saved",
-  //           text: res.data.message || "Changes saved successfully.",
-  //           timer: 1200,
-  //           showConfirmButton: false,
-  //         });
-  //       } else {
-  //         Swal.fire({
-  //           icon: "error",
-  //           title: res.data.title || "Save Failed",
-  //           text: res.data.message || "Unable to save data.",
-  //         });
-  //       }
-  //     } catch (err) {
-  //       Swal.fire({
-  //         icon: "error",
-  //         title: "Server Error",
-  //         text:
-  //           err.response?.data?.message || "Something went wrong while saving.",
-  //       });
-  //     }
-  //   }, 700);
-  // };
   const triggerAutosave = (nextRows, previousRows) => {
     if (!selectedAdvId || !month) return;
 
@@ -469,71 +431,104 @@ export default function BillingAdvertiser() {
       ...r,
     ]);
   };
-  useEffect(() => {
-    const valuesObj = {};
+  const updateUniqueValuesForColumn = (columnKey, isPid = false) => {
+    const source = isPid
+      ? getExcelFilteredPidDataForColumn(columnKey)
+      : getExcelFilteredDataForColumn(columnKey);
 
-    const keys = [
-      "campaign_name",
-      "geo",
-      "os",
-      "adv_payout",
-      "total_no",
-      "deductions",
-      "approved_no",
-      "payout_amount",
-    ];
-
-    keys.forEach((key) => {
-      valuesObj[key] = [...new Set(rows.map((row) => normalize(row[key])))];
-    });
-
-    setUniqueValues(valuesObj);
-  }, [rows]);
-  useEffect(() => {
-    if (!activeRow) return;
-
-    const pidValues = {};
-    const keys = [
-      "os",
-      "pid",
-      "total_no",
-      "adv_payout",
-      "total_no",
-      "deductions",
-      "approved_no",
-      "payout_amount",
-    ];
-
-    keys.forEach((key) => {
-      pidValues[key] = [
-        ...new Set((activeRow.pid_data || []).map((p) => normalize(p[key]))),
-      ];
-    });
+    const values = [
+      ...new Set(source.map((row) => getCellValue(row, columnKey, isPid))),
+    ].sort((a, b) => String(a).localeCompare(String(b)));
 
     setUniqueValues((prev) => ({
       ...prev,
-      ...pidValues,
+      [columnKey]: values,
     }));
-  }, [activeRow]);
-  const filteredRows = rows.filter((row) => {
-    return Object.entries(filters).every(([key, values]) => {
-      if (!values || values.length === 0) return true;
-      return values.includes(normalize(row[key]));
+  };
+  const getExcelFilteredDataForColumn = (columnKey) => {
+    return rows.filter((row) => {
+      return Object.entries(filters).every(([key, values]) => {
+        if (key === columnKey) return true;
+
+        if (!values || values.length === 0) return true;
+
+        return values.includes(getCellValue(row, key));
+      });
     });
-  });
-  const filteredPidData = (activeRow?.pid_data || []).filter((row) => {
-    return Object.entries(pidFilters).every(([key, values]) => {
-      if (!values || values.length === 0) return true;
-      return values.includes(normalize(row[key]));
+  };
+
+  const getExcelFilteredPidDataForColumn = (columnKey) => {
+    return (activeRow?.pid_data || []).filter((row) => {
+      return Object.entries(pidFilters).every(([key, values]) => {
+        if (key === columnKey) return true;
+
+        if (!values || values.length === 0) return true;
+
+        return values.includes(getCellValue(row, key, true));
+      });
     });
-  });
+  };
+  const filteredRows = React.useMemo(() => {
+    let result = rows.filter((row) => {
+      return Object.entries(filters).every(([key, values]) => {
+        if (!values || values.length === 0) return true;
+
+        return values.includes(getCellValue(row, key));
+      });
+    });
+
+    if (sortInfo?.columnKey && sortInfo?.order) {
+      result = [...result].sort((a, b) => {
+        const valA = getCellValue(a, sortInfo.columnKey);
+        const valB = getCellValue(b, sortInfo.columnKey);
+
+        const comparison =
+          !isNaN(valA) && !isNaN(valB)
+            ? Number(valA) - Number(valB)
+            : String(valA).localeCompare(String(valB));
+
+        return sortInfo.order === "ascend" ? comparison : -comparison;
+      });
+    }
+
+    return result;
+  }, [rows, filters, sortInfo]);
+  const filteredPidData = React.useMemo(() => {
+    let result = (activeRow?.pid_data || []).filter((row) => {
+      return Object.entries(pidFilters).every(([key, values]) => {
+        if (!values || values.length === 0) return true;
+
+        return values.includes(getCellValue(row, key, true));
+      });
+    });
+
+    if (pidSortInfo?.columnKey && pidSortInfo?.order) {
+      result = [...result].sort((a, b) => {
+        const valA = getCellValue(a, pidSortInfo.columnKey, true);
+        const valB = getCellValue(b, pidSortInfo.columnKey, true);
+
+        const comparison =
+          !isNaN(valA) && !isNaN(valB)
+            ? Number(valA) - Number(valB)
+            : String(valA).localeCompare(String(valB));
+
+        return pidSortInfo.order === "ascend" ? comparison : -comparison;
+      });
+    }
+
+    return result;
+  }, [activeRow, pidFilters, pidSortInfo]);
   const getColumnFilter = (dataIndex, isPid = false) => ({
     filterDropdown: () => {
       const allValues = uniqueValues[dataIndex] || [];
 
       const selectedValues = isPid
-        ? (pidFilters[dataIndex] ?? allValues)
-        : (filters[dataIndex] ?? allValues);
+        ? pidFilters[dataIndex] === undefined
+          ? allValues
+          : pidFilters[dataIndex]
+        : filters[dataIndex] === undefined
+          ? allValues
+          : filters[dataIndex];
 
       const searchText = filterSearch[dataIndex] || "";
 
@@ -636,6 +631,46 @@ export default function BillingAdvertiser() {
         </div>
       );
     },
+    onFilterDropdownOpenChange: (open) => {
+      if (!open) return;
+
+      updateUniqueValuesForColumn(dataIndex, isPid);
+    },
+    sorter: true,
+
+    sortOrder: isPid
+      ? pidSortInfo.columnKey === dataIndex
+        ? pidSortInfo.order
+        : null
+      : sortInfo.columnKey === dataIndex
+        ? sortInfo.order
+        : null,
+
+    onHeaderCell: () => ({
+      onClick: () => {
+        const setter = isPid ? setPidSortInfo : setSortInfo;
+
+        const current = isPid ? pidSortInfo : sortInfo;
+
+        setter(() => {
+          if (current.columnKey !== dataIndex) {
+            return {
+              columnKey: dataIndex,
+              order: "ascend",
+            };
+          }
+
+          if (current.order === "ascend") {
+            return {
+              columnKey: dataIndex,
+              order: "descend",
+            };
+          }
+
+          return {};
+        });
+      },
+    }),
     filterIcon: () => {
       const allValues = uniqueValues[dataIndex] || [];
 
@@ -643,8 +678,8 @@ export default function BillingAdvertiser() {
         ? (pidFilters[dataIndex] ?? allValues)
         : (filters[dataIndex] ?? allValues);
 
-      const isFiltered = selectedValues.length !== allValues.length;
-
+      const isFiltered =
+        selectedValues.length > 0 && selectedValues.length !== allValues.length;
       return (
         <FilterFilled
           style={{
@@ -776,7 +811,7 @@ export default function BillingAdvertiser() {
   );
   return (
     <>
-      <div className="p-5">
+      <div className="p-5 ">
         <div className="flex gap-3 mb-4 flex-wrap">
           <Select
             showSearch
@@ -797,6 +832,8 @@ export default function BillingAdvertiser() {
               setFilters({});
               setPidFilters({});
               setFilterSearch({});
+              setSortInfo({});
+              setPidSortInfo({});
             }}
           />
 
@@ -808,6 +845,8 @@ export default function BillingAdvertiser() {
               setFilters({});
               setPidFilters({});
               setFilterSearch({});
+              setSortInfo({});
+              setPidSortInfo({});
             }}
           />
 
@@ -821,6 +860,8 @@ export default function BillingAdvertiser() {
               setFilters({});
               setPidFilters({});
               setFilterSearch({});
+              setSortInfo({});
+              setPidSortInfo({});
             }}>
             Clear Filters
           </Button>

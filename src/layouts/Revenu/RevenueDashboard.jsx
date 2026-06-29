@@ -9,7 +9,7 @@ import { assign } from "lodash";
 const { TabPane } = Tabs;
 const apiUrl = import.meta.env.VITE_API_URL;
 
-const API = `http://localhost:2001/analytics/revenue`;
+const API = `${apiUrl}/analytics/revenue`;
 
 const RevenueDashboard = () => {
   const user = useSelector((state) => state.auth?.user);

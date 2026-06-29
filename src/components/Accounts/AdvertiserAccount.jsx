@@ -2,7 +2,7 @@
 // 📁 AdvertiserAccount.jsx
 // ==========================
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Table,
   Input,
@@ -249,7 +249,7 @@ function AdvertiserAccount() {
   const [pinnedColumns, setPinnedColumns] = useState({});
   const [filterSearch, setFilterSearch] = useState({});
   const [uniqueValues, setUniqueValues] = useState({});
-
+  const [sortInfo, setSortInfo] = useState({});
   const { user } = useSelector((state) => state.auth);
 
   const normalize = (val) => {
@@ -257,7 +257,9 @@ function AdvertiserAccount() {
 
     return val.toString().trim();
   };
-
+  const handleTableChange = (_, __, sorter) => {
+    setSortInfo(sorter);
+  };
   const togglePin = (key) =>
     setPinnedColumns((prev) => ({
       ...prev,
@@ -268,8 +270,10 @@ function AdvertiserAccount() {
     setFilters({});
     setPinnedColumns({});
     setFilterSearch({});
+    setSortInfo({});
+    setUniqueValues({});
 
-    message.success("✅ All filters and pins cleared");
+    message.success("✅ All filters, sorting and pins cleared");
   };
 
   /* ============================= */
@@ -490,37 +494,18 @@ function AdvertiserAccount() {
     />
   );
 
-  /* ============================= */
-  /* UNIQUE VALUES */
-  /* ============================= */
+  const updateUniqueValuesForColumn = (columnKey) => {
+    const source = getExcelFilteredDataForColumn(columnKey);
 
-  useEffect(() => {
-    const valuesObj = {};
+    const values = [
+      ...new Set(source.map((row) => getCellValue(row, columnKey))),
+    ].sort((a, b) => String(a).localeCompare(String(b)));
 
-    data.forEach((row) => {
-      Object.keys(row).forEach((key) => {
-        if (!valuesObj[key]) valuesObj[key] = new Set();
-
-        if (key === "adv_id") {
-          valuesObj[key].add(
-            row.adv_name
-              ? `${row.adv_id} (${row.adv_name})`
-              : String(row.adv_id),
-          );
-        } else {
-          valuesObj[key].add(normalize(row[key]));
-        }
-      });
-    });
-
-    const formatted = {};
-
-    Object.keys(valuesObj).forEach((key) => {
-      formatted[key] = [...valuesObj[key]];
-    });
-
-    setUniqueValues(formatted);
-  }, [data]);
+    setUniqueValues((prev) => ({
+      ...prev,
+      [columnKey]: values,
+    }));
+  };
 
   /* ============================= */
   /* FILTERED DATA */
@@ -529,21 +514,67 @@ function AdvertiserAccount() {
     value: adv.adv_id,
     label: `${adv.adv_id} (${adv.adv_name})`,
   }));
-  const filteredData = data.filter((row) => {
-    return Object.entries(filters).every(([key, values]) => {
-      if (!values || values.length === 0) return true;
-
-      if (key === "adv_id") {
-        const advDisplay = row.adv_name
+  const getCellValue = (row, key) => {
+    switch (key) {
+      case "adv_id":
+        return row.adv_name
           ? `${row.adv_id} (${row.adv_name})`
           : String(row.adv_id);
 
-        return values.includes(advDisplay);
-      }
+      case "due_status": {
+        if (row.payment_date) return "RECEIVED";
 
-      return values.includes(normalize(row[key]));
+        if (!row.invoice_date) return "NOT ISSUED";
+
+        const days = parseInt(
+          String(row.payment_terms || "0d").replace("d", ""),
+          10,
+        );
+
+        const dueDate = dayjs(row.invoice_date).add(days, "day");
+
+        return dayjs().isAfter(dueDate, "day") ? "OVERDUE" : "NOT DUE";
+      }
+      default:
+        return normalize(row[key]);
+    }
+  };
+  const getExcelFilteredDataForColumn = (columnKey) => {
+    return data.filter((row) => {
+      return Object.entries(filters).every(([key, values]) => {
+        if (key === columnKey) return true; // ignore self filter
+
+        if (!values || values.length === 0) return true;
+
+        return values.includes(getCellValue(row, key));
+      });
     });
-  });
+  };
+  const filteredData = useMemo(() => {
+    let result = data.filter((row) => {
+      return Object.entries(filters).every(([key, values]) => {
+        if (!values || values.length === 0) return true;
+
+        return values.includes(getCellValue(row, key));
+      });
+    });
+
+    if (sortInfo?.columnKey && sortInfo?.order) {
+      result = [...result].sort((a, b) => {
+        const valA = getCellValue(a, sortInfo.columnKey);
+        const valB = getCellValue(b, sortInfo.columnKey);
+
+        const comparison =
+          !isNaN(valA) && !isNaN(valB)
+            ? Number(valA) - Number(valB)
+            : String(valA).localeCompare(String(valB));
+
+        return sortInfo.order === "ascend" ? comparison : -comparison;
+      });
+    }
+
+    return result;
+  }, [data, filters, sortInfo]);
 
   /* ============================= */
   /* FILTER + PIN COLUMN */
@@ -551,7 +582,9 @@ function AdvertiserAccount() {
 
   const getColumnWithFilterAndPin = (dataIndex, title, renderFn) => {
     const isPinned = pinnedColumns[dataIndex];
-    const isFiltered = !!filters[dataIndex];
+    const isFiltered =
+      filters[dataIndex] &&
+      filters[dataIndex].length !== (uniqueValues[dataIndex] || []).length;
 
     return {
       title: (
@@ -594,7 +627,8 @@ function AdvertiserAccount() {
       filterDropdown: () => {
         const allValues = uniqueValues[dataIndex] || [];
 
-        const selectedValues = filters[dataIndex] ?? allValues;
+        const selectedValues =
+          filters[dataIndex] === undefined ? allValues : filters[dataIndex];
 
         const searchText = filterSearch[dataIndex] || "";
 
@@ -681,7 +715,42 @@ function AdvertiserAccount() {
           </div>
         );
       },
+      sorter: true,
+      onFilterDropdownOpenChange: (open) => {
+        if (!open) return;
 
+        updateUniqueValuesForColumn(dataIndex);
+      },
+      sortOrder: sortInfo.columnKey === dataIndex ? sortInfo.order : null,
+
+      onHeaderCell: () => ({
+        onClick: () => {
+          setSortInfo((prev) => {
+            if (prev.columnKey !== dataIndex) {
+              return {
+                columnKey: dataIndex,
+                order: "ascend",
+              };
+            }
+
+            if (prev.order === "ascend") {
+              return {
+                columnKey: dataIndex,
+                order: "descend",
+              };
+            }
+
+            if (prev.order === "descend") {
+              return {};
+            }
+
+            return {
+              columnKey: dataIndex,
+              order: "ascend",
+            };
+          });
+        },
+      }),
       render: renderFn
         ? (text, record) => renderFn(text, record)
         : (text) => displayValue(text),
@@ -849,7 +918,13 @@ function AdvertiserAccount() {
               picker="month"
               allowClear={false}
               value={dayjs(month)}
-              onChange={(date) => setMonth(date.format("YYYY-MM"))}
+              onChange={(d) => {
+                setMonth(d.format("YYYY-MM"));
+                setFilters({});
+                setUniqueValues({});
+                setFilterSearch({});
+                setSortInfo({});
+              }}
             />
 
             <Button icon={<ClearOutlined />} onClick={clearAllFilters}>
