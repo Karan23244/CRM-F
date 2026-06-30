@@ -255,7 +255,7 @@ const SettingsPage = ({ campaignId, adv_id }) => {
                                 name={[name, "value"]}
                                 label="Value"
                                 rules={[{ required: true }]}>
-                                <Input placeholder="1" />
+                                <Input placeholder="install / signup" />
                               </Form.Item>
 
                               <Form.Item
