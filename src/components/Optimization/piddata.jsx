@@ -2,6 +2,8 @@ import React, { useEffect, useState, useMemo } from "react";
 import { Table, Checkbox, Select, Button, Input, Tooltip } from "antd";
 import axios from "axios";
 import dayjs from "dayjs";
+import isBetween from "dayjs/plugin/isBetween";
+dayjs.extend(isBetween);
 import ColumnSettings from "../../Utils/ColumnSettings";
 import "../../index.css";
 import geoData from "../../Data/geoData.json";
@@ -522,13 +524,12 @@ const CampianDataOptimization = () => {
                   const columnHeadings = columnHeadingsAdv;
 
                   // ❌ columns to remove
-                  const excludedKeys = ["adv_display", "pub_display"];
+                  const excludedKeys = ["adv_display", "pub_display","pub_am"];
 
                   // ✅ extra columns to add
                   const extraColumns = {
                     adv_id: "ADV ID",
                     pub_id: "PUB ID",
-                    pub_am: "PUB AM",
                   };
 
                   const visibleKeys = Object.keys(columnHeadings).filter(
@@ -546,7 +547,6 @@ const CampianDataOptimization = () => {
                     // ✅ manually add required fields
                     cleanedRow[extraColumns.adv_id] = row.adv_id;
                     cleanedRow[extraColumns.pub_id] = row.pub_id;
-                    cleanedRow[extraColumns.pub_am] = row.pub_am;
 
                     return cleanedRow;
                   });

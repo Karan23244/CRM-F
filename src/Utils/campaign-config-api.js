@@ -1,6 +1,5 @@
 import axios from "axios";
 
-
 const API_BASE = import.meta.env.VITE_API_URL5;
 const API1 = import.meta.env.VITE_API_URL;
 
@@ -14,9 +13,13 @@ export const createCampaignConfig = async (payload) => {
   return data;
 };
 
-export const getCampaignConfig = async (id) => {
-  const { data } = await api.get(`/campaign-config/${id}`);
-  return data;
+export const getCampaignConfig = async (campaign_ids) => {
+  console.log("Fetching campaign config for IDs:", campaign_ids);
+  const res = await api.post(`/campaign-config/find`, {
+    campaign_ids,
+  });
+
+  return res.data;
 };
 
 export const updateCampaignConfig = async (id, payload) => {

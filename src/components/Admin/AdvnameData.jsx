@@ -1100,7 +1100,7 @@ const AdvnameData = () => {
       ),
     },
   ];
-
+  console.log("finalFilteredData",finalFilteredData)
   return (
     <div className="m-6 p-6 bg-white shadow-md rounded-lg">
       <h2 className="text-2xl font-bold mb-4">Advertisers</h2>

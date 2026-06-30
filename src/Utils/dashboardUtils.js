@@ -162,28 +162,56 @@ export const groupByVertical = (data) => {
 };
 
 // Recent PID additions → Campaign
+// export const groupByRecentCampaigns = (data) => {
+//   const grouped = {};
+
+//   data.forEach((item) => {
+//     const key = item.campaign_name || "Unknown";
+
+//     if (!grouped[key]) {
+//       grouped[key] = 0;
+//     }
+
+//     grouped[key] += 1;
+//   });
+
+//   return Object.entries(grouped)
+//     .map(([name, value]) => ({
+//       name,
+//       value,
+//     }))
+//     .sort((a, b) => b.value - a.value)
+//     .slice(0, 15);
+// };
+// Recent PID additions → Campaign (segregated by sub_campaign_id)
 export const groupByRecentCampaigns = (data) => {
   const grouped = {};
 
   data.forEach((item) => {
-    const key = item.campaign_name || "Unknown";
+    const key = item.sub_campaign_id || "Unknown";
 
     if (!grouped[key]) {
-      grouped[key] = 0;
+      grouped[key] = {
+        name: item.campaign_name || "Unknown",
+        campaign_id: item.campaign_id || null,
+        sub_campaign_id: key,
+        pids: new Set(),
+      };
     }
-
-    grouped[key] += 1;
+    if (item.pid) {
+      grouped[key].pids.add(item.pid);
+    }
   });
-
-  return Object.entries(grouped)
-    .map(([name, value]) => ({
-      name,
-      value,
+  return Object.values(grouped)
+    .map((item) => ({
+      name: item.name,
+      campaign_id: item.campaign_id,
+      sub_campaign_id: item.sub_campaign_id,
+      value: item.pids.size, // unique pid count
     }))
     .sort((a, b) => b.value - a.value)
     .slice(0, 15);
 };
-
 // Recent PID additions → OS
 export const groupByRecentOS = (data) => {
   const grouped = {};

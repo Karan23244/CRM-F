@@ -864,7 +864,7 @@ export default function BillingAdvertiser({ selectedPubId, month }) {
   );
   return (
     <>
-      <div className="p-5">
+      <div>
         {rows.length > 0 && (
           <div className="flex gap-3 mb-4 flex-wrap">
             <Button
@@ -1033,7 +1033,7 @@ export default function BillingAdvertiser({ selectedPubId, month }) {
                 </Button>
               </div>
 
-              <Table
+              <StyledTable
                 size="small"
                 pagination={false}
                 tableLayout="fixed"

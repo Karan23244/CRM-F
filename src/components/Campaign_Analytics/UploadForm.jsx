@@ -45,6 +45,7 @@ export default function UploadForm({ onUploadSuccess }) {
   const [socketId, setSocketId] = useState(null);
   const [availableOS, setAvailableOS] = useState([]);
   const [configuredCampaigns, setConfiguredCampaigns] = useState([]);
+  console.log("Configured campaigns state:", configuredCampaigns);
   // Track socket.id so we can send it to backend
   useEffect(() => {
     const handleConnect = () => {
@@ -66,7 +67,7 @@ export default function UploadForm({ onUploadSuccess }) {
     const fetchConfiguredCampaigns = async () => {
       try {
         const res = await axios.get(`${apiUrl}/api/configured-campaigns`);
-
+        console.log("Configured campaigns:", res.data);
         setConfiguredCampaigns(res.data.data || []);
       } catch (err) {
         console.error("Failed to fetch configured campaigns", err);
@@ -79,14 +80,12 @@ export default function UploadForm({ onUploadSuccess }) {
     if (submitted) return; // prevent double submit
     setLoading(true);
     setSubmitted(true);
-
+    const cleanCampaignName = values.campaignName.split("(")[0].trim();
     const data = new FormData();
     const formattedRange = `${values.dateRange[0].format(
       "YYYY-MM-DD",
     )} - ${values.dateRange[1].format("YYYY-MM-DD")}`;
-
-    const cleanedCampaignName = values.campaignName.trim().replace(/\s+/g, " ");
-    data.append("campaignName", cleanedCampaignName);
+    data.append("campaignName", cleanCampaignName);
     data.append("os", values.os.trim());
 
     const geoInput = values.geo.includes("[")
@@ -94,7 +93,7 @@ export default function UploadForm({ onUploadSuccess }) {
       : JSON.stringify(values.geo.split(",").map((g) => g.trim()));
     data.append("geo", geoInput);
     data.append("dateRange", formattedRange);
-
+    data.append("campaign_ids", JSON.stringify(values.campaign_ids));
     // 🔹 Append socketId to identify user
     if (socketId) {
       data.append("socketId", socketId);
@@ -114,7 +113,15 @@ export default function UploadForm({ onUploadSuccess }) {
         Swal.showLoading();
       },
     });
-
+    console.log("Submitting data:", {
+      campaignName: cleanCampaignName,
+      os: values.os.trim(), 
+      geo: geoInput,
+      dateRange: formattedRange,
+      campaign_ids: values.campaign_ids,
+      files: fileList.map((file) => file.name),
+      socketId,
+    });
     try {
       await axios.post(`${apiUrl}/api/metrics`, data);
 
@@ -174,6 +181,8 @@ export default function UploadForm({ onUploadSuccess }) {
     socket.on("uploadComplete", handler);
     return () => socket.off("uploadComplete", handler);
   }, [user]);
+  // unique campaigns by display_name
+  const uniqueCampaigns = configuredCampaigns;
   return (
     <div className=" flex items-center justify-center bg-gradient-to-br from-[#EAF1FA] via-[#F6F9FC] to-[#FFFFFF] p-8">
       <Card
@@ -202,7 +211,7 @@ export default function UploadForm({ onUploadSuccess }) {
               <span className="font-medium text-[#2F5D99]">Campaign Name</span>
             }
             rules={[{ required: true, message: "Please enter campaign name" }]}>
-            <Select
+            {/* <Select
               size="large"
               placeholder="Select campaign"
               showSearch
@@ -240,9 +249,69 @@ export default function UploadForm({ onUploadSuccess }) {
                   </div>
                 </Select.Option>
               ))}
+            </Select> */}
+            <Select
+              size="large"
+              placeholder="Select campaign"
+              showSearch
+              optionFilterProp="label"
+              optionLabelProp="label"
+              className="rounded-lg"
+              onChange={(value, option) => {
+                let geoString = "";
+
+                if (option.geos?.length) {
+                  const uniqueGeos = [
+                    ...new Set(
+                      option.geos.flatMap((geo) => {
+                        try {
+                          const parsed = JSON.parse(geo);
+
+                          return Array.isArray(parsed)
+                            ? parsed.flat(Infinity)
+                            : [parsed];
+                        } catch {
+                          return [geo];
+                        }
+                      }),
+                    ),
+                  ];
+
+                  geoString = uniqueGeos.join(", ");
+                }
+                form.setFieldsValue({
+                  os: option.os,
+                  campaign_ids: option.campaignIds,
+                  geo: geoString,
+                });
+
+                setAvailableOS([option.os]);
+              }}>
+              {uniqueCampaigns.map((c) => (
+                <Select.Option
+                  key={`${c.config_id}-${c.os}`}
+                  value={`${c.campaign_name} (${c.config_id}) (${c.os})`}
+                  label={`${c.campaign_name} (${c.campaign_ids.join(", ")}) (${c.os})`}
+                  campaignName={c.campaign_name}
+                  campaignIds={c.campaign_ids}
+                  geos={c.geos}
+                  os={c.os}>
+                  <div className="flex items-center justify-between w-full">
+                    <div>
+                      <div className="font-semibold">
+                        {c.campaign_name} ({c.campaign_ids.join(", ")})
+                      </div>
+
+                      <div className="text-xs text-gray-400">OS: {c.os}</div>
+                    </div>
+                  </div>
+                </Select.Option>
+              ))}
             </Select>
           </Form.Item>
-
+          <Form.Item name="campaign_ids" hidden>
+            <Input />
+          </Form.Item>
           {/* Operating System */}
           <Form.Item
             name="os"
@@ -252,25 +321,16 @@ export default function UploadForm({ onUploadSuccess }) {
               </span>
             }
             rules={[{ required: true, message: "Please select OS" }]}>
-            {availableOS.length > 1 ? (
-              <Select
-                size="large"
-                placeholder="Select OS"
-                className="rounded-lg">
-                {availableOS.map((os) => (
-                  <Select.Option key={os} value={os}>
-                    {os.toUpperCase()}
-                  </Select.Option>
-                ))}
-              </Select>
-            ) : (
-              <Input
-                size="large"
-                disabled
-                placeholder="OS auto selected"
-                className="rounded-lg"
-              />
-            )}
+            <Select
+              size="large"
+              placeholder="OS auto selected"
+              className="rounded-lg">
+              {availableOS.map((os) => (
+                <Select.Option key={os} value={os}>
+                  {os}
+                </Select.Option>
+              ))}
+            </Select>
           </Form.Item>
 
           {/* Geo */}
