@@ -7,9 +7,9 @@ import { useSelector } from "react-redux";
 import { assign } from "lodash";
 
 const { TabPane } = Tabs;
-const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl = import.meta.env.VITE_API_URL2;
 
-const API = `${apiUrl}/analytics/revenue`;
+const API = `${apiUrl}/api/analytics/revenue`;
 
 const RevenueDashboard = () => {
   const user = useSelector((state) => state.auth?.user);
