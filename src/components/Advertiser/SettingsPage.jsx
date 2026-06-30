@@ -61,7 +61,7 @@ const SettingsPage = ({ campaignId, adv_id }) => {
   const fetchPostbacks = async () => {
     try {
       const res = await axios.get(
-        `https://track.pidmetric.com/pass-postback/${campaignId}`,
+        `${apiUrl}/pass-postback/${campaignId}`,
       );
       console.log("Fetched Postback Data:", res);
       setPostbackData(
@@ -255,14 +255,13 @@ const SettingsPage = ({ campaignId, adv_id }) => {
                                 name={[name, "value"]}
                                 label="Value"
                                 rules={[{ required: true }]}>
-                                <Input placeholder="1" />
+                                <Input placeholder="install / signup" />
                               </Form.Item>
 
                               <Form.Item
                                 {...rest}
                                 name={[name, "payout"]}
-                                label="Payout"
-                                rules={[{ required: true }]}>
+                                label="Payout">
                                 <InputNumber placeholder="10" min={0} />
                               </Form.Item>
 
@@ -338,7 +337,7 @@ const SettingsPage = ({ campaignId, adv_id }) => {
               <Table
                 rowKey="id"
                 pagination={false}
-                dataSource={samplingData}
+                dataSource={samplingData.filter((_, i) => postbackData[i]?.is_pass === 1)}
                 columns={[
                   {
                     title: "Event",

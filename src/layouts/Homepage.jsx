@@ -9,12 +9,11 @@ import { FaUsers } from "react-icons/fa";
 import { useSelector } from "react-redux";
 import StyledTable from "../Utils/StyledTable";
 import axios from "axios";
-import { Switch, message } from "antd";
+import { Switch } from "antd";
 import Swal from "sweetalert2";
 import useNotifications from "../Utils/useNotifications";
 import dayjs from "dayjs";
 import { DatePicker } from "antd";
-import KPICard from "./KPICard";
 import {
   getKPIs,
   groupByRecentCampaigns,
@@ -42,6 +41,7 @@ export default function Dashboard() {
 
   const [loadReq, setLoadReq] = useState(false);
   const [loadCamp, setLoadCamp] = useState(false);
+
   const isRestricted =
     user?.role?.includes("advertiser") ||
     user?.role?.includes("advertiser_manager") ||
@@ -104,10 +104,13 @@ export default function Dashboard() {
   useEffect(() => {
     fetchRequestToggle();
     fetchCampaignToggle();
+
   }, []);
   const role = user?.role || "";
 
   const isAdmin = role.includes("admin");
+
+
   return (
     <div className="p-6 bg-gradient-to-br from-[#eef3fb] to-[#e6ecf5] min-h-screen space-y-8">
       {/* HEADER */}

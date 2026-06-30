@@ -62,6 +62,22 @@ const CreateCampaignForm = () => {
   const [geoRows, setGeoRows] = useState([{ geo: "", payout: "", os: "" }]);
   const [updatedStatus, setUpdatedStatus] = useState({});
   const [searchText, setSearchText] = useState("");
+  const [allPubs, setAllPubs] = useState([]);
+  const [selectedPub, setSelectedPub] = useState(null);
+  const [hideReferrer, setHideReferrer] = useState(false);
+  const [pubLoading, setPubLoading] = useState(false);
+  const [pubSubmitting, setPubSubmitting] = useState(false);
+  const [approvedPublishers, setApprovedPublishers] = useState([]);
+  const [viewingPub, setViewingPub] = useState(null);
+  const [caps, setCaps] = useState([]);
+  const [showCapForm, setShowCapForm] = useState(false);
+  const [capType, setCapType] = useState(null);
+  const [capPublishers, setCapPublishers] = useState([]);
+  const [capPubCapType, setCapPubCapType] = useState(null);
+  const [capDaily, setCapDaily] = useState("");
+  const [capMonthly, setCapMonthly] = useState("");
+  const [capLifetime, setCapLifetime] = useState("");
+  const [capSaving, setCapSaving] = useState(false);
   const campaignStatus = (editRecord?.status || "").toLowerCase();
   const isPublisherRole =
     Array.isArray(user?.role) &&
@@ -436,9 +452,9 @@ const CreateCampaignForm = () => {
       adv_d: adv_d,
 
       kpi: values.kpi || "",
-      tracking_url: values.tracking_url || "",
-      advertiser_impression_url: values.advertiser_impression_url || "",
-      preview_url: values.preview_url || "",
+      tracking_url: values.tracking_url || null,
+      advertiser_impression_url: values.advertiser_impression_url || null,
+      preview_url: values.preview_url || null,
       da: values.da,
       status: values.status,
     };
@@ -612,6 +628,139 @@ const CreateCampaignForm = () => {
 
     fetchPidInfo();
   }, [editRecord]);
+
+  useEffect(() => {
+    if (!editRecord?.tracking_url) return;
+    const fetchPubs = async () => {
+      try {
+        setPubLoading(true);
+        const res = await axios.get(`${apiUrl}/get-allpub`);
+        setAllPubs(res?.data?.data?.map((i) => i.pub_id) || []);
+      } finally {
+        setPubLoading(false);
+      }
+    };
+    fetchPubs();
+  }, [editRecord]);
+
+  useEffect(() => {
+    if (!editRecord?.tracking_url) return;
+    const fetchExistingLinks = async () => {
+      try {
+        const res = await axios.get(`${apiUrl2}/link/publisher`, {
+          params: { campaign_id: editRecord.id },
+        });
+        const publishers = (res.data?.data || [])
+          .filter((row) => row.status === "approved")
+          .map((row) => ({
+            pub_id: row.publisher_id,
+            publisher_link: row.generated_link,
+            impression_link: row.impression_link,
+            status: row.status,
+          }));
+        setApprovedPublishers(publishers);
+      } catch {
+        // non-critical, silently ignore
+      }
+    };
+    fetchExistingLinks();
+  }, [editRecord]);
+
+  const handleGenerateLink = async () => {
+    if (!selectedPub) return;
+    try {
+      setPubSubmitting(true);
+      const res = await axios.post(`${apiUrl2}/link/publisher`, {
+        publisher_id: selectedPub,
+        campaign_id: editRecord.id,
+        hide_referrer: hideReferrer ? 1 : 0,
+        user_id: userId,
+      });
+      setApprovedPublishers((prev) => [
+        ...prev,
+        {
+          pub_id: selectedPub,
+          publisher_link: res.data?.publisher_link || "",
+          impression_link: res.data?.impression_link || "",
+          status: "approved",
+        },
+      ]);
+      setSelectedPub(null);
+      setHideReferrer(false);
+    } catch {
+      Swal.fire("Error", "Error generating link", "error");
+    } finally {
+      setPubSubmitting(false);
+    }
+  };
+
+  const handleDisapprove = async (pub_id) => {
+    try {
+      await axios.post(`${apiUrl2}/link/publisher/disapprove`, {
+        campaign_id: editRecord.id,
+        publisher_id: pub_id,
+      });
+      setApprovedPublishers((prev) => prev.filter((p) => p.pub_id !== pub_id));
+      if (viewingPub?.pub_id === pub_id) setViewingPub(null);
+    } catch {
+      Swal.fire("Error", "Failed to disapprove publisher", "error");
+    }
+  };
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+    Swal.fire({ icon: "success", title: "Copied!", text: "Copied to clipboard.", timer: 1500, showConfirmButton: false });
+  };
+
+  useEffect(() => {
+    if (!editRecord?.id) return;
+    const fetchCaps = async () => {
+      try {
+        const res = await axios.get(`${apiUrl2}/caps/get-caps`, {
+          params: { campaign_id: editRecord.id },
+        });
+        setCaps(res.data?.data || []);
+      } catch {
+        // silently ignore if endpoint not ready
+      }
+    };
+    fetchCaps();
+  }, [editRecord]);
+
+  const handleSaveCap = async () => {
+    if (!capType || capPublishers.length === 0 || !capPubCapType) {
+      Swal.fire("Error", "Type, Publisher(s), and Publisher Cap Type are required", "error");
+      return;
+    }
+    try {
+      setCapSaving(true);
+      const payload = {
+        campaign_id: editRecord.id,
+        adv_id: editRecord.adv_d,
+        publisher_ids: capPublishers,
+        type: capType,
+        publisher_cap_type: capPubCapType,
+        daily: capDaily || null,
+        monthly: capMonthly || null,
+        lifetime: capLifetime || null,
+      };
+      const res = await axios.post(`${apiUrl2}/caps/create-cap`, payload);
+      setCaps((prev) => [...prev, res.data?.data || payload]);
+      setShowCapForm(false);
+      setCapType(null);
+      setCapPublishers([]);
+      setCapPubCapType(null);
+      setCapDaily("");
+      setCapMonthly("");
+      setCapLifetime("");
+      Swal.fire({ icon: "success", title: "Cap saved!", timer: 1500, showConfirmButton: false });
+    } catch (err) {
+      Swal.fire("Error", err.response?.data?.message || "Failed to save cap", "error");
+    } finally {
+      setCapSaving(false);
+    }
+  };
+
   // TOGGLE HANDLER
   const handleToggle = (record) => {
     const original = (record.status || "").toLowerCase();
@@ -1074,12 +1223,305 @@ const CreateCampaignForm = () => {
       {/* ====== LIVE / PAUSED CAMPAIGNS ====== */}
       {editRecord && (
         <div className="mt-8 w-full max-w-8xl">
+          {/* ====== CAPS MODULE ====== */}
+          {editRecord.tracking_url && <Card
+            className="shadow-md border-gray-100 rounded-2xl mb-10"
+            title={
+              <div className="flex items-center justify-between">
+                <span className="text-base font-semibold text-gray-800">Caps</span>
+                <Button
+                  type="primary"
+                  size="small"
+                  className="!bg-[#2F5D99] !border-none"
+                  onClick={() => setShowCapForm((prev) => !prev)}>
+                  {showCapForm ? "Cancel" : "+ Add Cap"}
+                </Button>
+              </div>
+            }>
+
+            {/* Existing caps table */}
+            {caps.length > 0 && (
+              <div className="mb-4">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50 text-gray-600 text-left">
+                      <th className="px-3 py-2 font-semibold">Type</th>
+                      <th className="px-3 py-2 font-semibold">Publishers</th>
+                      <th className="px-3 py-2 font-semibold">Cap Type</th>
+                      <th className="px-3 py-2 font-semibold">Daily</th>
+                      <th className="px-3 py-2 font-semibold">Monthly</th>
+                      <th className="px-3 py-2 font-semibold">Lifetime</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {caps.map((cap, idx) => (
+                      <tr key={idx} className="border-t border-gray-100 hover:bg-gray-50">
+                        <td className="px-3 py-2 text-[#2F5D99] font-medium">{cap.type}</td>
+                        <td className="px-3 py-2">{Array.isArray(cap.publisher_ids) ? cap.publisher_ids.join(", ") : cap.publisher_ids}</td>
+                        <td className="px-3 py-2">{cap.publisher_cap_type}</td>
+                        <td className="px-3 py-2">{cap.daily ?? "—"}</td>
+                        <td className="px-3 py-2">{cap.monthly ?? "—"}</td>
+                        <td className="px-3 py-2">{cap.lifetime ?? "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {caps.length === 0 && !showCapForm && (
+              <p className="text-gray-400 text-sm text-center py-4">No caps set for this campaign. Click "+ Add Cap" to add one.</p>
+            )}
+
+            {/* Add cap form */}
+            {showCapForm && (
+              <div className={`${caps.length > 0 ? "border-t pt-4" : ""} grid grid-cols-1 md:grid-cols-2 gap-4`}>
+                {/* Type */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-semibold text-gray-700">Type <span className="text-red-500">*</span></label>
+                  <Select
+                    placeholder="Select cap type"
+                    value={capType}
+                    onChange={setCapType}
+                    size="large"
+                    className="w-full">
+                    <Option value="installs_cap">Installs Cap</Option>
+                    <Option value="event_cap">Event Cap</Option>
+                    <Option value="click_cap">Click Cap</Option>
+                    <Option value="payout_cap">Payout Cap</Option>
+                  </Select>
+                </div>
+
+                {/* Publisher */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-semibold text-gray-700">Publisher <span className="text-red-500">*</span></label>
+                  {approvedPublishers.length === 0 ? (
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-orange-200 bg-orange-50 text-orange-600 text-sm">
+                      <span>⚠</span>
+                      <span>No approved publishers yet. Please approve publishers first.</span>
+                    </div>
+                  ) : (
+                    <Select
+                      mode="multiple"
+                      placeholder="Select publishers"
+                      value={capPublishers}
+                      onChange={setCapPublishers}
+                      size="large"
+                      maxTagCount="responsive"
+                      className="w-full"
+                      dropdownRender={(menu) => (
+                        <>
+                          <div
+                            className="px-3 py-2 cursor-pointer hover:bg-gray-50 text-[#2F5D99] font-medium text-sm border-b"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              const allIds = approvedPublishers.map((p) => p.pub_id);
+                              setCapPublishers(
+                                capPublishers.length === allIds.length ? [] : allIds
+                              );
+                            }}>
+                            {capPublishers.length === approvedPublishers.length && approvedPublishers.length > 0
+                              ? "Deselect All"
+                              : "Select All"}
+                          </div>
+                          {menu}
+                        </>
+                      )}>
+                      {approvedPublishers.map((p) => (
+                        <Option key={p.pub_id} value={p.pub_id}>{p.pub_id}</Option>
+                      ))}
+                    </Select>
+                  )}
+                </div>
+
+                {/* Publisher Cap Type */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-semibold text-gray-700">Publisher Cap Type <span className="text-red-500">*</span></label>
+                  <Select
+                    placeholder="Select cap type"
+                    value={capPubCapType}
+                    onChange={setCapPubCapType}
+                    size="large"
+                    className="w-full">
+                    <Option value="group">Group</Option>
+                    <Option value="each">Each</Option>
+                  </Select>
+                </div>
+
+                {/* Daily */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-semibold text-gray-700">Daily</label>
+                  <Input
+                    type="number"
+                    placeholder="Enter daily cap"
+                    value={capDaily}
+                    onChange={(e) => setCapDaily(e.target.value)}
+                    size="large"
+                    min={0}
+                    className="rounded-lg border-gray-200 bg-gray-50"
+                  />
+                </div>
+
+                {/* Monthly */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-semibold text-gray-700">Monthly</label>
+                  <Input
+                    type="number"
+                    placeholder="Enter monthly cap"
+                    value={capMonthly}
+                    onChange={(e) => setCapMonthly(e.target.value)}
+                    size="large"
+                    min={0}
+                    className="rounded-lg border-gray-200 bg-gray-50"
+                  />
+                </div>
+
+                {/* Lifetime */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-semibold text-gray-700">Lifetime</label>
+                  <Input
+                    type="number"
+                    placeholder="Enter lifetime cap"
+                    value={capLifetime}
+                    onChange={(e) => setCapLifetime(e.target.value)}
+                    size="large"
+                    min={0}
+                    className="rounded-lg border-gray-200 bg-gray-50"
+                  />
+                </div>
+
+                {/* Save button */}
+                <div className="md:col-span-2 flex justify-end mt-2">
+                  <Button
+                    type="primary"
+                    loading={capSaving}
+                    onClick={handleSaveCap}
+                    className="!bg-[#2F5D99] hover:!bg-[#24487A] !text-white !rounded-lg !px-8 !h-10 !border-none !shadow-md">
+                    Save Cap
+                  </Button>
+                </div>
+              </div>
+            )}
+          </Card>}
+
           {/* Always show SettingsPage */}
-          <SettingsPage campaignId={editRecord.id} adv_id={editRecord.adv_d} />
+          <div className="mt-8">
+            <SettingsPage campaignId={editRecord.id} adv_id={editRecord.adv_d} />
+          </div>
 
           {/* 👇 Only NON-publisher roles can see below components */}
           {!isPublisherRole && (
             <>
+              {editRecord.tracking_url && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                  <Card title="Approved Publishers" className="shadow-md border-gray-100 rounded-2xl">
+                    {approvedPublishers.length === 0 ? (
+                      <p className="text-gray-400 text-center py-8">
+                        No approved publishers yet. Select a Publisher ID and click Approve.
+                      </p>
+                    ) : (
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-gray-50 text-gray-600 text-left">
+                            <th className="px-4 py-2 font-semibold">Publisher ID</th>
+                            <th className="px-4 py-2 font-semibold">Links</th>
+                            <th className="px-4 py-2 font-semibold">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {approvedPublishers.map((pub) => (
+                            <tr key={pub.pub_id} className="border-t border-gray-100 hover:bg-gray-50">
+                              <td className="px-4 py-3 font-medium text-[#2F5D99]">{pub.pub_id}</td>
+                              <td className="px-4 py-3">
+                                <Button size="small" type="default"
+                                  onClick={() => setViewingPub(pub)}>
+                                  View
+                                </Button>
+                              </td>
+                              <td className="px-4 py-3">
+                                <Button size="small" danger
+                                  onClick={() => handleDisapprove(pub.pub_id)}>
+                                  Disapprove
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </Card>
+
+                  <Modal
+                    title={`Links for Publisher ${viewingPub?.pub_id}`}
+                    open={!!viewingPub}
+                    onCancel={() => setViewingPub(null)}
+                    footer={null}
+                    centered>
+                    {viewingPub && (
+                      <div className="space-y-4 mt-2">
+                        {viewingPub.publisher_link && (
+                          <div>
+                            <p className="text-gray-600 text-sm font-medium mb-1">Publisher Tracking Link:</p>
+                            <div className="flex items-center gap-2">
+                              <input type="text" readOnly value={viewingPub.publisher_link}
+                                className="w-full px-3 py-1.5 border rounded-lg bg-white text-gray-700 text-sm" />
+                              <Button size="small" className="!bg-green-600 hover:!bg-green-700 !text-white !rounded-lg"
+                                onClick={() => copyToClipboard(viewingPub.publisher_link)}>Copy</Button>
+                            </div>
+                          </div>
+                        )}
+                        {viewingPub.impression_link && (
+                          <div>
+                            <p className="text-gray-600 text-sm font-medium mb-1">Impression Link:</p>
+                            <div className="flex items-center gap-2">
+                              <input type="text" readOnly value={viewingPub.impression_link}
+                                className="w-full px-3 py-1.5 border rounded-lg bg-white text-gray-700 text-sm" />
+                              <Button size="small" className="!bg-blue-600 hover:!bg-blue-700 !text-white !rounded-lg"
+                                onClick={() => copyToClipboard(viewingPub.impression_link)}>Copy</Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </Modal>
+
+                  <Card title="Not Approved Publishers" className="shadow-md border-gray-100 rounded-2xl">
+                    <div className="flex flex-col gap-4">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-sm font-semibold text-gray-700">Publisher ID</label>
+                        <Select
+                          placeholder="Select Publisher ID"
+                          value={selectedPub}
+                          onChange={(val) => setSelectedPub(val)}
+                          showSearch
+                          size="large"
+                          loading={pubLoading}
+                          className="rounded-lg w-full">
+                          {allPubs
+                            .filter((pid) => !approvedPublishers.find((a) => a.pub_id === pid))
+                            .map((pid) => (
+                              <Select.Option key={pid} value={pid}>{pid}</Select.Option>
+                            ))}
+                        </Select>
+                      </div>
+                      <div className="flex items-center px-4 py-2 border rounded-lg bg-white">
+                        <Checkbox checked={hideReferrer} onChange={(e) => setHideReferrer(e.target.checked)}>
+                          <span className="text-gray-700 font-medium">Hide Google Referrer</span>
+                        </Checkbox>
+                      </div>
+                      <Button
+                        type="primary"
+                        size="large"
+                        loading={pubSubmitting}
+                        disabled={!selectedPub}
+                        onClick={handleGenerateLink}
+                        className="!bg-[#2F5D99] hover:!bg-[#24487A] !text-white !rounded-xl !h-[48px] !text-lg !font-semibold !border-none !shadow-lg">
+                        Approve
+                      </Button>
+                    </div>
+                  </Card>
+                </div>
+              )}
               <GenrateLink
                 campaignId={editRecord.id}
                 trackingurl={editRecord.tracking_url}
