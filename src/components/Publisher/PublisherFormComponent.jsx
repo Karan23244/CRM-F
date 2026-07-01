@@ -102,6 +102,9 @@ const PublisherEditForm = () => {
   const [searchTextPub, setSearchTextPub] = useState("");
   const [editingLinkId, setEditingLinkId] = useState(null);
   const [placeLinkValue, setPlaceLinkValue] = useState("");
+  const [eventPostbacks, setEventPostbacks] = useState({});
+  const [editingEventPostbackId, setEditingEventPostbackId] = useState(null);
+  const [eventPostbackValue, setEventPostbackValue] = useState("");
   const [apiUrls, setApiUrls] = useState({});
   const [filters, setFilters] = useState({});
   const [filterSearch, setFilterSearch] = useState({});
@@ -149,19 +152,29 @@ const PublisherEditForm = () => {
 
     fetchSubAdmins();
   }, []);
+  const seedEventPostbacks = (list) => {
+    const map = {};
+    list.forEach((p) => {
+      if (p.event_postback_url) map[p.pub_id] = p.event_postback_url;
+    });
+    setEventPostbacks(map);
+  };
+
   const fetchPublishers = async () => {
     if (!userId) return;
     setLoading(true);
     try {
       if (isAdmin) {
-        const { data } =await axios.get(`${apiUrl}/get-Namepub?user_id=${userId}`);
+        const { data } = await axios.get(`${apiUrl}/get-Namepub?user_id=${userId}`);
         if (data && Array.isArray(data.data)) {
           setPublishers(data.data);
+          seedEventPostbacks(data.data);
         }
       } else {
         const { data } = await axios.get(`${apiUrl}/pubid-data/${userId}`);
         if (data.success && Array.isArray(data.publishers)) {
           setPublishers(data.publishers);
+          seedEventPostbacks(data.publishers);
         }
       }
     } catch (err) {
@@ -381,6 +394,60 @@ const PublisherEditForm = () => {
       setEditingLinkId(null);
     }
   };
+  const autoSaveEventPlaceLink = async (record, value) => {
+    const trimmedValue = value.trim();
+
+    if ((record.event_postback_url || "") === trimmedValue) {
+      setEditingEventPostbackId(null);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await axios.put(`${apiUrl1}/postback/event-place-link`, {
+        pub_id: record.pub_id,
+        user_id: userId,
+        event_postback_url: trimmedValue || null,
+      });
+
+      if (res.data.success) {
+        setEventPostbacks((prev) => ({ ...prev, [record.pub_id]: trimmedValue }));
+        Swal.fire({
+          icon: "success",
+          title: "Saved!",
+          text: "Event Postback URL saved successfully.",
+          timer: 1500,
+          showConfirmButton: false,
+          toast: true,
+          position: "top-end",
+        });
+
+        const { data } = await axios.get(`${apiUrl}/pubid-data/${userId}`);
+        if (data.success && Array.isArray(data.publishers)) {
+          setPublishers(data.publishers);
+        }
+      }
+    } catch (err) {
+      console.error("Error saving Event Postback URL:", err);
+      if (err.response?.status === 404) {
+        Swal.fire({
+          icon: "warning",
+          title: "Not Found",
+          text: "Publisher not found.",
+        });
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Save Failed",
+          text: "Could not save Event Postback URL. Please try again.",
+        });
+      }
+    } finally {
+      setLoading(false);
+      setEditingEventPostbackId(null);
+    }
+  };
+
   const excelFilterDropdown = (key) => () => {
     const allValues = uniqueValues[key] || [];
     const selectedValues = filters[key] ?? allValues;
@@ -634,7 +701,7 @@ const PublisherEditForm = () => {
       },
     },
     {
-      title: <div style={{ textAlign: "center" }}>Postback URL</div>,
+      title: <div style={{ textAlign: "center" }}>Install Postback</div>,
       dataIndex: "postback_url",
       key: "postback_url",
       width: 300,
@@ -678,6 +745,66 @@ const PublisherEditForm = () => {
             </div>
             {text && (
               <Tooltip title="Copy Postback URL">
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<CopyOutlined />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigator.clipboard.writeText(text);
+                  }}
+                />
+              </Tooltip>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      title: <div style={{ textAlign: "center" }}>Event Postback</div>,
+      key: "event_postback",
+      width: 300,
+      render: (_, record) => {
+        const isEditing = editingEventPostbackId === record.pub_id;
+        const text = eventPostbacks[record.pub_id];
+
+        if (isEditing) {
+          return (
+            <Input
+              autoFocus
+              value={eventPostbackValue}
+              placeholder="Paste Event Postback URL"
+              onChange={(e) => setEventPostbackValue(e.target.value)}
+              onBlur={() => autoSaveEventPlaceLink(record, eventPostbackValue)}
+              onPressEnter={() => autoSaveEventPlaceLink(record, eventPostbackValue)}
+              className="w-full"
+            />
+          );
+        }
+
+        return (
+          <div className="flex items-center gap-2 min-h-[32px] max-w-[280px]">
+            <div
+              className="cursor-pointer flex-1 truncate"
+              onClick={() => {
+                setEditingEventPostbackId(record.pub_id);
+                setEventPostbackValue(text || "");
+              }}>
+              {text ? (
+                <a
+                  href={text}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="truncate block"
+                  onClick={(e) => e.stopPropagation()}>
+                  {text}
+                </a>
+              ) : (
+                <span className="text-gray-400">Click to add link</span>
+              )}
+            </div>
+            {text && (
+              <Tooltip title="Copy Event Postback URL">
                 <Button
                   type="text"
                   size="small"
