@@ -21,6 +21,7 @@ import {
   EditOutlined,
   CopyOutlined,
   EyeOutlined,
+  ExportOutlined,
 } from "@ant-design/icons";
 import geoData from "../../Data/geoData.json";
 import SubAdminPubnameData from "./SubAdminPubnameData";
@@ -724,37 +725,39 @@ const PublisherEditForm = () => {
 
         return (
           <div className="flex items-center gap-2 min-h-[32px] max-w-[280px]">
-            <div
-              className="cursor-pointer flex-1 truncate"
+            <span
+              className="cursor-pointer flex-1 truncate text-blue-500 underline"
               onClick={() => {
                 setEditingLinkId(record.pub_id);
                 setPlaceLinkValue(text || "");
               }}>
-              {text ? (
-                <a
-                  href={text}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="truncate block"
-                  onClick={(e) => e.stopPropagation()}>
-                  {text}
-                </a>
-              ) : (
-                <span className="text-gray-400">Click to add link</span>
-              )}
-            </div>
+              {text || <span className="text-gray-400 no-underline">Click to add link</span>}
+            </span>
             {text && (
-              <Tooltip title="Copy Postback URL">
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<CopyOutlined />}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigator.clipboard.writeText(text);
-                  }}
-                />
-              </Tooltip>
+              <>
+                <Tooltip title="Open URL">
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<ExportOutlined />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.open(text, "_blank", "noopener,noreferrer");
+                    }}
+                  />
+                </Tooltip>
+                <Tooltip title="Copy Postback URL">
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<CopyOutlined />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigator.clipboard.writeText(text);
+                    }}
+                  />
+                </Tooltip>
+              </>
             )}
           </div>
         );
@@ -784,37 +787,39 @@ const PublisherEditForm = () => {
 
         return (
           <div className="flex items-center gap-2 min-h-[32px] max-w-[280px]">
-            <div
-              className="cursor-pointer flex-1 truncate"
+            <span
+              className="cursor-pointer flex-1 truncate text-blue-500 underline"
               onClick={() => {
                 setEditingEventPostbackId(record.pub_id);
                 setEventPostbackValue(text || "");
               }}>
-              {text ? (
-                <a
-                  href={text}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="truncate block"
-                  onClick={(e) => e.stopPropagation()}>
-                  {text}
-                </a>
-              ) : (
-                <span className="text-gray-400">Click to add link</span>
-              )}
-            </div>
+              {text || <span className="text-gray-400 no-underline">Click to add link</span>}
+            </span>
             {text && (
-              <Tooltip title="Copy Event Postback URL">
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<CopyOutlined />}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigator.clipboard.writeText(text);
-                  }}
-                />
-              </Tooltip>
+              <>
+                <Tooltip title="Open URL">
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<ExportOutlined />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.open(text, "_blank", "noopener,noreferrer");
+                    }}
+                  />
+                </Tooltip>
+                <Tooltip title="Copy Event Postback URL">
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<CopyOutlined />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigator.clipboard.writeText(text);
+                    }}
+                  />
+                </Tooltip>
+              </>
             )}
           </div>
         );
