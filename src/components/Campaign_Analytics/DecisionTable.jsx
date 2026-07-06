@@ -76,7 +76,7 @@ const DecisionTable = ({ campaign_name, os, lastdate, geo, campaign_ids }) => {
       console.log("Fetching decision data with payload:", payload);
 
       const res = await axios.post(`${API}/api/decision`, payload);
-      console.log("API response:", res);
+      console.log("decision API response:", res);
       if (res.data?.success) {
         setDataSource(res.data.data || []);
       } else {

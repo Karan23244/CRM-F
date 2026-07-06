@@ -592,7 +592,7 @@ const AdvertiserEditForm = () => {
         ]
       : []),
   ];
-
+  console.log(filteredData)
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="">

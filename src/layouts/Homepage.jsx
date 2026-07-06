@@ -47,6 +47,45 @@ export default function Dashboard() {
     user?.role?.includes("advertiser_manager") ||
     user?.role?.includes("operations");
 
+  // const fetchCounts = async () => {
+  //   try {
+  //     // 1️⃣ total campaigns
+  //     const total = await axios.post(`${apiUrl}/campaign-count`, {
+  //       role: user?.role,
+  //       id: user?.id,
+  //     });
+  //     setTotalCampaigns(total?.data?.campaign_count);
+
+  //     // 2️⃣ paused PID count
+  //     const paused = await axios.post(`${apiUrl}/geo-count`, {
+  //       role: user?.role,
+  //       id: user?.id,
+  //     });
+  //     setGeoCount(paused?.data?.totalGeo);
+  //     // 3️⃣ live PID count
+  //     const live = await axios.post(`${apiUrl}/pid-count`, {
+  //       role: user?.role,
+  //       id: user?.id,
+  //     });
+  //     setLiveCount(live?.data?.totalPid || 0);
+  //     // 3️⃣ live PID count
+  //     const adv = await axios.post(`${apiUrl}/adv-count`, {
+  //       role: user?.role,
+  //       id: user?.id,
+  //     });
+  //     setAdvCount(adv?.data?.totalAdv || 0);
+  //     // 3️⃣ live PID count
+  //     const pub = await axios.post(`${apiUrl}/pub-count`, {
+  //       role: user?.role,
+  //       id: user?.id,
+  //     });
+  //     setPubCount(pub?.data?.totalPub || 0);
+  //   } catch (err) {
+  //     console.log(err);
+  //     message.error("Failed to load dashboard counts.");
+  //   }
+  // };
+
   // 🟡 Fetch Request Toggle
   const fetchRequestToggle = async () => {
     try {
@@ -104,6 +143,7 @@ export default function Dashboard() {
   useEffect(() => {
     fetchRequestToggle();
     fetchCampaignToggle();
+    // fetchCounts();
 
   }, []);
   const role = user?.role || "";

@@ -474,6 +474,7 @@ export const sidebarLinks = [
       "operations",
     ],
   },
+
   {
     to: "adddetails",
     label: "Publisher Details",
@@ -499,6 +500,16 @@ export const sidebarLinks = [
     to: "accountspubbill",
     label: "Publisher Account",
     roles: ["admin", "accounts"],
+  },
+  {
+    to: "publisherrevenue",
+    label: "Publisher Revenue",
+    roles: [
+      "admin",
+      "publisher",
+      "publisher_manager",
+      "pub_executive",
+    ],
   },
   // ==========================
   // 🔹 ACCOUNT SETTINGS

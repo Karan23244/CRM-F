@@ -134,6 +134,7 @@ const AppRoutes = () => (
           <Route path="publisherbill" element={<PublisherBilling />} />
           <Route path="accountsadvbill" element={<AdvertiserAccount />} />
           <Route path="accountspubbill" element={<PublisherAccount />} />
+          <Route path="publisherrevenue" element={<PublisherRevnu />} />
           <Route
             path="optimizationalldata"
             element={<CampianDataOptimization />}

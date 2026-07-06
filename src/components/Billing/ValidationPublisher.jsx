@@ -1,4 +1,4 @@
-import React,{ useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   Select,
   DatePicker,
@@ -10,6 +10,7 @@ import {
   message,
   Checkbox,
   Tag,
+  Space,
 } from "antd";
 import axios from "axios";
 import Swal from "sweetalert2";
@@ -21,12 +22,16 @@ import OldValidationPublisher from "./OldValidationPublisher";
 const { Option } = Select;
 const API = import.meta.env.VITE_API_URL5;
 const isPidLocked = (p, billingLocked) =>
-  billingLocked || p.status === "verified" || p.status === "locked";
+  billingLocked ||
+  p.status === "verified" ||
+  p.status === "locked" ||
+  p.status === "hold";
 
 const isCampaignLocked = (row, billingLocked) =>
   billingLocked ||
   (row.pid_data || []).some(
-    (p) => p.status === "verified" || p.status === "locked",
+    (p) =>
+      p.status === "verified" || p.status === "locked" || p.status === "hold",
   );
 const displayValue = (v) =>
   v === null || v === undefined ? "Pending" : Number(v) === 0 ? 0 : v;
@@ -308,7 +313,12 @@ export default function BillingAdvertiser() {
     rows.every(
       (r) =>
         (r.pid_data || []).length > 0 &&
-        (r.pid_data || []).every((p) => p.status === "verified"),
+        (r.pid_data || []).every(
+          (p) =>
+            p.status === "verified" ||
+            p.status === "hold" ||
+            p.status === "locked",
+        ),
     );
   // ── dropdowns ─────────────────────────────────
   useEffect(() => {
@@ -329,7 +339,6 @@ export default function BillingAdvertiser() {
 
   const fetchBilling = async () => {
     if (!selectedPubId || !month) return;
-
     setLoading(true);
 
     try {
@@ -668,6 +677,52 @@ export default function BillingAdvertiser() {
         icon: "error",
         title: "Server Error",
         text: err.response?.data?.message || "Internal Server Error (500)",
+      });
+    }
+  };
+  const holdPid = async (pidRow, campaignRow, pidIndex, parentIndex) => {
+    console.log("HOLD CLICKED", {
+      pidRow,
+      campaignRow,
+      month,
+    });
+    try {
+      const res = await axios.post(`${API}/billing/publisher/hold-pid`, {
+        adv_data_id: pidRow.adv_data_id,
+        pid: pidRow.pid,
+        campaign_id: campaignRow.campaign_id,
+        pub_id: selectedPubId,
+        billing_month: month,
+        hold_by: user.id,
+      });
+      console.log("Hold PID response:", res.data);
+      if (res.data.success) {
+        setRows((prev) =>
+          prev.map((r, i) =>
+            i === parentIndex
+              ? {
+                  ...r,
+                  pid_data: r.pid_data.map((p, j) =>
+                    j === pidIndex
+                      ? {
+                          ...p,
+                          status: "hold",
+                          hold_by: user.id,
+                        }
+                      : p,
+                  ),
+                }
+              : r,
+          ),
+        );
+
+        message.success("PID moved to hold");
+      }
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: "Hold Failed",
+        text: err.response?.data?.message || "Unable to hold PID",
       });
     }
   };
@@ -1080,7 +1135,7 @@ export default function BillingAdvertiser() {
         const total = (row.pid_data || []).length;
 
         const verified = (row.pid_data || []).filter(
-          (p) => p.status === "verified",
+          (p) => p.status === "verified" || p.status === "hold",
         ).length;
 
         const locked = (row.pid_data || []).filter(
@@ -1126,30 +1181,32 @@ export default function BillingAdvertiser() {
       });
 
       return (
-        <Table.Summary.Row>
-          {columns.map((col, idx) => {
-            const key = `sum-${idx}`;
-            if (col.title === "PUB Total")
-              return (
-                <Table.Summary.Cell key={key} className="text-center">
-                  <b>{totalNo.toFixed(2)}</b>
-                </Table.Summary.Cell>
-              );
-            if (col.title === "PUB Approved")
-              return (
-                <Table.Summary.Cell key={key} className="text-center">
-                  <b>{totalApproved.toFixed(2)}</b>
-                </Table.Summary.Cell>
-              );
-            if (col.title === "Total Payout")
-              return (
-                <Table.Summary.Cell key={key} className="text-center">
-                  <b>{totalPayout.toFixed(2)}</b>
-                </Table.Summary.Cell>
-              );
-            return <Table.Summary.Cell key={key} />;
-          })}
-        </Table.Summary.Row>
+        <Table.Summary fixed="bottom">
+          <Table.Summary.Row>
+            {columns.map((col, idx) => {
+              const key = `sum-${idx}`;
+              if (col.title === "PUB Total")
+                return (
+                  <Table.Summary.Cell key={key} className="text-center">
+                    <b>{totalNo.toFixed(2)}</b>
+                  </Table.Summary.Cell>
+                );
+              if (col.title === "PUB Approved")
+                return (
+                  <Table.Summary.Cell key={key} className="text-center">
+                    <b>{totalApproved.toFixed(2)}</b>
+                  </Table.Summary.Cell>
+                );
+              if (col.title === "Total Payout")
+                return (
+                  <Table.Summary.Cell key={key} className="text-center">
+                    <b>{totalPayout.toFixed(2)}</b>
+                  </Table.Summary.Cell>
+                );
+              return <Table.Summary.Cell key={key} />;
+            })}
+          </Table.Summary.Row>
+        </Table.Summary>
       );
     },
     [columns],
@@ -1219,10 +1276,105 @@ export default function BillingAdvertiser() {
               </Button>
               <Button
                 type="primary"
-                disabled={billingLocked || allDataLocked}
+                disabled={billingLocked || allDataLocked || allPidsVerified}
                 onClick={async () => {
-                  for (let i = 0; i < rows.length; i++) {
-                    await verifyAllPidsForRow(rows[i], i);
+                  const allPids = [];
+
+                  rows.forEach((row, rowIndex) => {
+                    (row.pid_data || []).forEach((pidRow, pidIndex) => {
+                      if (
+                        pidRow.status !== "verified" &&
+                        pidRow.status !== "locked" &&
+                        pidRow.status !== "hold"
+                      ) {
+                        allPids.push({
+                          rowIndex,
+                          pidIndex,
+
+                          adv_data_id: pidRow.adv_data_id || null,
+                          pid: pidRow.pid,
+                          campaign_id: row.campaign_id,
+                          pub_id: pidRow.pub_id || selectedPubId,
+                          shared_date: pidRow.shared_date || month + "-01",
+
+                          campaign_name: row.campaign_name,
+                          geo: row.geo,
+                          os: pidRow.os,
+                          payable_event: row.payable_event,
+                          pay_out: row.pay_out,
+                          adv_total_no: pidRow.adv_total_no,
+                          pub_Apno: pidRow.pub_Apno,
+                          vertical: row.vertical,
+                          billing_month: month,
+                        });
+                      }
+                    });
+                  });
+
+                  if (!allPids.length) {
+                    return Swal.fire({
+                      icon: "info",
+                      title: "Nothing to Verify",
+                      timer: 1500,
+                      showConfirmButton: false,
+                    });
+                  }
+
+                  Swal.fire({
+                    title: "Verifying...",
+                    text: `${allPids.length} PIDs`,
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading(),
+                  });
+
+                  try {
+                    const res = await axios.post(
+                      `${API}/billing/publisher/publisher-verify-all`,
+                      {
+                        records: allPids,
+                      },
+                    );
+
+                    if (res.data.success) {
+                      setRows((prev) =>
+                        prev.map((row, rowIndex) => ({
+                          ...row,
+                          pid_data: row.pid_data.map((pid, pidIndex) => {
+                            const found = allPids.find(
+                              (p) =>
+                                p.rowIndex === rowIndex &&
+                                p.pidIndex === pidIndex,
+                            );
+
+                            if (!found) return pid;
+
+                            if (pid.status === "hold") {
+                              return pid; // preserve hold
+                            }
+
+                            return {
+                              ...pid,
+                              status: "verified",
+                            };
+                          }),
+                        })),
+                      );
+
+                      Swal.fire({
+                        icon: "success",
+                        title: "Verified",
+                        text: `${allPids.length} PIDs verified`,
+                        timer: 1500,
+                        showConfirmButton: false,
+                      });
+                    }
+                  } catch (err) {
+                    Swal.fire({
+                      icon: "error",
+                      title: "Verification Failed",
+                      text:
+                        err.response?.data?.message || "Something went wrong",
+                    });
                   }
                 }}>
                 Verify All
@@ -1408,11 +1560,15 @@ export default function BillingAdvertiser() {
                 tableLayout="fixed"
                 rowKey={(r, i) => r.adv_data_id || r._tmp_id || `${r.pid}-${i}`}
                 dataSource={filteredPidData}
-                rowClassName={(r) =>
-                  r.status === "verified" || r.status === "locked"
-                    ? "bg-green-50"
-                    : ""
-                }
+                rowClassName={(r) => {
+                  if (r.status === "verified") return "bg-green-50";
+
+                  if (r.status === "hold") return "bg-purple-50";
+
+                  if (r.status === "locked") return "bg-red-50";
+
+                  return "";
+                }}
                 columns={[
                   {
                     title: "OS",
@@ -1504,26 +1660,40 @@ export default function BillingAdvertiser() {
                   },
                   {
                     title: "Action",
-                    width: 110,
+                    width: 180,
                     render: (_, r, i) => {
-                      if (billingLocked || r.status === "locked")
-                        return (
-                          <Tag icon={<LockFilled />} color="red">
-                            Locked
-                          </Tag>
-                        );
-                      if (r.status === "verified")
-                        return <Tag color="green">✔ Verified</Tag>;
+                      if (r.status === "locked") {
+                        return <Tag color="red">Locked</Tag>;
+                      }
+
+                      if (r.status === "verified") {
+                        return <Tag color="green">Verified</Tag>;
+                      }
+
+                      if (r.status === "hold") {
+                        return <Tag color="purple">On Hold</Tag>;
+                      }
+
                       return (
-                        <Button
-                          size="small"
-                          type="primary"
-                          ghost
-                          onClick={() =>
-                            verifyPid(r, activeRow, i, activeIndex)
-                          }>
-                          Verify
-                        </Button>
+                        <Space>
+                          <Button
+                            size="small"
+                            type="primary"
+                            onClick={() =>
+                              verifyPid(r, activeRow, i, activeIndex)
+                            }>
+                            Verify
+                          </Button>
+
+                          <Button
+                            size="small"
+                            danger
+                            onClick={() =>
+                              holdPid(r, activeRow, i, activeIndex)
+                            }>
+                            Hold
+                          </Button>
+                        </Space>
                       );
                     },
                   },
