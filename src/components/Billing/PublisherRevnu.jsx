@@ -72,7 +72,7 @@ const SystemAmountCell = ({ record }) => {
 /* MAIN COMPONENT */
 /* ============================= */
 
-export default function PublisherAccount() {
+export default function PublisherRevenue() {
   const { user } = useSelector((state) => state.auth);
   const currentMonth = dayjs().format("YYYY-MM");
   const [data, setData] = useState([]);

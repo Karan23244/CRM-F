@@ -59,6 +59,7 @@ const CampianDataOptimization = lazy(() => import("./components/Optimization/pid
 const TotalPidData = lazy(() => import("./components/Optimization/CampaignPid"));
 const AddDetails = lazy(() => import("./components/PublisherAM/DetailsAdd"));
 const CampaignConfigPage = lazy(() => import("./components/Campaign_Analytics/Campaignconfigpage"));
+const PublisherRevnu = lazy(() => import("./components/Billing/PublisherRevnu"));
 const PageLoader = () => (
   <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", fontSize: "16px", color: "#888" }}>
     Loading...
