@@ -33,17 +33,12 @@ import {
   getCampaignConfig,
   updateCampaignConfig,
 } from "../../Utils/campaign-config-api";
-
+import { CONFIG_TEMPLATES } from "../../config/configTemplates";
 import axios from "axios";
 import Swal from "sweetalert2";
 
 const apiUrl = import.meta.env.VITE_API_URL;
 const { Option } = Select;
-
-const IGNORE_METRICS = ["C2I", "Install Fraud", "I2E2", "PA E2"];
-
-const RULE1_BASE_PARAMS = ["CTI", "ITE1", "ITE2"];
-const RULE2_PARAMS = ["RI", "PI", "Total Install Fraud", "PA E2"];
 
 // ─────────────────────────────────────────────────────────────
 // Premium Section Wrapper
@@ -85,30 +80,37 @@ const Section = ({
 // ─────────────────────────────────────────────────────────────
 const CampaignConfigPage = () => {
   const user = useSelector((state) => state.auth.user);
-
   const [form] = Form.useForm();
-
   const [campaigns, setCampaigns] = useState([]);
   const [campaignsLoading, setCampaignsLoading] = useState(false);
-
   const [selectedCampaigns, setSelectedCampaigns] = useState([]);
-
   const [events, setEvents] = useState(["E1", "E2"]);
-
-  const [rule1Params, setRule1Params] = useState(() =>
-    Object.fromEntries(RULE1_BASE_PARAMS.map((p) => [p, {}])),
-  );
-
-  const [rule2Params, setRule2Params] = useState(() =>
-    Object.fromEntries(RULE2_PARAMS.map((p) => [p, {}])),
-  );
-
+  const [configType, setConfigType] = useState("appsflyer");
+  const [rule1Params, setRule1Params] = useState({});
+  const [rule2Params, setRule2Params] = useState({});
   const [ignoreMetrics, setIgnoreMetrics] = useState([]);
-
   const [submitting, setSubmitting] = useState(false);
-
   const [existingConfigId, setExistingConfigId] = useState(null);
+  const template = CONFIG_TEMPLATES[configType] || CONFIG_TEMPLATES.appsflyer;
+  useEffect(() => {
+    const newRule1 = {};
 
+    template.rule1.forEach((key) => {
+      newRule1[key] = rule1Params[key] || {};
+    });
+
+    setRule1Params(newRule1);
+
+    const newRule2 = {};
+
+    template.rule2.forEach((key) => {
+      newRule2[key] = rule2Params[key] || {};
+    });
+
+    setRule2Params(newRule2);
+
+    setIgnoreMetrics([]);
+  }, [configType]);
   // ─────────────────────────────────────────────────────────
   // Fetch Campaigns
   // ─────────────────────────────────────────────────────────
@@ -181,64 +183,6 @@ const CampaignConfigPage = () => {
       return next;
     });
   }, [events]);
-
-  // ─────────────────────────────────────────────────────────
-  // Load Existing Config
-  // ─────────────────────────────────────────────────────────
-  // const handleCampaignChange = useCallback(
-  //   async (campaignIds) => {
-  //     const foundCampaigns = campaigns.filter((c) =>
-  //       campaignIds.includes(c.id),
-  //     );
-
-  //     setSelectedCampaigns(foundCampaigns);
-
-  //     // Optional:
-  //     // Load config only when single campaign selected
-  //     if (campaignIds.length !== 1) {
-  //       setExistingConfigId(null);
-  //       return;
-  //     }
-
-  //     try {
-  //       const config = await getCampaignConfig(campaignIds[0]);
-
-  //       if (config) {
-  //         setExistingConfigId(config.id);
-
-  //         form.setFieldsValue({
-  //           clicks_per_day: config.clicks_per_day,
-  //           installs_per_day: config.installs_per_day,
-  //         });
-
-  //         if (config.events) setEvents(config.events);
-
-  //         if (config.rule1_params) setRule1Params(config.rule1_params);
-
-  //         if (config.rule2_params) setRule2Params(config.rule2_params);
-
-  //         if (config.ignore_metrics) setIgnoreMetrics(config.ignore_metrics);
-
-  //         message.success("Existing configuration loaded");
-  //       }
-  //     } catch {
-  //       setExistingConfigId(null);
-
-  //       form.resetFields(["clicks_per_day", "installs_per_day"]);
-
-  //       setEvents(["E1", "E2"]);
-
-  //       setRule1Params(
-  //         Object.fromEntries(RULE1_BASE_PARAMS.map((p) => [p, {}])),
-  //       );
-
-  //       setRule2Params(Object.fromEntries(RULE2_PARAMS.map((p) => [p, {}])));
-
-  //       setIgnoreMetrics([]);
-  //     }
-  //   },
-  //   [campaigns, form],
-  // );
   const handleCampaignChange = useCallback(
     async (campaignIds) => {
       const foundCampaigns = campaigns.filter((c) =>
@@ -270,10 +214,16 @@ const CampaignConfigPage = () => {
         // IMPORTANT
         // send ALL selected campaign ids
         const config = await getCampaignConfig(campaignIds);
-
+        console.log("Fetched config for selected campaigns:", config); // Debug log
         if (config) {
           setExistingConfigId(config.id);
+          if (config.config_type) {
+            setConfigType(config.config_type);
 
+            form.setFieldsValue({
+              config_type: config.config_type,
+            });
+          }
           // VERY IMPORTANT
           // restore ALL campaign ids
           form.setFieldsValue({
@@ -316,6 +266,7 @@ const CampaignConfigPage = () => {
     rule1_params: rule1Params,
     rule2_params: rule2Params,
     ignore_metrics: ignoreMetrics,
+    config_type: configType,
   });
 
   // ─────────────────────────────────────────────────────────
@@ -383,19 +334,20 @@ const CampaignConfigPage = () => {
       // Reset Everything
       // ─────────────────────────────────────────
       form.resetFields();
-
+      setConfigType("appsflyer");
       setSelectedCampaigns([]);
 
       setEvents(["E1", "E2"]);
 
-      setRule1Params(Object.fromEntries(RULE1_BASE_PARAMS.map((p) => [p, {}])));
+      setRule1Params(Object.fromEntries(template.rule1.map((p) => [p, {}])));
 
-      setRule2Params(Object.fromEntries(RULE2_PARAMS.map((p) => [p, {}])));
+      setRule2Params(Object.fromEntries(template.rule2.map((p) => [p, {}])));
 
       setIgnoreMetrics([]);
 
       setExistingConfigId(null);
     } catch (err) {
+      console.error("Error saving configuration:", err);
       if (err?.errorFields) {
         message.warning("Please fill all required fields");
       } else {
@@ -409,7 +361,7 @@ const CampaignConfigPage = () => {
       setSubmitting(false);
     }
   };
-  const rule1Keys = ["CTI", ...events.map((_, i) => `ITE${i + 1}`)];
+  const rule1Keys = template.rule1;
   // Add above return()
   const selectedIds = form.getFieldValue("campaign_ids") || [];
 
@@ -469,15 +421,26 @@ const CampaignConfigPage = () => {
           form={form}
           layout="vertical"
           requiredMark={false}
+          initialValues={{
+            config_type: "appsflyer",
+          }}
           className="
           bg-white
           border border-gray-200
           rounded-3xl
           shadow-sm
           overflow-hidden
+          
         ">
           {/* Top Section */}
           <div className="p-5 md:p-6 space-y-5">
+            <Form.Item label="MMP Type" name="config_type">
+              <Select onChange={setConfigType}>
+                <Option value="appsflyer">AppsFlyer</Option>
+                <Option value="adjust">Adjust</Option>
+                <Option value="singular">Singular</Option>
+              </Select>
+            </Form.Item>
             {/* Campaign Selection */}
             <Form.Item
               name="campaign_ids"
@@ -547,7 +510,6 @@ const CampaignConfigPage = () => {
                         </div>
 
                         <div className="flex items-center gap-2">
-
                           {!isSelected && isRelated && !disabled && (
                             <Tag color="blue">Related</Tag>
                           )}
@@ -606,20 +568,21 @@ const CampaignConfigPage = () => {
             <div className="border-t border-dashed border-gray-200" />
 
             {/* Event Configuration */}
-            <div className="space-y-3">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-700">
-                  Event Configuration
-                </h3>
+            {template.events && (
+              <div className="space-y-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700">
+                    Event Configuration
+                  </h3>
 
-                <p className="text-xs text-gray-400 mt-1">
-                  Manage custom events used in rules
-                </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Manage custom events used in rules
+                  </p>
+                </div>
+
+                <EventConfiguration value={events} onChange={setEvents} />
               </div>
-
-              <EventConfiguration value={events} onChange={setEvents} />
-            </div>
-
+            )}
             {/* Divider */}
             <div className="border-t border-dashed border-gray-200" />
 
@@ -668,7 +631,7 @@ const CampaignConfigPage = () => {
                   })),
 
                   // Rule 2
-                  ...RULE2_PARAMS.map((param) => ({
+                  ...template.rule2.map((param) => ({
                     key: `rule2-${param}`,
                     label: (
                       <div className="px-1 text-[13px] font-medium">
@@ -725,7 +688,7 @@ const CampaignConfigPage = () => {
                 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4
                 gap-3 w-full
               ">
-                {IGNORE_METRICS.map((metric) => {
+                {template.ignoreMetrics.map((metric) => {
                   const active = ignoreMetrics.includes(metric);
 
                   return (

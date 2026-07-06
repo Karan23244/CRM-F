@@ -14,6 +14,7 @@ import {
   Button,
   Popconfirm,
   message,
+  Card,
 } from "antd";
 import Swal from "sweetalert2";
 import { FileExcelOutlined } from "@ant-design/icons";
@@ -23,7 +24,7 @@ import DecisionTable from "./DecisionTable";
 import { sortDropdownValues } from "../../Utils/sortDropdownValues";
 import UploadForm from "./UploadForm";
 import { useSelector } from "react-redux";
-import { exportToExcel } from "../exportExcel";
+import { exportToExcel } from "./exportColorExcel";
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 const { Title } = Typography;
@@ -270,6 +271,45 @@ const CampaignAnalyticsTable = () => {
       return false;
     });
   }, [data, user, subadmins, hasAccess]);
+  const pidSummary = useMemo(() => {
+    const uniquePids = new Set();
+    const activePids = new Set();
+    const pausedPids = new Set();
+    const naPids = new Set();
+
+    const isNA = (v) => {
+      const val = (v || "").toString().trim().toUpperCase();
+      return !val || val === "N/A" || val === "NA" || val === "-";
+    };
+
+    roleFilteredData.forEach((row) => {
+      // unique PID key
+      const key = `${row.pubam}_${row.pubid}_${row.pid}`;
+
+      uniquePids.add(key);
+
+      // N/A publisher
+      if (isNA(row.pubam) && isNA(row.pubid)) {
+        naPids.add(key);
+      }
+
+      // pid color classification
+      // green = active
+      // red = paused
+      if (row.pid_color === "black") {
+        pausedPids.add(key);
+      } else {
+        activePids.add(key);
+      }
+    });
+
+    return {
+      total: uniquePids.size,
+      active: activePids.size,
+      paused: pausedPids.size,
+      na: naPids.size,
+    };
+  }, [roleFilteredData]);
   const filteredData = useMemo(() => {
     const normalize = (val) =>
       val === null || val === undefined || val === ""
@@ -908,29 +948,67 @@ const CampaignAnalyticsTable = () => {
                     Delete Campaign Data
                   </Button>
                 )}
-
                 <Button
                   type="primary"
                   icon={<FileExcelOutlined />}
-                  onClick={() => {
+                  onClick={async () => {
+                    if (!filteredData.length) {
+                      Swal.fire({
+                        icon: "warning",
+                        title: "No Data",
+                        text: "No data available to export",
+                      });
+                      return;
+                    }
+
                     const exportData = filteredData.map((row) => {
-                      const obj = {};
+                      const data = {};
+                      const styles = {};
 
                       columns.forEach((col) => {
+                        // KPI columns
                         if (col.children) {
                           col.children.forEach((child) => {
-                            obj[`${col.title} ${child.title}`] =
-                              row[child.dataIndex] ?? "";
+                            const header = `${col.title} ${child.title}`;
+
+                            data[header] = row[child.dataIndex] ?? "";
+
+                            const colorKey = row[`${child.dataIndex}_color`];
+
+                            // only change text color for KPI fields
+                            if (colorKey && colorMap[colorKey]) {
+                              styles[header] = {
+                                font: colorMap[colorKey],
+                              };
+                            }
                           });
-                        } else {
-                          obj[col.title] = row[col.dataIndex] ?? "";
+                        }
+
+                        // normal columns
+                        else {
+                          data[col.title] = row[col.dataIndex] ?? "";
+
+                          // PID keep background color
+                          if (
+                            col.dataIndex === "pid" &&
+                            row.pid_color &&
+                            colorMap[row.pid_color]
+                          ) {
+                            styles[col.title] = {
+                              fill: colorMap[row.pid_color],
+                              font: "#FFFFFF",
+                            };
+                          }
                         }
                       });
 
-                      return obj;
+                      return {
+                        data,
+                        styles,
+                      };
                     });
 
-                    exportToExcel(
+                    await exportToExcel(
                       exportData,
                       `${payload.campaign_name || "campaign"}_${payload.os}.xlsx`,
                     );
@@ -1384,7 +1462,89 @@ const CampaignAnalyticsTable = () => {
               }
             `}</style>
           </div>
+          <div style={{ padding: 20 }}>
+          <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
+            <Col xs={12} sm={12} md={6}>
+              <Card
+                size="small"
+                style={{
+                  borderRadius: 12,
+                  textAlign: "center",
+                  borderLeft: "5px solid #1677ff",
+                }}>
+                <div style={{ fontSize: 13, color: "#666" }}>Total PIDs</div>
+                <div
+                  style={{
+                    fontSize: 28,
+                    fontWeight: 700,
+                    color: "#1677ff",
+                  }}>
+                  {pidSummary.total}
+                </div>
+              </Card>
+            </Col>
 
+            <Col xs={12} sm={12} md={6}>
+              <Card
+                size="small"
+                style={{
+                  borderRadius: 12,
+                  textAlign: "center",
+                  borderLeft: "5px solid #52c41a",
+                }}>
+                <div style={{ fontSize: 13, color: "#666" }}>Active PIDs</div>
+                <div
+                  style={{
+                    fontSize: 28,
+                    fontWeight: 700,
+                    color: "#52c41a",
+                  }}>
+                  {pidSummary.active}
+                </div>
+              </Card>
+            </Col>
+
+            <Col xs={12} sm={12} md={6}>
+              <Card
+                size="small"
+                style={{
+                  borderRadius: 12,
+                  textAlign: "center",
+                  borderLeft: "5px solid #ff4d4f",
+                }}>
+                <div style={{ fontSize: 13, color: "#666" }}>Paused PIDs</div>
+                <div
+                  style={{
+                    fontSize: 28,
+                    fontWeight: 700,
+                    color: "#ff4d4f",
+                  }}>
+                  {pidSummary.paused}
+                </div>
+              </Card>
+            </Col>
+
+            <Col xs={12} sm={12} md={6}>
+              <Card
+                size="small"
+                style={{
+                  borderRadius: 12,
+                  textAlign: "center",
+                  borderLeft: "5px solid #fa8c16",
+                }}>
+                <div style={{ fontSize: 13, color: "#666" }}>N/A PIDs</div>
+                <div
+                  style={{
+                    fontSize: 28,
+                    fontWeight: 700,
+                    color: "#fa8c16",
+                  }}>
+                  {pidSummary.na}
+                </div>
+              </Card>
+            </Col>
+          </Row>
+          </div>
           <DecisionTable
             campaign_name={payload.campaign_name}
             os={payload.os}

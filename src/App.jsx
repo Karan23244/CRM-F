@@ -59,6 +59,7 @@ import CampianDataOptimization from "./components/Optimization/piddata";
 import TotalPidData from "./components/Optimization/CampaignPid";
 import AddDetails from "./components/PublisherAM/DetailsAdd";
 import CampaignConfigPage from "./components/Campaign_Analytics/Campaignconfigpage";
+import PublisherRevnu from "./components/Billing/PublisherRevnu";
 const AppRoutes = () => (
   <Router>
     <Routes>
@@ -127,6 +128,7 @@ const AppRoutes = () => (
           <Route path="publisherbill" element={<PublisherBilling />} />
           <Route path="accountsadvbill" element={<AdvertiserAccount />} />
           <Route path="accountspubbill" element={<PublisherAccount />} />
+          <Route path="publisherrevenue" element={<PublisherRevnu />} />
           <Route
             path="optimizationalldata"
             element={<CampianDataOptimization />}

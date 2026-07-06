@@ -40,6 +40,7 @@ export default function UploadForm({ onUploadSuccess }) {
   const [form] = Form.useForm();
   const [msg, setMsg] = useState(null);
   const [fileList, setFileList] = useState([]);
+  const [selectedMMP, setSelectedMMP] = useState("appsflyer");
   const [loading, setLoading] = useState(false); // 🔥 loading state
   const [submitted, setSubmitted] = useState(false); // 🔥 prevent resubmit
   const [socketId, setSocketId] = useState(null);
@@ -94,6 +95,7 @@ export default function UploadForm({ onUploadSuccess }) {
     data.append("geo", geoInput);
     data.append("dateRange", formattedRange);
     data.append("campaign_ids", JSON.stringify(values.campaign_ids));
+    data.append("mmpTracker", values.mmpTracker);
     // 🔹 Append socketId to identify user
     if (socketId) {
       data.append("socketId", socketId);
@@ -115,16 +117,23 @@ export default function UploadForm({ onUploadSuccess }) {
     });
     console.log("Submitting data:", {
       campaignName: cleanCampaignName,
-      os: values.os.trim(), 
+      os: values.os.trim(),
       geo: geoInput,
       dateRange: formattedRange,
       campaign_ids: values.campaign_ids,
       files: fileList.map((file) => file.name),
       socketId,
+      mmpTracker: values.mmpTracker,
     });
     try {
-      await axios.post(`${apiUrl}/api/metrics`, data);
+      // await axios.post(`${apiUrl}/api/metrics`, data);
+      const apiMap = {
+        appsflyer: `${apiUrl}/api/metrics`,
+        singular: `${apiUrl}/api/singular-metrics`,
+        adjust: `${apiUrl}/api/adjust-metrics`,
+      };
 
+      await axios.post(apiMap[values.mmpTracker], data);
       // 🔹 Clear form immediately after request is sent
       form.resetFields();
       setFileList([]);
@@ -141,6 +150,7 @@ export default function UploadForm({ onUploadSuccess }) {
   };
   useEffect(() => {
     const handler = async (data) => {
+      console.log("Received uploadComplete event:", data);
       Swal.close();
       if (data.status === "success") {
         Swal.fire({
@@ -204,6 +214,29 @@ export default function UploadForm({ onUploadSuccess }) {
           layout="vertical"
           onFinish={handleFinish}
           className="space-y-5">
+          <Form.Item
+            name="mmpTracker"
+            label={
+              <span className="font-medium text-[#2F5D99]">MMP Tracker</span>
+            }
+            initialValue="appsflyer"
+            rules={[
+              {
+                required: true,
+                message: "Please select MMP Tracker",
+              },
+            ]}>
+            <Select
+              size="large"
+              placeholder="Select MMP Tracker"
+              onChange={(value) => setSelectedMMP(value)}>
+              <Select.Option value="appsflyer">AppsFlyer</Select.Option>
+
+              <Select.Option value="singular">Singular</Select.Option>
+
+              <Select.Option value="adjust">Adjust</Select.Option>
+            </Select>
+          </Form.Item>
           {/* Campaign Name */}
           <Form.Item
             name="campaignName"
