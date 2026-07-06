@@ -14,6 +14,8 @@ import {
 import { FilterOutlined } from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
+import isBetween from "dayjs/plugin/isBetween";
+dayjs.extend(isBetween);
 import ColumnSettings from "../../Utils/ColumnSettings";
 import "../../index.css";
 import geoData from "../../Data/geoData.json";
@@ -49,7 +51,7 @@ const apiUrl = import.meta.env.VITE_API_URL;
 // Advertiser Column Headings
 const columnHeadingsAdv = {
   da: "DA",
-  username: "Input UserName",
+  username: "ADV AM",
   campaign_id: "Campaign ID",
   pub_name: "PUB AM",
   campaign_name: "Campaign Name",
@@ -117,6 +119,7 @@ const CampianData = () => {
   const [showValidation, setShowValidation] = useState(false);
   const [stickyColumns, setStickyColumns] = useState([]);
   const [editingCell, setEditingCell] = useState({ key: null, field: null });
+  const [loading, setLoading] = useState(true);
   const [dropdownOptions, setDropdownOptions] = useState({
     os: ["Android", "APK", "iOS", "Web"],
   });
@@ -160,6 +163,7 @@ const CampianData = () => {
   };
   // Fetch Advertiser Data
   const fetchAdvData = async () => {
+    setLoading(true);
     try {
       const [startDate, endDate] = selectedDateRange;
       const response = await axios.get(`${apiUrl}/get-advdata`, {
@@ -173,6 +177,8 @@ const CampianData = () => {
       }
     } catch (error) {
       console.error("Error fetching advertiser data:", error);
+    } finally{
+      setLoading(false);
     }
   };
 
@@ -1058,6 +1064,7 @@ const CampianData = () => {
             <div>
               <StyledTable
                 dataSource={filteredData}
+                loading={loading}
                 columns={getColumns(columnHeadingsAdv)}
                 rowKey="id"
                 bordered={false}

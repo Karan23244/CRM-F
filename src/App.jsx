@@ -1,67 +1,73 @@
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
 } from "react-router-dom";
-import LoginForm from "./components/Login";
-import ProtectedRoute from "./components/ProtectedRoutes";
-import DashboardLayout from "./layouts/DashboardLayout";
 
-// Import all page components (reuse existing ones)
-import SubAdminForm from "./components/Admin/SubAdminForm";
-import CreateSubAdmin from "./components/Admin/CreateSubAdmin";
-import ReviewForm from "./components/Admin/ReviewForm";
-import CampianData from "./components/Admin/CampianData";
-import AdvnameData from "./components/Admin/AdvnameData";
-import PubnameData from "./components/Admin/PubnameData";
-import AdvFormComponent from "./components/Advertiser/AdvFormComponent";
-import AdvertiserCurrentData from "./components/Advertiser/AdvertiserCurrentData";
-import PIDForm from "./components/Advertiser/PIDForm";
-import PayableEventForm from "./components/Advertiser/PayableEventForm";
-import MMPTrackerForm from "./components/Advertiser/MMPTrackerForm";
-import NewRequest from "./components/Advertiser/NewRequest";
-import ReportForm from "./components/Advertiser/ReportForm";
-import ExcelGraphCompare from "./components/Advertiser/Graph";
-import PublisherFormComponent from "./components/Publisher/PublisherFormComponent";
-import MakeRequest from "./components/Publisher/MakeRequest";
-import BlacklistManager from "./components/Publisher/BlacklistManager";
-import CampaignList from "./components/Advertiser/CampaignList";
-import CreateCampaign from "./components/Advertiser/CreateCampaignForm";
-import MyAccount from "./components/MyAccount";
-import CampaginAnalytics from "./components/Campaign_Analytics/CampaignAnalyticsTable";
-import OldCampaginAnalytics from "./components/Campaign_Analytics/CampainDashboard";
-import PublisherCampaigns from "./components/Publisher/PublisherCampaigns";
-import PublisherCurrentData from "./components/Publisher/PublisherCurrentData";
-import PubIdTable from "./components/Publisher/PubIdTable";
-import CreateAdvertiser from "./components/Advertiser/CreateAdvertiser";
-import CreatePublisher from "./components/Publisher/CreatePublisher";
-import Notification from "./components/NotificationBar";
-import Home from "./layouts/Homepage";
-import Conversion from "./components/Publisher/Conversion";
-import Createdeals from "./components/Steptosell/Createdeals";
-import Createoffer from "./components/Steptosell/Createoffer";
-import Listoffer from "./components/Steptosell/Listoffer";
-import Listdeals from "./components/Steptosell/Listdeals";
-import Listcategory from "./components/Steptosell/Listcategory";
-import Createcategory from "./components/Steptosell/Createcategory";
-import AdvertiserBilling from "./components/Billing/AdvertiserBilling";
-import PublisherBilling from "./components/Billing/PublisherBilling";
-import ValidationAdv from "./components/Billing/ValidationAdvertiser";
-import ValidationPub from "./components/Billing/ValidationPublisher";
-import AdvertiserAccount from "./components/Accounts/AdvertiserAccount";
-import PublisherAccount from "./components/Accounts/PublisherAccount";
-import PublisherLogin from "./components/PublisherAM/PublisherLogin";
-import Billing from "./components/Billing/Billing";
-import ForgotPassword from "./components/ForgetPassword";
-import CampianDataOptimization from "./components/Optimization/piddata";
-import TotalPidData from "./components/Optimization/CampaignPid";
-import AddDetails from "./components/PublisherAM/DetailsAdd";
-import CampaignConfigPage from "./components/Campaign_Analytics/Campaignconfigpage";
-import PublisherRevnu from "./components/Billing/PublisherRevnu";
+const LoginForm = lazy(() => import("./components/Login"));
+const ProtectedRoute = lazy(() => import("./components/ProtectedRoutes"));
+const DashboardLayout = lazy(() => import("./layouts/DashboardLayout"));
+
+const SubAdminForm = lazy(() => import("./components/Admin/SubAdminForm"));
+const CreateSubAdmin = lazy(() => import("./components/Admin/CreateSubAdmin"));
+const ReviewForm = lazy(() => import("./components/Admin/ReviewForm"));
+const CampianData = lazy(() => import("./components/Admin/CampianData"));
+const AdvnameData = lazy(() => import("./components/Admin/AdvnameData"));
+const PubnameData = lazy(() => import("./components/Admin/PubnameData"));
+const AdvFormComponent = lazy(() => import("./components/Advertiser/AdvFormComponent"));
+const AdvertiserCurrentData = lazy(() => import("./components/Advertiser/AdvertiserCurrentData"));
+const PIDForm = lazy(() => import("./components/Advertiser/PIDForm"));
+const PayableEventForm = lazy(() => import("./components/Advertiser/PayableEventForm"));
+const MMPTrackerForm = lazy(() => import("./components/Advertiser/MMPTrackerForm"));
+const NewRequest = lazy(() => import("./components/Advertiser/NewRequest"));
+const ReportForm = lazy(() => import("./components/Advertiser/ReportForm"));
+const ExcelGraphCompare = lazy(() => import("./components/Advertiser/Graph"));
+const PublisherFormComponent = lazy(() => import("./components/Publisher/PublisherFormComponent"));
+const MakeRequest = lazy(() => import("./components/Publisher/MakeRequest"));
+const BlacklistManager = lazy(() => import("./components/Publisher/BlacklistManager"));
+const CampaignList = lazy(() => import("./components/Advertiser/CampaignList"));
+const CreateCampaign = lazy(() => import("./components/Advertiser/CreateCampaignForm"));
+const MyAccount = lazy(() => import("./components/MyAccount"));
+const CampaginAnalytics = lazy(() => import("./components/Campaign_Analytics/CampaignAnalyticsTable"));
+const OldCampaginAnalytics = lazy(() => import("./components/Campaign_Analytics/CampainDashboard"));
+const PublisherCampaigns = lazy(() => import("./components/Publisher/PublisherCampaigns"));
+const PublisherCurrentData = lazy(() => import("./components/Publisher/PublisherCurrentData"));
+const PubIdTable = lazy(() => import("./components/Publisher/PubIdTable"));
+const CreateAdvertiser = lazy(() => import("./components/Advertiser/CreateAdvertiser"));
+const CreatePublisher = lazy(() => import("./components/Publisher/CreatePublisher"));
+const Notification = lazy(() => import("./components/NotificationBar"));
+const Home = lazy(() => import("./layouts/Homepage"));
+const Conversion = lazy(() => import("./components/Publisher/Conversion"));
+const Createdeals = lazy(() => import("./components/Steptosell/Createdeals"));
+const Createoffer = lazy(() => import("./components/Steptosell/Createoffer"));
+const Listoffer = lazy(() => import("./components/Steptosell/Listoffer"));
+const Listdeals = lazy(() => import("./components/Steptosell/Listdeals"));
+const Listcategory = lazy(() => import("./components/Steptosell/Listcategory"));
+const Createcategory = lazy(() => import("./components/Steptosell/Createcategory"));
+const AdvertiserBilling = lazy(() => import("./components/Billing/AdvertiserBilling"));
+const PublisherBilling = lazy(() => import("./components/Billing/PublisherBilling"));
+const ValidationAdv = lazy(() => import("./components/Billing/ValidationAdvertiser"));
+const ValidationPub = lazy(() => import("./components/Billing/ValidationPublisher"));
+const AdvertiserAccount = lazy(() => import("./components/Accounts/AdvertiserAccount"));
+const PublisherAccount = lazy(() => import("./components/Accounts/PublisherAccount"));
+const PublisherLogin = lazy(() => import("./components/PublisherAM/PublisherLogin"));
+const Billing = lazy(() => import("./components/Billing/Billing"));
+const ForgotPassword = lazy(() => import("./components/ForgetPassword"));
+const CampianDataOptimization = lazy(() => import("./components/Optimization/piddata"));
+const TotalPidData = lazy(() => import("./components/Optimization/CampaignPid"));
+const AddDetails = lazy(() => import("./components/PublisherAM/DetailsAdd"));
+const CampaignConfigPage = lazy(() => import("./components/Campaign_Analytics/Campaignconfigpage"));
+const PageLoader = () => (
+  <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", fontSize: "16px", color: "#888" }}>
+    Loading...
+  </div>
+);
+
 const AppRoutes = () => (
   <Router>
+    <Suspense fallback={<PageLoader />}>
     <Routes>
       <Route path="/" element={<LoginForm />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -143,6 +149,7 @@ const AppRoutes = () => (
         </Route>
       </Route>
     </Routes>
+    </Suspense>
   </Router>
 );
 

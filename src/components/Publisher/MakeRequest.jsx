@@ -42,8 +42,8 @@ const { Option } = Select;
 const apiUrl = import.meta.env.VITE_API_URL1;
 const apiUrl1 = import.meta.env.VITE_API_URL;
 const columnHeadingsMap = {
-  pub_name: "Publisher",
-  adv_name: "Advertiser",
+  pub_name: "PUB AM",
+  adv_name: "ADV AM",
   campaign_name: "Campaign",
   note: "Note",
   payout: "PUB Payout $",
@@ -72,6 +72,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
   const [blacklistPIDs, setBlacklistPIDs] = useState([]);
   const [filters, setFilters] = useState({});
   const [pinnedColumns, setPinnedColumns] = useState({});
+  const [loading, setLoading] = useState(false);
   const [hiddenColumns, setHiddenColumns] = useState(() => {
     const saved = localStorage.getItem("hiddenCampaignColumns");
     return saved ? JSON.parse(saved) : [];
@@ -422,8 +423,8 @@ const PublisherRequest = ({ senderId, receiverId }) => {
       } catch (err) {
         Swal.fire({
           icon: "error",
-          title: "Server Error",
-          text: "Failed to update record",
+          title: "Error",
+          text: err.response?.data?.message || err.message || "Failed to update record",
         });
       }
     },
@@ -610,11 +611,18 @@ const PublisherRequest = ({ senderId, receiverId }) => {
         render: (_, record) =>
           userRole?.some((r) => ["publisher_manager", "admin"].includes(r)) ? (
             <Select
-              value={record.priority}
-              style={{ width: 80 }}
-              onChange={(val) =>
-                handleUpdatePrm(record, { priority: val, prm: record.prm })
-              }>
+              value={record.prm === 2 ? "__disallow__" : record.priority}
+              style={{ width: 110 }}
+              onChange={(val) => {
+                if (val === "__disallow__") {
+                  handleUpdatePrm(record, { priority: record.priority, prm: 2 });
+                } else {
+                  handleUpdatePrm(record, { priority: val, prm: 1 });
+                }
+              }}>
+                <Option value="__disallow__" style={{ color: "red", fontWeight: 600 }}>
+                ❌ Disallow
+                </Option>
               {(record.available_priorities || []).map((p) => (
                 <Option key={p} value={p}>
                   {p}
@@ -661,51 +669,24 @@ const PublisherRequest = ({ senderId, receiverId }) => {
         key: "prm",
         dataIndex: "prm",
         fixed: pinnedColumns["prm"] || undefined,
-        render: (_, record) =>
-          userRole?.some((r) => ["publisher_manager", "admin"].includes(r)) ? (
-            <Select
-              value={record.prm}
-              style={{
-                width: 130,
-                fontWeight: 600,
-                backgroundColor:
-                  record.prm === 1
-                    ? "#e6ffed" // ✅ Allow
-                    : record.prm === 2
-                      ? "#ffe6e6" // ❌ Disallow
-                      : "#fff3cd", // 🟡 Hold
-                color:
-                  record.prm === 1
-                    ? "green"
-                    : record.prm === 2
-                      ? "red"
-                      : "#b8860b",
-              }}
-              onChange={(val) =>
-                handleUpdatePrm(record, { priority: record.priority, prm: val })
-              }>
-              <Option value={0}>🟡 Hold</Option>
-              <Option value={1}>✅ Allow</Option>
-              <Option value={2}>❌ Disallow</Option>
-            </Select>
-          ) : (
-            <span
-              style={{
-                color:
-                  record.prm === 1
-                    ? "green"
-                    : record.prm === 2
-                      ? "red"
-                      : "#b8860b",
-                fontWeight: 600,
-              }}>
-              {record.prm === 1
-                ? "✅ Allow"
-                : record.prm === 2
-                  ? "❌ Disallow"
-                  : "🟡 Hold"}
-            </span>
-          ),
+        render: (_, record) => (
+          <span
+            style={{
+              color:
+                record.prm === 1
+                  ? "green"
+                  : record.prm === 2
+                    ? "red"
+                    : "#b8860b",
+              fontWeight: 600,
+            }}>
+            {record.prm === 1
+              ? "✅ Allow"
+              : record.prm === 2
+                ? "❌ Disallow"
+                : "🟡 Hold"}
+          </span>
+        ),
       },
     );
 
@@ -859,7 +840,13 @@ const PublisherRequest = ({ senderId, receiverId }) => {
               rules={[
                 { required: true, message: "Please select an advertiser" },
               ]}>
-              <Select placeholder="Select Advertiser" className="rounded-lg">
+              <Select
+                placeholder="Select Advertiser"
+                className="rounded-lg"
+                showSearch
+                filterOption={(input, option) =>
+                  option.children.toLowerCase().includes(input.toLowerCase())
+                }>
                 {advertisers.map((name, index) => (
                   <Option key={index} value={name}>
                     {name}
@@ -1050,6 +1037,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
           rowKey="id"
           className=""
           dataSource={filteredRequests} // show latest data directly
+          loading={loading}
           columns={columns}
           scroll={{ x: "max-content" }}
           pagination={{

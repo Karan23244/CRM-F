@@ -33,9 +33,25 @@ export const sidebarLinks = [
   },
   {
     label: "Users",
-    roles: ["admin", "advertiser_manager", "publisher_manager"],
+    roles: [
+      "admin",
+      "advertiser",
+      "advertiser_manager",
+      "publisher",
+      "publisher_manager",
+    ],
     sublinks: [
-      { to: "listsubadmin", label: "Existing Users", roles: ["admin"] },
+      {
+        to: "listsubadmin",
+        label: "Existing Users",
+        roles: [
+          "admin",
+          "advertiser",
+          "advertiser_manager",
+          "publisher",
+          "publisher_manager",
+        ],
+      },
       {
         to: "createsubadmin",
         label: "Create User",
@@ -44,20 +60,21 @@ export const sidebarLinks = [
     ],
   },
   // { to: "review", label: "Review", roles: ["admin"] },
-  { to: "advertiser-data", label: "Advertiser Data", roles: ["admin"] },
-  { to: "publisher-data", label: "Publisher Data", roles: ["admin"] },
+  // { to: "advertiser-data", label: "Advertiser Data", roles: ["admin"] },
+  // { to: "publisher-data", label: "Publisher Data", roles: ["admin"] },
 
   // ==========================
   // 🔹 ADVERTISER SECTION
   // ==========================
   {
     label: "Advertiser",
-    roles: ["advertiser", "advertiser_manager", "operations", "adv_executive"],
+    roles: ["admin", "advertiser", "advertiser_manager", "operations", "adv_executive"],
     sublinks: [
       {
         to: "listadvform",
         label: "Existing Advertisers",
         roles: [
+          "admin",
           "advertiser",
           "advertiser_manager",
           "adv_executive",
@@ -67,7 +84,7 @@ export const sidebarLinks = [
       {
         to: "createadvform",
         label: "Add New Advertiser",
-        roles: ["advertiser_manager"],
+        roles: ["admin", "advertiser_manager"],
       },
     ],
   },
@@ -77,17 +94,17 @@ export const sidebarLinks = [
   // ==========================
   {
     label: "Publisher",
-    roles: ["publisher", "publisher_manager", "pub_executive"],
+    roles: ["admin", "publisher", "publisher_manager", "pub_executive"],
     sublinks: [
       {
         to: "listpubform",
         label: "Existing Publishers",
-        roles: ["publisher", "publisher_manager", "pub_executive"],
+        roles: ["admin", "publisher", "publisher_manager", "pub_executive"],
       },
       {
         to: "createpubform",
         label: "Add New Publisher",
-        roles: ["publisher_manager"],
+        roles: ["admin", "publisher_manager"],
       },
     ],
   },
@@ -251,7 +268,7 @@ export const sidebarLinks = [
     roles: ["publisher", "pub_executive", "publisher_manager", "admin"],
   },
   { to: "totalpiddata", label: "Recent PID", roles: ["optimization"] },
-  { to: "optimizationalldata", label: "PID Data", roles: ["optimization"] },
+  { to: "optimizationalldata", label: "PID Data", roles: ["admin", "optimization"] },
   // ==========================
   // 🔹 ANALYTICS / REPORTS
   // ==========================
@@ -345,92 +362,92 @@ export const sidebarLinks = [
       "operations",
     ],
   },
-  {
-    label: "Step To Sale",
-    roles: [
-      "admin",
-      "advertiser",
-      "advertiser_manager",
-      "operations",
-      "publisher",
-      "publisher_manager",
-    ],
-    permission: "can_add_store",
-    sublinks: [
-      {
-        to: "createdeals",
-        label: "Create Deals",
-        roles: [
-          "admin",
-          "advertiser",
-          "advertiser_manager",
-          "operations",
-          "publisher",
-          "publisher_manager",
-        ],
-      },
-      {
-        to: "listdeals",
-        label: "List Deals",
-        roles: [
-          "admin",
-          "advertiser",
-          "advertiser_manager",
-          "operations",
-          "publisher",
-          "publisher_manager",
-        ],
-      },
-      {
-        to: "createoffer",
-        label: "Create Offer",
-        roles: [
-          "admin",
-          "advertiser",
-          "advertiser_manager",
-          "operations",
-          "publisher",
-          "publisher_manager",
-        ],
-      },
-      {
-        to: "listoffer",
-        label: "List Offers",
-        roles: [
-          "admin",
-          "advertiser",
-          "advertiser_manager",
-          "operations",
-          "publisher",
-          "publisher_manager",
-        ],
-      },
-      {
-        to: "createcategory",
-        label: "Create Category",
-        roles: [
-          "admin",
-          "advertiser",
-          "advertiser_manager",
-          "operations",
-          "publisher",
-          "publisher_manager",
-        ],
-      },
-      {
-        to: "listcategory",
-        label: "List Categories",
-        roles: [
-          "admin",
-          "advertiser",
-          "advertiser_manager",
-          "operations",
-          "publisher",
-          "publisher_manager",
-        ],
-      },
-    ],
-  },
+  // {
+  //   label: "Step To Sale",
+  //   roles: [
+  //     "admin",
+  //     "advertiser",
+  //     "advertiser_manager",
+  //     "operations",
+  //     "publisher",
+  //     "publisher_manager",
+  //   ],
+  //   permission: "can_add_store",
+  //   sublinks: [
+  //     {
+  //       to: "createdeals",
+  //       label: "Create Deals",
+  //       roles: [
+  //         "admin",
+  //         "advertiser",
+  //         "advertiser_manager",
+  //         "operations",
+  //         "publisher",
+  //         "publisher_manager",
+  //       ],
+  //     },
+  //     {
+  //       to: "listdeals",
+  //       label: "List Deals",
+  //       roles: [
+  //         "admin",
+  //         "advertiser",
+  //         "advertiser_manager",
+  //         "operations",
+  //         "publisher",
+  //         "publisher_manager",
+  //       ],
+  //     },
+  //     {
+  //       to: "createoffer",
+  //       label: "Create Offer",
+  //       roles: [
+  //         "admin",
+  //         "advertiser",
+  //         "advertiser_manager",
+  //         "operations",
+  //         "publisher",
+  //         "publisher_manager",
+  //       ],
+  //     },
+  //     {
+  //       to: "listoffer",
+  //       label: "List Offers",
+  //       roles: [
+  //         "admin",
+  //         "advertiser",
+  //         "advertiser_manager",
+  //         "operations",
+  //         "publisher",
+  //         "publisher_manager",
+  //       ],
+  //     },
+  //     {
+  //       to: "createcategory",
+  //       label: "Create Category",
+  //       roles: [
+  //         "admin",
+  //         "advertiser",
+  //         "advertiser_manager",
+  //         "operations",
+  //         "publisher",
+  //         "publisher_manager",
+  //       ],
+  //     },
+  //     {
+  //       to: "listcategory",
+  //       label: "List Categories",
+  //       roles: [
+  //         "admin",
+  //         "advertiser",
+  //         "advertiser_manager",
+  //         "operations",
+  //         "publisher",
+  //         "publisher_manager",
+  //       ],
+  //     },
+  //   ],
+  // },
   {
     to: "billing",
     label: "Validation",
@@ -461,7 +478,7 @@ export const sidebarLinks = [
   {
     to: "adddetails",
     label: "Publisher Details",
-    roles: ["publisher_external"],
+    roles: ["admin", "publisher_external"],
   },
   {
     to: "publisherbill",

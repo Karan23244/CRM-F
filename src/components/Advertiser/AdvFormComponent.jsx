@@ -92,8 +92,12 @@ const AdvertiserEditForm = () => {
   const user = useSelector((state) => state.auth.user);
   const userId = user?.id || null;
   const { Option } = Select;
+  const isAdmin = user?.role === "admin" || (Array.isArray(user?.role) && user.role.includes("admin"));
   const isAdvertiserManager = user?.role?.includes("advertiser_manager");
   const restrictedRoles = ["operation", "optimization"];
+  const isOperationsRole = user?.role?.some((r) =>
+    ["operations", "operation", "optimization"].includes(r),
+  );
 
   // ── Main form state ──────────────────────────────────────────────────────
   const [name, setName] = useState("");
@@ -173,11 +177,16 @@ const AdvertiserEditForm = () => {
   const fetchAdvertisers = async () => {
     if (!userId) return;
     try {
-      const { data } = await axios.get(`${apiUrl}/advid-data/${userId}`);
-      // const { data } = await axios.get(`http://localhost:5200/api/advid-data/${userId}`);
-
-      if (data.success && Array.isArray(data.advertisements)) {
-        setAdvertisers(data.advertisements);
+      if (isAdmin) {
+        const { data } = await axios.get(`${apiUrl}/get-NameAdv/`);
+        if (data && Array.isArray(data.data)) {
+          setAdvertisers(data.data);
+        }
+      } else {
+        const { data } = await axios.get(`${apiUrl}/advid-data/${userId}`);
+        if (data.success && Array.isArray(data.advertisements)) {
+          setAdvertisers(data.advertisements);
+        }
       }
     } catch {
       setAdvertisers([]);
@@ -388,7 +397,16 @@ const AdvertiserEditForm = () => {
 
   // ── Columns ──────────────────────────────────────────────────────────────
   const makeSortHeader = (key) => ({
-    sorter: (a, b) => (a[key] || "").localeCompare(b[key] || ""),
+    sorter: (a, b) => {
+      const valA = a[key];
+      const valB = b[key];
+
+      if (!isNaN(valA) && !isNaN(valB)) {
+        return Number(valA) - Number(valB);
+      }
+
+      return (valA || "").toString().localeCompare((valB || "").toString());
+    },
     sortOrder: sortInfo.columnKey === key ? sortInfo.order : null,
     onHeaderCell: () => ({
       onClick: () => {
@@ -397,7 +415,8 @@ const AdvertiserEditForm = () => {
             return { columnKey: key, order: "ascend" };
           if (prev.order === "ascend")
             return { columnKey: key, order: "descend" };
-          if (prev.order === "descend") return { columnKey: key, order: null };
+          if (prev.order === "descend")
+            return { columnKey: key, order: null };
           return { columnKey: key, order: "ascend" };
         });
       },
@@ -465,7 +484,30 @@ const AdvertiserEditForm = () => {
         );
       },
     },
-    ...(isAdvertiserManager
+    {
+      title: "Event Postback",
+      dataIndex: "postback_url",
+      key: "event_postback",
+      render: (text) => {
+        if (!text) return "-";
+        let value;
+        if (text.includes("&event={}")) {
+          value = text.replace("&event={}", "&event={event_goal}");
+        } else if (!text.includes("&event=")) {
+          value = `${text}&event={event_goal}`;
+        } else {
+          value = text;
+        }
+        return (
+          <div className="w-[250px] overflow-hidden whitespace-nowrap relative group">
+            <div className="inline-block animate-marquee group-hover:pause">
+              {value}
+            </div>
+          </div>
+        );
+      },
+    },
+    ...(isAdvertiserManager || isAdmin
       ? [
           {
             title: "Transfer Adv AM",
@@ -660,7 +702,7 @@ const AdvertiserEditForm = () => {
               </div>
             </>
           )} */}
-          {user?.role == "advertiser_manager" && (
+          {(user?.role == "advertiser_manager" || isAdmin) && (
             <>
               <div>
                 <label className="block text-[#2F5D99] text-base font-semibold mb-2">
@@ -725,26 +767,36 @@ const AdvertiserEditForm = () => {
           {/* Assign User */}
           <div className="md:col-span-2">
             <label className="block text-[#2F5D99] text-base font-semibold mb-2">
-              Assign User
+              Operations
             </label>
-            <select
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2F5D99] focus:border-[#2F5D99] transition-all"
-              value={assign_id}
-              onChange={(e) => {
-                const sid = e.target.value;
-                const selectedUser = subAdmins.find(
-                  (a) => a.id.toString() === sid,
-                );
-                setAssign_id(sid);
-                setAssign_user(selectedUser?.username || "");
-              }}>
-              <option value="">Select Sub Admin</option>
-              {subAdmins.map((admin) => (
-                <option key={admin.id} value={admin.id}>
-                  {admin.username}
-                </option>
-              ))}
-            </select>
+            {isOperationsRole ? (
+              <input
+                type="text"
+                value={assign_user || ""}
+                className="w-full p-3 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+                disabled
+                readOnly
+              />
+            ) : (
+              <select
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2F5D99] focus:border-[#2F5D99] transition-all"
+                value={assign_id}
+                onChange={(e) => {
+                  const sid = e.target.value;
+                  const selectedUser = subAdmins.find(
+                    (a) => a.id.toString() === sid,
+                  );
+                  setAssign_id(sid);
+                  setAssign_user(selectedUser?.username || "");
+                }}>
+                <option value="">Select Sub Admin</option>
+                {subAdmins.map((admin) => (
+                  <option key={admin.id} value={admin.id}>
+                    {admin.username}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           {/* ── Billing Details ──────────────────────────────────────────────── */}

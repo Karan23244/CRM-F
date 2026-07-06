@@ -21,6 +21,7 @@ import {
   EditOutlined,
   CopyOutlined,
   EyeOutlined,
+  ExportOutlined,
 } from "@ant-design/icons";
 import geoData from "../../Data/geoData.json";
 import SubAdminPubnameData from "./SubAdminPubnameData";
@@ -94,6 +95,7 @@ export default PublisherIDDashboard;
 const PublisherEditForm = () => {
   const user = useSelector((state) => state.auth.user);
   const userId = user?.id || null;
+  const isAdmin = user?.role === "admin" || (Array.isArray(user?.role) && user.role.includes("admin"));
   const isPublisherManager = user?.role?.includes("publisher_manager");
   const [publishers, setPublishers] = useState([]);
   const [editingPub, setEditingPub] = useState(null);
@@ -101,6 +103,10 @@ const PublisherEditForm = () => {
   const [searchTextPub, setSearchTextPub] = useState("");
   const [editingLinkId, setEditingLinkId] = useState(null);
   const [placeLinkValue, setPlaceLinkValue] = useState("");
+  const [eventPostbacks, setEventPostbacks] = useState({});
+  const [editingEventPostbackId, setEditingEventPostbackId] = useState(null);
+  const [eventPostbackValue, setEventPostbackValue] = useState("");
+  const [apiUrls, setApiUrls] = useState({});
   const [filters, setFilters] = useState({});
   const [filterSearch, setFilterSearch] = useState({});
   const [uniqueValues, setUniqueValues] = useState({});
@@ -147,14 +153,30 @@ const PublisherEditForm = () => {
 
     fetchSubAdmins();
   }, []);
+  const seedEventPostbacks = (list) => {
+    const map = {};
+    list.forEach((p) => {
+      if (p.event_postback_url) map[p.pub_id] = p.event_postback_url;
+    });
+    setEventPostbacks(map);
+  };
+
   const fetchPublishers = async () => {
     if (!userId) return;
     setLoading(true);
     try {
-      const { data } = await axios.get(`${apiUrl}/pubid-data/${userId}`);
-      console.log("Fetched publishers data:", data);
-      if (data.success && Array.isArray(data.publishers)) {
-        setPublishers(data.publishers);
+      if (isAdmin) {
+        const { data } = await axios.get(`${apiUrl}/get-Namepub?user_id=${userId}`);
+        if (data && Array.isArray(data.data)) {
+          setPublishers(data.data);
+          seedEventPostbacks(data.data);
+        }
+      } else {
+        const { data } = await axios.get(`${apiUrl}/pubid-data/${userId}`);
+        if (data.success && Array.isArray(data.publishers)) {
+          setPublishers(data.publishers);
+          seedEventPostbacks(data.publishers);
+        }
       }
     } catch (err) {
       console.error("Error fetching publishers:", err);
@@ -166,6 +188,26 @@ const PublisherEditForm = () => {
   useEffect(() => {
     fetchPublishers();
   }, [userId]);
+
+  useEffect(() => {
+    const pubsWithUrl = publishers.filter((p) => p.postback_url);
+    if (!pubsWithUrl.length) return;
+
+    Promise.allSettled(
+      pubsWithUrl.map((p) =>
+        axios.get(`${apiUrl1}/link/publisher-api-url?publisher_id=${p.pub_id}`)
+      )
+    ).then((results) => {
+      const updates = {};
+      results.forEach((result, i) => {
+        if (result.status === "fulfilled") {
+          const d = result.value.data;
+          updates[pubsWithUrl[i].pub_id] = d?.api_url || d?.url || JSON.stringify(d);
+        }
+      });
+      setApiUrls((prev) => ({ ...prev, ...updates }));
+    });
+  }, [publishers]);
   const getExcelFilteredDataForColumn = (columnKey) => {
     return publishers.filter((row) =>
       Object.entries(filters).every(([key, values]) => {
@@ -300,7 +342,7 @@ const PublisherEditForm = () => {
       setLoading(true);
       console.log(`${apiUrl1}/postback/place-link`);
       const res = await axios.put(
-        "https://track.pidmetric.com/postback/place-link",
+        `${apiUrl1}/postback/place-link`,
         {
           pub_id: record.pub_id,
           user_id: userId,
@@ -316,8 +358,20 @@ const PublisherEditForm = () => {
 
         // Refresh data
         const { data } = await axios.get(`${apiUrl}/pubid-data/${userId}`);
-        if (data.success && Array.isArray(data.Publisher)) {
-          setPublishers(data.Publisher);
+        if (data.success && Array.isArray(data.publishers)) {
+          setPublishers(data.publishers);
+        }
+
+        try {
+          const apiUrlRes = await axios.get(
+            `${apiUrl1}/link/publisher-api-url?publisher_id=${record.pub_id}`
+          );
+          setApiUrls((prev) => ({
+            ...prev,
+            [record.pub_id]: apiUrlRes.data?.api_url || apiUrlRes.data?.url || JSON.stringify(apiUrlRes.data),
+          }));
+        } catch (apiErr) {
+          console.error("Failed to fetch publisher API URL:", apiErr);
         }
       }
     } catch (err) {
@@ -341,6 +395,60 @@ const PublisherEditForm = () => {
       setEditingLinkId(null);
     }
   };
+  const autoSaveEventPlaceLink = async (record, value) => {
+    const trimmedValue = value.trim();
+
+    if ((record.event_postback_url || "") === trimmedValue) {
+      setEditingEventPostbackId(null);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await axios.put(`${apiUrl1}/postback/event-place-link`, {
+        pub_id: record.pub_id,
+        user_id: userId,
+        event_postback_url: trimmedValue || null,
+      });
+
+      if (res.data.success) {
+        setEventPostbacks((prev) => ({ ...prev, [record.pub_id]: trimmedValue }));
+        Swal.fire({
+          icon: "success",
+          title: "Saved!",
+          text: "Event Postback URL saved successfully.",
+          timer: 1500,
+          showConfirmButton: false,
+          toast: true,
+          position: "top-end",
+        });
+
+        const { data } = await axios.get(`${apiUrl}/pubid-data/${userId}`);
+        if (data.success && Array.isArray(data.publishers)) {
+          setPublishers(data.publishers);
+        }
+      }
+    } catch (err) {
+      console.error("Error saving Event Postback URL:", err);
+      if (err.response?.status === 404) {
+        Swal.fire({
+          icon: "warning",
+          title: "Not Found",
+          text: "Publisher not found.",
+        });
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Save Failed",
+          text: "Could not save Event Postback URL. Please try again.",
+        });
+      }
+    } finally {
+      setLoading(false);
+      setEditingEventPostbackId(null);
+    }
+  };
+
   const excelFilterDropdown = (key) => () => {
     const allValues = uniqueValues[key] || [];
     const selectedValues = filters[key] ?? allValues;
@@ -594,7 +702,7 @@ const PublisherEditForm = () => {
       },
     },
     {
-      title: <div style={{ textAlign: "center" }}>Postback URL</div>,
+      title: <div style={{ textAlign: "center" }}>Install Postback</div>,
       dataIndex: "postback_url",
       key: "postback_url",
       width: 300,
@@ -616,107 +724,204 @@ const PublisherEditForm = () => {
         }
 
         return (
-          <div
-            className="cursor-pointer min-h-[32px]"
-            onClick={() => {
-              setEditingLinkId(record.pub_id);
-              setPlaceLinkValue(text || "");
-            }}>
-            {text ? (
-              <a
-                href={text}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}>
-                {text}
-              </a>
-            ) : (
-              <span className="text-gray-400">Click to add link</span>
+          <div className="flex items-center gap-2 min-h-[32px] max-w-[280px]">
+            <span
+              className="cursor-pointer flex-1 truncate text-blue-500 underline"
+              onClick={() => {
+                setEditingLinkId(record.pub_id);
+                setPlaceLinkValue(text || "");
+              }}>
+              {text || <span className="text-gray-400 no-underline">Click to add link</span>}
+            </span>
+            {text && (
+              <>
+                <Tooltip title="Open URL">
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<ExportOutlined />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.open(text, "_blank", "noopener,noreferrer");
+                    }}
+                  />
+                </Tooltip>
+                <Tooltip title="Copy Postback URL">
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<CopyOutlined />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigator.clipboard.writeText(text);
+                    }}
+                  />
+                </Tooltip>
+              </>
             )}
           </div>
         );
       },
     },
-    /* ✅ CONDITIONAL COLUMN */
-    ...(isPublisherManager
-      ? [
-          {
-            title: "Transfer PUB AM",
-            key: "user_id",
-            render: (_, record) => {
-              const isEditing = editingAssignRowId === record.pub_id;
+    {
+      title: <div style={{ textAlign: "center" }}>Event Postback</div>,
+      key: "event_postback",
+      width: 300,
+      render: (_, record) => {
+        const isEditing = editingEventPostbackId === record.pub_id;
+        const text = eventPostbacks[record.pub_id];
 
-              if (isEditing) {
-                return (
-                  <Select
-                    autoFocus
-                    value={record.username?.toString()}
-                    onChange={async (newUserId) => {
-                      try {
-                        const selectedAdmin = subAdmins.find(
-                          (admin) => admin.id.toString() === newUserId,
-                        );
-                        if (!selectedAdmin) {
-                          Swal.fire("Error", "Invalid user selected", "error");
-                          return;
-                        }
-                        const response = await axios.put(
-                          `${apiUrl}/update-pubid`,
-                          {
-                            ...record,
-                            user_id: selectedAdmin.id,
-                            username: selectedAdmin.username,
-                          },
-                        );
-                        console.log({
-                          ...record,
-                          user_id: selectedAdmin.id,
-                          username: selectedAdmin.username,
-                        });
-                        if (response.data.success) {
-                          Swal.fire(
-                            "Success",
-                            "User transferred successfully!",
-                            "success",
-                          );
-                          fetchPublishers();
-                        } else {
-                          Swal.fire(
-                            "Error",
-                            "Failed to transfer user",
-                            "error",
-                          );
-                        }
-                      } catch (error) {
-                        console.error("User transfer error:", error);
-                        Swal.fire("Error", "Something went wrong", "error");
-                      } finally {
-                        setEditingAssignRowId(null);
-                      }
+        if (isEditing) {
+          return (
+            <Input
+              autoFocus
+              value={eventPostbackValue}
+              placeholder="Paste Event Postback URL"
+              onChange={(e) => setEventPostbackValue(e.target.value)}
+              onBlur={() => autoSaveEventPlaceLink(record, eventPostbackValue)}
+              onPressEnter={() => autoSaveEventPlaceLink(record, eventPostbackValue)}
+              className="w-full"
+            />
+          );
+        }
+
+        return (
+          <div className="flex items-center gap-2 min-h-[32px] max-w-[280px]">
+            <span
+              className="cursor-pointer flex-1 truncate text-blue-500 underline"
+              onClick={() => {
+                setEditingEventPostbackId(record.pub_id);
+                setEventPostbackValue(text || "");
+              }}>
+              {text || <span className="text-gray-400 no-underline">Click to add link</span>}
+            </span>
+            {text && (
+              <>
+                <Tooltip title="Open URL">
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<ExportOutlined />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.open(text, "_blank", "noopener,noreferrer");
                     }}
-                    onBlur={() => setEditingAssignRowId(null)}
-                    className="min-w-[150px]">
-                    {subAdmins.map((admin) => (
-                      <Option key={admin.id} value={admin.id.toString()}>
-                        {admin.username}
-                      </Option>
-                    ))}
-                  </Select>
-                );
-              }
+                  />
+                </Tooltip>
+                <Tooltip title="Copy Event Postback URL">
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<CopyOutlined />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigator.clipboard.writeText(text);
+                    }}
+                  />
+                </Tooltip>
+              </>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      title: <div style={{ textAlign: "center" }}>API URL</div>,
+      key: "apiurl",
+      width: 300,
+      render: (_, record) => {
+        const value = apiUrls[record.pub_id];
+        if (!value) return <span className="text-gray-400">-</span>;
+        return (
+          <div className="flex items-center gap-2 max-w-[280px]">
+            <span className="truncate text-sm flex-1">{value}</span>
+            <Tooltip title="Copy API URL">
+              <Button
+                type="text"
+                size="small"
+                icon={<CopyOutlined />}
+                onClick={() => navigator.clipboard.writeText(value)}
+              />
+            </Tooltip>
+          </div>
+        );
+      },
+    },
+    {
+      title: "Transfer PUB AM",
+      key: "user_id",
+      render: (_, record) => {
+        const isEditing = editingAssignRowId === record.pub_id;
 
-              return (
-                <span
-                  onClick={() => setEditingAssignRowId(record.pub_id)}
-                  className="cursor-pointer hover:underline"
-                  title="Click to change user">
-                  {record.username || "Select Sub Admin"}
-                </span>
-              );
-            },
-          },
-        ]
-      : []),
+        if (isEditing) {
+          return (
+            <Select
+              autoFocus
+              value={record.username?.toString()}
+              onChange={async (newUserId) => {
+                try {
+                  const selectedAdmin = subAdmins.find(
+                    (admin) => admin.id.toString() === newUserId,
+                  );
+                  if (!selectedAdmin) {
+                    Swal.fire("Error", "Invalid user selected", "error");
+                    return;
+                  }
+                  const response = await axios.put(
+                    `${apiUrl}/update-pubid`,
+                    {
+                      ...record,
+                      user_id: selectedAdmin.id,
+                      username: selectedAdmin.username,
+                    },
+                  );
+                  console.log({
+                    ...record,
+                    user_id: selectedAdmin.id,
+                    username: selectedAdmin.username,
+                  });
+                  if (response.data.success) {
+                    Swal.fire(
+                      "Success",
+                      "User transferred successfully!",
+                      "success",
+                    );
+                    fetchPublishers();
+                  } else {
+                    Swal.fire(
+                      "Error",
+                      "Failed to transfer user",
+                      "error",
+                    );
+                  }
+                } catch (error) {
+                  console.error("User transfer error:", error);
+                  Swal.fire("Error", "Something went wrong", "error");
+                } finally {
+                  setEditingAssignRowId(null);
+                }
+              }}
+              onBlur={() => setEditingAssignRowId(null)}
+              className="min-w-[150px]">
+              {subAdmins.map((admin) => (
+                <Option key={admin.id} value={admin.id.toString()}>
+                  {admin.username}
+                </Option>
+              ))}
+            </Select>
+          );
+        }
+
+        return (
+          <span
+            onClick={() => setEditingAssignRowId(record.pub_id)}
+            className="cursor-pointer hover:underline"
+            title="Click to change user">
+            {record.username || "Select Sub Admin"}
+          </span>
+        );
+      },
+    },
     {
       title: <div style={{ textAlign: "center" }}>Action</div>,
       key: "actions",
@@ -737,8 +942,8 @@ const PublisherEditForm = () => {
       key: "details",
       align: "center",
       render: (_, record) => {
-        const mail = record.mail || "-";
-        const password = record.password || "-";
+        const mail = record.publisher_mail || record.mail || "-";
+        const password = record.publisher_password || record.password || "-";
 
         const copyToClipboard = () => {
           const text = `Email: ${mail}\nPassword: ${password}`;

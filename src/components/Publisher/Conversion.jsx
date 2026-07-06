@@ -1,281 +1,325 @@
-import React, { useEffect, useMemo, useState } from "react";
-import {
-  Table,
-  Select,
-  Input,
-  Checkbox,
-  Tooltip,
-  Button,
-  DatePicker,
-  Modal,
-  Spin,
-  Descriptions,
-} from "antd";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
+import { Select, DatePicker, Spin, Button, Tag, Table, message } from "antd";
+import { DownloadOutlined } from "@ant-design/icons";
+import { Resizable } from "react-resizable";
 import dayjs from "dayjs";
+import "react-resizable/css/styles.css";
 
 const { RangePicker } = DatePicker;
-
-import { PushpinOutlined, PushpinFilled } from "@ant-design/icons";
-import StyledTable from "../../Utils/StyledTable";
 const apiUrl = import.meta.env.VITE_API_URL;
 
-/* ---------------- COLUMN HEADINGS ---------------- */
-const columnHeadings = {
-  campaign_id: "Campaign ID",
-  total_clicks: "Total Clicks",
-  total_conversions: "Total Conversions",
-  conversion_rate: "Conversion Rate (%)",
+const OPTIONAL_FIELDS = [
+  { key: "p1", label: "P1" },
+  { key: "p2", label: "P2" },
+  { key: "p3", label: "P3" },
+  { key: "p4", label: "P4" },
+  { key: "p5", label: "P5" },
+  { key: "total_payout", label: "Payout" },
+];
+
+const ResizableTitle = ({ onResize, width, ...restProps }) => {
+  if (!width) return <th {...restProps} />;
+  return (
+    <Resizable
+      width={width}
+      height={0}
+      handle={
+        <span
+          className="react-resizable-handle"
+          onClick={(e) => e.stopPropagation()}
+        />
+      }
+      onResize={onResize}
+      draggableOpts={{ enableUserSelectHack: false }}>
+      <th {...restProps} />
+    </Resizable>
+  );
 };
 
 const Conversion = () => {
+  const [messageApi, contextHolder] = message.useMessage();
   const [data, setData] = useState([]);
-  const [filteredData, setFilteredData] = useState([]);
-  const [filters, setFilters] = useState({});
-  const [uniqueValues, setUniqueValues] = useState({});
-  const [firstFilteredColumn, setFirstFilteredColumn] = useState(null);
-  const [stickyColumns, setStickyColumns] = useState([]);
-  const [hiddenColumns, setHiddenColumns] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [sortInfo, setSortInfo] = useState({
-    columnKey: null,
-    order: null,
-  });
-  const [modalOpen, setModalOpen] = useState(false);
-  const [popupData, setPopupData] = useState(null);
-  const [popupLoading, setPopupLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [selectedCampaigns, setSelectedCampaigns] = useState([]);
+  const [checkedRowKeys, setCheckedRowKeys] = useState([]);
+  const [visibleOptionalFields, setVisibleOptionalFields] = useState([]);
+  const [colWidths, setColWidths] = useState({});
   const [dateRange, setDateRange] = useState([
     dayjs().startOf("month"),
     dayjs().endOf("month"),
   ]);
+
   const fetchConversions = async (startDate, endDate) => {
-    const res = await fetch(
-      `${apiUrl}/get-conversions?startDate=${startDate}&endDate=${endDate}`,
-    );
-
-    const json = await res.json();
-    console.log("Fetched Conversions:", json);
-    const transformData = (data) =>
-      data.map((item) => ({
-        campaign_id: item.campaign_id,
-        total_clicks: item.total_clicks,
-        total_conversions: item.total_conversions,
-        conversion_rate: item.conversion_rate,
-      }));
-
-    const formatted = transformData(json.data || []);
-    setData(formatted);
-    setFilteredData(formatted);
-  };
-  const fetchConversionPopup = async (campaignId) => {
-    setPopupLoading(true);
-    setModalOpen(true);
-
+    setLoading(true);
     try {
-      const startDate = dateRange[0].format("YYYY-MM-DD");
-      const endDate = dateRange[1].format("YYYY-MM-DD");
-
       const res = await fetch(
-        `${apiUrl}/conversions/?campaign_id=${campaignId}&startDate=${startDate}&endDate=${endDate}`,
+        `${apiUrl}/get-conversions?startDate=${startDate}&endDate=${endDate}`,
       );
       const json = await res.json();
-      setPopupData(json.data);
+      setData(json.data || []);
     } catch (err) {
-      console.error(err);
+      console.error("Failed to fetch conversions:", err);
     } finally {
-      setPopupLoading(false);
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     if (!dateRange?.length) return;
-
     fetchConversions(
       dateRange[0].format("YYYY-MM-DD"),
       dateRange[1].format("YYYY-MM-DD"),
     );
   }, [dateRange]);
 
-  /* ---------------- PIN COLUMN ---------------- */
-  const toggleStickyColumn = (key) => {
-    setStickyColumns((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
-    );
-  };
+  const handleDownload = async () => {
+    const selectedCampaignIds = [
+      ...new Set(
+        checkedRowKeys
+          .map((k) => tableData.find((r) => r.key === k)?.campaign_id)
+          .filter((id) => id !== undefined),
+      ),
+    ];
 
-  /* ---------------- FILTER HANDLER ---------------- */
-  const handleFilterChange = (value, key) => {
-    setFilters((prev) => {
-      if (!firstFilteredColumn && value.length > 0) {
-        setFirstFilteredColumn(key);
-      }
+    if (selectedCampaignIds.length === 0) {
+      messageApi.error("Please select a campaign to download.");
+      return;
+    }
+    if (selectedCampaignIds.length > 1) {
+      messageApi.error("Please select only one campaign to download.");
+      return;
+    }
 
-      const next = { ...prev, [key]: value };
-      const isEmpty = Object.values(next).every((v) => !v || v.length === 0);
-
-      if (isEmpty) setFirstFilteredColumn(null);
-
-      return next;
-    });
-  };
-
-  /* ---------------- APPLY SEARCH + FILTER ---------------- */
-  useEffect(() => {
-    const filtered = data.filter((row) => {
-      const matchesSearch = !searchTerm
-        ? true
-        : Object.values(row)
-            .join(" ")
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase());
-
-      const matchesFilters = Object.keys(filters).every((key) => {
-        if (!filters[key]?.length) return true;
-        return filters[key].includes(row[key]);
-      });
-
-      return matchesSearch && matchesFilters;
-    });
-
-    setFilteredData(filtered);
-  }, [data, filters, searchTerm]);
-
-  /* ---------------- DROPDOWN SOURCE LOGIC ---------------- */
-  const baseAccessibleData = useMemo(() => data, [data]);
-
-  const getDataForDropdown = (columnKey) => {
-    if (!firstFilteredColumn) return baseAccessibleData;
-    if (columnKey === firstFilteredColumn) return baseAccessibleData;
-    return filteredData;
-  };
-
-  /* ---------------- UNIQUE VALUES ---------------- */
-  useEffect(() => {
-    const values = {};
-    Object.keys(columnHeadings).forEach((col) => {
-      values[col] = Array.from(
-        new Set(getDataForDropdown(col).map((r) => r[col] ?? "-")),
+    const campaignId = selectedCampaignIds[0];
+    setDownloading(true);
+    try {
+      const startDate = dateRange[0].format("YYYY-MM-DD");
+      const endDate = dateRange[1].format("YYYY-MM-DD");
+      const res = await fetch(
+        `${apiUrl}/get-conversions/${campaignId}/export?startDate=${startDate}&endDate=${endDate}`,
       );
+      if (!res.ok) throw new Error("Export failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download =
+        res.headers.get("Content-Disposition")?.match(/filename="(.+)"/)?.[1] ||
+        `campaign_${campaignId}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Export error:", err);
+      messageApi.error("Download failed. Please try again.");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const handleResize = useCallback(
+    (key) => (_, { size }) => {
+      setColWidths((prev) => ({ ...prev, [key]: size.width }));
+    },
+    [],
+  );
+
+  const campaignOptions = useMemo(() => {
+    const seen = new Set();
+    return data
+      .filter((item) => {
+        if (seen.has(item.campaign_id)) return false;
+        seen.add(item.campaign_id);
+        return true;
+      })
+      .map((item) => ({
+        value: item.campaign_id,
+        label: `${item.campaign_name} (ID: ${item.campaign_id})`,
+      }));
+  }, [data]);
+
+  const displayedData = useMemo(() => {
+    if (selectedCampaigns.length === 0) return data;
+    return data.filter((item) => selectedCampaigns.includes(item.campaign_id));
+  }, [data, selectedCampaigns]);
+
+  const tableData = useMemo(() => {
+    const rows = [];
+    displayedData.forEach((item) => {
+      const installEvent = item.event_data?.find(
+        (ev) => ev.event?.toLowerCase() === "install",
+      );
+      const otherEvents =
+        item.event_data?.filter((ev) => ev.event?.toLowerCase() !== "install") ?? [];
+
+      const baseRow = {
+        campaign_id: item.campaign_id,
+        campaign_name: item.campaign_name,
+        geo: item.geo,
+        total_clicks: item.total_clicks,
+        publisher_id: item.publisher_id,
+        total_impressions: item.total_impressions,
+        installs: installEvent?.count ?? 0,
+        conversion_rate: item.conversion_rate,
+        ...OPTIONAL_FIELDS.reduce((acc, f) => {
+          acc[f.key] = item[f.key];
+          return acc;
+        }, {}),
+      };
+
+      if (otherEvents.length) {
+        otherEvents.forEach((ev, idx) => {
+          rows.push({
+            ...baseRow,
+            key: `${item.campaign_id}-${item.publisher_id}-${ev.event}-${idx}`,
+            event_name: ev.event,
+            event_count: ev.count,
+          });
+        });
+      } else {
+        rows.push({
+          ...baseRow,
+          key: `${item.campaign_id}-${item.publisher_id}-no-events`,
+          event_name: null,
+          event_count: null,
+        });
+      }
     });
-    setUniqueValues(values);
-  }, [filteredData, firstFilteredColumn]);
+    return rows;
+  }, [displayedData]);
 
-  /* ---------------- COLUMNS ---------------- */
-  const columns = Object.keys(columnHeadings)
-    .filter((key) => !hiddenColumns.includes(key))
-    .map((key) => ({
-      title: (
-        <div className="flex items-center justify-between">
-          <span
-            style={{
-              color: filters[key]?.length ? "#1677ff" : "inherit",
-              fontWeight: filters[key]?.length ? 600 : 400,
-            }}>
-            {columnHeadings[key]}
-          </span>
-
-          <Tooltip title={stickyColumns.includes(key) ? "Unpin" : "Pin"}>
-            <span
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleStickyColumn(key);
-              }}
-              style={{ cursor: "pointer" }}>
-              {stickyColumns.includes(key) ? (
-                <PushpinFilled style={{ color: "#1677ff" }} />
-              ) : (
-                <PushpinOutlined />
-              )}
-            </span>
-          </Tooltip>
-        </div>
-      ),
-      dataIndex: key,
-      key,
-      fixed: stickyColumns.includes(key) ? "left" : undefined,
-
-      sorter: (a, b) => {
-        if (!isNaN(a[key]) && !isNaN(b[key])) {
-          return Number(a[key]) - Number(b[key]);
-        }
-        return (a[key] || "")
-          .toString()
-          .localeCompare((b[key] || "").toString());
+  const rawColumns = useMemo(() => {
+    const base = [
+      {
+        title: "Campaign Name (ID)",
+        key: "campaign",
+        width: 220,
+        sorter: (a, b) => (a.campaign_name || "").localeCompare(b.campaign_name || ""),
+        render: (_, record) => `${record.campaign_name} (${record.campaign_id})`,
       },
-
-      sortOrder: sortInfo.columnKey === key ? sortInfo.order : null,
-
-      onHeaderCell: () => ({
-        onClick: () => {
-          const order =
-            sortInfo.columnKey === key && sortInfo.order === "ascend"
-              ? "descend"
-              : "ascend";
-          setSortInfo({ columnKey: key, order });
+      {
+        title: "Publisher ID",
+        dataIndex: "publisher_id",
+        key: "publisher_id",
+        width: 120,
+        sorter: (a, b) => a.publisher_id - b.publisher_id,
+      },
+      {
+        title: "Geo",
+        dataIndex: "geo",
+        key: "geo",
+        width: 140,
+        sorter: (a, b) => (a.geo || "").localeCompare(b.geo || ""),
+        render: (val) => {
+          try {
+            const geos = JSON.parse(val);
+            return geos.join(", ");
+          } catch {
+            return val || <span className="text-gray-400">—</span>;
+          }
         },
-      }),
-
-      filterDropdown: () => (
-        <div style={{ padding: 8 }}>
-          <div style={{ marginBottom: 8 }}>
-            {/* Select All */}
-            <Checkbox
-              indeterminate={
-                filters[key]?.length > 0 &&
-                filters[key]?.length < uniqueValues[key]?.length
-              }
-              checked={filters[key]?.length === uniqueValues[key]?.length}
-              onChange={(e) =>
-                handleFilterChange(
-                  e.target.checked ? [...uniqueValues[key]] : [],
-                  key,
-                )
-              }>
-              Select All
-            </Checkbox>
-          </div>
-          <Select
-            mode="multiple"
-            allowClear
-            showSearch
-            style={{ width: 240, marginTop: 8 }}
-            placeholder={`Select ${columnHeadings[key]}`}
-            value={filters[key] || []}
-            onChange={(val) => handleFilterChange(val, key)}
-            maxTagCount="responsive">
-            {uniqueValues[key]?.map((val) => (
-              <Select.Option key={val} value={val}>
-                <Checkbox checked={filters[key]?.includes(val)}>{val}</Checkbox>
-              </Select.Option>
-            ))}
-          </Select>
-        </div>
-      ),
-      filtered: filters[key]?.length > 0,
-
-      render: (text, record) => {
-        if (key === "total_conversions") {
-          return (
-            <span
-              style={{ color: "#1677ff", cursor: "pointer", fontWeight: 600 }}
-              onClick={() => fetchConversionPopup(record.campaign_id)}>
-              {text}
-            </span>
-          );
-        }
-        return text ?? "-";
       },
-    }));
+       {
+        title: "Impressions",
+        dataIndex: "total_impressions",
+        key: "total_impressions",
+        width: 130,
+        sorter: (a, b) => (a.total_impressions ?? 0) - (b.total_impressions ?? 0),
+        render: (val) => (val !== null && val !== undefined ? val : <span className="text-gray-400">—</span>),
+      },
+      {
+        title: "Total Clicks",
+        dataIndex: "total_clicks",
+        key: "total_clicks",
+        width: 130,
+        sorter: (a, b) => (a.total_clicks ?? 0) - (b.total_clicks ?? 0),
+      },
+      {
+        title: "Installs",
+        dataIndex: "installs",
+        key: "installs",
+        width: 110,
+        sorter: (a, b) => (a.installs ?? 0) - (b.installs ?? 0),
+      },
+      {
+        title: "Event",
+        dataIndex: "event_name",
+        key: "event_name",
+        width: 160,
+        render: (val) =>
+          val ? <span className="capitalize">{val}</span> : <span className="text-gray-400">—</span>,
+        sorter: (a, b) => (a.event_name || "").localeCompare(b.event_name || ""),
+      },
+      {
+        title: "Event Count",
+        dataIndex: "event_count",
+        key: "event_count",
+        width: 130,
+        render: (val) =>
+          val !== null && val !== undefined ? val : <span className="text-gray-400">—</span>,
+        sorter: (a, b) => (a.event_count ?? 0) - (b.event_count ?? 0),
+      },
+      {
+        title: "Conversion Rate",
+        dataIndex: "conversion_rate",
+        key: "conversion_rate",
+        width: 150,
+        render: (val) => (
+          <Tag color="blue">
+            {val !== null && val !== undefined ? `${val}%` : "—"}
+          </Tag>
+        ),
+        sorter: (a, b) =>
+          parseFloat(a.conversion_rate ?? 0) - parseFloat(b.conversion_rate ?? 0),
+      },
+    ];
 
-  /* ---------------- UI ---------------- */
+    const optionalCols = visibleOptionalFields.map((field) => {
+      const meta = OPTIONAL_FIELDS.find((f) => f.key === field);
+      return {
+        title: meta?.label || field,
+        dataIndex: field,
+        key: field,
+        width: 120,
+        render: (val) => (val !== null && val !== undefined ? val : "—"),
+      };
+    });
+
+    return [...base, ...optionalCols];
+  }, [visibleOptionalFields]);
+
+  const columns = useMemo(
+    () =>
+      rawColumns.map((col) => ({
+        ...col,
+        width: colWidths[col.key] ?? col.width,
+        onHeaderCell: (column) => ({
+          width: column.width,
+          onResize: handleResize(col.key),
+        }),
+      })),
+    [rawColumns, colWidths, handleResize],
+  );
+
+  const rowSelection = {
+    selectedRowKeys: checkedRowKeys,
+    onChange: (keys) => setCheckedRowKeys(keys),
+    columnWidth: 48,
+  };
+
   return (
     <div className="p-6 bg-white rounded-xl shadow">
-      <div className="py-5">
-        <h2 className="text-2xl font-semibold ">Conversions</h2>
-        <p className="text-gray-600">
+      {contextHolder}
+      {/* Page header */}
+      <div className="py-4 border-b border-gray-100 mb-5">
+        <h2 className="text-2xl font-semibold text-gray-800">Conversions</h2>
+        <p className="text-gray-500 text-sm mt-1">
           View and manage conversion data for publishers and campaigns.
         </p>
       </div>
-      <div className="flex flex-col md:flex-row md:flex-wrap gap-3 mb-4 w-full">
+
+      {/* Filters row */}
+      <div className="flex flex-wrap gap-3 mb-5 items-center">
         <RangePicker
           value={dateRange}
           onChange={(dates) => {
@@ -286,81 +330,137 @@ const Conversion = () => {
           style={{ width: 260 }}
         />
 
-        <Input
-          placeholder="Search anything..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={{ width: 250 }}
+        <Select
+          mode="multiple"
+          allowClear
+          placeholder="Filter by campaign(s)... (showing all by default)"
+          value={selectedCampaigns}
+          onChange={(vals) => {
+            setSelectedCampaigns(vals ?? []);
+            setCheckedRowKeys([]);
+          }}
+          options={campaignOptions}
+          style={{ minWidth: 280 }}
+          maxTagCount="responsive"
         />
 
         <Select
           mode="multiple"
           allowClear
-          placeholder="Hide columns"
-          value={hiddenColumns}
-          onChange={setHiddenColumns}
-          style={{ width: 250 }}>
-          {Object.keys(columnHeadings).map((key) => (
+          placeholder="Show optional fields..."
+          value={visibleOptionalFields}
+          onChange={setVisibleOptionalFields}
+          style={{ minWidth: 220 }}
+          maxTagCount="responsive">
+          {OPTIONAL_FIELDS.map(({ key, label }) => (
             <Select.Option key={key} value={key}>
-              {columnHeadings[key]}
+              {label}
             </Select.Option>
           ))}
         </Select>
 
         <Button
-          danger
-          className="w-[150px] lg:w-full"
-          onClick={() => {
-            setFilters({});
-            setSortInfo({});
-            setStickyColumns([]);
-            setHiddenColumns([]);
-          }}>
-          Remove All Filters
+          icon={<DownloadOutlined />}
+          onClick={handleDownload}
+          loading={downloading}
+          className="!bg-[#1d3557] hover:!bg-[#152840] !text-white !border-none">
+          Download Excel
         </Button>
       </div>
 
-      <StyledTable
-        bordered
-        rowKey="campaign_id"
-        columns={columns}
-        dataSource={filteredData}
-        pagination={{
-          pageSizeOptions: ["10", "20", "50", "100"],
-          showSizeChanger: true,
-          defaultPageSize: 10,
-          showTotal: (total, range) =>
-            `${range[0]}-${range[1]} of ${total} items`,
-        }}
-        className="mt-5"
-        scroll={{ x: "max-content" }}
-      />
-      <Modal
-        open={modalOpen}
-        title="Conversion Details"
-        footer={null}
-        onCancel={() => {
-          setModalOpen(false);
-          setPopupData(null);
-        }}>
-        {popupLoading ? (
-          <Spin />
-        ) : popupData ? (
-          <Descriptions bordered column={1} size="small">
-            <Descriptions.Item label="Campaign ID">
-              {popupData.campaign_id}
-            </Descriptions.Item>
-            <Descriptions.Item label="Installs">
-              {popupData.installs}
-            </Descriptions.Item>
-            <Descriptions.Item label="Events">
-              {popupData.events}
-            </Descriptions.Item>
-          </Descriptions>
-        ) : (
-          <p>No data found</p>
-        )}
-      </Modal>
+      {/* Summary */}
+      {displayedData.length > 0 && (
+        <div className="flex gap-4 mb-4 text-sm text-gray-500">
+          <span>
+            Showing{" "}
+            <strong className="text-gray-700">{displayedData.length}</strong>{" "}
+            campaign{displayedData.length !== 1 ? "s" : ""}
+          </span>
+          <span>
+            Total Clicks:{" "}
+            <strong className="text-gray-700">
+              {displayedData
+                .reduce((s, i) => s + (i.total_clicks ?? 0), 0)
+                .toLocaleString()}
+            </strong>
+          </span>
+          {checkedRowKeys.length > 0 && (
+            <span className="text-[#1d3557] font-medium">
+              {checkedRowKeys.length} row{checkedRowKeys.length > 1 ? "s" : ""} selected
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Table */}
+      {loading ? (
+        <div className="flex justify-center py-20">
+          <Spin size="large" />
+        </div>
+      ) : (
+        <Table
+          bordered
+          dataSource={tableData}
+          columns={columns}
+          rowKey="key"
+          loading={loading}
+          tableLayout="fixed"
+          rowSelection={rowSelection}
+          scroll={{
+            x: columns.reduce((s, c) => s + (colWidths[c.key] ?? c.width ?? 150), 0) + 48,
+            y: 600,
+          }}
+          components={{ header: { cell: ResizableTitle } }}
+          pagination={{
+            pageSizeOptions: ["10", "20", "50"],
+            showSizeChanger: true,
+            defaultPageSize: 10,
+            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+          }}
+          className="conversion-table"
+        />
+      )}
+
+      <style>{`
+        .conversion-table .ant-table-thead > tr > th {
+          background-color: #f3f6fb !important;
+          color: #2f5d99 !important;
+          font-weight: 600;
+          font-size: 14px;
+          white-space: nowrap;
+          position: relative;
+          overflow: visible !important;
+        }
+        .conversion-table .ant-table-tbody > tr > td {
+          font-size: 13px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .conversion-table .ant-table-tbody > tr:hover > td {
+          background-color: #f9fbff !important;
+        }
+        .conversion-table .react-resizable-handle {
+          position: absolute;
+          right: -5px;
+          bottom: 0;
+          z-index: 1;
+          width: 10px;
+          height: 100%;
+          cursor: col-resize;
+          background: none;
+        }
+        .conversion-table .react-resizable-handle::after {
+          content: '';
+          position: absolute;
+          right: 4px;
+          top: 20%;
+          height: 60%;
+          width: 2px;
+          background: #d0d9e8;
+          border-radius: 2px;
+        }
+      `}</style>
     </div>
   );
 };

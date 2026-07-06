@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Table,
   Input,
@@ -32,8 +32,22 @@ import StyledTable from "../../Utils/StyledTable";
 const { Option } = Select;
 const apiUrl = import.meta.env.VITE_API_URL;
 
+const ASSIGNED_USER_ROLES = [
+  "advertiser",
+  "advertiser_manager",
+  "publisher",
+  "publisher_manager",
+];
+
 const SubAdminEdit = () => {
   const senderData = useSelector((state) => state.auth?.user);
+  const userRoles = Array.isArray(senderData?.role)
+    ? senderData.role
+    : [senderData?.role].filter(Boolean);
+  const isAssignedUserView = userRoles.some((r) =>
+    ASSIGNED_USER_ROLES.includes(r),
+  );
+  const isAdmin = userRoles.includes("admin");
   const [subAdmins, setSubAdmins] = useState([]);
   const [selectedSubAdmin, setSelectedSubAdmin] = useState(null);
   const [username, setUsername] = useState("");
@@ -42,6 +56,7 @@ const SubAdminEdit = () => {
   const [ranges, setRanges] = useState([{ start: "", end: "" }]);
   const [assignedSubAdmins, setAssignedSubAdmins] = useState([]);
   const [subAdminOptions, setSubAdminOptions] = useState([]);
+  const [allSubAdminsData, setAllSubAdminsData] = useState([]);
   const [permissionEditCondition, setPermissionEditCondition] = useState(false);
   const [permissionUploadFiles, setPermissionUploadFiles] = useState(false);
   const [permissionAddStore, setPermissionAddStore] = useState(false);
@@ -51,6 +66,8 @@ const SubAdminEdit = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRanges, setSelectedRanges] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [searchText, setSearchText] = useState("");
+  const [roleFilter, setRoleFilter] = useState(null);
   const handleView = (record) => {
     setSelectedUser(record.username);
     setSelectedRanges(record.ranges || []);
@@ -64,20 +81,34 @@ const SubAdminEdit = () => {
   };
   useEffect(() => {
     fetchSubAdmins();
+    fetchAllSubAdminOptions();
   }, []);
 
   // Fetch Sub-Admins
   const fetchSubAdmins = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${apiUrl}/get-subadmin`);
-      const data = await response.json();
-      console.log("Fetched Sub-Admins:", data); // Debug log
-      if (response.ok) {
-        // Exclude only those with role "admin"
-        setSubAdmins(data.data.filter((subAdmin) => subAdmin.role !== "admin"));
+      let response, data;
+      if (isAssignedUserView) {
+        response = await fetch(
+          `${apiUrl}/assigned-users?id=${senderData?.id}`,
+        );
+        data = await response.json();
+        if (data.success) {
+          setSubAdmins(data.data);
+        } else {
+          setError(data.message || "Failed to fetch assigned users.");
+        }
       } else {
-        setError(data.message || "Failed to fetch sub-admins.");
+        response = await fetch(`${apiUrl}/get-subadmin`);
+        data = await response.json();
+        console.log("Fetched Sub-Admins:", data); // Debug log
+        if (response.ok) {
+          // Exclude only those with role "admin"
+          setSubAdmins(data.data.filter((subAdmin) => subAdmin.role !== "admin"));
+        } else {
+          setError(data.message || "Failed to fetch sub-admins.");
+        }
       }
     } catch (err) {
       setError("An error occurred while fetching sub-admins.");
@@ -86,37 +117,36 @@ const SubAdminEdit = () => {
     }
   };
 
-  // Fetch filtered options for manager assignment
-  useEffect(() => {
-    if (subAdmins.length > 0) {
-      const cleanedOptions = subAdmins
-        .map((u) => {
-          // Normalize role string
-          let cleanedRole = u.role;
-
-          if (typeof cleanedRole === "string") {
-            cleanedRole = cleanedRole.replace(/"/g, "").trim(); // remove extra quotes
-          }
-
-          return {
+  // Always fetch all sub-admins for the Assign Sub-Admins dropdown options
+  const fetchAllSubAdminOptions = async () => {
+    try {
+      const response = await fetch(`${apiUrl}/get-subadmin`);
+      const data = await response.json();
+      if (response.ok) {
+        const cleaned = data.data
+          .filter((u) => u.role !== "admin")
+          .map((u) => ({
             ...u,
-            role: cleanedRole,
-          };
-        })
-        .filter((user) =>
-          [
-            "advertiser",
-            "publisher",
-            "publisher_manager",
-            "advertiser_manager",
-            "pub_executive",
-            "adv_executive",
-          ].includes(user.role),
+            role: typeof u.role === "string" ? u.role.replace(/"/g, "").trim() : u.role,
+          }));
+        setAllSubAdminsData(cleaned);
+        setSubAdminOptions(
+          cleaned.filter((user) =>
+            [
+              "advertiser",
+              "publisher",
+              "publisher_manager",
+              "advertiser_manager",
+              "pub_executive",
+              "adv_executive",
+            ].includes(user.role),
+          ),
         );
-
-      setSubAdminOptions(cleanedOptions);
+      }
+    } catch {
+      // silently fail — dropdown will just be empty
     }
-  }, [subAdmins]);
+  };
 
   const handleEdit = (subAdmin) => {
     console.log(subAdmin);
@@ -137,7 +167,11 @@ const SubAdminEdit = () => {
     setRole(parsedRole);
 
     // setRanges(subAdmin.ranges || [{ start: "", end: "" }]);
-    setAssignedSubAdmins(subAdmin.assigned_subadmins?.map((a) => a.id) || []);
+    // For non-admin users, assigned_subadmins may not be in the API response,
+    // so fall back to the full /get-subadmin data to get the correct pre-selected values.
+    const fullData = allSubAdminsData.find((u) => u.id === subAdmin.id);
+    const assignedSource = subAdmin.assigned_subadmins ?? fullData?.assigned_subadmins;
+    setAssignedSubAdmins(assignedSource?.map((a) => a.id) || []);
     setPermissionEditCondition(subAdmin.permissions?.can_see_button1 === 1);
     setPermissionUploadFiles(subAdmin.permissions?.can_see_input1 === 1);
     setPermissionAddStore(subAdmin.permissions?.can_add_store === 1);
@@ -451,50 +485,73 @@ const SubAdminEdit = () => {
           </Tooltip>
         ),
     },
-    {
-      title: <div>Actions</div>,
-      key: "actions",
-      render: (record) => (
-        <div className="flex justify-center gap-3">
-          <Tooltip title="Edit User">
-            <Button
-              type="text"
-              icon={<EditOutlined style={{ color: "#2F5D99", fontSize: 18 }} />}
-              onClick={() => handleEdit(record)}
-            />
-          </Tooltip>
+          {
+            title: <div>Actions</div>,
+            key: "actions",
+            render: (record) => (
+              <div className="flex justify-center gap-3">
+                <Tooltip title="Edit User">
+                  <Button
+                    type="text"
+                    icon={<EditOutlined style={{ color: "#2F5D99", fontSize: 18 }} />}
+                    onClick={() => handleEdit(record)}
+                  />
+                </Tooltip>
 
-          <Tooltip title="Delete User">
-            <Button
-              type="text"
-              icon={<DeleteOutlined style={{ color: "red", fontSize: 18 }} />}
-              onClick={() => handleDeleteSubAdmin(record.id)}
-            />
-          </Tooltip>
-        </div>
-      ),
-    },
-    {
-      title: <div>Account Status</div>,
-      key: "status",
-      render: (_, record) => (
-        <div className="flex justify-center">
-          <Tooltip
-            title={record.is_paused ? "Account Paused" : "Account Active"}>
-            <Switch
-              checked={record.pause === 1}
-              onChange={(checked) => handleTogglePause(record, checked)}
-              checkedChildren="Paused"
-              unCheckedChildren="Active"
-              style={{
-                backgroundColor: record.pause ? "#ff4d4f" : "#52c41a",
-              }}
-            />
-          </Tooltip>
-        </div>
-      ),
-    },
+                {isAdmin && (
+                  <Tooltip title="Delete User">
+                    <Button
+                      type="text"
+                      icon={<DeleteOutlined style={{ color: "red", fontSize: 18 }} />}
+                      onClick={() => handleDeleteSubAdmin(record.id)}
+                    />
+                  </Tooltip>
+                )}
+              </div>
+            ),
+          },
+          {
+            title: <div>Account Status</div>,
+            key: "status",
+            render: (_, record) => (
+              <div className="flex justify-center">
+                <Tooltip
+                  title={record.is_paused ? "Account Paused" : "Account Active"}>
+                  <Switch
+                    checked={record.pause === 1}
+                    onChange={(checked) => handleTogglePause(record, checked)}
+                    checkedChildren="Paused"
+                    unCheckedChildren="Active"
+                    style={{
+                      backgroundColor: record.pause ? "#ff4d4f" : "#52c41a",
+                    }}
+                  />
+                </Tooltip>
+              </div>
+            ),
+          },
   ];
+  const availableRoles = useMemo(() => {
+    const seen = new Set();
+    subAdmins.forEach((u) => {
+      const r =
+        typeof u.role === "string" ? u.role.replace(/^["']|["']$/g, "").trim() : u.role;
+      if (r) seen.add(r);
+    });
+    return Array.from(seen).sort();
+  }, [subAdmins]);
+
+  const filteredSubAdmins = useMemo(() => {
+    return subAdmins.filter((admin) => {
+      const matchesSearch =
+        !searchText ||
+        admin.username?.toLowerCase().includes(searchText.toLowerCase()) ||
+        admin.role?.toLowerCase().includes(searchText.toLowerCase());
+      const matchesRole = !roleFilter || admin.role?.includes(roleFilter);
+      return matchesSearch && matchesRole;
+    });
+  }, [subAdmins, searchText, roleFilter]);
+
   const restrictedRoles = [
     "pub_executive",
     "adv_executive",
@@ -517,10 +574,35 @@ const SubAdminEdit = () => {
             <p className="text-red-500">{error}</p>
           ) : (
             <>
+              <div className="flex flex-wrap items-center gap-3 mb-4">
+                <Input
+                  placeholder="Search by username or role..."
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  prefix={<span className="text-gray-400">🔍</span>}
+                  allowClear
+                  style={{ width: 260 }}
+                />
+                <Select
+                  allowClear
+                  placeholder="Filter by role"
+                  value={roleFilter}
+                  onChange={setRoleFilter}
+                  style={{ width: 200 }}>
+                  {availableRoles.map((r) => (
+                    <Option key={r} value={r}>
+                      {r
+                        .split("_")
+                        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                        .join(" ")}
+                    </Option>
+                  ))}
+                </Select>
+              </div>
               <StyledTable
                 columns={columns}
                 className="shadow-md rounded-lg header-center"
-                dataSource={subAdmins}
+                dataSource={filteredSubAdmins}
                 rowKey="id"
                 pagination={{
                   pageSizeOptions: ["10", "20", "50"],
@@ -673,7 +755,7 @@ const SubAdminEdit = () => {
                       placeholder="Select sub-admins"
                       className="w-full rounded-lg border-gray-200 bg-gray-50"
                       filterOption={(input, option) =>
-                        option.children
+                        String(option?.children)
                           .toLowerCase()
                           .includes(input.toLowerCase())
                       }>

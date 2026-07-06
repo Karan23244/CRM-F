@@ -20,6 +20,7 @@ const AdvnameData = () => {
   const userId = user?.id || null;
 
   const [tableData, setTableData] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingAdv, setEditingAdv] = useState(null);
   console.log(tableData);
@@ -35,6 +36,7 @@ const AdvnameData = () => {
   const [assign_user, setAssign_user] = useState("");
   const [assign_id, setAssign_id] = useState("");
   const [subAdmins, setSubAdmins] = useState([]);
+  const [operationsUsers, setOperationsUsers] = useState([]);
   const [filterSearch, setFilterSearch] = useState({});
   const [pinnedColumns, setPinnedColumns] = useState({});
   const [uniqueValues, setUniqueValues] = useState({});
@@ -101,6 +103,7 @@ const AdvnameData = () => {
   // **Fetch advertiser data**
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       try {
         const response = await axios.get(`${apiUrl}/get-NameAdv/`);
 
@@ -116,6 +119,8 @@ const AdvnameData = () => {
       } catch (error) {
         console.error("Error fetching data:", error);
         setTableData([]);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -134,6 +139,7 @@ const AdvnameData = () => {
             ),
           );
           setSubAdmins(filtered);
+          setOperationsUsers(data.data.filter((u) => u.role === "operations"));
         } else {
           console.log(data.message || "Failed to fetch sub-admins.");
         }
@@ -973,11 +979,19 @@ const AdvnameData = () => {
       key: "poc_email",
       render: (text) => (user?.role === "advertiser" ? "*****" : text),
     },
-    {
-      title: "Assign User",
+    createExcelColumn({
       key: "assign_user",
-      dataIndex: "assign_user",
-    },
+      title: "Operations",
+      filters,
+      setFilters,
+      uniqueValues,
+      filterSearch,
+      setFilterSearch,
+      pinnedColumns,
+      togglePin,
+      sortInfo,
+      setSortInfo,
+    }),
     {
       title: "Transfer Adv AM",
       key: "user_id",
@@ -1198,21 +1212,21 @@ const AdvnameData = () => {
             {/* Assign User */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Assign User
+                Operations
               </label>
               <select
                 className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:!border-[#2F5D99] focus:!ring-1 focus:!ring-[#2F5D99]"
                 value={assign_id}
                 onChange={(e) => {
                   const selectedId = e.target.value;
-                  const selectedUser = subAdmins.find(
+                  const selectedUser = operationsUsers.find(
                     (admin) => admin.id.toString() === selectedId,
                   );
                   setAssign_id(selectedId);
                   setAssign_user(selectedUser ? selectedUser.username : "");
                 }}>
-                <option value="">Select Sub Admin</option>
-                {subAdmins.map((admin) => (
+                <option value="">Select Operations</option>
+                {operationsUsers.map((admin) => (
                   <option key={admin.id} value={admin.id}>
                     {admin.username}
                   </option>
@@ -1288,6 +1302,7 @@ const AdvnameData = () => {
       {/* Table Component */}
       <StyledTable
         dataSource={finalFilteredData}
+        loading={loading}
         columns={columns}
         rowKey="id"
         pagination={{
