@@ -22,7 +22,7 @@ import { debounce } from "lodash";
 
 const { Option } = Select;
 const apiUrl = import.meta.env.VITE_API_URL;
-import isBetween from "dayjs/plugin/isBetween";
+
 dayjs.extend(isBetween);
 // Advertiser Column Headings
 const columnHeadingsAdv = {
