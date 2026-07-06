@@ -518,14 +518,22 @@ const AdvertiserEditForm = () => {
                 return (
                   <Select
                     autoFocus
-                    value={record.username}
+                    value={record.username?.toString()}
                     onChange={async (newUserId) => {
                       try {
+                        const selectedAdmin = subAdmins.find(
+                          (admin) => admin.id.toString() === newUserId,
+                        );
+                        if (!selectedAdmin) {
+                          Swal.fire("Error", "Invalid user selected", "error");
+                          return;
+                        }
                         const response = await axios.put(
                           `${apiUrl}/update-advid`,
                           {
                             ...record,
-                            user_id: newUserId,
+                            user_id: selectedAdmin.id,
+                            username: selectedAdmin.username,
                           },
                         );
                         if (response.data.success) {
@@ -564,7 +572,7 @@ const AdvertiserEditForm = () => {
                   onClick={() => setEditingAssignRowId(record.adv_id)}
                   className="cursor-pointer hover:underline"
                   title="Click to change user">
-                  {"-"}
+                  {record.username || "Select Adv AM"}
                 </span>
               );
             },
