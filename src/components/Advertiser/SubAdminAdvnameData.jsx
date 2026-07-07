@@ -530,35 +530,36 @@ const AdvnameData = () => {
           return (
             <Select
               autoFocus
-              value={record.username}
+              value={record.username?.toString()}
               onChange={async (newUserId) => {
                 try {
-                  // const response = await axios.put(`${apiUrl}/update-advid`, {
-                  //   ...record,
-                  //   user_id: newUserId,
-                  // });
-                  console.log({ user_id: newUserId, ...record });
-                  // if (response.data.success) {
-                  //   Swal.fire(
-                  //     "Success",
-                  //     "User transferred successfully!",
-                  //     "success"
-                  //   );
-
-                  //   // ✅ Update local tableData to reflect changes
-                  //   setTableData((prev) =>
-                  //     prev.map((item) =>
-                  //       item.adv_id === record.adv_id
-                  //         ? {
-                  //             ...item,
-                  //             user_id: newUserId,
-                  //           }
-                  //         : item
-                  //     )
-                  //   );
-                  // } else {
-                  //   Swal.fire("Error", "Failed to transfer user", "error");
-                  // }
+                  const selectedAdmin = subAdmins.find(
+                    (admin) => admin.id.toString() === newUserId,
+                  );
+                  if (!selectedAdmin) {
+                    Swal.fire("Error", "Invalid user selected", "error");
+                    return;
+                  }
+                  const response = await axios.put(`${apiUrl}/update-advid`, {
+                    adv_name: record.adv_name,
+                    adv_id: record.adv_id,
+                    geo: record.geo,
+                    note: record.note || "",
+                    target: record.target || "",
+                    user_id: selectedAdmin.id,
+                    username: selectedAdmin.username,
+                    assign_id: record.assign_id || "",
+                    assign_user: record.assign_user || "",
+                  });
+                  if (response.data.success) {
+                    Swal.fire("Success", "User transferred successfully!", "success");
+                    const res = await axios.get(`${apiUrl}/advertisers/${userId}`);
+                    if (res.data && Array.isArray(res.data.data)) {
+                      setTableData(res.data.data);
+                    }
+                  } else {
+                    Swal.fire("Error", "Failed to transfer user", "error");
+                  }
                 } catch (error) {
                   console.error("User transfer error:", error);
                   Swal.fire("Error", "Something went wrong", "error");
@@ -566,9 +567,8 @@ const AdvnameData = () => {
                   setEditingAssignRowId(null);
                 }
               }}
-              onBlur={() => setEditingAssignRowId(null)} // Close if user clicks away
+              onBlur={() => setEditingAssignRowId(null)}
               className="min-w-[150px]">
-              <Option value="">Select Sub Admin</Option>
               {subAdmins.map((admin) => (
                 <Option key={admin.id} value={admin.id.toString()}>
                   {admin.username}
@@ -578,13 +578,12 @@ const AdvnameData = () => {
           );
         }
 
-        // Show normal text, and enter edit mode on click
         return (
           <span
             onClick={() => setEditingAssignRowId(record.adv_id)}
             className="cursor-pointer hover:underline"
             title="Click to change user">
-            {"-"}
+            {record.username || "Select Adv AM"}
           </span>
         );
       },
