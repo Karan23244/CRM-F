@@ -60,6 +60,7 @@ const TotalPidData = lazy(() => import("./components/Optimization/CampaignPid"))
 const AddDetails = lazy(() => import("./components/PublisherAM/DetailsAdd"));
 const CampaignConfigPage = lazy(() => import("./components/Campaign_Analytics/Campaignconfigpage"));
 const PublisherRevnu = lazy(() => import("./components/Billing/PublisherRevnu"));
+const CampaignPublisherMapping = lazy(() => import("./components/Publisher/CampaignAccess"));
 const PageLoader = () => (
   <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", fontSize: "16px", color: "#888" }}>
     Loading...
@@ -144,9 +145,10 @@ const AppRoutes = () => (
           <Route path="totalpiddata" element={<TotalPidData />} />
           <Route path="myaccount" element={<MyAccount />} />
           <Route path="campaign-config" element={<CampaignConfigPage />} />
+          <Route path="campaign-publisher-mapping" element={<CampaignPublisherMapping />} />
           {/* default redirect */}
           <Route index element={<Navigate to="home" replace />} />
-          
+  
         </Route>
       </Route>
     </Routes>

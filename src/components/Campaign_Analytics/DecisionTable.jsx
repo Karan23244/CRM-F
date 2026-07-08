@@ -22,13 +22,20 @@ const apiUrl = import.meta.env.VITE_API_URL;
 
 const { Title } = Typography;
 
-const DecisionTable = ({ campaign_name, os, lastdate, geo, campaign_ids }) => {
+const DecisionTable = ({
+  campaign_name,
+  os,
+  lastdate,
+  geo,
+  campaign_ids,
+  allowedCampaignIds,
+}) => {
   const user = useSelector((state) => state.auth.user);
 
   const [loading, setLoading] = useState(false);
   const [dataSource, setDataSource] = useState([]);
   const [subadmins, setSubadmins] = useState([]);
-
+  console.log(dataSource, "dataSource");
   // ================= FILTER STATES =================
   const [filters, setFilters] = useState({});
   const [filterSearch, setFilterSearch] = useState({});
@@ -123,9 +130,14 @@ const DecisionTable = ({ campaign_name, os, lastdate, geo, campaign_ids }) => {
       const pubid = normalize(item.pubid);
 
       const isNARecord =
-        pubam === "n/a" || pubam === "-" || pubid === "n/a" || pubid === "-";
+        pubam === "n/a" ||
+        pubam === "na" ||
+        pubam === "-" ||
+        pubid === "n/a" ||
+        pubid === "na" ||
+        pubid === "-";
 
-      // Only operations & optimization can see N/A rows
+      // Only operations/optimization/admin can see N/A rows
       if (isNARecord) {
         return (
           user?.role?.includes("operations") ||
@@ -134,7 +146,7 @@ const DecisionTable = ({ campaign_name, os, lastdate, geo, campaign_ids }) => {
         );
       }
 
-      // Full access roles (except N/A rows handled above)
+      // Full access roles
       if (
         user?.role?.includes("operations") ||
         user?.role?.includes("optimization") ||
@@ -146,11 +158,32 @@ const DecisionTable = ({ campaign_name, os, lastdate, geo, campaign_ids }) => {
         return true;
       }
 
-      // own data
-      if (pubam === username) return true;
+      // Publisher / Pub Executive
+      if (
+        user?.role?.includes("publisher") ||
+        user?.role?.includes("pub_executive")
+      ) {
+        // If mapping exists -> filter by campaign_id
+        if (allowedCampaignIds?.length > 0) {
+          return allowedCampaignIds.includes(Number(item.campaign_id));
+        }
 
-      // assigned subadmin data
-      if (assignedNames.includes(pubam)) return true;
+        // Fallback to existing username logic
+        if (pubam === username) return true;
+
+        if (assignedNames.includes(pubam)) return true;
+
+        return false;
+      }
+
+      // Publisher Manager (existing logic)
+      if (user?.role?.includes("publisher_manager")) {
+        if (pubam === username) return true;
+
+        if (assignedNames.includes(pubam)) return true;
+
+        return false;
+      }
 
       return false;
     });

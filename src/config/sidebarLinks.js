@@ -68,7 +68,13 @@ export const sidebarLinks = [
   // ==========================
   {
     label: "Advertiser",
-    roles: ["admin", "advertiser", "advertiser_manager", "operations", "adv_executive"],
+    roles: [
+      "admin",
+      "advertiser",
+      "advertiser_manager",
+      "operations",
+      "adv_executive",
+    ],
     sublinks: [
       {
         to: "listadvform",
@@ -268,7 +274,11 @@ export const sidebarLinks = [
     roles: ["publisher", "pub_executive", "publisher_manager", "admin"],
   },
   { to: "totalpiddata", label: "Recent PID", roles: ["optimization"] },
-  { to: "optimizationalldata", label: "PID Data", roles: ["admin", "optimization"] },
+  {
+    to: "optimizationalldata",
+    label: "PID Data",
+    roles: ["admin", "optimization"],
+  },
   // ==========================
   // 🔹 ANALYTICS / REPORTS
   // ==========================
@@ -492,6 +502,14 @@ export const sidebarLinks = [
     ],
   },
   {
+    to: "campaign-publisher-mapping",
+    label: "Campaign Publisher Access",
+    roles: [
+      "admin",
+      "publisher_manager",
+    ],
+  },
+  {
     to: "accountsadvbill",
     label: "Advertiser Account",
     roles: ["admin", "accounts"],
@@ -504,12 +522,7 @@ export const sidebarLinks = [
   {
     to: "publisherrevenue",
     label: "Publisher Revenue",
-    roles: [
-      "admin",
-      "publisher",
-      "publisher_manager",
-      "pub_executive",
-    ],
+    roles: ["admin", "publisher", "publisher_manager", "pub_executive"],
   },
   // ==========================
   // 🔹 ACCOUNT SETTINGS

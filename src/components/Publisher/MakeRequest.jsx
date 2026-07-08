@@ -41,6 +41,7 @@ import CustomRangePicker from "../../Utils/CustomRangePicker";
 const { Option } = Select;
 const apiUrl = import.meta.env.VITE_API_URL1;
 const apiUrl1 = import.meta.env.VITE_API_URL;
+const apiUrl2 = import.meta.env.VITE_API_URL2;
 const columnHeadingsMap = {
   pub_name: "PUB AM",
   adv_name: "ADV AM",
@@ -56,7 +57,6 @@ const columnHeadingsMap = {
 };
 const PublisherRequest = ({ senderId, receiverId }) => {
   const user = useSelector((state) => state.auth.user);
-  console.log("Logged-in user from Redux:", user);
   const username = user?.username || null;
   const userRole = user?.role || []; // array of roles
   const userId = user?.id || null;
@@ -79,6 +79,10 @@ const PublisherRequest = ({ senderId, receiverId }) => {
   });
   const [firstFilteredColumn, setFirstFilteredColumn] = useState(null);
   const [geoRows, setGeoRows] = useState([]);
+  const [campaignOptions, setCampaignOptions] = useState([]);
+  const [campaigns, setCampaigns] = useState([]);
+  const [mappingData, setMappingData] = useState([]);
+  const [selectedCampaign, setSelectedCampaign] = useState(null);
   const normalize = (val) => {
     if (val === null || val === undefined || val === "") return "-";
     return val.toString().trim();
@@ -157,7 +161,30 @@ const PublisherRequest = ({ senderId, receiverId }) => {
       }, 400),
     [],
   );
+  const handleAdvertiserChange = (selectedUser) => {
+    form.setFieldsValue({
+      campaignName: "",
+    });
 
+    setSelectedCampaign(null);
+
+    const value = selectedUser?.trim().toLowerCase();
+
+    const matchedCampaigns = campaigns.filter((item) => {
+      const advAM = item.adv_am?.trim().toLowerCase();
+      const assignUser = item.assign_user?.trim().toLowerCase();
+
+      return advAM === value || assignUser === value;
+    });
+
+    const uniqueCampaigns = [
+      ...new Set(
+        matchedCampaigns.map((item) => item.campaign_name).filter(Boolean),
+      ),
+    ];
+
+    setCampaignOptions(uniqueCampaigns);
+  };
   // 🚀 Fetchers
   const fetchDropdowns = useCallback(async () => {
     try {
@@ -237,12 +264,64 @@ const PublisherRequest = ({ senderId, receiverId }) => {
   const showModal = () => {
     setIsModalVisible(true);
   };
+
+  //-----------------------------------------
+  // Fetch Campaigns
+  //-----------------------------------------
+
+  const fetchCampaigns = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${apiUrl2}/getassigncampaign`, {
+        params: {
+          user_id: user?.id || user?._id, // <-- sending user ID here
+        },
+      });
+      setCampaigns(res.data.data || []);
+    } catch (err) {
+      console.error(err);
+      Swal.fire("Error", "Failed to fetch campaigns", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+  //-----------------------------------------
+  // Fetch Mapping
+  //-----------------------------------------
+
+  const getMappings = async () => {
+    try {
+      const res = await axios.get(`${apiUrl2}/campaign-publisher-map`, {
+        params: {
+          userid: userId,
+          role: Array.isArray(userRole) ? userRole[0] : userRole,
+        },
+      });
+      setMappingData(res.data.data || []);
+    } catch (err) {
+      console.log(err);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Unable to fetch mappings",
+      });
+    }
+  };
+  const allowedCampaigns = useMemo(() => {
+    return new Set(
+      mappingData
+        .map((item) => Number(item.campaign_id))
+        .filter(Number.isFinite),
+    );
+  }, [mappingData]);
   // 🚀 Initial Load
   useEffect(() => {
     fetchBlacklistPIDs();
     fetchDropdowns();
     fetchAdvertisers();
-  }, [fetchBlacklistPIDs, fetchDropdowns, fetchAdvertisers]);
+    fetchCampaigns();
+    getMappings();
+  }, [fetchBlacklistPIDs, fetchDropdowns, fetchAdvertisers, fetchCampaigns]);
 
   // Separate effect to fetch requests when dateRange changes
   useEffect(() => {
@@ -297,7 +376,31 @@ const PublisherRequest = ({ senderId, receiverId }) => {
     updated.splice(index, 1);
     setGeoRows(updated);
   };
+  const canUpdatePermission = (record) => {
 
+    // Admin / Publisher Manager
+    if (
+      userRole.some((role) => ["admin", "publisher_manager"].includes(role))
+    ) {
+      console.groupEnd();
+      return true;
+    }
+
+    // Publisher / Publisher Executive
+    if (
+      userRole.some((role) => ["publisher", "pub_executive"].includes(role))
+    ) {
+      const hasPermission = record?.campaign_ids?.some((id) =>
+        allowedCampaigns.has(Number(id)),
+      );
+      console.groupEnd();
+
+      return hasPermission;
+    }
+    console.groupEnd();
+
+    return false;
+  };
   const handleOk = async () => {
     try {
       setIsSubmitting(true);
@@ -317,7 +420,6 @@ const PublisherRequest = ({ senderId, receiverId }) => {
       const geoArray = geoRows.map((row) => row.geo);
       const payoutArray = geoRows.map((r) => r.payout);
       const osArray = geoRows.map((r) => r.os.toLowerCase());
-
       // ✅ Prepare Correct Backend Format
       const requestData = {
         adv_name: values.advertiserName,
@@ -329,8 +431,8 @@ const PublisherRequest = ({ senderId, receiverId }) => {
         pid: values.pid,
         geo: geoArray,
         note: values.note,
+        adv_am: selectedCampaign?.adv_am,
       };
-      console.log("Submitting Request Data:", requestData);
       const response = await axios.post(
         `${apiUrl}/addPubRequestnew`,
         requestData,
@@ -424,7 +526,10 @@ const PublisherRequest = ({ senderId, receiverId }) => {
         Swal.fire({
           icon: "error",
           title: "Error",
-          text: err.response?.data?.message || err.message || "Failed to update record",
+          text:
+            err.response?.data?.message ||
+            err.message ||
+            "Failed to update record",
         });
       }
     },
@@ -609,20 +714,25 @@ const PublisherRequest = ({ senderId, receiverId }) => {
         dataIndex: "priority",
         fixed: pinnedColumns["priority"] || undefined,
         render: (_, record) =>
-          userRole?.some((r) => ["publisher_manager", "admin"].includes(r)) ? (
+          canUpdatePermission(record) ? (
             <Select
               value={record.prm === 2 ? "__disallow__" : record.priority}
               style={{ width: 110 }}
               onChange={(val) => {
                 if (val === "__disallow__") {
-                  handleUpdatePrm(record, { priority: record.priority, prm: 2 });
+                  handleUpdatePrm(record, {
+                    priority: record.priority,
+                    prm: 2,
+                  });
                 } else {
-                  handleUpdatePrm(record, { priority: val, prm: 1 });
+                  handleUpdatePrm(record, {
+                    priority: val,
+                    prm: 1,
+                  });
                 }
               }}>
-                <Option value="__disallow__" style={{ color: "red", fontWeight: 600 }}>
-                ❌ Disallow
-                </Option>
+              <Option value="__disallow__">❌ Disallow</Option>
+
               {(record.available_priorities || []).map((p) => (
                 <Option key={p} value={p}>
                   {p}
@@ -844,6 +954,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
                 placeholder="Select Advertiser"
                 className="rounded-lg"
                 showSearch
+                onChange={handleAdvertiserChange}
                 filterOption={(input, option) =>
                   option.children.toLowerCase().includes(input.toLowerCase())
                 }>
@@ -862,7 +973,31 @@ const PublisherRequest = ({ senderId, receiverId }) => {
               rules={[
                 { required: true, message: "Please enter campaign name" },
               ]}>
-              <Input placeholder="Enter campaign name" className="rounded-lg" />
+              <AutoComplete
+                options={campaignOptions.map((item) => ({
+                  value: item,
+                }))}
+                placeholder="Select or type campaign name"
+                onSelect={(value) => {
+                  const advertiser = form.getFieldValue("advertiserName");
+
+                  const campaign = campaigns.find(
+                    (c) =>
+                      c.campaign_name === value &&
+                      (c.adv_am?.trim().toLowerCase() ===
+                        advertiser?.trim().toLowerCase() ||
+                        c.assign_user?.trim().toLowerCase() ===
+                          advertiser?.trim().toLowerCase()),
+                  );
+
+                  console.log("Selected Campaign:", campaign);
+
+                  setSelectedCampaign(campaign);
+                }}
+                filterOption={(inputValue, option) =>
+                  option.value.toLowerCase().includes(inputValue.toLowerCase())
+                }
+              />
             </Form.Item>
             {/* PID */}
             <Form.Item
