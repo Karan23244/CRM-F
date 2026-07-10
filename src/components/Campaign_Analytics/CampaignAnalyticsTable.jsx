@@ -59,7 +59,6 @@ const getSortableValue = (value) => {
 };
 const API = import.meta.env.VITE_API_URL2;
 const apiUrl = import.meta.env.VITE_API_URL;
-const apiUrl2 = import.meta.env.VITE_API_URL2;
 
 const CampaignAnalyticsTable = () => {
   const user = useSelector((state) => state.auth.user);
@@ -149,7 +148,7 @@ const CampaignAnalyticsTable = () => {
   // };
   const fetchMappings = async () => {
     try {
-      const res = await axios.get(`${apiUrl2}/campaign-publisher-map`, {
+      const res = await axios.get(`${apiUrl}/campaign-publisher-map`, {
         params: {
           userid: user.id,
           role: Array.isArray(user.role) ? user.role[0] : user.role,

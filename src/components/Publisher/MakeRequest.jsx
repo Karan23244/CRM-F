@@ -272,7 +272,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
   const fetchCampaigns = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${apiUrl2}/getassigncampaign`, {
+      const res = await axios.get(`${apiUrl1}/getassigncampaign`, {
         params: {
           user_id: user?.id || user?._id, // <-- sending user ID here
         },
@@ -291,7 +291,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
 
   const getMappings = async () => {
     try {
-      const res = await axios.get(`${apiUrl2}/campaign-publisher-map`, {
+      const res = await axios.get(`${apiUrl1}/campaign-publisher-map`, {
         params: {
           userid: userId,
           role: Array.isArray(userRole) ? userRole[0] : userRole,
