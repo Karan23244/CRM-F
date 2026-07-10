@@ -59,6 +59,7 @@ const getSortableValue = (value) => {
 };
 const API = import.meta.env.VITE_API_URL2;
 const apiUrl = import.meta.env.VITE_API_URL;
+const apiUrl2 = import.meta.env.VITE_API_URL2;
 
 const CampaignAnalyticsTable = () => {
   const user = useSelector((state) => state.auth.user);
@@ -68,6 +69,7 @@ const CampaignAnalyticsTable = () => {
     user?.username?.toLowerCase() === "akshat";
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [allowedCampaignIds, setAllowedCampaignIds] = useState([]);
 
   // ================= DROPDOWN DATA =================
   const [campaigns, setCampaigns] = useState([]);
@@ -145,6 +147,33 @@ const CampaignAnalyticsTable = () => {
   //     console.error(err);
   //   }
   // };
+  const fetchMappings = async () => {
+    try {
+      const res = await axios.get(`${apiUrl2}/campaign-publisher-map`, {
+        params: {
+          userid: user.id,
+          role: Array.isArray(user.role) ? user.role[0] : user.role,
+        },
+      });
+      console.log("Mappings API Response:", res.data);
+      const ids = (res.data.data || []).map((item) => Number(item.campaign_id));
+
+      setAllowedCampaignIds(ids);
+
+      console.log("Allowed Campaign IDs:", ids);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  useEffect(() => {
+    if (
+      user?.role?.includes("publisher") ||
+      user?.role?.includes("pub_executive")
+    ) {
+      fetchMappings();
+    }
+  }, [user]);
   const fetchCampaigns = async () => {
     try {
       const restrictedRoles = [
@@ -235,10 +264,45 @@ const CampaignAnalyticsTable = () => {
     const assignedNames = subadmins
       .filter((s) => assignedIds.includes(s.id))
       .map((s) => normalize(s.username));
+    // return data.filter((item) => {
+    //   const pubam = normalize(item.pubam);
+
+    //   // operations & optimization can see all data
+    //   if (
+    //     user?.role?.includes("operations") ||
+    //     user?.role?.includes("optimization") ||
+    //     user?.role?.includes("advertiser") ||
+    //     user?.role?.includes("advertiser_manager") ||
+    //     user?.role?.includes("adv_executive") ||
+    //     user?.role?.includes("admin")
+    //   ) {
+    //     return true;
+    //   }
+
+    //   // own data
+    //   if (pubam === username) return true;
+
+    //   // assigned subadmin data
+    //   if (assignedNames.includes(pubam)) return true;
+
+    //   // publisher_manager extra access
+    //   // Hide N/A records for publisher roles
+    //   if (
+    //     user?.role?.includes("publisher_manager") ||
+    //     user?.role?.includes("publisher") ||
+    //     user?.role?.includes("pub_executive")
+    //   ) {
+    //     if (pubam === "n/a" || pubam === "-") {
+    //       return false;
+    //     }
+    //   }
+
+    //   return false;
+    // });
     return data.filter((item) => {
       const pubam = normalize(item.pubam);
 
-      // operations & optimization can see all data
+      // Full access roles
       if (
         user?.role?.includes("operations") ||
         user?.role?.includes("optimization") ||
@@ -250,22 +314,40 @@ const CampaignAnalyticsTable = () => {
         return true;
       }
 
-      // own data
-      if (pubam === username) return true;
-
-      // assigned subadmin data
-      if (assignedNames.includes(pubam)) return true;
-
-      // publisher_manager extra access
-      // Hide N/A records for publisher roles
+      // Publisher / Pub Executive
       if (
-        user?.role?.includes("publisher_manager") ||
         user?.role?.includes("publisher") ||
         user?.role?.includes("pub_executive")
       ) {
-        if (pubam === "n/a" || pubam === "-") {
-          return false;
+        // If campaign mapping exists -> use campaign_id
+        if (allowedCampaignIds.length > 0) {
+          // Don't show N/A publisher records
+          if (pubam === "n/a" || pubam === "-") {
+            return false;
+          }
+
+          return allowedCampaignIds.includes(Number(item.campaign_id));
         }
+
+        // No mapping -> existing username logic
+        if (pubam === username) return true;
+
+        if (assignedNames.includes(pubam)) return true;
+
+        if (pubam === "n/a" || pubam === "-") return false;
+
+        return false;
+      }
+
+      // Publisher Manager (existing logic)
+      if (user?.role?.includes("publisher_manager")) {
+        if (pubam === username) return true;
+
+        if (assignedNames.includes(pubam)) return true;
+
+        if (pubam === "n/a" || pubam === "-") return false;
+
+        return false;
       }
 
       return false;
@@ -716,8 +798,7 @@ const CampaignAnalyticsTable = () => {
       return (b.clicks_mtd || 0) - (a.clicks_mtd || 0);
     });
   }, [filteredData]);
-  console.log("campaign", campaigns);
-  console.log("campaign_ids", campaigns.campaign_ids);
+  console.log("Sorted Data:", sortedData);
   return (
     <>
       {user?.permissions?.can_see_input1 === 1 && (
@@ -1463,87 +1544,87 @@ const CampaignAnalyticsTable = () => {
             `}</style>
           </div>
           <div style={{ padding: 20 }}>
-          <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
-            <Col xs={12} sm={12} md={6}>
-              <Card
-                size="small"
-                style={{
-                  borderRadius: 12,
-                  textAlign: "center",
-                  borderLeft: "5px solid #1677ff",
-                }}>
-                <div style={{ fontSize: 13, color: "#666" }}>Total PIDs</div>
-                <div
+            <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
+              <Col xs={12} sm={12} md={6}>
+                <Card
+                  size="small"
                   style={{
-                    fontSize: 28,
-                    fontWeight: 700,
-                    color: "#1677ff",
+                    borderRadius: 12,
+                    textAlign: "center",
+                    borderLeft: "5px solid #1677ff",
                   }}>
-                  {pidSummary.total}
-                </div>
-              </Card>
-            </Col>
+                  <div style={{ fontSize: 13, color: "#666" }}>Total PIDs</div>
+                  <div
+                    style={{
+                      fontSize: 28,
+                      fontWeight: 700,
+                      color: "#1677ff",
+                    }}>
+                    {pidSummary.total}
+                  </div>
+                </Card>
+              </Col>
 
-            <Col xs={12} sm={12} md={6}>
-              <Card
-                size="small"
-                style={{
-                  borderRadius: 12,
-                  textAlign: "center",
-                  borderLeft: "5px solid #52c41a",
-                }}>
-                <div style={{ fontSize: 13, color: "#666" }}>Active PIDs</div>
-                <div
+              <Col xs={12} sm={12} md={6}>
+                <Card
+                  size="small"
                   style={{
-                    fontSize: 28,
-                    fontWeight: 700,
-                    color: "#52c41a",
+                    borderRadius: 12,
+                    textAlign: "center",
+                    borderLeft: "5px solid #52c41a",
                   }}>
-                  {pidSummary.active}
-                </div>
-              </Card>
-            </Col>
+                  <div style={{ fontSize: 13, color: "#666" }}>Active PIDs</div>
+                  <div
+                    style={{
+                      fontSize: 28,
+                      fontWeight: 700,
+                      color: "#52c41a",
+                    }}>
+                    {pidSummary.active}
+                  </div>
+                </Card>
+              </Col>
 
-            <Col xs={12} sm={12} md={6}>
-              <Card
-                size="small"
-                style={{
-                  borderRadius: 12,
-                  textAlign: "center",
-                  borderLeft: "5px solid #ff4d4f",
-                }}>
-                <div style={{ fontSize: 13, color: "#666" }}>Paused PIDs</div>
-                <div
+              <Col xs={12} sm={12} md={6}>
+                <Card
+                  size="small"
                   style={{
-                    fontSize: 28,
-                    fontWeight: 700,
-                    color: "#ff4d4f",
+                    borderRadius: 12,
+                    textAlign: "center",
+                    borderLeft: "5px solid #ff4d4f",
                   }}>
-                  {pidSummary.paused}
-                </div>
-              </Card>
-            </Col>
+                  <div style={{ fontSize: 13, color: "#666" }}>Paused PIDs</div>
+                  <div
+                    style={{
+                      fontSize: 28,
+                      fontWeight: 700,
+                      color: "#ff4d4f",
+                    }}>
+                    {pidSummary.paused}
+                  </div>
+                </Card>
+              </Col>
 
-            <Col xs={12} sm={12} md={6}>
-              <Card
-                size="small"
-                style={{
-                  borderRadius: 12,
-                  textAlign: "center",
-                  borderLeft: "5px solid #fa8c16",
-                }}>
-                <div style={{ fontSize: 13, color: "#666" }}>N/A PIDs</div>
-                <div
+              <Col xs={12} sm={12} md={6}>
+                <Card
+                  size="small"
                   style={{
-                    fontSize: 28,
-                    fontWeight: 700,
-                    color: "#fa8c16",
+                    borderRadius: 12,
+                    textAlign: "center",
+                    borderLeft: "5px solid #fa8c16",
                   }}>
-                  {pidSummary.na}
-                </div>
-              </Card>
-            </Col>
-          </Row>
+                  <div style={{ fontSize: 13, color: "#666" }}>N/A PIDs</div>
+                  <div
+                    style={{
+                      fontSize: 28,
+                      fontWeight: 700,
+                      color: "#fa8c16",
+                    }}>
+                    {pidSummary.na}
+                  </div>
+                </Card>
+              </Col>
+            </Row>
           </div>
           <DecisionTable
             campaign_name={payload.campaign_name}
@@ -1551,6 +1632,7 @@ const CampaignAnalyticsTable = () => {
             lastdate={payload.end_date}
             geo={payload.geo}
             campaign_ids={payload.campaign_ids}
+            allowedCampaignIds={allowedCampaignIds}
           />
         </>
       ) : (
