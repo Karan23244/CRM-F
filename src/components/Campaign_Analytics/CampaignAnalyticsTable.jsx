@@ -318,23 +318,27 @@ const CampaignAnalyticsTable = () => {
         user?.role?.includes("publisher") ||
         user?.role?.includes("pub_executive")
       ) {
-        // If campaign mapping exists -> use campaign_id
-        if (allowedCampaignIds.length > 0) {
-          // Don't show N/A publisher records
-          if (pubam === "n/a" || pubam === "-") {
-            return false;
-          }
-
-          return allowedCampaignIds.includes(Number(item.campaign_id));
+        // Don't show N/A publisher records
+        if (pubam === "n/a" || pubam === "-") {
+          return false;
         }
 
-        // No mapping -> existing username logic
-        if (pubam === username) return true;
+        // 1. Allow if campaign mapping matches
+        if (allowedCampaignIds.includes(Number(item.campaign_id))) {
+          return true;
+        }
 
-        if (assignedNames.includes(pubam)) return true;
+        // 2. If campaign mapping doesn't match, fall back to username
+        if (pubam === username) {
+          return true;
+        }
 
-        if (pubam === "n/a" || pubam === "-") return false;
+        // 3. Or assigned subadmin
+        if (assignedNames.includes(pubam)) {
+          return true;
+        }
 
+        // Otherwise deny
         return false;
       }
 
