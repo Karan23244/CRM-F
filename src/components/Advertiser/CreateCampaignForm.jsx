@@ -11,7 +11,7 @@ import {
   Switch,
   Checkbox,
   AutoComplete,
-  Modal
+  Modal,
 } from "antd";
 import axios from "axios";
 import { useSelector } from "react-redux";
@@ -104,16 +104,15 @@ const CreateCampaignForm = () => {
       const data = res?.data || [];
 
       const filtered = data.filter((item) =>
-        item.campaign_name
-          ?.toLowerCase()
-          .includes(searchText.toLowerCase())
+        item.campaign_name?.toLowerCase().includes(searchText.toLowerCase()),
       );
 
       const formatted = filtered.map((item) => ({
         value: item.campaign_name,
-        label: item.sub_campaign_id != null
-          ? `${item.campaign_name} (${item.os}) [${item.sub_campaign_id}]`
-          : `${item.campaign_name} (${item.os})`,
+        label:
+          item.sub_campaign_id != null
+            ? `${item.campaign_name} (${item.os}) [${item.sub_campaign_id}]`
+            : `${item.campaign_name} (${item.os})`,
         sub_campaign_id: item.sub_campaign_id,
         original_name: item.campaign_name,
       }));
@@ -384,16 +383,24 @@ const CreateCampaignForm = () => {
     const newGeo = values.geo_details[0].geo;
     const changedFields = {};
 
-    if (isDiff(values.Adv_name, editRecord.Adv_name)) changedFields.Adv_name = values.Adv_name;
-    if (isDiff(values.campaign_name, editRecord.campaign_name)) changedFields.campaign_name = values.campaign_name;
-    if (isDiff(values.Vertical, editRecord.Vertical)) changedFields.Vertical = values.Vertical;
-    if (isDiff(values.state_city, editRecord.state_city)) changedFields.state_city = values.state_city;
-    if (isDiff(values.mmp_tracker, editRecord.mmp_tracker)) changedFields.mmp_tracker = values.mmp_tracker;
+    if (isDiff(values.Adv_name, editRecord.Adv_name))
+      changedFields.Adv_name = values.Adv_name;
+    if (isDiff(values.campaign_name, editRecord.campaign_name))
+      changedFields.campaign_name = values.campaign_name;
+    if (isDiff(values.Vertical, editRecord.Vertical))
+      changedFields.Vertical = values.Vertical;
+    if (isDiff(values.state_city, editRecord.state_city))
+      changedFields.state_city = values.state_city;
+    if (isDiff(values.mmp_tracker, editRecord.mmp_tracker))
+      changedFields.mmp_tracker = values.mmp_tracker;
     if (isDiff(values.kpi, editRecord.kpi)) changedFields.kpi = values.kpi;
-    if (isDiff(values.tracking_url, editRecord.tracking_url)) changedFields.tracking_url = values.tracking_url;
-    if (isDiff(values.preview_url, editRecord.preview_url)) changedFields.preview_url = values.preview_url;
+    if (isDiff(values.tracking_url, editRecord.tracking_url))
+      changedFields.tracking_url = values.tracking_url;
+    if (isDiff(values.preview_url, editRecord.preview_url))
+      changedFields.preview_url = values.preview_url;
     if (isDiff(values.da, editRecord.da)) changedFields.da = values.da;
-    if (isDiff(values.status, editRecord.status)) changedFields.status = values.status;
+    if (isDiff(values.status, editRecord.status))
+      changedFields.status = values.status;
     if (isDiff(adv_d, editRecord.adv_d)) changedFields.adv_d = adv_d;
     if (isDiff(newGeo, originalGeo)) changedFields.geo = newGeo;
     if (isDiff(newOS, oldOS)) {
@@ -415,7 +422,10 @@ const CreateCampaignForm = () => {
       updates: [changedFields],
     };
     try {
-      await axios.put(`${apiChatUrl}/groups/update-campaign-group-data`, payload);
+      await axios.put(
+        `${apiChatUrl}/groups/update-campaign-group-data`,
+        payload,
+      );
     } catch (error) {
       console.error("PARTIAL EDIT CAMPAIGN ERROR:", error);
     }
@@ -480,10 +490,8 @@ const CreateCampaignForm = () => {
   };
 
   const columns = [
-    {
-      title: "PID",
-      dataIndex: "pid",
-    },
+    { title: "PID", dataIndex: "pid", width: 150 },
+    { title: "PUB ID", dataIndex: "pub_id", width: 150 },
     {
       title: "Status",
       render: (text, record) => {
@@ -710,7 +718,13 @@ const CreateCampaignForm = () => {
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
-    Swal.fire({ icon: "success", title: "Copied!", text: "Copied to clipboard.", timer: 1500, showConfirmButton: false });
+    Swal.fire({
+      icon: "success",
+      title: "Copied!",
+      text: "Copied to clipboard.",
+      timer: 1500,
+      showConfirmButton: false,
+    });
   };
 
   useEffect(() => {
@@ -730,7 +744,11 @@ const CreateCampaignForm = () => {
 
   const handleSaveCap = async () => {
     if (!capType || capPublishers.length === 0 || !capPubCapType) {
-      Swal.fire("Error", "Type, Publisher(s), and Publisher Cap Type are required", "error");
+      Swal.fire(
+        "Error",
+        "Type, Publisher(s), and Publisher Cap Type are required",
+        "error",
+      );
       return;
     }
     try {
@@ -754,9 +772,18 @@ const CreateCampaignForm = () => {
       setCapDaily("");
       setCapMonthly("");
       setCapLifetime("");
-      Swal.fire({ icon: "success", title: "Cap saved!", timer: 1500, showConfirmButton: false });
+      Swal.fire({
+        icon: "success",
+        title: "Cap saved!",
+        timer: 1500,
+        showConfirmButton: false,
+      });
     } catch (err) {
-      Swal.fire("Error", err.response?.data?.message || "Failed to save cap", "error");
+      Swal.fire(
+        "Error",
+        err.response?.data?.message || "Failed to save cap",
+        "error",
+      );
     } finally {
       setCapSaving(false);
     }
@@ -896,8 +923,7 @@ const CreateCampaignForm = () => {
                   required: true,
                   message: "Please enter campaign name",
                 },
-              ]}
-            >
+              ]}>
               <AutoComplete
                 placement="bottomLeft"
                 getPopupContainer={(trigger) => trigger.parentNode}
@@ -911,15 +937,14 @@ const CreateCampaignForm = () => {
                 }}
                 onSelect={(value) => {
                   const found = campaignOptionsRef.current.find(
-                    (opt) => opt.value === value
+                    (opt) => opt.value === value,
                   );
                   setSelectedCampaign({
                     name: found?.original_name || value,
                     sub_campaign_id: found?.sub_campaign_id ?? null,
                   });
                 }}
-                filterOption={false}
-              >
+                filterOption={false}>
                 <Input
                   placeholder="Type Campaign Name"
                   className="h-11 rounded-lg border-gray-200 bg-gray-50"
@@ -927,7 +952,9 @@ const CreateCampaignForm = () => {
                     selectedCampaign.name != "" ? (
                       <span className="text-xs bg-blue-50 text-blue-600 border border-blue-200 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
                         {selectedCampaign.name}
-                        {selectedCampaign.sub_campaign_id != null ? ` [${selectedCampaign.sub_campaign_id}]` : ""}
+                        {selectedCampaign.sub_campaign_id != null
+                          ? ` [${selectedCampaign.sub_campaign_id}]`
+                          : ""}
                       </span>
                     ) : null
                   }
@@ -1053,7 +1080,9 @@ const CreateCampaignForm = () => {
                               <Option value="Android">Android</Option>
                               <Option value="iOS">iOS</Option>
                               <Option value="Web">Web</Option>
-                              <Option value="both" disabled={!!editRecord}>Both</Option>
+                              <Option value="both" disabled={!!editRecord}>
+                                Both
+                              </Option>
                             </Select>
                           </Form.Item>
                         </div>
@@ -1119,10 +1148,12 @@ const CreateCampaignForm = () => {
                 const selectedOS = geoDetails?.[0]?.os;
 
                 const urlValidator = (_, value) => {
-                  if (!value) return Promise.reject(new Error("Please enter preview URL"));
+                  if (!value)
+                    return Promise.reject(
+                      new Error("Please enter preview URL"),
+                    );
 
-                  const pattern =
-                    /^(https?:\/\/)?([\w\d-]+\.)+\w{2,}(\/.*)?$/i;
+                  const pattern = /^(https?:\/\/)?([\w\d-]+\.)+\w{2,}(\/.*)?$/i;
 
                   return pattern.test(value)
                     ? Promise.resolve()
@@ -1135,8 +1166,7 @@ const CreateCampaignForm = () => {
                       <Form.Item
                         label="Android Preview Link"
                         name="preview_url_android"
-                        rules={[{ validator: urlValidator }]}
-                      >
+                        rules={[{ validator: urlValidator }]}>
                         <Input
                           placeholder="Enter Android Preview URL"
                           className="h-11 rounded-lg border-gray-200 bg-gray-50"
@@ -1146,8 +1176,7 @@ const CreateCampaignForm = () => {
                       <Form.Item
                         label="iOS Preview Link"
                         name="preview_url_ios"
-                        rules={[{ validator: urlValidator }]}
-                      >
+                        rules={[{ validator: urlValidator }]}>
                         <Input
                           placeholder="Enter iOS Preview URL"
                           className="h-11 rounded-lg border-gray-200 bg-gray-50"
@@ -1161,8 +1190,7 @@ const CreateCampaignForm = () => {
                   <Form.Item
                     label="Preview Link"
                     name="preview_url"
-                    rules={[{ validator: urlValidator }]}
-                  >
+                    rules={[{ validator: urlValidator }]}>
                     <Input
                       placeholder="Enter Preview URL"
                       className="h-11 rounded-lg border-gray-200 bg-gray-50"
@@ -1177,7 +1205,9 @@ const CreateCampaignForm = () => {
                 className="h-11 rounded-lg border-gray-200 bg-gray-50"
               />
             </Form.Item>
-            <Form.Item label="Impression Tracking Link" name="advertiser_impression_url">
+            <Form.Item
+              label="Impression Tracking Link"
+              name="advertiser_impression_url">
               <Input
                 placeholder="Enter Impression Tracking Link"
                 className="h-11 rounded-lg border-gray-200 bg-gray-50"
@@ -1225,189 +1255,231 @@ const CreateCampaignForm = () => {
       {editRecord && (
         <div className="mt-8 w-full max-w-8xl">
           {/* ====== CAPS MODULE ====== */}
-          {editRecord.tracking_url && <Card
-            className="shadow-md border-gray-100 rounded-2xl mb-10"
-            title={
-              <div className="flex items-center justify-between">
-                <span className="text-base font-semibold text-gray-800">Caps</span>
-                <Button
-                  type="primary"
-                  size="small"
-                  className="!bg-[#2F5D99] !border-none"
-                  onClick={() => setShowCapForm((prev) => !prev)}>
-                  {showCapForm ? "Cancel" : "+ Add Cap"}
-                </Button>
-              </div>
-            }>
-
-            {/* Existing caps table */}
-            {caps.length > 0 && (
-              <div className="mb-4">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-gray-50 text-gray-600 text-left">
-                      <th className="px-3 py-2 font-semibold">Type</th>
-                      <th className="px-3 py-2 font-semibold">Publishers</th>
-                      <th className="px-3 py-2 font-semibold">Cap Type</th>
-                      <th className="px-3 py-2 font-semibold">Daily</th>
-                      <th className="px-3 py-2 font-semibold">Monthly</th>
-                      <th className="px-3 py-2 font-semibold">Lifetime</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {caps.map((cap, idx) => (
-                      <tr key={idx} className="border-t border-gray-100 hover:bg-gray-50">
-                        <td className="px-3 py-2 text-[#2F5D99] font-medium">{cap.type}</td>
-                        <td className="px-3 py-2">{Array.isArray(cap.publisher_ids) ? cap.publisher_ids.join(", ") : cap.publisher_ids}</td>
-                        <td className="px-3 py-2">{cap.publisher_cap_type}</td>
-                        <td className="px-3 py-2">{cap.daily ?? "—"}</td>
-                        <td className="px-3 py-2">{cap.monthly ?? "—"}</td>
-                        <td className="px-3 py-2">{cap.lifetime ?? "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {caps.length === 0 && !showCapForm && (
-              <p className="text-gray-400 text-sm text-center py-4">No caps set for this campaign. Click "+ Add Cap" to add one.</p>
-            )}
-
-            {/* Add cap form */}
-            {showCapForm && (
-              <div className={`${caps.length > 0 ? "border-t pt-4" : ""} grid grid-cols-1 md:grid-cols-2 gap-4`}>
-                {/* Type */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-semibold text-gray-700">Type <span className="text-red-500">*</span></label>
-                  <Select
-                    placeholder="Select cap type"
-                    value={capType}
-                    onChange={setCapType}
-                    size="large"
-                    className="w-full">
-                    <Option value="installs_cap">Installs Cap</Option>
-                    <Option value="event_cap">Event Cap</Option>
-                    <Option value="click_cap">Click Cap</Option>
-                    <Option value="payout_cap">Payout Cap</Option>
-                  </Select>
-                </div>
-
-                {/* Publisher */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-semibold text-gray-700">Publisher <span className="text-red-500">*</span></label>
-                  {approvedPublishers.length === 0 ? (
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-orange-200 bg-orange-50 text-orange-600 text-sm">
-                      <span>⚠</span>
-                      <span>No approved publishers yet. Please approve publishers first.</span>
-                    </div>
-                  ) : (
-                    <Select
-                      mode="multiple"
-                      placeholder="Select publishers"
-                      value={capPublishers}
-                      onChange={setCapPublishers}
-                      size="large"
-                      maxTagCount="responsive"
-                      className="w-full"
-                      dropdownRender={(menu) => (
-                        <>
-                          <div
-                            className="px-3 py-2 cursor-pointer hover:bg-gray-50 text-[#2F5D99] font-medium text-sm border-b"
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              const allIds = approvedPublishers.map((p) => p.pub_id);
-                              setCapPublishers(
-                                capPublishers.length === allIds.length ? [] : allIds
-                              );
-                            }}>
-                            {capPublishers.length === approvedPublishers.length && approvedPublishers.length > 0
-                              ? "Deselect All"
-                              : "Select All"}
-                          </div>
-                          {menu}
-                        </>
-                      )}>
-                      {approvedPublishers.map((p) => (
-                        <Option key={p.pub_id} value={p.pub_id}>{p.pub_id}</Option>
-                      ))}
-                    </Select>
-                  )}
-                </div>
-
-                {/* Publisher Cap Type */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-semibold text-gray-700">Publisher Cap Type <span className="text-red-500">*</span></label>
-                  <Select
-                    placeholder="Select cap type"
-                    value={capPubCapType}
-                    onChange={setCapPubCapType}
-                    size="large"
-                    className="w-full">
-                    <Option value="group">Group</Option>
-                    <Option value="each">Each</Option>
-                  </Select>
-                </div>
-
-                {/* Daily */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-semibold text-gray-700">Daily</label>
-                  <Input
-                    type="number"
-                    placeholder="Enter daily cap"
-                    value={capDaily}
-                    onChange={(e) => setCapDaily(e.target.value)}
-                    size="large"
-                    min={0}
-                    className="rounded-lg border-gray-200 bg-gray-50"
-                  />
-                </div>
-
-                {/* Monthly */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-semibold text-gray-700">Monthly</label>
-                  <Input
-                    type="number"
-                    placeholder="Enter monthly cap"
-                    value={capMonthly}
-                    onChange={(e) => setCapMonthly(e.target.value)}
-                    size="large"
-                    min={0}
-                    className="rounded-lg border-gray-200 bg-gray-50"
-                  />
-                </div>
-
-                {/* Lifetime */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-semibold text-gray-700">Lifetime</label>
-                  <Input
-                    type="number"
-                    placeholder="Enter lifetime cap"
-                    value={capLifetime}
-                    onChange={(e) => setCapLifetime(e.target.value)}
-                    size="large"
-                    min={0}
-                    className="rounded-lg border-gray-200 bg-gray-50"
-                  />
-                </div>
-
-                {/* Save button */}
-                <div className="md:col-span-2 flex justify-end mt-2">
+          {editRecord.tracking_url && (
+            <Card
+              className="shadow-md border-gray-100 rounded-2xl mb-10"
+              title={
+                <div className="flex items-center justify-between">
+                  <span className="text-base font-semibold text-gray-800">
+                    Caps
+                  </span>
                   <Button
                     type="primary"
-                    loading={capSaving}
-                    onClick={handleSaveCap}
-                    className="!bg-[#2F5D99] hover:!bg-[#24487A] !text-white !rounded-lg !px-8 !h-10 !border-none !shadow-md">
-                    Save Cap
+                    size="small"
+                    className="!bg-[#2F5D99] !border-none"
+                    onClick={() => setShowCapForm((prev) => !prev)}>
+                    {showCapForm ? "Cancel" : "+ Add Cap"}
                   </Button>
                 </div>
-              </div>
-            )}
-          </Card>}
+              }>
+              {/* Existing caps table */}
+              {caps.length > 0 && (
+                <div className="mb-4">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-gray-50 text-gray-600 text-left">
+                        <th className="px-3 py-2 font-semibold">Type</th>
+                        <th className="px-3 py-2 font-semibold">Publishers</th>
+                        <th className="px-3 py-2 font-semibold">Cap Type</th>
+                        <th className="px-3 py-2 font-semibold">Daily</th>
+                        <th className="px-3 py-2 font-semibold">Monthly</th>
+                        <th className="px-3 py-2 font-semibold">Lifetime</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {caps.map((cap, idx) => (
+                        <tr
+                          key={idx}
+                          className="border-t border-gray-100 hover:bg-gray-50">
+                          <td className="px-3 py-2 text-[#2F5D99] font-medium">
+                            {cap.type}
+                          </td>
+                          <td className="px-3 py-2">
+                            {Array.isArray(cap.publisher_ids)
+                              ? cap.publisher_ids.join(", ")
+                              : cap.publisher_ids}
+                          </td>
+                          <td className="px-3 py-2">
+                            {cap.publisher_cap_type}
+                          </td>
+                          <td className="px-3 py-2">{cap.daily ?? "—"}</td>
+                          <td className="px-3 py-2">{cap.monthly ?? "—"}</td>
+                          <td className="px-3 py-2">{cap.lifetime ?? "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {caps.length === 0 && !showCapForm && (
+                <p className="text-gray-400 text-sm text-center py-4">
+                  No caps set for this campaign. Click "+ Add Cap" to add one.
+                </p>
+              )}
+
+              {/* Add cap form */}
+              {showCapForm && (
+                <div
+                  className={`${caps.length > 0 ? "border-t pt-4" : ""} grid grid-cols-1 md:grid-cols-2 gap-4`}>
+                  {/* Type */}
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">
+                      Type <span className="text-red-500">*</span>
+                    </label>
+                    <Select
+                      placeholder="Select cap type"
+                      value={capType}
+                      onChange={setCapType}
+                      size="large"
+                      className="w-full">
+                      <Option value="installs_cap">Installs Cap</Option>
+                      <Option value="event_cap">Event Cap</Option>
+                      <Option value="click_cap">Click Cap</Option>
+                      <Option value="payout_cap">Payout Cap</Option>
+                    </Select>
+                  </div>
+
+                  {/* Publisher */}
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">
+                      Publisher <span className="text-red-500">*</span>
+                    </label>
+                    {approvedPublishers.length === 0 ? (
+                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-orange-200 bg-orange-50 text-orange-600 text-sm">
+                        <span>⚠</span>
+                        <span>
+                          No approved publishers yet. Please approve publishers
+                          first.
+                        </span>
+                      </div>
+                    ) : (
+                      <Select
+                        mode="multiple"
+                        placeholder="Select publishers"
+                        value={capPublishers}
+                        onChange={setCapPublishers}
+                        size="large"
+                        maxTagCount="responsive"
+                        className="w-full"
+                        dropdownRender={(menu) => (
+                          <>
+                            <div
+                              className="px-3 py-2 cursor-pointer hover:bg-gray-50 text-[#2F5D99] font-medium text-sm border-b"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                const allIds = approvedPublishers.map(
+                                  (p) => p.pub_id,
+                                );
+                                setCapPublishers(
+                                  capPublishers.length === allIds.length
+                                    ? []
+                                    : allIds,
+                                );
+                              }}>
+                              {capPublishers.length ===
+                                approvedPublishers.length &&
+                              approvedPublishers.length > 0
+                                ? "Deselect All"
+                                : "Select All"}
+                            </div>
+                            {menu}
+                          </>
+                        )}>
+                        {approvedPublishers.map((p) => (
+                          <Option key={p.pub_id} value={p.pub_id}>
+                            {p.pub_id}
+                          </Option>
+                        ))}
+                      </Select>
+                    )}
+                  </div>
+
+                  {/* Publisher Cap Type */}
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">
+                      Publisher Cap Type <span className="text-red-500">*</span>
+                    </label>
+                    <Select
+                      placeholder="Select cap type"
+                      value={capPubCapType}
+                      onChange={setCapPubCapType}
+                      size="large"
+                      className="w-full">
+                      <Option value="group">Group</Option>
+                      <Option value="each">Each</Option>
+                    </Select>
+                  </div>
+
+                  {/* Daily */}
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">
+                      Daily
+                    </label>
+                    <Input
+                      type="number"
+                      placeholder="Enter daily cap"
+                      value={capDaily}
+                      onChange={(e) => setCapDaily(e.target.value)}
+                      size="large"
+                      min={0}
+                      className="rounded-lg border-gray-200 bg-gray-50"
+                    />
+                  </div>
+
+                  {/* Monthly */}
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">
+                      Monthly
+                    </label>
+                    <Input
+                      type="number"
+                      placeholder="Enter monthly cap"
+                      value={capMonthly}
+                      onChange={(e) => setCapMonthly(e.target.value)}
+                      size="large"
+                      min={0}
+                      className="rounded-lg border-gray-200 bg-gray-50"
+                    />
+                  </div>
+
+                  {/* Lifetime */}
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700">
+                      Lifetime
+                    </label>
+                    <Input
+                      type="number"
+                      placeholder="Enter lifetime cap"
+                      value={capLifetime}
+                      onChange={(e) => setCapLifetime(e.target.value)}
+                      size="large"
+                      min={0}
+                      className="rounded-lg border-gray-200 bg-gray-50"
+                    />
+                  </div>
+
+                  {/* Save button */}
+                  <div className="md:col-span-2 flex justify-end mt-2">
+                    <Button
+                      type="primary"
+                      loading={capSaving}
+                      onClick={handleSaveCap}
+                      className="!bg-[#2F5D99] hover:!bg-[#24487A] !text-white !rounded-lg !px-8 !h-10 !border-none !shadow-md">
+                      Save Cap
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </Card>
+          )}
 
           {/* Always show SettingsPage */}
           <div className="mt-8">
-            <SettingsPage campaignId={editRecord.id} adv_id={editRecord.adv_d} />
+            <SettingsPage
+              campaignId={editRecord.id}
+              adv_id={editRecord.adv_d}
+            />
           </div>
 
           {/* 👇 Only NON-publisher roles can see below components */}
@@ -1415,32 +1487,45 @@ const CreateCampaignForm = () => {
             <>
               {editRecord.tracking_url && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                  <Card title="Approved Publishers" className="shadow-md border-gray-100 rounded-2xl">
+                  <Card
+                    title="Approved Publishers"
+                    className="shadow-md border-gray-100 rounded-2xl">
                     {approvedPublishers.length === 0 ? (
                       <p className="text-gray-400 text-center py-8">
-                        No approved publishers yet. Select a Publisher ID and click Approve.
+                        No approved publishers yet. Select a Publisher ID and
+                        click Approve.
                       </p>
                     ) : (
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="bg-gray-50 text-gray-600 text-left">
-                            <th className="px-4 py-2 font-semibold">Publisher ID</th>
+                            <th className="px-4 py-2 font-semibold">
+                              Publisher ID
+                            </th>
                             <th className="px-4 py-2 font-semibold">Links</th>
                             <th className="px-4 py-2 font-semibold">Action</th>
                           </tr>
                         </thead>
                         <tbody>
                           {approvedPublishers.map((pub) => (
-                            <tr key={pub.pub_id} className="border-t border-gray-100 hover:bg-gray-50">
-                              <td className="px-4 py-3 font-medium text-[#2F5D99]">{pub.pub_id}</td>
+                            <tr
+                              key={pub.pub_id}
+                              className="border-t border-gray-100 hover:bg-gray-50">
+                              <td className="px-4 py-3 font-medium text-[#2F5D99]">
+                                {pub.pub_id}
+                              </td>
                               <td className="px-4 py-3">
-                                <Button size="small" type="default"
+                                <Button
+                                  size="small"
+                                  type="default"
                                   onClick={() => setViewingPub(pub)}>
                                   View
                                 </Button>
                               </td>
                               <td className="px-4 py-3">
-                                <Button size="small" danger
+                                <Button
+                                  size="small"
+                                  danger
                                   onClick={() => handleDisapprove(pub.pub_id)}>
                                   Disapprove
                                 </Button>
@@ -1462,23 +1547,47 @@ const CreateCampaignForm = () => {
                       <div className="space-y-4 mt-2">
                         {viewingPub.publisher_link && (
                           <div>
-                            <p className="text-gray-600 text-sm font-medium mb-1">Publisher Tracking Link:</p>
+                            <p className="text-gray-600 text-sm font-medium mb-1">
+                              Publisher Tracking Link:
+                            </p>
                             <div className="flex items-center gap-2">
-                              <input type="text" readOnly value={viewingPub.publisher_link}
-                                className="w-full px-3 py-1.5 border rounded-lg bg-white text-gray-700 text-sm" />
-                              <Button size="small" className="!bg-green-600 hover:!bg-green-700 !text-white !rounded-lg"
-                                onClick={() => copyToClipboard(viewingPub.publisher_link)}>Copy</Button>
+                              <input
+                                type="text"
+                                readOnly
+                                value={viewingPub.publisher_link}
+                                className="w-full px-3 py-1.5 border rounded-lg bg-white text-gray-700 text-sm"
+                              />
+                              <Button
+                                size="small"
+                                className="!bg-green-600 hover:!bg-green-700 !text-white !rounded-lg"
+                                onClick={() =>
+                                  copyToClipboard(viewingPub.publisher_link)
+                                }>
+                                Copy
+                              </Button>
                             </div>
                           </div>
                         )}
                         {viewingPub.impression_link && (
                           <div>
-                            <p className="text-gray-600 text-sm font-medium mb-1">Impression Link:</p>
+                            <p className="text-gray-600 text-sm font-medium mb-1">
+                              Impression Link:
+                            </p>
                             <div className="flex items-center gap-2">
-                              <input type="text" readOnly value={viewingPub.impression_link}
-                                className="w-full px-3 py-1.5 border rounded-lg bg-white text-gray-700 text-sm" />
-                              <Button size="small" className="!bg-blue-600 hover:!bg-blue-700 !text-white !rounded-lg"
-                                onClick={() => copyToClipboard(viewingPub.impression_link)}>Copy</Button>
+                              <input
+                                type="text"
+                                readOnly
+                                value={viewingPub.impression_link}
+                                className="w-full px-3 py-1.5 border rounded-lg bg-white text-gray-700 text-sm"
+                              />
+                              <Button
+                                size="small"
+                                className="!bg-blue-600 hover:!bg-blue-700 !text-white !rounded-lg"
+                                onClick={() =>
+                                  copyToClipboard(viewingPub.impression_link)
+                                }>
+                                Copy
+                              </Button>
                             </div>
                           </div>
                         )}
@@ -1486,10 +1595,14 @@ const CreateCampaignForm = () => {
                     )}
                   </Modal>
 
-                  <Card title="Not Approved Publishers" className="shadow-md border-gray-100 rounded-2xl">
+                  <Card
+                    title="Not Approved Publishers"
+                    className="shadow-md border-gray-100 rounded-2xl">
                     <div className="flex flex-col gap-4">
                       <div className="flex flex-col gap-1">
-                        <label className="text-sm font-semibold text-gray-700">Publisher ID</label>
+                        <label className="text-sm font-semibold text-gray-700">
+                          Publisher ID
+                        </label>
                         <Select
                           placeholder="Select Publisher ID"
                           value={selectedPub}
@@ -1499,15 +1612,26 @@ const CreateCampaignForm = () => {
                           loading={pubLoading}
                           className="rounded-lg w-full">
                           {allPubs
-                            .filter((pid) => !approvedPublishers.find((a) => a.pub_id === pid))
+                            .filter(
+                              (pid) =>
+                                !approvedPublishers.find(
+                                  (a) => a.pub_id === pid,
+                                ),
+                            )
                             .map((pid) => (
-                              <Select.Option key={pid} value={pid}>{pid}</Select.Option>
+                              <Select.Option key={pid} value={pid}>
+                                {pid}
+                              </Select.Option>
                             ))}
                         </Select>
                       </div>
                       <div className="flex items-center px-4 py-2 border rounded-lg bg-white">
-                        <Checkbox checked={hideReferrer} onChange={(e) => setHideReferrer(e.target.checked)}>
-                          <span className="text-gray-700 font-medium">Hide Google Referrer</span>
+                        <Checkbox
+                          checked={hideReferrer}
+                          onChange={(e) => setHideReferrer(e.target.checked)}>
+                          <span className="text-gray-700 font-medium">
+                            Hide Google Referrer
+                          </span>
                         </Checkbox>
                       </div>
                       <Button

@@ -115,16 +115,6 @@ export default function UploadForm({ onUploadSuccess }) {
         Swal.showLoading();
       },
     });
-    console.log("Submitting data:", {
-      campaignName: cleanCampaignName,
-      os: values.os.trim(),
-      geo: geoInput,
-      dateRange: formattedRange,
-      campaign_ids: values.campaign_ids,
-      files: fileList.map((file) => file.name),
-      socketId,
-      mmpTracker: values.mmpTracker,
-    });
     try {
       // await axios.post(`${apiUrl}/api/metrics`, data);
       const apiMap = {
@@ -201,7 +191,7 @@ export default function UploadForm({ onUploadSuccess }) {
         {/* Header */}
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-[#2F5D99] mb-2">
-            Appslyer Files Upload Form
+            AppsFlyer Files Upload Form
           </h2>
           <p className="text-gray-500">
             Fill in the campaign details and upload your metric files below.

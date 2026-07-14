@@ -28,7 +28,7 @@ const DecisionTable = ({
   lastdate,
   geo,
   campaign_ids,
-  allowedCampaignIds,
+  allowedCampaignIds = [],
 }) => {
   const user = useSelector((state) => state.auth.user);
 
@@ -110,6 +110,7 @@ const DecisionTable = ({
 
   // ================= FILTER DATA BY USER =================
   const roleFilteredData = useMemo(() => {
+  
     const normalize = (val) =>
       val === null || val === undefined || val === ""
         ? "-"
@@ -120,38 +121,20 @@ const DecisionTable = ({
     const username = normalize(user?.username);
 
     const assignedIds = user?.assigned_subadmins || [];
-
+    console.log(allowedCampaignIds, "allowedCampaignIds");
     const assignedNames = subadmins
       .filter((s) => assignedIds.includes(s.id))
       .map((s) => normalize(s.username));
 
     return dataSource.filter((item) => {
       const pubam = normalize(item.pubam);
-      const pubid = normalize(item.pubid);
-
-      const isNARecord =
-        pubam === "n/a" ||
-        pubam === "na" ||
-        pubam === "-" ||
-        pubid === "n/a" ||
-        pubid === "na" ||
-        pubid === "-";
-
-      // Only operations/optimization/admin can see N/A rows
-      if (isNARecord) {
-        return (
-          user?.role?.includes("operations") ||
-          user?.role?.includes("optimization") ||
-          user?.role?.includes("admin")
-        );
-      }
 
       // Full access roles
       if (
         user?.role?.includes("operations") ||
         user?.role?.includes("optimization") ||
-        user?.role?.includes("advertiser_manager") ||
         user?.role?.includes("advertiser") ||
+        user?.role?.includes("advertiser_manager") ||
         user?.role?.includes("adv_executive") ||
         user?.role?.includes("admin")
       ) {
@@ -163,16 +146,27 @@ const DecisionTable = ({
         user?.role?.includes("publisher") ||
         user?.role?.includes("pub_executive")
       ) {
-        // If mapping exists -> filter by campaign_id
-        if (allowedCampaignIds?.length > 0) {
-          return allowedCampaignIds.includes(Number(item.campaign_id));
+        // Don't show N/A publisher records
+        if (pubam === "n/a" || pubam === "-") {
+          return false;
         }
 
-        // Fallback to existing username logic
-        if (pubam === username) return true;
+        // 1. Allow if campaign mapping matches
+        if (allowedCampaignIds.includes(Number(item.campaign_id))) {
+          return true;
+        }
 
-        if (assignedNames.includes(pubam)) return true;
+        // 2. If campaign mapping doesn't match, fall back to username
+        if (pubam === username) {
+          return true;
+        }
 
+        // 3. Or assigned subadmin
+        if (assignedNames.includes(pubam)) {
+          return true;
+        }
+
+        // Otherwise deny
         return false;
       }
 
@@ -182,13 +176,15 @@ const DecisionTable = ({
 
         if (assignedNames.includes(pubam)) return true;
 
+        if (pubam === "n/a" || pubam === "-") return false;
+
         return false;
       }
 
       return false;
     });
-  }, [dataSource, user, subadmins, hasAccess]);
-
+  }, [dataSource, user, subadmins, hasAccess,campaign_ids, allowedCampaignIds]);
+  console.log(roleFilteredData, "roleFilteredData");
   // ================= COLUMN FILTERING =================
   const filteredData = useMemo(() => {
     const normalize = (val) =>
