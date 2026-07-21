@@ -33,6 +33,13 @@ const isCampaignLocked = (row, billingLocked) =>
     (p) =>
       p.status === "verified" || p.status === "locked" || p.status === "hold",
   );
+const allDataLocked = (row, billingLocked) =>
+  rows.length > 0 &&
+  rows.every(
+    (r) =>
+      (r.pid_data || []).length > 0 &&
+      (r.pid_data || []).every((p) => p.status === "locked"),
+  );
 const displayValue = (v) =>
   v === null || v === undefined ? "Pending" : Number(v) === 0 ? 0 : v;
 
@@ -1224,7 +1231,7 @@ export default function BillingAdvertiser() {
     label: `${p.pub_id} (${p.pub_name})`,
     value: p.pub_id,
   }));
-  console.log(isOld);
+
   // ── render ─────────────────────────────────────
   return (
     <>
@@ -1428,7 +1435,7 @@ export default function BillingAdvertiser() {
             <div className="flex justify-end mt-4">
               <Button
                 danger
-                disabled={!allPidsVerified || billingLocked || !rows.length}
+                disabled={!allPidsVerified || billingLocked || allDataLocked || !rows.length}
                 title={
                   billingLocked
                     ? "Billing already locked"

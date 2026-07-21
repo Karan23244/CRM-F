@@ -42,6 +42,7 @@ const colorMap = {
   black: "#ff4d4f",
   grey: "#bfbfbf",
   purple: "#fa8c16",
+  violet: "rgb(243 198 222)",
 };
 
 // ================= TEXT COLOR =================
@@ -207,18 +208,25 @@ const CampaignAnalyticsTable = () => {
   };
   // ================= FETCH DATA =================
   const fetchData = async () => {
-    if (!payload.campaign_name) return;
-
-    setLoading(true);
-    try {
-      const res = await axios.post(`${API}/api/campaign_analytics`, payload);
-      console.log("API Response:", res.data);
-      setData(res.data.data || []);
-    } catch (err) {
-      console.error(err);
+    if (!payload.campaign_name) {
+      setData([]);
+      return;
     }
 
-    setLoading(false);
+    // Clear old table immediately
+    setData([]);
+    setLoading(true);
+
+    try {
+      const res = await axios.post(`${API}/api/campaign_analytics`, payload);
+
+      setData(Array.isArray(res.data.data) ? res.data.data : []);
+    } catch (err) {
+      console.error(err);
+      setData([]); // ensure no stale data
+    } finally {
+      setLoading(false);
+    }
   };
 
   // ================= INITIAL LOAD =================
@@ -381,7 +389,8 @@ const CampaignAnalyticsTable = () => {
       // pid color classification
       // green = active
       // red = paused
-      if (row.pid_color === "black") {
+      // CRM status
+      if (Number(row.is_paused) === 1) {
         pausedPids.add(key);
       } else {
         activePids.add(key);

@@ -377,7 +377,6 @@ const PublisherRequest = ({ senderId, receiverId }) => {
     setGeoRows(updated);
   };
   const canUpdatePermission = (record) => {
-
     // Admin / Publisher Manager
     if (
       userRole.some((role) => ["admin", "publisher_manager"].includes(role))
@@ -826,7 +825,6 @@ const PublisherRequest = ({ senderId, receiverId }) => {
     hiddenColumns,
     getExcelFilteredDataForColumn,
   ]);
-
   return (
     <div className="p-6 max-w-full rounded-lg shadow-lg h-screen">
       <h2 className="text-2xl font-bold mb-6 text-gray-900">

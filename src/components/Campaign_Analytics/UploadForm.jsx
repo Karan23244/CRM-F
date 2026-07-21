@@ -206,9 +206,6 @@ export default function UploadForm({ onUploadSuccess }) {
           className="space-y-5">
           <Form.Item
             name="mmpTracker"
-            label={
-              <span className="font-medium text-[#2F5D99]">MMP Tracker</span>
-            }
             initialValue="appsflyer"
             rules={[
               {
@@ -218,12 +215,13 @@ export default function UploadForm({ onUploadSuccess }) {
             ]}>
             <Select
               size="large"
-              placeholder="Select MMP Tracker"
-              onChange={(value) => setSelectedMMP(value)}>
+              value={selectedMMP}
+              onChange={(value) => {
+                setSelectedMMP(value);
+                form.setFieldsValue({ mmpTracker: value });
+              }}>
               <Select.Option value="appsflyer">AppsFlyer</Select.Option>
-
               <Select.Option value="singular">Singular</Select.Option>
-
               <Select.Option value="adjust">Adjust</Select.Option>
             </Select>
           </Form.Item>
@@ -306,7 +304,10 @@ export default function UploadForm({ onUploadSuccess }) {
                   os: option.os,
                   campaign_ids: option.campaignIds,
                   geo: geoString,
+                  mmpTracker: option.configType, // Auto fill
                 });
+
+                setSelectedMMP(option.configType); // keep state in sync
 
                 setAvailableOS([option.os]);
               }}>
@@ -318,7 +319,9 @@ export default function UploadForm({ onUploadSuccess }) {
                   campaignName={c.campaign_name}
                   campaignIds={c.campaign_ids}
                   geos={c.geos}
-                  os={c.os}>
+                  os={c.os}
+                  configType={c.config_type} // <-- add this
+                >
                   <div className="flex items-center justify-between w-full">
                     <div>
                       <div className="font-semibold">

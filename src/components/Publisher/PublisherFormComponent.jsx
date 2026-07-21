@@ -27,6 +27,7 @@ import geoData from "../../Data/geoData.json";
 import SubAdminPubnameData from "./SubAdminPubnameData";
 import Swal from "sweetalert2";
 import {} from "@ant-design/icons";
+import PublisherStatusTable from "./PublisherStatus";
 const { Option } = Select;
 
 const apiUrl = import.meta.env.VITE_API_URL;
@@ -49,21 +50,22 @@ const PublisherIDDashboard = () => {
         </h2>
       </div>
 
-      {/* Tabs Section — only show if user is publisher_manager */}
-      {showAssignPubTab && (
-        <div className="flex flex-wrap gap-3 mb-6 bg-white p-3 rounded-lg shadow-sm border border-gray-200">
-          <Button
-            icon={<UserOutlined />}
-            type="default"
-            onClick={() => setActiveTab("yourData")}
-            className={`!rounded-lg !px-6 !py-2 !text-base font-semibold ${
-              activeTab === "yourData"
-                ? "!bg-[#2F5D99] hover:!bg-[#24487A] !text-white !border-none !shadow-md"
-                : "!bg-gray-100 hover:!bg-gray-200 !text-[#2F5D99]"
-            }`}>
-            Your Data
-          </Button>
+      {/* Tabs */}
+      <div className="flex flex-wrap gap-3 mb-6 bg-white p-3 rounded-lg shadow-sm border border-gray-200">
+        <Button
+          icon={<UserOutlined />}
+          type="default"
+          onClick={() => setActiveTab("yourData")}
+          className={`!rounded-lg !px-6 !py-2 !text-base font-semibold ${
+            activeTab === "yourData"
+              ? "!bg-[#2F5D99] hover:!bg-[#24487A] !text-white !border-none !shadow-md"
+              : "!bg-gray-100 hover:!bg-gray-200 !text-[#2F5D99]"
+          }`}>
+          Your Data
+        </Button>
 
+        {/* Only Publisher Manager & Publisher */}
+        {showAssignPubTab && (
           <Button
             icon={<DatabaseOutlined />}
             type="default"
@@ -75,16 +77,31 @@ const PublisherIDDashboard = () => {
             }`}>
             Assign Pub Data
           </Button>
-        </div>
-      )}
+        )}
+
+        {/* Visible to Everyone */}
+        <Button
+          icon={<SearchOutlined />}
+          type="default"
+          onClick={() => setActiveTab("publisherStatus")}
+          className={`!rounded-lg !px-6 !py-2 !text-base font-semibold ${
+            activeTab === "publisherStatus"
+              ? "!bg-[#2F5D99] hover:!bg-[#24487A] !text-white !border-none !shadow-md"
+              : "!bg-gray-100 hover:!bg-gray-200 !text-[#2F5D99]"
+          }`}>
+          Search Publisher
+        </Button>
+      </div>
 
       {/* Active Tab Content */}
       <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-        {activeTab === "yourData" ? (
-          <PublisherEditForm />
-        ) : showAssignPubTab ? (
+        {activeTab === "yourData" && <PublisherEditForm />}
+
+        {activeTab === "assignPub" && showAssignPubTab && (
           <SubAdminPubnameData />
-        ) : null}
+        )}
+
+        {activeTab === "publisherStatus" && <PublisherStatusTable />}
       </div>
     </div>
   );
@@ -95,7 +112,9 @@ export default PublisherIDDashboard;
 const PublisherEditForm = () => {
   const user = useSelector((state) => state.auth.user);
   const userId = user?.id || null;
-  const isAdmin = user?.role === "admin" || (Array.isArray(user?.role) && user.role.includes("admin"));
+  const isAdmin =
+    user?.role === "admin" ||
+    (Array.isArray(user?.role) && user.role.includes("admin"));
   const isPublisherManager = user?.role?.includes("publisher_manager");
   const [publishers, setPublishers] = useState([]);
   const [editingPub, setEditingPub] = useState(null);
@@ -166,7 +185,9 @@ const PublisherEditForm = () => {
     setLoading(true);
     try {
       if (isAdmin) {
-        const { data } = await axios.get(`${apiUrl}/get-Namepub?user_id=${userId}`);
+        const { data } = await axios.get(
+          `${apiUrl}/get-Namepub?user_id=${userId}`,
+        );
         if (data && Array.isArray(data.data)) {
           setPublishers(data.data);
           seedEventPostbacks(data.data);
@@ -189,20 +210,23 @@ const PublisherEditForm = () => {
     fetchPublishers();
   }, [userId]);
 
+  console.log("Publishers data:", publishers); // Debugging line
+
   useEffect(() => {
     const pubsWithUrl = publishers.filter((p) => p.postback_url);
     if (!pubsWithUrl.length) return;
 
     Promise.allSettled(
       pubsWithUrl.map((p) =>
-        axios.get(`${apiUrl1}/link/publisher-api-url?publisher_id=${p.pub_id}`)
-      )
+        axios.get(`${apiUrl1}/link/publisher-api-url?publisher_id=${p.pub_id}`),
+      ),
     ).then((results) => {
       const updates = {};
       results.forEach((result, i) => {
         if (result.status === "fulfilled") {
           const d = result.value.data;
-          updates[pubsWithUrl[i].pub_id] = d?.api_url || d?.url || JSON.stringify(d);
+          updates[pubsWithUrl[i].pub_id] =
+            d?.api_url || d?.url || JSON.stringify(d);
         }
       });
       setApiUrls((prev) => ({ ...prev, ...updates }));
@@ -264,7 +288,29 @@ const PublisherEditForm = () => {
     setTarget(record.target || "");
     setmail(record.mail || "");
   };
+  const handlePauseToggle = async (record) => {
+    try {
+      const nextStatus = record.pause === "1" ? "0" : "1";
 
+      const res = await axios.put(`${apiUrl}/update-pubid`, {
+        ...record,
+        pause: nextStatus,
+        role: user.role,
+      });
+      console.log("Pause toggle response:", res.data);
+      fetchPublishers();
+
+      Swal.fire({
+        icon: "success",
+        title: nextStatus === "1" ? "Publisher Paused" : "Publisher Activated",
+      });
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: err.response?.data?.message || "Something went wrong.",
+      });
+    }
+  };
   // Handle update
   const handleUpdate = async (e) => {
     e.preventDefault();
@@ -298,7 +344,6 @@ const PublisherEditForm = () => {
 
         // Refresh data
         const { data } = await axios.get(`${apiUrl}/pubid-data/${userId}`);
-        console.log(data);
         if (data.success && Array.isArray(data.publishers)) {
           setPublishers(data.publishers);
         }
@@ -335,20 +380,13 @@ const PublisherEditForm = () => {
       setEditingLinkId(null);
       return;
     }
-    console.log("Auto-saving place link:", trimmedValue);
-    console.log("For record:", record.pub_id);
-    console.log("User ID:", userId);
     try {
       setLoading(true);
-      console.log(`${apiUrl1}/postback/place-link`);
-      const res = await axios.put(
-        `${apiUrl1}/postback/place-link`,
-        {
-          pub_id: record.pub_id,
-          user_id: userId,
-          place_link: trimmedValue,
-        },
-      );
+      const res = await axios.put(`${apiUrl1}/postback/place-link`, {
+        pub_id: record.pub_id,
+        user_id: userId,
+        place_link: trimmedValue,
+      });
       if (res.data.success) {
         Swal.fire({
           icon: "success",
@@ -364,11 +402,14 @@ const PublisherEditForm = () => {
 
         try {
           const apiUrlRes = await axios.get(
-            `${apiUrl1}/link/publisher-api-url?publisher_id=${record.pub_id}`
+            `${apiUrl1}/link/publisher-api-url?publisher_id=${record.pub_id}`,
           );
           setApiUrls((prev) => ({
             ...prev,
-            [record.pub_id]: apiUrlRes.data?.api_url || apiUrlRes.data?.url || JSON.stringify(apiUrlRes.data),
+            [record.pub_id]:
+              apiUrlRes.data?.api_url ||
+              apiUrlRes.data?.url ||
+              JSON.stringify(apiUrlRes.data),
           }));
         } catch (apiErr) {
           console.error("Failed to fetch publisher API URL:", apiErr);
@@ -412,7 +453,10 @@ const PublisherEditForm = () => {
       });
 
       if (res.data.success) {
-        setEventPostbacks((prev) => ({ ...prev, [record.pub_id]: trimmedValue }));
+        setEventPostbacks((prev) => ({
+          ...prev,
+          [record.pub_id]: trimmedValue,
+        }));
         Swal.fire({
           icon: "success",
           title: "Saved!",
@@ -731,7 +775,11 @@ const PublisherEditForm = () => {
                 setEditingLinkId(record.pub_id);
                 setPlaceLinkValue(text || "");
               }}>
-              {text || <span className="text-gray-400 no-underline">Click to add link</span>}
+              {text || (
+                <span className="text-gray-400 no-underline">
+                  Click to add link
+                </span>
+              )}
             </span>
             {text && (
               <>
@@ -779,7 +827,9 @@ const PublisherEditForm = () => {
               placeholder="Paste Event Postback URL"
               onChange={(e) => setEventPostbackValue(e.target.value)}
               onBlur={() => autoSaveEventPlaceLink(record, eventPostbackValue)}
-              onPressEnter={() => autoSaveEventPlaceLink(record, eventPostbackValue)}
+              onPressEnter={() =>
+                autoSaveEventPlaceLink(record, eventPostbackValue)
+              }
               className="w-full"
             />
           );
@@ -793,7 +843,11 @@ const PublisherEditForm = () => {
                 setEditingEventPostbackId(record.pub_id);
                 setEventPostbackValue(text || "");
               }}>
-              {text || <span className="text-gray-400 no-underline">Click to add link</span>}
+              {text || (
+                <span className="text-gray-400 no-underline">
+                  Click to add link
+                </span>
+              )}
             </span>
             {text && (
               <>
@@ -867,15 +921,7 @@ const PublisherEditForm = () => {
                     Swal.fire("Error", "Invalid user selected", "error");
                     return;
                   }
-                  const response = await axios.put(
-                    `${apiUrl}/update-pubid`,
-                    {
-                      ...record,
-                      user_id: selectedAdmin.id,
-                      username: selectedAdmin.username,
-                    },
-                  );
-                  console.log({
+                  const response = await axios.put(`${apiUrl}/update-pubid`, {
                     ...record,
                     user_id: selectedAdmin.id,
                     username: selectedAdmin.username,
@@ -888,11 +934,7 @@ const PublisherEditForm = () => {
                     );
                     fetchPublishers();
                   } else {
-                    Swal.fire(
-                      "Error",
-                      "Failed to transfer user",
-                      "error",
-                    );
+                    Swal.fire("Error", "Failed to transfer user", "error");
                   }
                 } catch (error) {
                   console.error("User transfer error:", error);
@@ -981,6 +1023,31 @@ const PublisherEditForm = () => {
               View
             </Button>
           </Tooltip>
+        );
+      },
+    },
+    {
+      title: "Status",
+      dataIndex: "pause",
+      key: "pause",
+      align: "center",
+      render: (_, record) => {
+        const isAdmin = user?.role === "admin" || user?.role?.includes("admin");
+
+        const isPublisherManager = user?.role?.includes("publisher_manager");
+
+        const canActivate = isAdmin || isPublisherManager;
+
+        const paused = record.pause === "1";
+
+        return (
+          <Button
+            danger={paused}
+            type={paused ? "primary" : "default"}
+            disabled={paused && !canActivate}
+            onClick={() => handlePauseToggle(record)}>
+            {paused ? "Activate" : "Pause"}
+          </Button>
         );
       },
     },
