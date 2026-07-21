@@ -287,7 +287,10 @@ const AdvertiserData = () => {
     fetchSubAdminData(selectedSubAdmins);
   }, [selectedSubAdmins]);
 
-  const assignedSubAdmins = useMemo(() => user?.assigned_subadmins || [], [user?.assigned_subadmins]);
+  const assignedSubAdmins = useMemo(
+    () => user?.assigned_subadmins || [],
+    [user?.assigned_subadmins],
+  );
   useEffect(() => {
     const fetchSubAdmins = async () => {
       try {
@@ -1375,7 +1378,11 @@ const AdvertiserData = () => {
                   indeterminate={isIndeterminate}
                   checked={isAllSelected}
                   onChange={(e) =>
-                    handleFilterChange(e.target.checked ? allValues : [], key, true)
+                    handleFilterChange(
+                      e.target.checked ? allValues : [],
+                      key,
+                      true,
+                    )
                   }>
                   <span className="font-medium text-base text-gray-700">
                     Select All
@@ -1435,38 +1442,27 @@ const AdvertiserData = () => {
       })),
 
     // 🔹 ACTIONS COLUMN
-    // {
-    //   title: "Actions",
-    //   fixed: "right",
-    //   width: 100,
-    //   render: (_, record) => {
-    //     const createdAt = dayjs(record.created_at);
-    //     const hoursSinceCreation = dayjs().diff(createdAt, "hour");
-    //     const remainingHours = Math.max(24 - hoursSinceCreation, 0);
-    //     const isDeletable = hoursSinceCreation < 24;
-
-    //     return (
-    //       <div style={{ display: "flex", gap: "8px" }}>
-    //         {isDeletable && (
-    //           <Tooltip title={`Delete option available for ${remainingHours}h`}>
-    //             <Button
-    //               type="primary"
-    //               danger
-    //               icon={<DeleteOutlined />}
-    //               onClick={() => handleDelete(record.id)}
-    //             />
-    //           </Tooltip>
-    //         )}
-    //         {/* <Tooltip title="Copy this row">
-    //             <Button
-    //               icon={<CopyOutlined />}
-    //               onClick={() => handleCopyRow(record)}
-    //             />
-    //           </Tooltip> */}
-    //       </div>
-    //     );
-    //   },
-    // },
+    ...(user?.role?.includes("advertiser_manager")
+      ? [
+          {
+            title: "Actions",
+            fixed: "right",
+            width: 100,
+            render: (_, record) => (
+              <div style={{ display: "flex", gap: "8px" }}>
+                <Tooltip title="Delete">
+                  <Button
+                    type="primary"
+                    danger
+                    icon={<DeleteOutlined />}
+                    onClick={() => handleDelete(record.id)}
+                  />
+                </Tooltip>
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   // Summary function (memoized)

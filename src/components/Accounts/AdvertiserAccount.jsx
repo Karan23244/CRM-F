@@ -176,6 +176,7 @@ const AmountRaisedCell = ({ record, onSave }) => {
         options={[
           { label: "₹ INR", value: "INR" },
           { label: "$ USD", value: "USD" },
+          { label: "€ EUR", value: "EUR" },
         ]}
       />
 

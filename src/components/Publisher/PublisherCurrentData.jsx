@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, startTransition } from "react";
+import React, { useEffect, useState, useMemo, startTransition,useCallback } from "react";
 import {
   Table,
   Select,
@@ -15,7 +15,7 @@ import "../../index.css";
 import isBetween from "dayjs/plugin/isBetween";
 import { useSelector } from "react-redux";
 import { exportToExcel } from "../exportExcel";
-import { PushpinOutlined, PushpinFilled } from "@ant-design/icons";
+import { PushpinOutlined, PushpinFilled,DeleteOutlined } from "@ant-design/icons";
 import StyledTable from "../../Utils/StyledTable";
 import { LuEye } from "react-icons/lu";
 import { RiFileExcel2Line } from "react-icons/ri";
@@ -113,6 +113,28 @@ const PublisherPayoutData = () => {
 
     setEditingKey("");
   };
+  // Delete
+  const handleDelete = useCallback(async (id) => {
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "This action cannot be undone.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "Cancel",
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      await axios.post(`${apiUrl}/advdata-delete-data/${id}`);
+      setAdvData((prev) => prev.filter((r) => r.id !== id));
+      Swal.fire("Deleted!", "Data has been deleted.", "success");
+    } catch (err) {
+      console.error("handleDelete error:", err);
+      Swal.fire("Error", "Failed to delete data", "error");
+    }
+  }, []);
   // 🔹 Save FP
   const saveFP = async (record, newFP) => {
     try {
@@ -673,36 +695,59 @@ const PublisherPayoutData = () => {
       });
     }
     // 🔹 Add Note column
-    baseCols.push({
-      title: "Note",
-      dataIndex: "note",
-      key: "note",
-      render: (text, record) => {
-        const canEdit =
-          user?.role === "publisher_manager" ||
-          record.pub_name?.toLowerCase() === user?.username?.toLowerCase();
-
-        if (!canEdit) return <span>{text || "-"}</span>;
-
-        return isEditing(record) ? (
-          <span>{text}</span>
-        ) : (
-          <span
-            style={{ cursor: "pointer", color: text ? "inherit" : "gray" }}
-            onClick={() => {
-              setEditingKey(record.id);
-            }}>
-            {text || "Click to add note"}
-          </span>
-        );
-      },
-      onCell: (record) => ({
-        record,
+    baseCols.push(
+      {
+        title: "Note",
         dataIndex: "note",
-        editing: isEditing(record),
-        saveNote,
-      }),
-    });
+        key: "note",
+        render: (text, record) => {
+          const canEdit =
+            user?.role === "publisher_manager" ||
+            record.pub_name?.toLowerCase() === user?.username?.toLowerCase();
+
+          if (!canEdit) return <span>{text || "-"}</span>;
+
+          return isEditing(record) ? (
+            <span>{text}</span>
+          ) : (
+            <span
+              style={{ cursor: "pointer", color: text ? "inherit" : "gray" }}
+              onClick={() => {
+                setEditingKey(record.id);
+              }}>
+              {text || "Click to add note"}
+            </span>
+          );
+        },
+        onCell: (record) => ({
+          record,
+          dataIndex: "note",
+          editing: isEditing(record),
+          saveNote,
+        }),
+      }, // 🔹 ACTIONS COLUMN
+      ...(user?.role?.includes("publisher_manager")
+        ? [
+            {
+              title: "Actions",
+              fixed: "right",
+              width: 100,
+              render: (_, record) => (
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <Tooltip title="Delete">
+                    <Button
+                      type="primary"
+                      danger
+                      icon={<DeleteOutlined />}
+                      onClick={() => handleDelete(record.id)}
+                    />
+                  </Tooltip>
+                </div>
+              ),
+            },
+          ]
+        : []),
+    );
 
     return baseCols;
   };

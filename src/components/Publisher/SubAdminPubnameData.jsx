@@ -269,7 +269,29 @@ const SubAdminPubnameData = () => {
       setEditingLinkId(null);
     }
   };
+  const handlePauseToggle = async (record) => {
+    try {
+      const nextStatus = record.pause === "1" ? "0" : "1";
 
+      const res = await axios.put(`${apiUrl}/update-pubid`, {
+        ...record,
+        pause: nextStatus,
+        role: user.role,
+      });
+      console.log("Pause toggle response:", res.data);
+      fetchPublishers();
+
+      Swal.fire({
+        icon: "success",
+        title: nextStatus === "1" ? "Publisher Paused" : "Publisher Activated",
+      });
+    } catch (err) {
+      Swal.fire({
+        icon: "error",
+        title: err.response?.data?.message || "Something went wrong.",
+      });
+    }
+  };
   // 💡 You'll need your tableData available in scope for filters
   // For example: const [tableData, setTableData] = useState([]);
   const excelFilterDropdown = (key) => () => {
@@ -733,6 +755,31 @@ const SubAdminPubnameData = () => {
               View
             </Button>
           </Tooltip>
+        );
+      },
+    },
+    {
+      title: "Status",
+      dataIndex: "pause",
+      key: "pause",
+      align: "center",
+      render: (_, record) => {
+        const isAdmin = user?.role === "admin" || user?.role?.includes("admin");
+
+        const isPublisherManager = user?.role?.includes("publisher_manager");
+
+        const canActivate = isAdmin || isPublisherManager;
+
+        const paused = record.pause === "1";
+
+        return (
+          <Button
+            danger={paused}
+            type={paused ? "primary" : "default"}
+            disabled={paused && !canActivate}
+            onClick={() => handlePauseToggle(record)}>
+            {paused ? "Activate" : "Pause"}
+          </Button>
         );
       },
     },
