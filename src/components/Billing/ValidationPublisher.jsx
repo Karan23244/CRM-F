@@ -33,13 +33,7 @@ const isCampaignLocked = (row, billingLocked) =>
     (p) =>
       p.status === "verified" || p.status === "locked" || p.status === "hold",
   );
-const allDataLocked = (row, billingLocked) =>
-  rows.length > 0 &&
-  rows.every(
-    (r) =>
-      (r.pid_data || []).length > 0 &&
-      (r.pid_data || []).every((p) => p.status === "locked"),
-  );
+
 const displayValue = (v) =>
   v === null || v === undefined ? "Pending" : Number(v) === 0 ? 0 : v;
 
@@ -291,8 +285,11 @@ export default function BillingAdvertiser() {
     rows.every(
       (r) =>
         (r.pid_data || []).length > 0 &&
-        (r.pid_data || []).every((p) => p.status === "locked"),
+        (r.pid_data || []).every(
+          (p) => p.status === "locked" || p.status === "hold",
+        ),
     );
+  console.log(allDataLocked);
   // ── helpers ───────────────────────────────────
   const normalize = (val) =>
     val === null || val === undefined || val === ""
@@ -695,12 +692,28 @@ export default function BillingAdvertiser() {
     });
     try {
       const res = await axios.post(`${API}/billing/publisher/hold-pid`, {
-        adv_data_id: pidRow.adv_data_id,
+        adv_data_id: pidRow.adv_data_id || null,
         pid: pidRow.pid,
         campaign_id: campaignRow.campaign_id,
-        pub_id: selectedPubId,
+        pub_id: pidRow.pub_id || selectedPubId,
+
+        shared_date: pidRow.shared_date || month + "-01",
+
+        campaign_name: campaignRow.campaign_name,
+        geo: campaignRow.geo,
+        os: pidRow.os,
+
+        payable_event: campaignRow.payable_event,
+        pay_out: campaignRow.pay_out,
+
+        adv_total_no: pidRow.adv_total_no,
+        pub_Apno: pidRow.pub_Apno,
+
+        vertical: campaignRow.vertical,
+
+        carry_from: pidRow.carry_from || campaignRow.carry_from || null,
+
         billing_month: month,
-        hold_by: user.id,
       });
       console.log("Hold PID response:", res.data);
       if (res.data.success) {
@@ -1435,7 +1448,12 @@ export default function BillingAdvertiser() {
             <div className="flex justify-end mt-4">
               <Button
                 danger
-                disabled={!allPidsVerified || billingLocked || allDataLocked || !rows.length}
+                disabled={
+                  !allPidsVerified ||
+                  billingLocked ||
+                  allDataLocked ||
+                  !rows.length
+                }
                 title={
                   billingLocked
                     ? "Billing already locked"
