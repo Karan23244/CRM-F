@@ -1186,14 +1186,15 @@ export default function BillingAdvertiser() {
         totalPayout = 0;
 
       pageData.forEach((row) => {
-        const no = (row.pid_data || []).reduce(
-          (s, p) => s + (Number(p.adv_total_no) || 0),
-          0,
-        );
-        const approved = (row.pid_data || []).reduce(
-          (s, p) => s + (Number(p.pub_Apno) || 0),
-          0,
-        );
+        const no = (row.pid_data || []).reduce((s, p) => {
+          if (p.status === "hold") return s;
+          return s + (Number(p.adv_total_no) || 0);
+        }, 0);
+
+        const approved = (row.pid_data || []).reduce((s, p) => {
+          if (p.status === "hold") return s;
+          return s + (Number(p.pub_Apno) || 0);
+        }, 0);
         totalNo += no;
         totalApproved += approved;
         totalPayout +=
