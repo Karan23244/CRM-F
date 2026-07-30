@@ -9,6 +9,7 @@ import {
   Input,
   Checkbox,
   Button,
+  Space 
 } from "antd";
 import {
   PushpinOutlined,
@@ -18,7 +19,9 @@ import {
 import dayjs from "dayjs";
 import axios from "axios";
 import StyledTable from "../../Utils/StyledTable";
+import { RiFileExcel2Line } from "react-icons/ri";
 import { useSelector } from "react-redux";
+import { exportToExcel } from "../exportExcel";
 const API = import.meta.env.VITE_API_URL5;
 
 /* ============================= */
@@ -385,6 +388,7 @@ function AdvertiserAccount() {
     user?.role?.includes("admin") || user?.role?.includes("accounts");
 
   const baseColumns = [
+    getColumnWithFilterAndPin("adv_am", "Advertiser AM"),
     getColumnWithFilterAndPin("adv_id", "Advid (Adv Name)", (_, r) => (
       <Tooltip title={r.note || "No Legal Billing Address"}>
         <span style={{ color: "#1677ff", fontWeight: 500 }}>
@@ -426,7 +430,7 @@ function AdvertiserAccount() {
   const adminColumns = [];
 
   const columns = [...baseColumns, ...adminColumns];
-  console.log("filteredData",filteredData)
+  console.log("filteredData", filteredData);
   return (
     <div
       style={{
@@ -439,23 +443,55 @@ function AdvertiserAccount() {
           borderRadius: 14,
           boxShadow: "0 6px 25px rgba(0,0,0,0.05)",
         }}>
-        <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-          <DatePicker
-            picker="month"
-            allowClear={false}
-            value={dayjs(month)}
-            onChange={(d) => {
-              setFilters({});
-              setFilterSearch({});
-              setUniqueValues({});
-              setSortInfo({});
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
+          {/* Left Side */}
+          <Space size="middle" wrap>
+            <DatePicker
+              picker="month"
+              allowClear={false}
+              value={dayjs(month)}
+              size="large"
+              onChange={(d) => {
+                setFilters({});
+                setFilterSearch({});
+                setUniqueValues({});
+                setSortInfo({});
+                setMonth(d.format("YYYY-MM"));
+              }}
+            />
 
-              setMonth(d.format("YYYY-MM"));
+            <Button
+              icon={<ClearOutlined />}
+              size="large"
+              onClick={clearAllFilters}>
+              Clear Filters
+            </Button>
+          </Space>
+
+          {/* Right Side */}
+          <Button
+            type="primary"
+            size="large"
+            icon={<RiFileExcel2Line size={18} />}
+            onClick={() => {
+              const tableDataToExport = filteredData.map((row) => {
+                const exportRow = {};
+
+                baseColumns.forEach((col) => {
+                  if (!col.dataIndex) return;
+
+                  exportRow[
+                    typeof col.title === "string" ? col.title : col.dataIndex
+                  ] = getCellValue(row, col.dataIndex);
+                });
+
+                return exportRow;
+              });
+
+              exportToExcel(tableDataToExport, "advertiser-billing.xlsx");
             }}
-          />
-
-          <Button icon={<ClearOutlined />} onClick={clearAllFilters}>
-            Clear Filters
+            className="!bg-green-600 hover:!bg-green-700 !border-green-600 hover:!border-green-700 !rounded-lg shadow-sm">
+            Export Excel
           </Button>
         </div>
 

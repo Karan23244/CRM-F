@@ -14,6 +14,8 @@ import {
   Spin,
   Checkbox,
   Button,
+  Typography,
+  Space,
 } from "antd";
 import Swal from "sweetalert2";
 import {
@@ -21,11 +23,12 @@ import {
   PushpinFilled,
   ClearOutlined,
 } from "@ant-design/icons";
-
+import { RiFileExcel2Line } from "react-icons/ri";
 import dayjs from "dayjs";
 import axios from "axios";
 import { useSelector } from "react-redux";
 import StyledTable from "../../Utils/StyledTable";
+import { exportToExcel } from "../exportExcel";
 
 const { Option } = Select;
 const API = import.meta.env.VITE_API_URL5;
@@ -763,6 +766,7 @@ function AdvertiserAccount() {
   /* ============================= */
 
   const columns = [
+    getColumnWithFilterAndPin("adv_am", "Advertiser AM"),
     getColumnWithFilterAndPin("adv_id", "Advid (Adv Name)", (_, r) => {
       if (r.isNew) {
         return (
@@ -781,12 +785,72 @@ function AdvertiserAccount() {
         );
       }
 
+      const CopyRow = ({ label, value }) => (
+        <div
+          style={{
+            marginBottom: 14,
+            padding: 10,
+            border: "1px solid #f0f0f0",
+            borderRadius: 8,
+            background: "#fafafa",
+          }}>
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              color: "#666",
+              marginBottom: 6,
+            }}>
+            {label}
+          </div>
+
+          <Typography.Paragraph
+            copyable={{ text: value || "" }}
+            style={{
+              margin: 0,
+              color: "#222",
+              fontSize: 13,
+              lineHeight: "20px",
+              whiteSpace: "pre-wrap",
+              overflowWrap: "anywhere",
+              wordBreak: "break-word",
+              maxHeight: 100,
+              overflowY: "auto",
+              paddingRight: 6,
+            }}>
+            {value || "-"}
+          </Typography.Paragraph>
+        </div>
+      );
+
       return (
-        <Tooltip title={r.note || "No Legal Billing Address"}>
+        <Tooltip
+          placement="right"
+          color="#fff"
+          overlayInnerStyle={{
+            width: 420,
+            maxWidth: 420,
+            padding: 16,
+            borderRadius: 10,
+            boxShadow: "0 8px 24px rgba(0,0,0,.15)",
+          }}
+          title={
+            <div
+              style={{
+                maxHeight: 420,
+                overflowY: "auto",
+              }}>
+              <CopyRow label="Legal Name" value={r.legal_name} />
+              <CopyRow label="Billing Address" value={r.billing_address} />
+              <CopyRow label="Tax Type" value={r.tax_type} />
+              <CopyRow label="Tax ID" value={r.tax_id} />
+            </div>
+          }>
           <span
             style={{
               color: "#1677ff",
-              fontWeight: 500,
+              fontWeight: 600,
+              cursor: "pointer",
             }}>
             {r.adv_name ? `${r.adv_id} (${r.adv_name})` : r.adv_id}
           </span>
@@ -946,6 +1010,31 @@ function AdvertiserAccount() {
                 ]);
               }}>
               Add New Details
+            </Button>
+            {/* Right Side */}
+            <Button
+              type="primary"
+              size="medium"
+              icon={<RiFileExcel2Line size={18} />}
+              onClick={() => {
+                const tableDataToExport = filteredData.map((row) => {
+                  const exportRow = {};
+
+                  baseColumns.forEach((col) => {
+                    if (!col.dataIndex) return;
+
+                    exportRow[
+                      typeof col.title === "string" ? col.title : col.dataIndex
+                    ] = getCellValue(row, col.dataIndex);
+                  });
+
+                  return exportRow;
+                });
+
+                exportToExcel(tableDataToExport, "advertiser-billing.xlsx");
+              }}
+              className="!bg-green-600 hover:!bg-green-700 !border-green-600 hover:!border-green-700 !rounded-lg shadow-sm">
+              Export Excel
             </Button>
           </div>
         </div>
