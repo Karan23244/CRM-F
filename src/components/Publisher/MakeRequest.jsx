@@ -22,6 +22,7 @@ import {
   DatePicker,
   Tooltip,
 } from "antd";
+import PidHistoryModal from "./PidHistoryModal";
 import dayjs from "dayjs";
 import Swal from "sweetalert2";
 import { exportToExcel } from "../exportExcel";
@@ -62,6 +63,8 @@ const PublisherRequest = ({ senderId, receiverId }) => {
   const userId = user?.id || null;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [selectedPid, setSelectedPid] = useState(null);
   const [form] = Form.useForm();
   const [filterSearch, setFilterSearch] = useState({});
   const [uniqueValues, setUniqueValues] = useState({});
@@ -86,6 +89,10 @@ const PublisherRequest = ({ senderId, receiverId }) => {
   const normalize = (val) => {
     if (val === null || val === undefined || val === "") return "-";
     return val.toString().trim();
+  };
+  const handleViewHistory = (pid) => {
+    setSelectedPid(pid);
+    setHistoryOpen(true);
   };
   // Default: start = first day of current month, end = today
   // const [dateRange, setDateRange] = useState([
@@ -596,7 +603,20 @@ const PublisherRequest = ({ senderId, receiverId }) => {
 
       dataIndex: key,
       fixed: pinnedColumns[key] || undefined,
-      render: (value) => {
+      render: (value, record) => {
+        if (key === "pid") {
+          return (
+            <span
+              onClick={() => handleViewHistory(record.pid)}
+              style={{
+                color: "#1677ff",
+                cursor: "pointer",
+                fontWeight: 500,
+              }}>
+              {record.pid}
+            </span>
+          );
+        }
         if (key === "created_at") {
           return new Date(value).toLocaleString("en-IN");
         }
@@ -1182,6 +1202,11 @@ const PublisherRequest = ({ senderId, receiverId }) => {
           }}
         />
       </div>
+      <PidHistoryModal
+        open={historyOpen}
+        pid={selectedPid}
+        onClose={() => setHistoryOpen(false)}
+      />
     </div>
   );
 };

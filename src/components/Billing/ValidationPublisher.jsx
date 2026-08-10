@@ -271,6 +271,7 @@ export default function BillingAdvertiser() {
   const [uniqueValues, setUniqueValues] = useState({});
   const [sortInfo, setSortInfo] = useState({});
   const [pidSortInfo, setPidSortInfo] = useState({});
+  const [tableSearch, setTableSearch] = useState("");
   const isNewBilling = (month) => {
     if (!month) return false;
 
@@ -444,8 +445,36 @@ export default function BillingAdvertiser() {
   // ── active modal row ───────────────────────────
   const activeRow = rows.find((r) => r._tmp_id === detailsRowId);
   const activeIndex = rows.findIndex((r) => r._tmp_id === detailsRowId);
-  const getExcelFilteredDataForColumn = (columnKey) => {
+  const searchedRows = useMemo(() => {
+    if (!tableSearch.trim()) return rows;
+
+    const search = tableSearch.toLowerCase();
+
     return rows.filter((row) => {
+      return [
+        row.campaign_name,
+        row.geo,
+        row.os,
+        row.vertical,
+        row.payable_event,
+        row.pay_out,
+        row.adv_total_no,
+        row.pub_Apno,
+        row.total_payout,
+        ...(row.pid_data || []).flatMap((p) => [
+          p.pid,
+          p.os,
+          p.adv_total_no,
+          p.pub_Apno,
+        ]),
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(search);
+    });
+  }, [rows, tableSearch]);
+  const getExcelFilteredDataForColumn = (columnKey) => {
+    return searchedRows.filter((row) => {
       return Object.entries(filters).every(([key, values]) => {
         if (key === columnKey) return true;
 
@@ -1030,15 +1059,42 @@ export default function BillingAdvertiser() {
       );
     },
   });
-
+  useEffect(() => {
+    Object.keys(uniqueValues).forEach((key) => {
+      updateUniqueValuesForColumn(key, key.startsWith("pid_"));
+    });
+  }, [tableSearch, filters, pidFilters, rows]);
   // ── filtered data ──────────────────────────────
-  const filteredRows = React.useMemo(() => {
-    let result = rows.filter((row) => {
-      return Object.entries(filters).every(([key, values]) => {
+  const filteredRows = useMemo(() => {
+    let result = searchedRows.filter((row) => {
+      // Existing filters
+      const filterMatch = Object.entries(filters).every(([key, values]) => {
         if (!values || values.length === 0) return true;
-
         return values.includes(getCellValue(row, key));
       });
+
+      if (!filterMatch) return false;
+
+      // Global search
+      if (!tableSearch.trim()) return true;
+
+      const search = tableSearch.toLowerCase();
+
+      return [
+        row.campaign_name,
+        row.geo,
+        row.os,
+        row.vertical,
+        row.payable_event,
+        row.pay_out,
+        row.adv_total_no,
+        row.pub_Apno,
+        row.total_payout,
+        ...(row.pid_data || []).map((p) => p.pid),
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(search);
     });
 
     if (sortInfo?.columnKey && sortInfo?.order) {
@@ -1056,7 +1112,7 @@ export default function BillingAdvertiser() {
     }
 
     return result;
-  }, [rows, filters, sortInfo]);
+  }, [rows, filters, sortInfo, tableSearch]);
 
   const filteredPidData = useMemo(() => {
     return (activeRow?.pid_data || []).filter((row) =>
@@ -1285,6 +1341,13 @@ export default function BillingAdvertiser() {
               setPidSortInfo({});
               resetFilters();
             }}
+          />
+          <Input
+            allowClear
+            placeholder="Search Campaign, Geo, OS, Event, PID..."
+            style={{ width: 350 }}
+            value={tableSearch}
+            onChange={(e) => setTableSearch(e.target.value)}
           />
           {isOld ? (
             <>

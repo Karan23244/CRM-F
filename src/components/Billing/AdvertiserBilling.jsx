@@ -9,7 +9,7 @@ import {
   Input,
   Checkbox,
   Button,
-  Space 
+  Space,
 } from "antd";
 import {
   PushpinOutlined,
@@ -78,6 +78,11 @@ function AdvertiserAccount() {
         assigned_subadmins: user?.assigned_subadmins || [],
         month: selectedMonth,
       });
+      console.log("Selected Month:", selectedMonth);
+      console.log("Returned Months:", [
+        ...new Set(res.data.data.map((r) => r.month)),
+      ]);
+
       setData(res.data.data); // ✅ important
     } catch (err) {
       console.error(err);
@@ -497,7 +502,7 @@ function AdvertiserAccount() {
 
         <Spin spinning={loading}>
           <StyledTable
-            rowKey={(r) => `${r.id}`}
+            rowKey={(r, index) => `${r.id}_${r.month}_${index}`}
             columns={columns}
             dataSource={filteredData}
             bordered
