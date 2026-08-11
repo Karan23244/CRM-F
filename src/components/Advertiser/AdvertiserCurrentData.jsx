@@ -133,7 +133,6 @@ const AdvertiserData = () => {
     setLoadingData(true);
     try {
       const [startDate, endDate] = selectedDateRange;
-      console.log(`${apiUrl}/advdata-byuser/${userId}`);
       const response = await axios.get(`${apiUrl}/advdata-byuser/${userId}`, {
         params: {
           startDate: startDate.format("YYYY-MM-DD"),
@@ -183,50 +182,16 @@ const AdvertiserData = () => {
     fetchCampaignList();
   }, []);
 
-  // 🔹 Fetch and merge subadmin data dynamically
-  // const fetchSubAdminData = async (selectedAdmins) => {
-  //   try {
-  //     if (selectedAdmins.length === 0) {
-  //       setRoleData([]);
-  //       return;
-  //     }
-
-  //     const promises = selectedAdmins.map((admin) =>
-  //       axios.get(`${apiUrl}/user-data/${admin.value}`),
-  //     );
-  //     const responses = await Promise.all(promises);
-  //     console.log(responses);
-  //     const newRoleData = responses.map((res, index) => ({
-  //       adminId: selectedAdmins[index].value,
-  //       name: selectedAdmins[index].label,
-  //       role: selectedAdmins[index].role,
-  //       data: res.data.data,
-  //     }));
-
-  //     setRoleData(newRoleData);
-
-  //     // 🔹 Merge all fetched subadmin data into main table
-  //     const mergedData = [
-  //       ...data,
-  //       ...newRoleData.flatMap((r) =>
-  //         (r.data?.advertiser_data || []).map((item) => ({
-  //           ...item,
-  //           subadminId: r.adminId,
-  //         })),
-  //       ),
-  //     ];
-
-  //     setData(mergedData);
-  //   } catch (error) {
-  //     console.error("Error fetching subadmin data:", error);
-  //     message.error("Failed to fetch subadmin data");
-  //   }
-  // };
   const fetchSubAdminData = async (selectedAdmins) => {
     setLoadingData(true);
+
     try {
       if (selectedAdmins.length === 0) {
         setRoleData([]);
+
+        // Remove all sub-admin rows
+        setData((prev) => prev.filter((item) => !item.isSubAdmin));
+
         return;
       }
 
@@ -243,30 +208,38 @@ const AdvertiserData = () => {
       );
 
       const responses = await Promise.all(promises);
-      console.log(responses);
+
       const newRoleData = responses.map((res, index) => ({
         adminId: selectedAdmins[index].value,
         name: selectedAdmins[index].label,
         role: selectedAdmins[index].role,
         data: res.data.data,
       }));
-      console.log("New Role Data:", newRoleData);
+
       setRoleData(newRoleData);
 
-      // Use functional update to avoid stale closure on `data`.
-      // Strip ALL existing sub-admin rows first, then re-add fresh rows for
-      // every currently selected admin. This prevents duplicates when a second
-      // admin is added and correctly removes rows when one is deselected.
+      // Create fresh rows for currently selected sub-admins
+      const subRows = responses.flatMap((res, index) => {
+        const admin = selectedAdmins[index];
+
+        return (res.data?.data?.advertiser_data || []).map((item) => ({
+          ...item,
+
+          // IMPORTANT
+          isSubAdmin: true,
+          subadminId: admin.value,
+          subadminName: admin.label,
+
+          // Unique key for Ant Design table
+          key: `subadmin-${admin.value}-${item.id}`,
+        }));
+      });
+
+      // Keep only main user's rows and replace all sub-admin rows
       setData((prev) => {
-        const baseRows = prev.filter((item) => !item.subadminId);
-        const subRows = newRoleData.flatMap((r) =>
-          (r.data?.advertiser_data || r.data || []).map((item) => ({
-            ...item,
-            subadminId: r.adminId,
-          })),
-        );
-        console.log("Merged Data:", [...baseRows, ...subRows]);
-        return [...baseRows, ...subRows];
+        const mainUserRows = prev.filter((item) => !item.isSubAdmin);
+
+        return [...mainUserRows, ...subRows];
       });
     } catch (error) {
       console.error("Error fetching subadmin data:", error);
@@ -275,15 +248,8 @@ const AdvertiserData = () => {
       setLoadingData(false);
     }
   };
-  useEffect(() => {
-    if (selectedSubAdmins.length === 0) {
-      // No subadmins selected → remove their data from table
-      setData((prev) => prev.filter((item) => !item.subadminId));
-      setRoleData([]);
-      return;
-    }
 
-    // Get newly added subadmins
+  useEffect(() => {
     fetchSubAdminData(selectedSubAdmins);
   }, [selectedSubAdmins]);
 
@@ -719,6 +685,7 @@ const AdvertiserData = () => {
   );
   // Columns and renderers memoized
   const columnHeadingsAdv = {
+    username: "User",
     campaign_name: "Campaign Name",
     vertical: "Vertical",
     geo: "GEO",
@@ -756,6 +723,7 @@ const AdvertiserData = () => {
     deletePreset,
   } = useColumnPresets({ userId, allColumns });
   const desiredOrder = [
+    "username",
     "da",
     "adv_display",
     "campaign_name",
