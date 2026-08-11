@@ -12,7 +12,6 @@ const apiUrl = import.meta.env.VITE_API_URL;
 
 const AdvnameData = () => {
   const user = useSelector((state) => state.auth.user);
-  console.log("Current user from Redux:", user);
   const userId = user?.id || null;
   const [tableData, setTableData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -44,7 +43,6 @@ const AdvnameData = () => {
     const fetchData = async () => {
       try {
         const response = await axios.get(`${apiUrl}/advertisers/${userId}`);
-        console.log("Fetched advertiser data:", response.data);
         if (response.data && Array.isArray(response.data.data)) {
           setTableData(response.data.data);
         } else {
@@ -73,7 +71,6 @@ const AdvnameData = () => {
               "operations",
             ].includes(subAdmin.role),
           );
-          console.log(filtered);
           setSubAdmins(filtered);
         } else {
           console.log(data.message || "Failed to fetch sub-admins.");

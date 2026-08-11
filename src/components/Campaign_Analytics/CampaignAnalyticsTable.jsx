@@ -807,8 +807,8 @@ const CampaignAnalyticsTable = () => {
   ];
   const colorPriority = {
     green: 1,
-    yellow: 2,
-    orange: 3,
+    orange: 2,
+    yellow: 3,
     purple: 4,
     red: 5,
   };
