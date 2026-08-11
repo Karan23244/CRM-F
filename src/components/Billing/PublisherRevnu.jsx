@@ -82,6 +82,7 @@ export default function PublisherRevenue() {
   const [pinnedColumns, setPinnedColumns] = useState({});
   const [filterSearch, setFilterSearch] = useState({});
   const [uniqueValues, setUniqueValues] = useState({});
+  const [tableSearch, setTableSearch] = useState("");
   const [sortInfo, setSortInfo] = useState({});
   const normalize = (val) => {
     if (val === null || val === undefined || val === "") return "-";
@@ -92,6 +93,7 @@ export default function PublisherRevenue() {
     setPinnedColumns({});
     setFilterSearch({});
     setSortInfo({});
+    setTableSearch("");
     message.success("All filters & pins cleared");
   };
   useEffect(() => {
@@ -321,7 +323,7 @@ export default function PublisherRevenue() {
     }
   };
   const getExcelFilteredDataForColumn = (columnKey) => {
-    return data.filter((row) => {
+    return searchedData.filter((row) => {
       return Object.entries(filters).every(([key, values]) => {
         if (key === columnKey) return true;
 
@@ -331,8 +333,17 @@ export default function PublisherRevenue() {
       });
     });
   };
+  const searchedData = React.useMemo(() => {
+    if (!tableSearch.trim()) return data;
+
+    const search = tableSearch.toLowerCase();
+
+    return data.filter((row) =>
+      Object.values(row).join(" ").toLowerCase().includes(search),
+    );
+  }, [data, tableSearch]);
   const filteredData = React.useMemo(() => {
-    let result = data.filter((row) => {
+    let result = searchedData.filter((row) => {
       return Object.entries(filters).every(([key, values]) => {
         if (!values || values.length === 0) return true;
 
@@ -357,7 +368,12 @@ export default function PublisherRevenue() {
     }
 
     return result;
-  }, [data, filters, sortInfo]);
+  }, [searchedData, filters, sortInfo]);
+  useEffect(() => {
+    Object.keys(uniqueValues).forEach((key) => {
+      updateUniqueValuesForColumn(key);
+    });
+  }, [tableSearch, filters, data]);
   const columnsRaw = [
     getColumnWithFilterAndPin("pub_id", "PubID (Publisher)", (_, r) => (
       <Tooltip title={r.pub_name}>
@@ -406,11 +422,17 @@ export default function PublisherRevenue() {
               setFilterSearch({});
               setUniqueValues({});
               setSortInfo({});
-
+              setTableSearch("");
               setMonth(d.format("YYYY-MM"));
             }}
           />
-
+          <Input
+            allowClear
+            placeholder="Search..."
+            style={{ width: 320 }}
+            value={tableSearch}
+            onChange={(e) => setTableSearch(e.target.value)}
+          />
           <Button icon={<ClearOutlined />} onClick={clearAllFilters}>
             Clear Filters
           </Button>

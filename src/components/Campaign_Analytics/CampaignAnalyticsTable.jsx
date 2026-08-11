@@ -805,12 +805,22 @@ const CampaignAnalyticsTable = () => {
 
     ...dynamicEventColumns,
   ];
+  const colorPriority = {
+    green: 1,
+    yellow: 2,
+    orange: 3,
+    purple: 4,
+    red: 5,
+  };
+
   const sortedData = useMemo(() => {
     return [...filteredData].sort((a, b) => {
-      return (b.clicks_mtd || 0) - (a.clicks_mtd || 0);
+      const colorA = (a.pid_color || "").trim().toLowerCase();
+      const colorB = (b.pid_color || "").trim().toLowerCase();
+
+      return (colorPriority[colorA] ?? 999) - (colorPriority[colorB] ?? 999);
     });
   }, [filteredData]);
-  console.log("Sorted Data:", sortedData);
   return (
     <>
       {user?.permissions?.can_see_input1 === 1 && (
@@ -1128,7 +1138,9 @@ const CampaignAnalyticsTable = () => {
                 className="custom-table"
                 columns={columns}
                 dataSource={sortedData}
-                rowKey={(row) => `${row.pid}_${row.pubid}`}
+                rowKey={(row) =>
+                  `${row.pubam}_${row.pubid}_${row.pid}_${row.campaign_id}`
+                }
                 scroll={{ x: "max-content", y: "70vh" }}
                 bordered
                 sticky

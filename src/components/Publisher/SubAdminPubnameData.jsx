@@ -765,21 +765,28 @@ const SubAdminPubnameData = () => {
       align: "center",
       render: (_, record) => {
         const isAdmin = user?.role === "admin" || user?.role?.includes("admin");
-
         const isPublisherManager = user?.role?.includes("publisher_manager");
 
         const canActivate = isAdmin || isPublisherManager;
-
         const paused = record.pause === "1";
 
         return (
-          <Button
-            danger={paused}
-            type={paused ? "primary" : "default"}
-            disabled={paused && !canActivate}
-            onClick={() => handlePauseToggle(record)}>
-            {paused ? "Activate" : "Pause"}
-          </Button>
+          <Tooltip
+            title={
+              paused
+                ? canActivate
+                  ? "Click to activate this publisher"
+                  : "Only Admin and Publisher Manager can activate this publisher"
+                : "Click to pause this publisher"
+            }>
+            <Button
+              danger={paused}
+              type={paused ? "primary" : "default"}
+              disabled={paused && !canActivate}
+              onClick={() => handlePauseToggle(record)}>
+              {paused ? "Paused" : "Activated"}
+            </Button>
+          </Tooltip>
         );
       },
     },
