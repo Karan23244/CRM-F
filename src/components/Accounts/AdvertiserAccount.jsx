@@ -43,7 +43,28 @@ const displayValue = (val, placeholder = "—") =>
   ) : (
     val
   );
+const currencySymbols = {
+  USD: "$",
+  INR: "₹",
+  EUR: "€",
+  GBP: "£",
+  AED: "د.إ",
+  SAR: "﷼",
+  BDT: "৳",
+  PKR: "₨",
+  JPY: "¥",
+  CNY: "¥",
+};
 
+const formatCurrency = (amount, currency = "USD") => {
+  const value = Number(amount || 0);
+  const symbol = currencySymbols[currency] || currency;
+
+  return `${symbol}${value.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+};
 /* ============================= */
 /* Editable Text Cell */
 /* ============================= */
@@ -1041,31 +1062,92 @@ function AdvertiserAccount() {
 
         <Spin spinning={loading}>
           <StyledTable
-            rowKey={(r) => `${r.id}`}
+            rowKey={(r, index) => `${r.id}_${r.month}_${index}`}
             columns={columns}
             dataSource={filteredData}
             bordered
-            scroll={{ x: "max-content" }}
-            summary={() => {
-              const totalPIDAmount = filteredData.reduce(
+            scroll={{
+              x: "max-content",
+              y: 600,
+            }}
+            pagination={{
+              pageSizeOptions: ["10", "20", "50", "100", "200", "500"],
+              showSizeChanger: true,
+              defaultPageSize: 10,
+              showTotal: (total, range) =>
+                `${range[0]}-${range[1]} of ${total} items`,
+            }}
+            summary={(pageData) => {
+              // ------------------------------------
+              // Calculate ONLY CURRENT PAGE data
+              // ------------------------------------
+
+              // 1. Total PID Metric Amount
+              const totalPIDAmount = pageData.reduce(
                 (sum, row) => sum + Number(row.total_amount || 0),
                 0,
               );
 
+              // 2. Currency-wise Actual Amount Raised
+              const currencyTotals = pageData.reduce((acc, row) => {
+                const currency = row.currency || "USD";
+                const amount = Number(row.amount_raised || 0);
+
+                acc[currency] = (acc[currency] || 0) + amount;
+
+                return acc;
+              }, {});
+
+              const currencyTotalEntries = Object.entries(currencyTotals);
+
               return (
-                <Table.Summary.Row>
-                  <Table.Summary.Cell index={0}>
-                    <strong>Total</strong>
-                  </Table.Summary.Cell>
+                <Table.Summary fixed="bottom">
+                  <Table.Summary.Row>
+                    {/* 0 - Advertiser AM */}
+                    <Table.Summary.Cell index={0}>
+                      <strong>Total</strong>
+                    </Table.Summary.Cell>
 
-                  <Table.Summary.Cell index={1} colSpan={2} />
+                    {/* 1,2,3 - Advid, Month, Invoice Date */}
+                    <Table.Summary.Cell index={1} colSpan={3} />
 
-                  <Table.Summary.Cell index={3}>
-                    <strong>{totalPIDAmount.toFixed(2)}</strong>
-                  </Table.Summary.Cell>
+                    {/* 4 - PID Metric Amount */}
+                    <Table.Summary.Cell index={4}>
+                      <strong>{formatCurrency(totalPIDAmount, "USD")}</strong>
+                    </Table.Summary.Cell>
 
-                  <Table.Summary.Cell index={4} colSpan={columns.length} />
-                </Table.Summary.Row>
+                    {/* 5,6,7 - Payment Terms, Due Status, Raise Invoice */}
+                    <Table.Summary.Cell index={5} colSpan={3} />
+
+                    {/* 8 - Actual Amount Raised */}
+                    <Table.Summary.Cell index={8}>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 4,
+                        }}>
+                        {currencyTotalEntries.length === 0 ? (
+                          <strong>—</strong>
+                        ) : (
+                          currencyTotalEntries.map(([currency, total]) => (
+                            <div key={currency}>
+                              <strong>
+                                {currency}: {formatCurrency(total, currency)}
+                              </strong>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </Table.Summary.Cell>
+
+                    {/* 9 - Invoice Number */}
+                    <Table.Summary.Cell index={9} />
+
+                    {/* 10 - Payment Received Date */}
+                    <Table.Summary.Cell index={10} />
+                  </Table.Summary.Row>
+                </Table.Summary>
               );
             }}
           />
