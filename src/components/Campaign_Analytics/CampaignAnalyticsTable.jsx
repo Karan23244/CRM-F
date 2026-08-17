@@ -17,7 +17,11 @@ import {
   Card,
 } from "antd";
 import Swal from "sweetalert2";
-import { FileExcelOutlined } from "@ant-design/icons";
+import {
+  FileExcelOutlined,
+  PushpinOutlined,
+  PushpinFilled,
+} from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
 import DecisionTable from "./DecisionTable";
@@ -76,7 +80,9 @@ const CampaignAnalyticsTable = () => {
   const [filters, setFilters] = useState({});
   const [filterSearch, setFilterSearch] = useState({});
   const [uniqueValues, setUniqueValues] = useState({});
-  // ================= PAYLOAD =================
+  const [pinnedColumns, setPinnedColumns] = useState({});
+  const [sortInfo, setSortInfo] = useState({});
+
   // ================= PAYLOAD =================
   const [payload, setPayload] = useState({
     config_id: null,
@@ -240,21 +246,21 @@ const CampaignAnalyticsTable = () => {
   }, [payload]);
 
   //filter handler for dropdowns with "select all" logic
-  const handleFilterChange = (values, key) => {
-    startTransition(() => {
-      setFilters((prev) => {
-        const allValues = uniqueValues[key] || [];
+  // const handleFilterChange = (values, key) => {
+  //   startTransition(() => {
+  //     setFilters((prev) => {
+  //       const allValues = uniqueValues[key] || [];
 
-        if (values.length === allValues.length) {
-          const updated = { ...prev };
-          delete updated[key];
-          return updated;
-        }
+  //       if (values.length === allValues.length) {
+  //         const updated = { ...prev };
+  //         delete updated[key];
+  //         return updated;
+  //       }
 
-        return { ...prev, [key]: values };
-      });
-    });
-  };
+  //       return { ...prev, [key]: values };
+  //     });
+  //   });
+  // };
   const roleFilteredData = useMemo(() => {
     const normalize = (val) =>
       val === null || val === undefined || val === ""
@@ -375,21 +381,45 @@ const CampaignAnalyticsTable = () => {
       return !val || val === "N/A" || val === "NA" || val === "-";
     };
 
+    const startDate = dayjs(payload.start_date).startOf("day");
+    const endDate = dayjs(payload.end_date).endOf("day");
+
     roleFilteredData.forEach((row) => {
-      // unique PID key
+      // ===============================
+      // SHARED DATE FILTER
+      // ===============================
+      if (!row.shared_date) {
+        return;
+      }
+
+      const sharedDate = dayjs(row.shared_date);
+
+      // shared_date must be between selected start_date and end_date
+      if (
+        !sharedDate.isValid() ||
+        sharedDate.isBefore(startDate) ||
+        sharedDate.isAfter(endDate)
+      ) {
+        return;
+      }
+
+      // ===============================
+      // UNIQUE PID
+      // ===============================
       const key = `${row.pubam}_${row.pubid}_${row.pid}`;
 
       uniquePids.add(key);
 
-      // N/A publisher
+      // ===============================
+      // N/A PUBLISHER
+      // ===============================
       if (isNA(row.pubam) && isNA(row.pubid)) {
         naPids.add(key);
       }
 
-      // pid color classification
-      // green = active
-      // red = paused
-      // CRM status
+      // ===============================
+      // ACTIVE / PAUSED
+      // ===============================
       if (Number(row.is_paused) === 1) {
         pausedPids.add(key);
       } else {
@@ -403,46 +433,209 @@ const CampaignAnalyticsTable = () => {
       paused: pausedPids.size,
       na: naPids.size,
     };
-  }, [roleFilteredData]);
-  const filteredData = useMemo(() => {
-    const normalize = (val) =>
-      val === null || val === undefined || val === ""
-        ? "-"
-        : val.toString().trim().toLowerCase();
+  }, [roleFilteredData, payload.start_date, payload.end_date]);
+  // const filteredData = useMemo(() => {
+  //   const normalize = (val) =>
+  //     val === null || val === undefined || val === ""
+  //       ? "-"
+  //       : val.toString().trim().toLowerCase();
 
-    return roleFilteredData.filter((item) => {
-      return Object.keys(filters).every((key) => {
-        const selected = filters[key];
+  //   return roleFilteredData.filter((item) => {
+  //     return Object.keys(filters).every((key) => {
+  //       const selected = filters[key];
 
-        if (!selected || selected.length === 0) return true;
+  //       if (!selected || selected.length === 0) return true;
 
-        const itemVal = normalize(item[key]);
+  //       const itemVal = normalize(item[key]);
 
-        return selected.some((val) => normalize(val) === itemVal);
+  //       return selected.some((val) => normalize(val) === itemVal);
+  //     });
+  //   });
+  // }, [roleFilteredData, filters]);
+  // const getFilterDropdown = (key, props) => {
+  //   const { confirm } = props;
+  //   const allValues = uniqueValues[key] || [];
+  //   const selectedValues = filters[key] ?? allValues;
+  //   const searchText = filterSearch[key] || "";
+
+  //   const visibleValues = sortDropdownValues(
+  //     allValues.filter((val) =>
+  //       val.toString().toLowerCase().includes(searchText.toLowerCase()),
+  //     ),
+  //   );
+
+  //   const isAllSelected = selectedValues.length === allValues.length;
+  //   const isIndeterminate = selectedValues.length > 0 && !isAllSelected;
+
+  //   return (
+  //     <div
+  //       className="w-[240px] rounded-3xl"
+  //       onClick={(e) => e.stopPropagation()}
+  //       onKeyDown={(e) => e.stopPropagation()}>
+  //       <div className="p-3 border-b">
+  //         <Input
+  //           autoFocus
+  //           allowClear
+  //           placeholder="Search values"
+  //           value={searchText}
+  //           onChange={(e) =>
+  //             setFilterSearch((prev) => ({
+  //               ...prev,
+  //               [key]: e.target.value,
+  //             }))
+  //           }
+  //         />
+  //       </div>
+  //       {/* ☑ Select All */}
+  //       <div className="px-3 py-2">
+  //         <Checkbox
+  //           indeterminate={isIndeterminate}
+  //           checked={isAllSelected}
+  //           onChange={(e) =>
+  //             handleFilterChange(e.target.checked ? allValues : [], key)
+  //           }>
+  //           <span className="font-medium text-base text-gray-700">
+  //             Select All
+  //           </span>
+  //         </Checkbox>
+  //       </div>
+  //       <div className="max-h-[220px] overflow-y-auto p-2 space-y-1">
+  //         {visibleValues.map((val) => (
+  //           <label
+  //             key={val}
+  //             className="flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-blue-50">
+  //             <Checkbox
+  //               key={val}
+  //               checked={selectedValues.includes(val)}
+  //               onChange={(e) => {
+  //                 const next = e.target.checked
+  //                   ? [...selectedValues, val]
+  //                   : selectedValues.filter((v) => v !== val);
+
+  //                 handleFilterChange(next, key);
+  //                 confirm({ closeDropdown: false });
+  //               }}>
+  //               {val}
+  //             </Checkbox>
+  //           </label>
+  //         ))}
+
+  //         {visibleValues.length === 0 && (
+  //           <div className="text-center text-gray-400 py-4">
+  //             No matching values
+  //           </div>
+  //         )}
+  //       </div>
+  //     </div>
+  //   );
+  // };
+  // const setColumnUniqueValues = (key) => {
+  //   const values = sortDropdownValues(
+  //     Array.from(
+  //       new Set(
+  //         roleFilteredData.map((row) => {
+  //           const v = row[key];
+  //           return v === null || v === undefined || v === ""
+  //             ? "-"
+  //             : v.toString().trim();
+  //         }),
+  //       ),
+  //     ),
+  //   );
+
+  //   setUniqueValues((prev) => ({ ...prev, [key]: values }));
+  // };
+  // ================= EXCEL-LIKE FILTER HELPERS =================
+
+  const normalizeFilterValue = (val) => {
+    if (val === null || val === undefined || val === "") return "-";
+
+    return val.toString().trim();
+  };
+
+  const togglePin = (key) => {
+    setPinnedColumns((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
+  const clearAllFilters = () => {
+    setFilters({});
+    setPinnedColumns({});
+    setFilterSearch({});
+    setUniqueValues({});
+    setSortInfo({});
+
+    message.success("✅ All filters, pins and sorting cleared");
+  };
+
+  // Return the actual value used by Excel-style filtering
+  const getCellValue = (row, key) => {
+    return normalizeFilterValue(row[key]);
+  };
+
+  // Apply every active filter EXCEPT the column whose dropdown
+  // is currently being opened.
+  //
+  // This is what makes the filter behave like Excel.
+  const getExcelFilteredDataForColumn = (columnKey) => {
+    return roleFilteredData.filter((row) => {
+      return Object.entries(filters).every(([key, values]) => {
+        // Ignore current column's own filter
+        if (key === columnKey) return true;
+
+        if (!values || values.length === 0) return true;
+
+        return values.includes(getCellValue(row, key));
       });
     });
-  }, [roleFilteredData, filters]);
-  const getFilterDropdown = (key, props) => {
-    const { confirm } = props;
-    const allValues = uniqueValues[key] || [];
-    const selectedValues = filters[key] ?? allValues;
-    const searchText = filterSearch[key] || "";
+  };
 
-    const visibleValues = sortDropdownValues(
-      allValues.filter((val) =>
-        val.toString().toLowerCase().includes(searchText.toLowerCase()),
-      ),
+  // Build unique dropdown values using OTHER active filters
+  const updateUniqueValuesForColumn = (columnKey) => {
+    const source = getExcelFilteredDataForColumn(columnKey);
+
+    const values = [
+      ...new Set(source.map((row) => getCellValue(row, columnKey))),
+    ].sort((a, b) =>
+      String(a).localeCompare(String(b), undefined, {
+        numeric: true,
+        sensitivity: "base",
+      }),
+    );
+
+    setUniqueValues((prev) => ({
+      ...prev,
+      [columnKey]: values,
+    }));
+  };
+
+  // ================= EXCEL FILTER DROPDOWN =================
+
+  const getFilterDropdown = (columnKey) => {
+    const allValues = uniqueValues[columnKey] || [];
+
+    const selectedValues =
+      filters[columnKey] === undefined ? allValues : filters[columnKey];
+
+    const searchText = filterSearch[columnKey] || "";
+
+    const visibleValues = allValues.filter((val) =>
+      String(val).toLowerCase().includes(searchText.toLowerCase()),
     );
 
     const isAllSelected = selectedValues.length === allValues.length;
+
     const isIndeterminate = selectedValues.length > 0 && !isAllSelected;
 
     return (
       <div
-        className="w-[240px] rounded-3xl"
+        className="w-[260px] rounded-xl bg-white shadow-lg"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.stopPropagation()}>
-        <div className="p-3 border-b">
+        {/* SEARCH */}
+        <div className="sticky top-0 bg-white p-2 border-b">
           <Input
             autoFocus
             allowClear
@@ -451,47 +644,78 @@ const CampaignAnalyticsTable = () => {
             onChange={(e) =>
               setFilterSearch((prev) => ({
                 ...prev,
-                [key]: e.target.value,
+                [columnKey]: e.target.value,
               }))
             }
           />
         </div>
-        {/* ☑ Select All */}
+
+        {/* SELECT ALL */}
         <div className="px-3 py-2">
           <Checkbox
             indeterminate={isIndeterminate}
             checked={isAllSelected}
-            onChange={(e) =>
-              handleFilterChange(e.target.checked ? allValues : [], key)
-            }>
-            <span className="font-medium text-base text-gray-700">
-              Select All
-            </span>
+            onChange={(e) => {
+              const checked = e.target.checked;
+
+              setFilters((prev) => {
+                const updated = { ...prev };
+
+                if (checked) {
+                  // Same behavior as Excel:
+                  // removing the filter means everything is selected
+                  delete updated[columnKey];
+                } else {
+                  updated[columnKey] = [];
+                }
+
+                return updated;
+              });
+            }}>
+            <span className="font-medium">Select All</span>
           </Checkbox>
         </div>
-        <div className="max-h-[220px] overflow-y-auto p-2 space-y-1">
-          {visibleValues.map((val) => (
-            <label
-              key={val}
-              className="flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-blue-50">
-              <Checkbox
-                key={val}
-                checked={selectedValues.includes(val)}
-                onChange={(e) => {
-                  const next = e.target.checked
-                    ? [...selectedValues, val]
-                    : selectedValues.filter((v) => v !== val);
 
-                  handleFilterChange(next, key);
-                  confirm({ closeDropdown: false });
-                }}>
-                {val}
-              </Checkbox>
-            </label>
-          ))}
+        {/* VALUES */}
+        <div className="max-h-[240px] overflow-y-auto px-2 py-2">
+          {visibleValues.map((value) => {
+            const checked = selectedValues.includes(value);
+
+            return (
+              <label
+                key={value}
+                className="flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer hover:bg-blue-50">
+                <Checkbox
+                  checked={checked}
+                  onChange={(e) => {
+                    const next = e.target.checked
+                      ? [...selectedValues, value]
+                      : selectedValues.filter((v) => v !== value);
+
+                    setFilters((prev) => {
+                      const updated = {
+                        ...prev,
+                        [columnKey]: next,
+                      };
+
+                      // If everything is selected,
+                      // remove the filter completely.
+                      if (next.length === allValues.length) {
+                        delete updated[columnKey];
+                      }
+
+                      return updated;
+                    });
+                  }}
+                />
+
+                <span className="truncate">{value}</span>
+              </label>
+            );
+          })}
 
           {visibleValues.length === 0 && (
-            <div className="text-center text-gray-400 py-4">
+            <div className="py-4 text-center text-gray-400 text-sm">
               No matching values
             </div>
           )}
@@ -499,22 +723,50 @@ const CampaignAnalyticsTable = () => {
       </div>
     );
   };
-  const setColumnUniqueValues = (key) => {
-    const values = sortDropdownValues(
-      Array.from(
-        new Set(
-          roleFilteredData.map((row) => {
-            const v = row[key];
-            return v === null || v === undefined || v === ""
-              ? "-"
-              : v.toString().trim();
-          }),
-        ),
-      ),
-    );
 
-    setUniqueValues((prev) => ({ ...prev, [key]: values }));
-  };
+  // ================= FINAL FILTERED DATA =================
+
+  const filteredData = useMemo(() => {
+    let result = roleFilteredData.filter((row) => {
+      return Object.entries(filters).every(([key, values]) => {
+        if (!values || values.length === 0) {
+          return true;
+        }
+
+        return values.includes(getCellValue(row, key));
+      });
+    });
+
+    // ================= SORT =================
+
+    if (sortInfo?.columnKey && sortInfo?.order) {
+      result = [...result].sort((a, b) => {
+        const key = sortInfo.columnKey;
+
+        const valA = getCellValue(a, key);
+        const valB = getCellValue(b, key);
+
+        const numA = parseFloat(String(valA).replace(/,/g, ""));
+
+        const numB = parseFloat(String(valB).replace(/,/g, ""));
+
+        let comparison;
+
+        if (!Number.isNaN(numA) && !Number.isNaN(numB)) {
+          comparison = numA - numB;
+        } else {
+          comparison = String(valA).localeCompare(String(valB), undefined, {
+            numeric: true,
+            sensitivity: "base",
+          });
+        }
+
+        return sortInfo.order === "ascend" ? comparison : -comparison;
+      });
+    }
+
+    return result;
+  }, [roleFilteredData, filters, sortInfo]);
   // ================= KPI CELL =================
   // ONLY TEXT COLOR
   const renderCell = (value, colorKey) => {
@@ -734,39 +986,105 @@ const CampaignAnalyticsTable = () => {
       }));
     }
   };
-  // ================= COLUMNS =================
-  const columns = [
-    {
-      title: "POC (PubAM)",
-      dataIndex: "pubam",
-      fixed: "left",
-      width: 150,
-      filterDropdown: (props) => getFilterDropdown("pubam", props),
-      onFilterDropdownOpenChange: (open) =>
-        handleFilterDropdownOpenChange("pubam", open),
-    },
-    {
-      title: "PubID",
-      dataIndex: "pubid",
-      fixed: "left",
-      width: 120,
-      filterDropdown: (props) => getFilterDropdown("pubid", props),
-      onFilterDropdownOpenChange: (open) =>
-        handleFilterDropdownOpenChange("pubid", open),
-    },
-    {
-      title: "PID",
-      dataIndex: "pid",
-      fixed: "left",
-      width: 220,
-      filterDropdown: (props) => getFilterDropdown("pid", props),
-      onFilterDropdownOpenChange: (open) =>
-        handleFilterDropdownOpenChange("pid", open),
-      onCell: () => ({
-        className: "pid-cell",
+
+  // ================= EXCEL COLUMN BUILDER =================
+
+  const getColumnWithFilterAndPin = (
+    dataIndex,
+    title,
+    renderFn,
+    extraProps = {},
+  ) => {
+    const isPinned = pinnedColumns[dataIndex];
+    const isFiltered = filters[dataIndex] !== undefined;
+
+    return {
+      ...extraProps,
+
+      key: dataIndex,
+      dataIndex,
+
+      title: (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 6,
+            color: isFiltered ? "#1677ff" : "inherit",
+          }}>
+          <span>{title}</span>
+        </div>
+      ),
+
+      fixed: isPinned ? "left" : false,
+
+      sorter: true,
+
+      sortOrder: sortInfo.columnKey === dataIndex ? sortInfo.order : null,
+
+      onHeaderCell: () => ({
+        onClick: () => {
+          setSortInfo((prev) => {
+            // First click
+            if (prev.columnKey !== dataIndex) {
+              return {
+                columnKey: dataIndex,
+                order: "ascend",
+              };
+            }
+
+            // Second click
+            if (prev.order === "ascend") {
+              return {
+                columnKey: dataIndex,
+                order: "descend",
+              };
+            }
+
+            // Third click = clear
+            return {};
+          });
+        },
       }),
 
-      render: (text, row) => ({
+      onFilterDropdownOpenChange: (open) => {
+        if (open) {
+          updateUniqueValuesForColumn(dataIndex);
+        } else {
+          setFilterSearch((prev) => ({
+            ...prev,
+            [dataIndex]: "",
+          }));
+        }
+      },
+
+      filterDropdown: () => getFilterDropdown(dataIndex),
+
+      render: renderFn
+        ? (text, record) => renderFn(text, record)
+        : (text) => text ?? "-",
+    };
+  };
+  // ================= COLUMNS =================
+  const columns = [
+    getColumnWithFilterAndPin(
+      "pubam",
+      "POC (PubAM)",
+      (text) => <span className="font-medium">{text ?? "-"}</span>,
+      {
+        width: 150,
+      },
+    ),
+
+    getColumnWithFilterAndPin("pubid", "PubID", null, {
+      width: 120,
+    }),
+
+    getColumnWithFilterAndPin(
+      "pid",
+      "PID",
+      (text, row) => ({
         children: text,
         props: {
           style: {
@@ -777,25 +1095,23 @@ const CampaignAnalyticsTable = () => {
           },
         },
       }),
-    },
-    {
-      title: "Impressions",
-      dataIndex: "impressions",
-      width: 150,
+      {
+        width: 220,
+        onCell: () => ({
+          className: "pid-cell",
+        }),
+      },
+    ),
 
-      sorter: (a, b) =>
-        getSortableValue(a.impressions) - getSortableValue(b.impressions),
+    getColumnWithFilterAndPin(
+      "impressions",
+      "Impressions",
+      (text) => <span className="font-bold text-gray-800">{text ?? 0}</span>,
+      {
+        width: 150,
+      },
+    ),
 
-      filterDropdown: (props) => getFilterDropdown("impressions", props),
-      onFilterDropdownOpenChange: (open) =>
-        handleFilterDropdownOpenChange("impressions", open),
-
-      render: (text) => (
-        <span className="font-bold text-gray-800">{text ?? 0}</span>
-      ),
-    },
-    // ================= KPI =================
-    // ================= KPI =================
     buildKPI("Clicks", "clicks"),
     buildKPI("Installs", "installs"),
     buildKPI("C2I", "c2i"),

@@ -91,6 +91,7 @@ const CampaignConfigPage = () => {
   const [ignoreMetrics, setIgnoreMetrics] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [existingConfigId, setExistingConfigId] = useState(null);
+  const [allowedCampaignIds, setAllowedCampaignIds] = useState([]);
   const template = CONFIG_TEMPLATES[configType] || CONFIG_TEMPLATES.appsflyer;
   useEffect(() => {
     const newRule1 = {};
@@ -135,7 +136,27 @@ const CampaignConfigPage = () => {
       return [];
     }
   }, [user]);
+  const fetchMappings = async () => {
+    try {
+      const res = await axios.get(`${apiUrl}/campaign-publisher-map`, {
+        params: {
+          userid: user.id,
+          role: Array.isArray(user.role) ? user.role[0] : user.role,
+        },
+      });
 
+      const ids = (res.data.data || []).map((item) => Number(item.campaign_id));
+
+      setAllowedCampaignIds(ids);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+  useEffect(() => {
+    if (user) {
+      fetchMappings();
+    }
+  }, [user]);
   // ─────────────────────────────────────────────────────────
   // Load Campaigns
   // ─────────────────────────────────────────────────────────
@@ -156,7 +177,17 @@ const CampaignConfigPage = () => {
       load();
     }
   }, [fetchCampaigns, user]);
+  const visibleCampaigns = React.useMemo(() => {
+    const role = Array.isArray(user?.role) ? user.role[0] : user?.role;
 
+    // Admin and other roles see everything
+    if (role !== "publisher") return campaigns;
+
+    // Publisher sees only mapped campaigns
+    return campaigns.filter((campaign) =>
+      allowedCampaignIds.includes(Number(campaign.id)),
+    );
+  }, [campaigns, allowedCampaignIds, user]);
   // ─────────────────────────────────────────────────────────
   // Sync Dynamic Events
   // ─────────────────────────────────────────────────────────
@@ -366,10 +397,11 @@ const CampaignConfigPage = () => {
   const selectedIds = form.getFieldValue("campaign_ids") || [];
 
   const sortedCampaigns = React.useMemo(() => {
-    const firstSelected = campaigns.find((x) => selectedIds.includes(x.id));
+    const firstSelected = visibleCampaigns.find((x) =>
+      selectedIds.includes(x.id),
+    );
 
-    return [...campaigns].sort((a, b) => {
-      // no selection yet
+    return [...visibleCampaigns].sort((a, b) => {
       if (!firstSelected) {
         return `${a.campaign_name} ${a.os}`.localeCompare(
           `${b.campaign_name} ${b.os}`,
@@ -384,21 +416,17 @@ const CampaignConfigPage = () => {
         b.campaign_name === firstSelected.campaign_name &&
         b.os === firstSelected.os;
 
-      // selected always first
       if (selectedIds.includes(a.id) && !selectedIds.includes(b.id)) return -1;
-
       if (!selectedIds.includes(a.id) && selectedIds.includes(b.id)) return 1;
 
-      // related campaigns next
       if (aRelated && !bRelated) return -1;
       if (!aRelated && bRelated) return 1;
 
-      // alphabetical
       return `${a.campaign_name} ${a.os}`.localeCompare(
         `${b.campaign_name} ${b.os}`,
       );
     });
-  }, [campaigns, selectedIds]);
+  }, [visibleCampaigns, selectedIds]);
   // ─────────────────────────────────────────────────────────
   // UI
   // ─────────────────────────────────────────────────────────
