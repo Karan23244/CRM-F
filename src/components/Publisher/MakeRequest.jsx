@@ -86,7 +86,12 @@ const PublisherRequest = ({ senderId, receiverId }) => {
   const [campaigns, setCampaigns] = useState([]);
   const [mappingData, setMappingData] = useState([]);
   const [selectedCampaign, setSelectedCampaign] = useState(null);
-  const normalize = (val) => {
+  const normalize = (val,key) => {
+    if (key === "prm") {
+      if (val === 1 || val === "1") return "1";
+      if (val === 2 || val === "2") return "2";
+      return "-";
+    }
     if (val === null || val === undefined || val === "") return "-";
     return val.toString().trim();
   };
@@ -350,7 +355,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
       // 🎯 Excel-style filters
       return Object.entries(filters).every(([key, values]) => {
         if (!values || values.length === 0) return true;
-        return values.includes(normalize(row[key]));
+        return values.includes(normalize(row[key], key));
       });
     });
   }, [requests, filters, searchText]);
@@ -361,7 +366,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
         return Object.entries(filters).every(([key, values]) => {
           if (key === columnKey) return true; // ignore self
           if (!values || values.length === 0) return true;
-          return values.includes(normalize(row[key]));
+          return values.includes(normalize(row[key], key));
         });
       });
     },
@@ -718,7 +723,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
         startTransition(() => {
           const source = getExcelFilteredDataForColumn(key);
           const values = [
-            ...new Set(source.map((row) => normalize(row[key]))),
+            ...new Set(source.map((row) => normalize(row[key], key))),
           ].sort((a, b) => a.localeCompare(b));
 
           setUniqueValues((prev) => ({ ...prev, [key]: values }));
@@ -731,7 +736,6 @@ const PublisherRequest = ({ senderId, receiverId }) => {
         title: "Priority",
         key: "priority",
         dataIndex: "priority",
-        fixed: pinnedColumns["priority"] || undefined,
         render: (_, record) =>
           canUpdatePermission(record) ? (
             <Select
@@ -797,7 +801,6 @@ const PublisherRequest = ({ senderId, receiverId }) => {
         title: "Permission",
         key: "prm",
         dataIndex: "prm",
-        fixed: pinnedColumns["prm"] || undefined,
         render: (_, record) => (
           <span
             style={{
@@ -816,6 +819,102 @@ const PublisherRequest = ({ senderId, receiverId }) => {
                 : "🟡 Hold"}
           </span>
         ),
+        filterDropdown: ({ confirm }) => {
+          const [searchText, setSearchText] = React.useState("");
+
+          const allValues = uniqueValues["prm"] || [];
+          const selectedValues = filters["prm"] ?? allValues;
+
+          const visibleValues = sortDropdownValues(
+            allValues.filter((val) => {
+              const label = val === "1" ? "✅ Allow" : val === "2" ? "❌ Disallow" : "🟡 Hold";
+              return label.toLowerCase().includes(searchText.toLowerCase());
+            })
+          );
+          const isAllSelected = selectedValues.length === allValues.length;
+          const isIndeterminate = selectedValues.length > 0 && !isAllSelected;
+          return (
+            <div
+              className="w-[240px] rounded-3xl"
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}>
+              <div className="p-3 border-b">
+                <Input
+                  autoFocus
+                  allowClear
+                  placeholder="Search values"
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                />
+              </div>
+              {/* ☑ Select All */}
+              <div className="px-3 py-2">
+                <Checkbox
+                  indeterminate={isIndeterminate}
+                  checked={isAllSelected}
+                  onChange={(e) =>
+                    handleFilterChange(e.target.checked ? allValues : [], "prm")
+                  }>
+                  <span className="font-medium text-base text-gray-700">
+                    Select All
+                  </span>
+                </Checkbox>
+              </div>
+              <div className="max-h-[220px] overflow-y-auto p-2 space-y-1">
+                {visibleValues.map((val) => {
+                  const label = val === "1" ? "✅ Allow" : val === "2" ? "❌ Disallow" : "🟡 Hold";
+                  return (
+                    <label
+                      key={val}
+                      className="flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-blue-50">
+                      <Checkbox
+                        key={val}
+                        checked={selectedValues.includes(val)}
+                        onChange={(e) => {
+                          const next = e.target.checked
+                            ? [...selectedValues, val]
+                            : selectedValues.filter((v) => v !== val);
+
+                          handleFilterChange(next, "prm");
+                          confirm({ closeDropdown: false });
+                        }}>
+                        {label}
+                      </Checkbox>
+                    </label>
+                  );
+                })}
+
+                {visibleValues.length === 0 && (
+                  <div className="text-center text-gray-400 py-4">
+                    No matching values
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        },
+        filterDropdownProps: {
+          destroyOnClose: false,
+        },
+        onFilterDropdownOpenChange: (open) => {
+          if (!open) return;
+
+          startTransition(() => {
+            const source = getExcelFilteredDataForColumn("prm");
+            const values = [
+              ...new Set(
+                source.map((row) => {
+                  const val = row.prm;
+                  if (val === 1 || val === "1") return "1";
+                  if (val === 2 || val === "2") return "2";
+                  return "-";
+                })
+              ),
+            ].sort((a, b) => a.localeCompare(b));
+
+            setUniqueValues((prev) => ({ ...prev, prm: values }));
+          });
+        },
       },
     );
 
