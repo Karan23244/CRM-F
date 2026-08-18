@@ -86,7 +86,7 @@ const PublisherBilling = () => {
       setApiUrlLoading(true);
       try {
         // First check if postback is set via pubid-data
-        const pubRes = await axios.get(`${apiUrl}/pubid-data/${user.id}`);
+        const pubRes = await axios.get(`${apiUrl}/pubid-data/${user.created_by}`);
         const publishers = pubRes.data?.publishers || [];
         const thisPublisher = publishers.find((p) => p.pub_id === user.pubid);
         if (!thisPublisher?.postback_url) return;
@@ -103,7 +103,7 @@ const PublisherBilling = () => {
       }
     };
     fetchApiUrl();
-  }, [user?.pubid, user?.id]);
+  }, [user?.pubid, user?.id, user?.created_by]);
 
   // ================= FORM HANDLERS =================
   const updateBillingEntry = (index, field, value) => {
