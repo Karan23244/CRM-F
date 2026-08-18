@@ -747,7 +747,6 @@ const CampaignAnalyticsTable = () => {
         const valB = getCellValue(b, key);
 
         const numA = parseFloat(String(valA).replace(/,/g, ""));
-
         const numB = parseFloat(String(valB).replace(/,/g, ""));
 
         let comparison;
@@ -823,47 +822,60 @@ const CampaignAnalyticsTable = () => {
     const primaryWindow = payload.windows.primary;
     const secondaryWindow = payload.windows.secondary;
 
+    const createSortableColumn = (dataIndex, title, colorKey) => ({
+      title,
+      dataIndex,
+      width: KPI_COL_WIDTH,
+
+      sorter: (a, b) =>
+        getSortableValue(a[dataIndex]) - getSortableValue(b[dataIndex]),
+
+      sortOrder: sortInfo.columnKey === dataIndex ? sortInfo.order : null,
+
+      onHeaderCell: () => ({
+        onClick: () => {
+          setSortInfo((prev) => {
+            if (prev.columnKey !== dataIndex) {
+              return {
+                columnKey: dataIndex,
+                order: "ascend",
+              };
+            }
+
+            if (prev.order === "ascend") {
+              return {
+                columnKey: dataIndex,
+                order: "descend",
+              };
+            }
+
+            return {};
+          });
+        },
+      }),
+
+      render: (_, row) => renderCell(row[dataIndex], row[colorKey]),
+    });
+
     return {
       title,
-      children: [
-        {
-          title: "MTD",
-          dataIndex: `${key}_mtd`,
-          width: KPI_COL_WIDTH,
-          sorter: (a, b) =>
-            getSortableValue(a[`${key}_mtd`]) -
-            getSortableValue(b[`${key}_mtd`]),
-          render: (_, row) =>
-            renderCell(row[`${key}_mtd`], row[`${key}_mtd_color`]),
-        },
-        {
-          title: `${primaryWindow}D`,
-          dataIndex: `${key}_${primaryWindow}d`,
-          width: KPI_COL_WIDTH,
-          sorter: (a, b) =>
-            getSortableValue(a[`${key}_${primaryWindow}d`]) -
-            getSortableValue(b[`${key}_${primaryWindow}d`]),
-          render: (_, row) =>
-            renderCell(
-              row[`${key}_${primaryWindow}d`],
-              row[`${key}_${primaryWindow}d_color`],
-            ),
-        },
-        {
-          title: `${secondaryWindow}D`,
-          dataIndex: `${key}_${secondaryWindow}d`,
-          width: KPI_COL_WIDTH,
-          sorter: (a, b) =>
-            getSortableValue(a[`${key}_${secondaryWindow}d`]) -
-            getSortableValue(b[`${key}_${secondaryWindow}d`]),
-          // ⭐ IMPORTANT: add class here
-          className: "group-divider",
 
-          render: (_, row) =>
-            renderCell(
-              row[`${key}_${secondaryWindow}d`],
-              row[`${key}_${secondaryWindow}d_color`],
-            ),
+      children: [
+        createSortableColumn(`${key}_mtd`, "MTD", `${key}_mtd_color`),
+
+        createSortableColumn(
+          `${key}_${primaryWindow}d`,
+          `${primaryWindow}D`,
+          `${key}_${primaryWindow}d_color`,
+        ),
+
+        {
+          ...createSortableColumn(
+            `${key}_${secondaryWindow}d`,
+            `${secondaryWindow}D`,
+            `${key}_${secondaryWindow}d_color`,
+          ),
+          className: "group-divider",
         },
       ],
     };
@@ -994,8 +1006,9 @@ const CampaignAnalyticsTable = () => {
     title,
     renderFn,
     extraProps = {},
+    forceFixed = false,
   ) => {
-    const isPinned = pinnedColumns[dataIndex];
+    const isPinned = forceFixed || pinnedColumns[dataIndex];
     const isFiltered = filters[dataIndex] !== undefined;
 
     return {
@@ -1014,6 +1027,30 @@ const CampaignAnalyticsTable = () => {
             color: isFiltered ? "#1677ff" : "inherit",
           }}>
           <span>{title}</span>
+
+          {!forceFixed &&
+            (isPinned ? (
+              <PushpinFilled
+                onClick={(e) => {
+                  e.stopPropagation();
+                  togglePin(dataIndex);
+                }}
+                style={{
+                  color: "#1677ff",
+                  cursor: "pointer",
+                }}
+              />
+            ) : (
+              <PushpinOutlined
+                onClick={(e) => {
+                  e.stopPropagation();
+                  togglePin(dataIndex);
+                }}
+                style={{
+                  cursor: "pointer",
+                }}
+              />
+            ))}
         </div>
       ),
 
@@ -1026,7 +1063,6 @@ const CampaignAnalyticsTable = () => {
       onHeaderCell: () => ({
         onClick: () => {
           setSortInfo((prev) => {
-            // First click
             if (prev.columnKey !== dataIndex) {
               return {
                 columnKey: dataIndex,
@@ -1034,7 +1070,6 @@ const CampaignAnalyticsTable = () => {
               };
             }
 
-            // Second click
             if (prev.order === "ascend") {
               return {
                 columnKey: dataIndex,
@@ -1042,7 +1077,6 @@ const CampaignAnalyticsTable = () => {
               };
             }
 
-            // Third click = clear
             return {};
           });
         },
@@ -1075,11 +1109,18 @@ const CampaignAnalyticsTable = () => {
       {
         width: 150,
       },
+      true, // ALWAYS FIXED
     ),
 
-    getColumnWithFilterAndPin("pubid", "PubID", null, {
-      width: 120,
-    }),
+    getColumnWithFilterAndPin(
+      "pubid",
+      "PubID",
+      null,
+      {
+        width: 120,
+      },
+      true, // ALWAYS FIXED
+    ),
 
     getColumnWithFilterAndPin(
       "pid",
@@ -1101,6 +1142,7 @@ const CampaignAnalyticsTable = () => {
           className: "pid-cell",
         }),
       },
+      true, // ALWAYS FIXED
     ),
 
     getColumnWithFilterAndPin(
