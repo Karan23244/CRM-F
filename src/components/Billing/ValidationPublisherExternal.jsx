@@ -552,21 +552,23 @@ export default function PublisherExternalBilling() {
     });
 
     return (
-      <Table.Summary.Row>
-        <Table.Summary.Cell colSpan={4}>
-          <b>Total</b>
-        </Table.Summary.Cell>
-        <Table.Summary.Cell>
-          <b>{totalNo.toFixed(2)}</b>
-        </Table.Summary.Cell>
-        <Table.Summary.Cell>
-          <b>{totalApproved.toFixed(2)}</b>
-        </Table.Summary.Cell>
-        <Table.Summary.Cell>
-          <b>${totalPayout.toFixed(2)}</b>
-        </Table.Summary.Cell>
-        <Table.Summary.Cell />
-      </Table.Summary.Row>
+      <Table.Summary fixed="bottom">
+        <Table.Summary.Row>
+          <Table.Summary.Cell colSpan={4}>
+            <b>Total</b>
+          </Table.Summary.Cell>
+          <Table.Summary.Cell>
+            <b>{totalNo.toFixed(2)}</b>
+          </Table.Summary.Cell>
+          <Table.Summary.Cell>
+            <b>{totalApproved.toFixed(2)}</b>
+          </Table.Summary.Cell>
+          <Table.Summary.Cell>
+            <b>${totalPayout.toFixed(2)}</b>
+          </Table.Summary.Cell>
+          <Table.Summary.Cell />
+        </Table.Summary.Row>
+      </Table.Summary>
     );
   };
   // ─────────────────────────────────────────────

@@ -22,13 +22,20 @@ const apiUrl = import.meta.env.VITE_API_URL;
 
 const { Title } = Typography;
 
-const DecisionTable = ({ campaign_name, os, lastdate, geo, campaign_ids }) => {
+const DecisionTable = ({
+  campaign_name,
+  os,
+  lastdate,
+  geo,
+  campaign_ids,
+  allowedCampaignIds = [],
+}) => {
   const user = useSelector((state) => state.auth.user);
 
   const [loading, setLoading] = useState(false);
   const [dataSource, setDataSource] = useState([]);
   const [subadmins, setSubadmins] = useState([]);
-
+  console.log(dataSource, "dataSource");
   // ================= FILTER STATES =================
   const [filters, setFilters] = useState({});
   const [filterSearch, setFilterSearch] = useState({});
@@ -76,7 +83,7 @@ const DecisionTable = ({ campaign_name, os, lastdate, geo, campaign_ids }) => {
       console.log("Fetching decision data with payload:", payload);
 
       const res = await axios.post(`${API}/api/decision`, payload);
-      console.log("API response:", res);
+      console.log("decision API response:", res);
       if (res.data?.success) {
         setDataSource(res.data.data || []);
       } else {
@@ -103,6 +110,7 @@ const DecisionTable = ({ campaign_name, os, lastdate, geo, campaign_ids }) => {
 
   // ================= FILTER DATA BY USER =================
   const roleFilteredData = useMemo(() => {
+  
     const normalize = (val) =>
       val === null || val === undefined || val === ""
         ? "-"
@@ -113,49 +121,70 @@ const DecisionTable = ({ campaign_name, os, lastdate, geo, campaign_ids }) => {
     const username = normalize(user?.username);
 
     const assignedIds = user?.assigned_subadmins || [];
-
+    console.log(allowedCampaignIds, "allowedCampaignIds");
     const assignedNames = subadmins
       .filter((s) => assignedIds.includes(s.id))
       .map((s) => normalize(s.username));
 
     return dataSource.filter((item) => {
       const pubam = normalize(item.pubam);
-      const pubid = normalize(item.pubid);
 
-      const isNARecord =
-        pubam === "n/a" || pubam === "-" || pubid === "n/a" || pubid === "-";
-
-      // Only operations & optimization can see N/A rows
-      if (isNARecord) {
-        return (
-          user?.role?.includes("operations") ||
-          user?.role?.includes("optimization") ||
-          user?.role?.includes("admin")
-        );
-      }
-
-      // Full access roles (except N/A rows handled above)
+      // Full access roles
       if (
         user?.role?.includes("operations") ||
         user?.role?.includes("optimization") ||
-        user?.role?.includes("advertiser_manager") ||
         user?.role?.includes("advertiser") ||
+        user?.role?.includes("advertiser_manager") ||
         user?.role?.includes("adv_executive") ||
         user?.role?.includes("admin")
       ) {
         return true;
       }
 
-      // own data
-      if (pubam === username) return true;
+      // Publisher / Pub Executive
+      if (
+        user?.role?.includes("publisher") ||
+        user?.role?.includes("pub_executive")
+      ) {
+        // Don't show N/A publisher records
+        if (pubam === "n/a" || pubam === "-") {
+          return false;
+        }
 
-      // assigned subadmin data
-      if (assignedNames.includes(pubam)) return true;
+        // 1. Allow if campaign mapping matches
+        if (allowedCampaignIds.includes(Number(item.campaign_id))) {
+          return true;
+        }
+
+        // 2. If campaign mapping doesn't match, fall back to username
+        if (pubam === username) {
+          return true;
+        }
+
+        // 3. Or assigned subadmin
+        if (assignedNames.includes(pubam)) {
+          return true;
+        }
+
+        // Otherwise deny
+        return false;
+      }
+
+      // Publisher Manager (existing logic)
+      if (user?.role?.includes("publisher_manager")) {
+        if (pubam === username) return true;
+
+        if (assignedNames.includes(pubam)) return true;
+
+        if (pubam === "n/a" || pubam === "-") return false;
+
+        return false;
+      }
 
       return false;
     });
-  }, [dataSource, user, subadmins, hasAccess]);
-
+  }, [dataSource, user, subadmins, hasAccess,campaign_ids, allowedCampaignIds]);
+  console.log(roleFilteredData, "roleFilteredData");
   // ================= COLUMN FILTERING =================
   const filteredData = useMemo(() => {
     const normalize = (val) =>

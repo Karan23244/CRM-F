@@ -40,6 +40,7 @@ export default function UploadForm({ onUploadSuccess }) {
   const [form] = Form.useForm();
   const [msg, setMsg] = useState(null);
   const [fileList, setFileList] = useState([]);
+  const [selectedMMP, setSelectedMMP] = useState("appsflyer");
   const [loading, setLoading] = useState(false); // 🔥 loading state
   const [submitted, setSubmitted] = useState(false); // 🔥 prevent resubmit
   const [socketId, setSocketId] = useState(null);
@@ -94,6 +95,7 @@ export default function UploadForm({ onUploadSuccess }) {
     data.append("geo", geoInput);
     data.append("dateRange", formattedRange);
     data.append("campaign_ids", JSON.stringify(values.campaign_ids));
+    data.append("mmpTracker", values.mmpTracker);
     // 🔹 Append socketId to identify user
     if (socketId) {
       data.append("socketId", socketId);
@@ -113,18 +115,15 @@ export default function UploadForm({ onUploadSuccess }) {
         Swal.showLoading();
       },
     });
-    console.log("Submitting data:", {
-      campaignName: cleanCampaignName,
-      os: values.os.trim(), 
-      geo: geoInput,
-      dateRange: formattedRange,
-      campaign_ids: values.campaign_ids,
-      files: fileList.map((file) => file.name),
-      socketId,
-    });
     try {
-      await axios.post(`${apiUrl}/api/metrics`, data);
+      // await axios.post(`${apiUrl}/api/metrics`, data);
+      const apiMap = {
+        appsflyer: `${apiUrl}/api/metrics`,
+        singular: `${apiUrl}/api/singular-metrics`,
+        adjust: `${apiUrl}/api/adjust-metrics`,
+      };
 
+      await axios.post(apiMap[values.mmpTracker], data);
       // 🔹 Clear form immediately after request is sent
       form.resetFields();
       setFileList([]);
@@ -141,6 +140,7 @@ export default function UploadForm({ onUploadSuccess }) {
   };
   useEffect(() => {
     const handler = async (data) => {
+      console.log("Received uploadComplete event:", data);
       Swal.close();
       if (data.status === "success") {
         Swal.fire({
@@ -191,7 +191,7 @@ export default function UploadForm({ onUploadSuccess }) {
         {/* Header */}
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-[#2F5D99] mb-2">
-            Appslyer Files Upload Form
+            AppsFlyer Files Upload Form
           </h2>
           <p className="text-gray-500">
             Fill in the campaign details and upload your metric files below.
@@ -204,6 +204,27 @@ export default function UploadForm({ onUploadSuccess }) {
           layout="vertical"
           onFinish={handleFinish}
           className="space-y-5">
+          <Form.Item
+            name="mmpTracker"
+            initialValue="appsflyer"
+            rules={[
+              {
+                required: true,
+                message: "Please select MMP Tracker",
+              },
+            ]}>
+            <Select
+              size="large"
+              value={selectedMMP}
+              onChange={(value) => {
+                setSelectedMMP(value);
+                form.setFieldsValue({ mmpTracker: value });
+              }}>
+              <Select.Option value="appsflyer">AppsFlyer</Select.Option>
+              <Select.Option value="singular">Singular</Select.Option>
+              <Select.Option value="adjust">Adjust</Select.Option>
+            </Select>
+          </Form.Item>
           {/* Campaign Name */}
           <Form.Item
             name="campaignName"
@@ -283,7 +304,10 @@ export default function UploadForm({ onUploadSuccess }) {
                   os: option.os,
                   campaign_ids: option.campaignIds,
                   geo: geoString,
+                  mmpTracker: option.configType, // Auto fill
                 });
+
+                setSelectedMMP(option.configType); // keep state in sync
 
                 setAvailableOS([option.os]);
               }}>
@@ -295,7 +319,9 @@ export default function UploadForm({ onUploadSuccess }) {
                   campaignName={c.campaign_name}
                   campaignIds={c.campaign_ids}
                   geos={c.geos}
-                  os={c.os}>
+                  os={c.os}
+                  configType={c.config_type} // <-- add this
+                >
                   <div className="flex items-center justify-between w-full">
                     <div>
                       <div className="font-semibold">

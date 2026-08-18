@@ -23,6 +23,7 @@ import { debounce } from "lodash";
 const { Option } = Select;
 const apiUrl = import.meta.env.VITE_API_URL;
 
+dayjs.extend(isBetween);
 // Advertiser Column Headings
 const columnHeadingsAdv = {
   pub_name: "PUB AM",

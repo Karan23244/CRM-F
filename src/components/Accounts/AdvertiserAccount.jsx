@@ -14,6 +14,8 @@ import {
   Spin,
   Checkbox,
   Button,
+  Typography,
+  Space,
 } from "antd";
 import Swal from "sweetalert2";
 import {
@@ -21,11 +23,12 @@ import {
   PushpinFilled,
   ClearOutlined,
 } from "@ant-design/icons";
-
+import { RiFileExcel2Line } from "react-icons/ri";
 import dayjs from "dayjs";
 import axios from "axios";
 import { useSelector } from "react-redux";
 import StyledTable from "../../Utils/StyledTable";
+import { exportToExcel } from "../exportExcel";
 
 const { Option } = Select;
 const API = import.meta.env.VITE_API_URL5;
@@ -40,7 +43,28 @@ const displayValue = (val, placeholder = "—") =>
   ) : (
     val
   );
+const currencySymbols = {
+  USD: "$",
+  INR: "₹",
+  EUR: "€",
+  GBP: "£",
+  AED: "د.إ",
+  SAR: "﷼",
+  BDT: "৳",
+  PKR: "₨",
+  JPY: "¥",
+  CNY: "¥",
+};
 
+const formatCurrency = (amount, currency = "USD") => {
+  const value = Number(amount || 0);
+  const symbol = currencySymbols[currency] || currency;
+
+  return `${symbol}${value.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+};
 /* ============================= */
 /* Editable Text Cell */
 /* ============================= */
@@ -176,6 +200,7 @@ const AmountRaisedCell = ({ record, onSave }) => {
         options={[
           { label: "₹ INR", value: "INR" },
           { label: "$ USD", value: "USD" },
+          { label: "€ EUR", value: "EUR" },
         ]}
       />
 
@@ -762,6 +787,7 @@ function AdvertiserAccount() {
   /* ============================= */
 
   const columns = [
+    getColumnWithFilterAndPin("adv_am", "Advertiser AM"),
     getColumnWithFilterAndPin("adv_id", "Advid (Adv Name)", (_, r) => {
       if (r.isNew) {
         return (
@@ -780,12 +806,72 @@ function AdvertiserAccount() {
         );
       }
 
+      const CopyRow = ({ label, value }) => (
+        <div
+          style={{
+            marginBottom: 14,
+            padding: 10,
+            border: "1px solid #f0f0f0",
+            borderRadius: 8,
+            background: "#fafafa",
+          }}>
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              color: "#666",
+              marginBottom: 6,
+            }}>
+            {label}
+          </div>
+
+          <Typography.Paragraph
+            copyable={{ text: value || "" }}
+            style={{
+              margin: 0,
+              color: "#222",
+              fontSize: 13,
+              lineHeight: "20px",
+              whiteSpace: "pre-wrap",
+              overflowWrap: "anywhere",
+              wordBreak: "break-word",
+              maxHeight: 100,
+              overflowY: "auto",
+              paddingRight: 6,
+            }}>
+            {value || "-"}
+          </Typography.Paragraph>
+        </div>
+      );
+
       return (
-        <Tooltip title={r.note || "No Legal Billing Address"}>
+        <Tooltip
+          placement="right"
+          color="#fff"
+          overlayInnerStyle={{
+            width: 420,
+            maxWidth: 420,
+            padding: 16,
+            borderRadius: 10,
+            boxShadow: "0 8px 24px rgba(0,0,0,.15)",
+          }}
+          title={
+            <div
+              style={{
+                maxHeight: 420,
+                overflowY: "auto",
+              }}>
+              <CopyRow label="Legal Name" value={r.legal_name} />
+              <CopyRow label="Billing Address" value={r.billing_address} />
+              <CopyRow label="Tax Type" value={r.tax_type} />
+              <CopyRow label="Tax ID" value={r.tax_id} />
+            </div>
+          }>
           <span
             style={{
               color: "#1677ff",
-              fontWeight: 500,
+              fontWeight: 600,
+              cursor: "pointer",
             }}>
             {r.adv_name ? `${r.adv_id} (${r.adv_name})` : r.adv_id}
           </span>
@@ -946,36 +1032,122 @@ function AdvertiserAccount() {
               }}>
               Add New Details
             </Button>
+            {/* Right Side */}
+            <Button
+              type="primary"
+              size="medium"
+              icon={<RiFileExcel2Line size={18} />}
+              onClick={() => {
+                const tableDataToExport = filteredData.map((row) => {
+                  const exportRow = {};
+
+                  baseColumns.forEach((col) => {
+                    if (!col.dataIndex) return;
+
+                    exportRow[
+                      typeof col.title === "string" ? col.title : col.dataIndex
+                    ] = getCellValue(row, col.dataIndex);
+                  });
+
+                  return exportRow;
+                });
+
+                exportToExcel(tableDataToExport, "advertiser-billing.xlsx");
+              }}
+              className="!bg-green-600 hover:!bg-green-700 !border-green-600 hover:!border-green-700 !rounded-lg shadow-sm">
+              Export Excel
+            </Button>
           </div>
         </div>
 
         <Spin spinning={loading}>
           <StyledTable
-            rowKey={(r) => `${r.id}`}
+            rowKey={(r, index) => `${r.id}_${r.month}_${index}`}
             columns={columns}
             dataSource={filteredData}
             bordered
-            scroll={{ x: "max-content" }}
-            summary={() => {
-              const totalPIDAmount = filteredData.reduce(
+            scroll={{
+              x: "max-content",
+              y: 600,
+            }}
+            pagination={{
+              pageSizeOptions: ["10", "20", "50", "100", "200", "500"],
+              showSizeChanger: true,
+              defaultPageSize: 10,
+              showTotal: (total, range) =>
+                `${range[0]}-${range[1]} of ${total} items`,
+            }}
+            summary={(pageData) => {
+              // ------------------------------------
+              // Calculate ONLY CURRENT PAGE data
+              // ------------------------------------
+
+              // 1. Total PID Metric Amount
+              const totalPIDAmount = pageData.reduce(
                 (sum, row) => sum + Number(row.total_amount || 0),
                 0,
               );
 
+              // 2. Currency-wise Actual Amount Raised
+              const currencyTotals = pageData.reduce((acc, row) => {
+                const currency = row.currency || "USD";
+                const amount = Number(row.amount_raised || 0);
+
+                acc[currency] = (acc[currency] || 0) + amount;
+
+                return acc;
+              }, {});
+
+              const currencyTotalEntries = Object.entries(currencyTotals);
+
               return (
-                <Table.Summary.Row>
-                  <Table.Summary.Cell index={0}>
-                    <strong>Total</strong>
-                  </Table.Summary.Cell>
+                <Table.Summary fixed="bottom">
+                  <Table.Summary.Row>
+                    {/* 0 - Advertiser AM */}
+                    <Table.Summary.Cell index={0}>
+                      <strong>Total</strong>
+                    </Table.Summary.Cell>
 
-                  <Table.Summary.Cell index={1} colSpan={2} />
+                    {/* 1,2,3 - Advid, Month, Invoice Date */}
+                    <Table.Summary.Cell index={1} colSpan={3} />
 
-                  <Table.Summary.Cell index={3}>
-                    <strong>{totalPIDAmount.toFixed(2)}</strong>
-                  </Table.Summary.Cell>
+                    {/* 4 - PID Metric Amount */}
+                    <Table.Summary.Cell index={4}>
+                      <strong>{formatCurrency(totalPIDAmount, "USD")}</strong>
+                    </Table.Summary.Cell>
 
-                  <Table.Summary.Cell index={4} colSpan={columns.length} />
-                </Table.Summary.Row>
+                    {/* 5,6,7 - Payment Terms, Due Status, Raise Invoice */}
+                    <Table.Summary.Cell index={5} colSpan={3} />
+
+                    {/* 8 - Actual Amount Raised */}
+                    <Table.Summary.Cell index={8}>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 4,
+                        }}>
+                        {currencyTotalEntries.length === 0 ? (
+                          <strong>—</strong>
+                        ) : (
+                          currencyTotalEntries.map(([currency, total]) => (
+                            <div key={currency}>
+                              <strong>
+                                {currency}: {formatCurrency(total, currency)}
+                              </strong>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </Table.Summary.Cell>
+
+                    {/* 9 - Invoice Number */}
+                    <Table.Summary.Cell index={9} />
+
+                    {/* 10 - Payment Received Date */}
+                    <Table.Summary.Cell index={10} />
+                  </Table.Summary.Row>
+                </Table.Summary>
               );
             }}
           />

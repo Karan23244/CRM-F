@@ -338,14 +338,12 @@ export default function BillingAdvertiser() {
         if (res.data?.success) {
           setRows((prev) =>
             prev.map((r) => {
-              // 1️⃣ Match new IDs
               const idMatch = res.data.billingIdMap?.find(
                 (b) =>
                   (!r.billing_id && b.tmp_id === r._tmp_id) ||
                   b.billing_id === r.billing_id,
               );
 
-              // 2️⃣ Match updated row
               const updatedMatch = res.data.data?.find(
                 (d) => d.billing_id === (idMatch?.billing_id || r.billing_id),
               );
@@ -357,6 +355,17 @@ export default function BillingAdvertiser() {
               };
             }),
           );
+
+          // ⭐ Update modal id
+          if (detailsRowId) {
+            const mapping = res.data.billingIdMap?.find(
+              (b) => b.tmp_id === detailsRowId,
+            );
+
+            if (mapping) {
+              setDetailsRowId(mapping.billing_id);
+            }
+          }
         }
       } catch (err) {
         if (previousRows) {

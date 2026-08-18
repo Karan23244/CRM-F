@@ -9,6 +9,7 @@ import {
   Input,
   Checkbox,
   Button,
+  Space,
 } from "antd";
 import {
   PushpinOutlined,
@@ -18,7 +19,9 @@ import {
 import dayjs from "dayjs";
 import axios from "axios";
 import StyledTable from "../../Utils/StyledTable";
+import { RiFileExcel2Line } from "react-icons/ri";
 import { useSelector } from "react-redux";
+import { exportToExcel } from "../exportExcel";
 const API = import.meta.env.VITE_API_URL5;
 
 /* ============================= */
@@ -31,7 +34,28 @@ const displayValue = (val, placeholder = "—") =>
   ) : (
     val
   );
+const currencySymbols = {
+  USD: "$",
+  INR: "₹",
+  EUR: "€",
+  GBP: "£",
+  AED: "د.إ",
+  SAR: "﷼",
+  BDT: "৳",
+  PKR: "₨",
+  JPY: "¥",
+  CNY: "¥",
+};
 
+const formatCurrency = (amount, currency = "USD") => {
+  const value = Number(amount || 0);
+  const symbol = currencySymbols[currency] || currency;
+
+  return `${symbol}${value.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+};
 function AdvertiserAccount() {
   const { user } = useSelector((state) => state.auth);
   const currentMonth = dayjs().format("YYYY-MM");
@@ -75,6 +99,11 @@ function AdvertiserAccount() {
         assigned_subadmins: user?.assigned_subadmins || [],
         month: selectedMonth,
       });
+      console.log("Selected Month:", selectedMonth);
+      console.log("Returned Months:", [
+        ...new Set(res.data.data.map((r) => r.month)),
+      ]);
+
       setData(res.data.data); // ✅ important
     } catch (err) {
       console.error(err);
@@ -385,6 +414,7 @@ function AdvertiserAccount() {
     user?.role?.includes("admin") || user?.role?.includes("accounts");
 
   const baseColumns = [
+    getColumnWithFilterAndPin("adv_am", "Advertiser AM"),
     getColumnWithFilterAndPin("adv_id", "Advid (Adv Name)", (_, r) => (
       <Tooltip title={r.note || "No Legal Billing Address"}>
         <span style={{ color: "#1677ff", fontWeight: 500 }}>
@@ -413,7 +443,15 @@ function AdvertiserAccount() {
     getColumnWithFilterAndPin("invoice_to", "Invoice To", (value) =>
       value ? dayjs(value).format("DD-MM-YYYY") : "-",
     ),
-    getColumnWithFilterAndPin("amount_raised", "Actual Amount Raised"),
+    getColumnWithFilterAndPin(
+      "amount_raised",
+      "Actual Amount Raised",
+      (_, r) => (
+        <span style={{ fontWeight: 600 }}>
+          {formatCurrency(r.amount_raised, r.currency)}
+        </span>
+      ),
+    ),
 
     getColumnWithFilterAndPin("invoice_number", "Invoice Number"),
 
@@ -426,7 +464,7 @@ function AdvertiserAccount() {
   const adminColumns = [];
 
   const columns = [...baseColumns, ...adminColumns];
-  console.log("filteredData",filteredData)
+  console.log("filteredData", filteredData);
   return (
     <div
       style={{
@@ -439,52 +477,137 @@ function AdvertiserAccount() {
           borderRadius: 14,
           boxShadow: "0 6px 25px rgba(0,0,0,0.05)",
         }}>
-        <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-          <DatePicker
-            picker="month"
-            allowClear={false}
-            value={dayjs(month)}
-            onChange={(d) => {
-              setFilters({});
-              setFilterSearch({});
-              setUniqueValues({});
-              setSortInfo({});
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
+          {/* Left Side */}
+          <Space size="middle" wrap>
+            <DatePicker
+              picker="month"
+              allowClear={false}
+              value={dayjs(month)}
+              size="large"
+              onChange={(d) => {
+                setFilters({});
+                setFilterSearch({});
+                setUniqueValues({});
+                setSortInfo({});
+                setMonth(d.format("YYYY-MM"));
+              }}
+            />
 
-              setMonth(d.format("YYYY-MM"));
+            <Button
+              icon={<ClearOutlined />}
+              size="large"
+              onClick={clearAllFilters}>
+              Clear Filters
+            </Button>
+          </Space>
+
+          {/* Right Side */}
+          <Button
+            type="primary"
+            size="large"
+            icon={<RiFileExcel2Line size={18} />}
+            onClick={() => {
+              const tableDataToExport = filteredData.map((row) => {
+                const exportRow = {};
+
+                baseColumns.forEach((col) => {
+                  if (!col.dataIndex) return;
+
+                  exportRow[
+                    typeof col.title === "string" ? col.title : col.dataIndex
+                  ] = getCellValue(row, col.dataIndex);
+                });
+
+                return exportRow;
+              });
+
+              exportToExcel(tableDataToExport, "advertiser-billing.xlsx");
             }}
-          />
-
-          <Button icon={<ClearOutlined />} onClick={clearAllFilters}>
-            Clear Filters
+            className="!bg-green-600 hover:!bg-green-700 !border-green-600 hover:!border-green-700 !rounded-lg shadow-sm">
+            Export Excel
           </Button>
         </div>
 
         <Spin spinning={loading}>
           <StyledTable
-            rowKey={(r) => `${r.id}`}
+            rowKey={(r, index) => `${r.id}_${r.month}_${index}`}
             columns={columns}
             dataSource={filteredData}
             bordered
-            summary={() => {
-              const totalPIDAmount = filteredData.reduce(
+            summary={(pageData) => {
+              // ------------------------------------
+              // 1. Total PID Metric Amount
+              // ONLY CURRENT PAGE DATA
+              // ------------------------------------
+              const totalPIDAmount = pageData.reduce(
                 (sum, row) => sum + Number(row.total_amount || 0),
                 0,
               );
 
+              // ------------------------------------
+              // 2. Currency-wise Actual Amount Raised
+              // ONLY CURRENT PAGE DATA
+              // ------------------------------------
+              const currencyTotals = pageData.reduce((acc, row) => {
+                const currency = row.currency || "USD";
+                const amount = Number(row.amount_raised || 0);
+
+                acc[currency] = (acc[currency] || 0) + amount;
+
+                return acc;
+              }, {});
+
+              const currencyTotalEntries = Object.entries(currencyTotals);
+
               return (
-                <Table.Summary.Row>
-                  <Table.Summary.Cell index={0}>
-                    <strong>Total</strong>
-                  </Table.Summary.Cell>
+                <Table.Summary fixed="bottom">
+                  <Table.Summary.Row>
+                    {/* 0 - Advertiser AM */}
+                    <Table.Summary.Cell index={0}>
+                      <strong>Total</strong>
+                    </Table.Summary.Cell>
 
-                  <Table.Summary.Cell index={1} colSpan={2} />
+                    {/* 1,2,3 - Advid, Activity Month, Invoice Date */}
+                    <Table.Summary.Cell index={1} colSpan={3} />
 
-                  <Table.Summary.Cell index={3}>
-                    <strong>{totalPIDAmount.toFixed(2)}</strong>
-                  </Table.Summary.Cell>
+                    {/* 4 - PID Metric Amount */}
+                    <Table.Summary.Cell index={4}>
+                      <strong>{formatCurrency(totalPIDAmount, "USD")}</strong>
+                    </Table.Summary.Cell>
 
-                  <Table.Summary.Cell index={4} colSpan={columns.length} />
-                </Table.Summary.Row>
+                    {/* 5,6,7,8 - Payment Terms, Due Status, Invoice From, Invoice To */}
+                    <Table.Summary.Cell index={5} colSpan={4} />
+
+                    {/* 9 - Actual Amount Raised */}
+                    <Table.Summary.Cell index={9}>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 4,
+                        }}>
+                        {currencyTotalEntries.length === 0 ? (
+                          <strong>—</strong>
+                        ) : (
+                          currencyTotalEntries.map(([currency, total]) => (
+                            <div key={currency}>
+                              <strong>
+                                {currency}: {formatCurrency(total, currency)}
+                              </strong>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </Table.Summary.Cell>
+
+                    {/* 10,11 - Invoice Number + Payment Received Date */}
+                    <Table.Summary.Cell
+                      index={10}
+                      colSpan={columns.length - 10}
+                    />
+                  </Table.Summary.Row>
+                </Table.Summary>
               );
             }}
           />

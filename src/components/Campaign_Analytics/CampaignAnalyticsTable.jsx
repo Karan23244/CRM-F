@@ -14,6 +14,7 @@ import {
   Button,
   Popconfirm,
   message,
+  Card,
 } from "antd";
 import Swal from "sweetalert2";
 import { FileExcelOutlined } from "@ant-design/icons";
@@ -23,7 +24,7 @@ import DecisionTable from "./DecisionTable";
 import { sortDropdownValues } from "../../Utils/sortDropdownValues";
 import UploadForm from "./UploadForm";
 import { useSelector } from "react-redux";
-import { exportToExcel } from "../exportExcel";
+import { exportToExcel } from "./exportColorExcel";
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 const { Title } = Typography;
@@ -41,6 +42,7 @@ const colorMap = {
   black: "#ff4d4f",
   grey: "#bfbfbf",
   purple: "#fa8c16",
+  violet: "rgb(243 198 222)",
 };
 
 // ================= TEXT COLOR =================
@@ -67,6 +69,7 @@ const CampaignAnalyticsTable = () => {
     user?.username?.toLowerCase() === "akshat";
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [allowedCampaignIds, setAllowedCampaignIds] = useState([]);
 
   // ================= DROPDOWN DATA =================
   const [campaigns, setCampaigns] = useState([]);
@@ -144,6 +147,33 @@ const CampaignAnalyticsTable = () => {
   //     console.error(err);
   //   }
   // };
+  const fetchMappings = async () => {
+    try {
+      const res = await axios.get(`${apiUrl}/campaign-publisher-map`, {
+        params: {
+          userid: user.id,
+          role: Array.isArray(user.role) ? user.role[0] : user.role,
+        },
+      });
+      console.log("Mappings API Response:", res.data);
+      const ids = (res.data.data || []).map((item) => Number(item.campaign_id));
+
+      setAllowedCampaignIds(ids);
+
+      console.log("Allowed Campaign IDs:", ids);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  useEffect(() => {
+    if (
+      user?.role?.includes("publisher") ||
+      user?.role?.includes("pub_executive")
+    ) {
+      fetchMappings();
+    }
+  }, [user]);
   const fetchCampaigns = async () => {
     try {
       const restrictedRoles = [
@@ -178,18 +208,25 @@ const CampaignAnalyticsTable = () => {
   };
   // ================= FETCH DATA =================
   const fetchData = async () => {
-    if (!payload.campaign_name) return;
-
-    setLoading(true);
-    try {
-      const res = await axios.post(`${API}/api/campaign_analytics`, payload);
-      console.log("API Response:", res.data);
-      setData(res.data.data || []);
-    } catch (err) {
-      console.error(err);
+    if (!payload.campaign_name) {
+      setData([]);
+      return;
     }
 
-    setLoading(false);
+    // Clear old table immediately
+    setData([]);
+    setLoading(true);
+
+    try {
+      const res = await axios.post(`${API}/api/campaign_analytics`, payload);
+
+      setData(Array.isArray(res.data.data) ? res.data.data : []);
+    } catch (err) {
+      console.error(err);
+      setData([]); // ensure no stale data
+    } finally {
+      setLoading(false);
+    }
   };
 
   // ================= INITIAL LOAD =================
@@ -234,10 +271,45 @@ const CampaignAnalyticsTable = () => {
     const assignedNames = subadmins
       .filter((s) => assignedIds.includes(s.id))
       .map((s) => normalize(s.username));
+    // return data.filter((item) => {
+    //   const pubam = normalize(item.pubam);
+
+    //   // operations & optimization can see all data
+    //   if (
+    //     user?.role?.includes("operations") ||
+    //     user?.role?.includes("optimization") ||
+    //     user?.role?.includes("advertiser") ||
+    //     user?.role?.includes("advertiser_manager") ||
+    //     user?.role?.includes("adv_executive") ||
+    //     user?.role?.includes("admin")
+    //   ) {
+    //     return true;
+    //   }
+
+    //   // own data
+    //   if (pubam === username) return true;
+
+    //   // assigned subadmin data
+    //   if (assignedNames.includes(pubam)) return true;
+
+    //   // publisher_manager extra access
+    //   // Hide N/A records for publisher roles
+    //   if (
+    //     user?.role?.includes("publisher_manager") ||
+    //     user?.role?.includes("publisher") ||
+    //     user?.role?.includes("pub_executive")
+    //   ) {
+    //     if (pubam === "n/a" || pubam === "-") {
+    //       return false;
+    //     }
+    //   }
+
+    //   return false;
+    // });
     return data.filter((item) => {
       const pubam = normalize(item.pubam);
 
-      // operations & optimization can see all data
+      // Full access roles
       if (
         user?.role?.includes("operations") ||
         user?.role?.includes("optimization") ||
@@ -249,27 +321,89 @@ const CampaignAnalyticsTable = () => {
         return true;
       }
 
-      // own data
-      if (pubam === username) return true;
-
-      // assigned subadmin data
-      if (assignedNames.includes(pubam)) return true;
-
-      // publisher_manager extra access
-      // Hide N/A records for publisher roles
+      // Publisher / Pub Executive
       if (
-        user?.role?.includes("publisher_manager") ||
         user?.role?.includes("publisher") ||
         user?.role?.includes("pub_executive")
       ) {
+        // Don't show N/A publisher records
         if (pubam === "n/a" || pubam === "-") {
           return false;
         }
+
+        // 1. Allow if campaign mapping matches
+        if (allowedCampaignIds.includes(Number(item.campaign_id))) {
+          return true;
+        }
+
+        // 2. If campaign mapping doesn't match, fall back to username
+        if (pubam === username) {
+          return true;
+        }
+
+        // 3. Or assigned subadmin
+        if (assignedNames.includes(pubam)) {
+          return true;
+        }
+
+        // Otherwise deny
+        return false;
+      }
+
+      // Publisher Manager (existing logic)
+      if (user?.role?.includes("publisher_manager")) {
+        if (pubam === username) return true;
+
+        if (assignedNames.includes(pubam)) return true;
+
+        if (pubam === "n/a" || pubam === "-") return false;
+
+        return false;
       }
 
       return false;
     });
   }, [data, user, subadmins, hasAccess]);
+  const pidSummary = useMemo(() => {
+    const uniquePids = new Set();
+    const activePids = new Set();
+    const pausedPids = new Set();
+    const naPids = new Set();
+
+    const isNA = (v) => {
+      const val = (v || "").toString().trim().toUpperCase();
+      return !val || val === "N/A" || val === "NA" || val === "-";
+    };
+
+    roleFilteredData.forEach((row) => {
+      // unique PID key
+      const key = `${row.pubam}_${row.pubid}_${row.pid}`;
+
+      uniquePids.add(key);
+
+      // N/A publisher
+      if (isNA(row.pubam) && isNA(row.pubid)) {
+        naPids.add(key);
+      }
+
+      // pid color classification
+      // green = active
+      // red = paused
+      // CRM status
+      if (Number(row.is_paused) === 1) {
+        pausedPids.add(key);
+      } else {
+        activePids.add(key);
+      }
+    });
+
+    return {
+      total: uniquePids.size,
+      active: activePids.size,
+      paused: pausedPids.size,
+      na: naPids.size,
+    };
+  }, [roleFilteredData]);
   const filteredData = useMemo(() => {
     const normalize = (val) =>
       val === null || val === undefined || val === ""
@@ -671,13 +805,22 @@ const CampaignAnalyticsTable = () => {
 
     ...dynamicEventColumns,
   ];
+  const colorPriority = {
+    green: 1,
+    orange: 2,
+    yellow: 3,
+    purple: 4,
+    red: 5,
+  };
+
   const sortedData = useMemo(() => {
     return [...filteredData].sort((a, b) => {
-      return (b.clicks_mtd || 0) - (a.clicks_mtd || 0);
+      const colorA = (a.pid_color || "").trim().toLowerCase();
+      const colorB = (b.pid_color || "").trim().toLowerCase();
+
+      return (colorPriority[colorA] ?? 999) - (colorPriority[colorB] ?? 999);
     });
   }, [filteredData]);
-  console.log("campaign", campaigns);
-  console.log("campaign_ids", campaigns.campaign_ids);
   return (
     <>
       {user?.permissions?.can_see_input1 === 1 && (
@@ -908,29 +1051,67 @@ const CampaignAnalyticsTable = () => {
                     Delete Campaign Data
                   </Button>
                 )}
-
                 <Button
                   type="primary"
                   icon={<FileExcelOutlined />}
-                  onClick={() => {
+                  onClick={async () => {
+                    if (!filteredData.length) {
+                      Swal.fire({
+                        icon: "warning",
+                        title: "No Data",
+                        text: "No data available to export",
+                      });
+                      return;
+                    }
+
                     const exportData = filteredData.map((row) => {
-                      const obj = {};
+                      const data = {};
+                      const styles = {};
 
                       columns.forEach((col) => {
+                        // KPI columns
                         if (col.children) {
                           col.children.forEach((child) => {
-                            obj[`${col.title} ${child.title}`] =
-                              row[child.dataIndex] ?? "";
+                            const header = `${col.title} ${child.title}`;
+
+                            data[header] = row[child.dataIndex] ?? "";
+
+                            const colorKey = row[`${child.dataIndex}_color`];
+
+                            // only change text color for KPI fields
+                            if (colorKey && colorMap[colorKey]) {
+                              styles[header] = {
+                                font: colorMap[colorKey],
+                              };
+                            }
                           });
-                        } else {
-                          obj[col.title] = row[col.dataIndex] ?? "";
+                        }
+
+                        // normal columns
+                        else {
+                          data[col.title] = row[col.dataIndex] ?? "";
+
+                          // PID keep background color
+                          if (
+                            col.dataIndex === "pid" &&
+                            row.pid_color &&
+                            colorMap[row.pid_color]
+                          ) {
+                            styles[col.title] = {
+                              fill: colorMap[row.pid_color],
+                              font: "#FFFFFF",
+                            };
+                          }
                         }
                       });
 
-                      return obj;
+                      return {
+                        data,
+                        styles,
+                      };
                     });
 
-                    exportToExcel(
+                    await exportToExcel(
                       exportData,
                       `${payload.campaign_name || "campaign"}_${payload.os}.xlsx`,
                     );
@@ -957,7 +1138,9 @@ const CampaignAnalyticsTable = () => {
                 className="custom-table"
                 columns={columns}
                 dataSource={sortedData}
-                rowKey={(row) => `${row.pid}_${row.pubid}`}
+                rowKey={(row) =>
+                  `${row.pubam}_${row.pubid}_${row.pid}_${row.campaign_id}`
+                }
                 scroll={{ x: "max-content", y: "70vh" }}
                 bordered
                 sticky
@@ -1384,13 +1567,96 @@ const CampaignAnalyticsTable = () => {
               }
             `}</style>
           </div>
+          <div style={{ padding: 20 }}>
+            <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
+              <Col xs={12} sm={12} md={6}>
+                <Card
+                  size="small"
+                  style={{
+                    borderRadius: 12,
+                    textAlign: "center",
+                    borderLeft: "5px solid #1677ff",
+                  }}>
+                  <div style={{ fontSize: 13, color: "#666" }}>Total PIDs</div>
+                  <div
+                    style={{
+                      fontSize: 28,
+                      fontWeight: 700,
+                      color: "#1677ff",
+                    }}>
+                    {pidSummary.total}
+                  </div>
+                </Card>
+              </Col>
 
+              <Col xs={12} sm={12} md={6}>
+                <Card
+                  size="small"
+                  style={{
+                    borderRadius: 12,
+                    textAlign: "center",
+                    borderLeft: "5px solid #52c41a",
+                  }}>
+                  <div style={{ fontSize: 13, color: "#666" }}>Active PIDs</div>
+                  <div
+                    style={{
+                      fontSize: 28,
+                      fontWeight: 700,
+                      color: "#52c41a",
+                    }}>
+                    {pidSummary.active}
+                  </div>
+                </Card>
+              </Col>
+
+              <Col xs={12} sm={12} md={6}>
+                <Card
+                  size="small"
+                  style={{
+                    borderRadius: 12,
+                    textAlign: "center",
+                    borderLeft: "5px solid #ff4d4f",
+                  }}>
+                  <div style={{ fontSize: 13, color: "#666" }}>Paused PIDs</div>
+                  <div
+                    style={{
+                      fontSize: 28,
+                      fontWeight: 700,
+                      color: "#ff4d4f",
+                    }}>
+                    {pidSummary.paused}
+                  </div>
+                </Card>
+              </Col>
+
+              <Col xs={12} sm={12} md={6}>
+                <Card
+                  size="small"
+                  style={{
+                    borderRadius: 12,
+                    textAlign: "center",
+                    borderLeft: "5px solid #fa8c16",
+                  }}>
+                  <div style={{ fontSize: 13, color: "#666" }}>N/A PIDs</div>
+                  <div
+                    style={{
+                      fontSize: 28,
+                      fontWeight: 700,
+                      color: "#fa8c16",
+                    }}>
+                    {pidSummary.na}
+                  </div>
+                </Card>
+              </Col>
+            </Row>
+          </div>
           <DecisionTable
             campaign_name={payload.campaign_name}
             os={payload.os}
             lastdate={payload.end_date}
             geo={payload.geo}
             campaign_ids={payload.campaign_ids}
+            allowedCampaignIds={allowedCampaignIds}
           />
         </>
       ) : (

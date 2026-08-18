@@ -6,13 +6,38 @@ import StyledTable from "../../Utils/StyledTable";
 import Swal from "sweetalert2";
 const apiUrl = import.meta.env.VITE_API_URL;
 const apiUrl3 = import.meta.env.VITE_API_URL3;
-
+const InputField = React.memo(({ label, value, onChange }) => (
+  <div className="flex flex-col">
+    <label className="text-xs text-gray-500 mb-1">{label}</label>
+    <input
+      type="text"
+      value={value || ""}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={label}
+      className="px-3 py-2.5 rounded-lg border border-gray-300
+                 focus:ring-2 focus:ring-blue-500
+                 focus:border-blue-500 outline-none text-sm"
+    />
+  </div>
+));
 const PublisherBilling = () => {
   const user = useSelector((state) => state.auth.user);
-
-  const [billingDetails, setBillingDetails] = useState([
-    { legal_name: "", tax_type: "", tax_id: "", billing_address: "" },
-  ]);
+  const emptyBilling = {
+    official_name: "",
+    address: "",
+    account_holder: "",
+    account_number: "",
+    account_currency: "",
+    bank_name: "",
+    bank_branch_address: "",
+    swift_bic: "",
+    ach_routing_number: "",
+    account_type: "",
+    usdt: "",
+    paypal: "",
+    payoneer: "",
+  };
+  const [billingDetails, setBillingDetails] = useState([emptyBilling]);
 
   const [tableData, setTableData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -82,18 +107,20 @@ const PublisherBilling = () => {
 
   // ================= FORM HANDLERS =================
   const updateBillingEntry = (index, field, value) => {
-    setBillingDetails((prev) => {
-      const updated = [...prev];
-      updated[index][field] = value;
-      return updated;
-    });
+    setBillingDetails((prev) =>
+      prev.map((item, i) =>
+        i === index
+          ? {
+              ...item,
+              [field]: value,
+            }
+          : item,
+      ),
+    );
   };
 
   const addBillingEntry = () => {
-    setBillingDetails((prev) => [
-      ...prev,
-      { legal_name: "", tax_type: "", tax_id: "", billing_address: "" },
-    ]);
+    setBillingDetails((prev) => [...prev, { ...emptyBilling }]);
   };
 
   const removeBillingEntry = (index) => {
@@ -144,9 +171,7 @@ const PublisherBilling = () => {
         });
 
         // Reset form
-        setBillingDetails([
-          { legal_name: "", tax_type: "", tax_id: "", billing_address: "" },
-        ]);
+        setBillingDetails([{ ...emptyBilling }]);
 
         // 🔥 Refresh table
         fetchBilling();
@@ -162,15 +187,121 @@ const PublisherBilling = () => {
       });
     }
   };
-
+  const scrollableCell = (text, width = "200px") => (
+    <div
+      className="overflow-x-auto whitespace-nowrap scrollbar-thin"
+      style={{ maxWidth: width }}>
+      {text || "-"}
+    </div>
+  );
   // ================= TABLE =================
   const columns = [
-    { title: "ID", dataIndex: "id" },
-    { title: "Publisher ID", dataIndex: "pub_id" },
-    { title: "Legal Name", dataIndex: "legal_name" },
-    { title: "Billing Address", dataIndex: "billing_address" },
-    { title: "Tax Type", dataIndex: "tax_type" },
-    { title: "Tax ID", dataIndex: "tax_id" },
+    {
+      title: "ID",
+      dataIndex: "id",
+      key: "id",
+      width: 80,
+      fixed: "left",
+    },
+    {
+      title: "Publisher ID",
+      dataIndex: "pub_id",
+      key: "pub_id",
+      width: 120,
+    },
+    {
+      title: "User ID",
+      dataIndex: "user_id",
+      key: "user_id",
+      width: 100,
+    },
+    {
+      title: "Official Name",
+      dataIndex: "official_name",
+      key: "official_name",
+      width: 200,
+      render: (text) => scrollableCell(text, "180px"),
+    },
+    {
+      title: "Address",
+      dataIndex: "address",
+      key: "address",
+      width: 250,
+      render: (text) => scrollableCell(text, "230px"),
+    },
+    {
+      title: "Account Holder",
+      dataIndex: "account_holder",
+      key: "account_holder",
+      width: 180,
+      render: (text) => scrollableCell(text, "160px"),
+    },
+    {
+      title: "Account Number",
+      dataIndex: "account_number",
+      key: "account_number",
+      width: 220,
+      render: (text) => scrollableCell(text, "200px"),
+    },
+    {
+      title: "Account Currency",
+      dataIndex: "account_currency",
+      key: "account_currency",
+      width: 130,
+    },
+    {
+      title: "Bank Name",
+      dataIndex: "bank_name",
+      key: "bank_name",
+      width: 180,
+      render: (text) => scrollableCell(text, "160px"),
+    },
+    {
+      title: "Bank Branch Address",
+      dataIndex: "bank_branch_address",
+      key: "bank_branch_address",
+      width: 250,
+      render: (text) => scrollableCell(text, "230px"),
+    },
+    {
+      title: "Swift BIC",
+      dataIndex: "swift_bic",
+      key: "swift_bic",
+      width: 140,
+    },
+    {
+      title: "ACH Routing",
+      dataIndex: "ach_routing_number",
+      key: "ach_routing_number",
+      width: 150,
+    },
+    {
+      title: "Account Type",
+      dataIndex: "account_type",
+      key: "account_type",
+      width: 130,
+    },
+    {
+      title: "USDT",
+      dataIndex: "usdt",
+      key: "usdt",
+      width: 300,
+      render: (text) => scrollableCell(text, "280px"),
+    },
+    {
+      title: "Paypal",
+      dataIndex: "paypal",
+      key: "paypal",
+      width: 220,
+      render: (text) => scrollableCell(text, "200px"),
+    },
+    {
+      title: "Payoneer",
+      dataIndex: "payoneer",
+      key: "payoneer",
+      width: 220,
+      render: (text) => scrollableCell(text, "200px"),
+    },
   ];
 
   const copyApiUrl = () => {
@@ -183,13 +314,19 @@ const PublisherBilling = () => {
     <div className="p-6 space-y-6">
       {/* ================= API URL CARD ================= */}
       <div className="bg-white p-6 rounded-xl shadow border border-blue-100">
-        <h2 className="text-lg font-semibold text-gray-800 mb-1">Publisher API URL</h2>
-        <p className="text-sm text-gray-500 mb-4">Use this URL to access your publisher offer feed.</p>
+        <h2 className="text-lg font-semibold text-gray-800 mb-1">
+          Publisher API URL
+        </h2>
+        <p className="text-sm text-gray-500 mb-4">
+          Use this URL to access your publisher offer feed.
+        </p>
         {apiUrlLoading ? (
           <Spin size="small" />
         ) : publisherApiUrl ? (
           <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
-            <span className="text-sm text-gray-700 break-all flex-1">{publisherApiUrl}</span>
+            <span className="text-sm text-gray-700 break-all flex-1">
+              {publisherApiUrl}
+            </span>
             <button
               onClick={copyApiUrl}
               className="shrink-0 bg-[#2F5D99] hover:bg-[#24487A] text-white text-xs font-medium px-4 py-2 rounded-lg transition-all">
@@ -197,7 +334,9 @@ const PublisherBilling = () => {
             </button>
           </div>
         ) : (
-          <p className="text-sm text-gray-400">No API URL generated yet. Please contact your manager.</p>
+          <p className="text-sm text-gray-400">
+            No API URL generated yet. Please contact your manager.
+          </p>
         )}
       </div>
 
@@ -227,70 +366,96 @@ const PublisherBilling = () => {
               </div>
 
               {/* Inputs */}
-              <div className="grid md:grid-cols-2 gap-4">
-                {/* Legal Name */}
-                <div className="flex flex-col">
-                  <label className="text-xs text-gray-500 mb-1">
-                    Legal Name
-                  </label>
-                  <input
-                    type="text"
-                    value={entry.legal_name}
-                    onChange={(e) =>
-                      updateBillingEntry(index, "legal_name", e.target.value)
-                    }
-                    placeholder="ABC Pvt Ltd"
-                    className="px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm transition"
-                  />
-                </div>
+              <div className="grid md:grid-cols-3 gap-4">
+                <InputField
+                  label="Official Name"
+                  value={entry.official_name}
+                  onChange={(v) =>
+                    updateBillingEntry(index, "official_name", v)
+                  }
+                />
 
-                {/* Tax Type */}
-                <div className="flex flex-col">
-                  <label className="text-xs text-gray-500 mb-1">Tax Type</label>
-                  <input
-                    type="text"
-                    value={entry.tax_type}
-                    onChange={(e) =>
-                      updateBillingEntry(index, "tax_type", e.target.value)
-                    }
-                    placeholder="GST"
-                    className="px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                  />
-                </div>
+                <InputField
+                  label="Address"
+                  value={entry.address}
+                  onChange={(v) => updateBillingEntry(index, "address", v)}
+                />
 
-                {/* Tax ID */}
-                <div className="flex flex-col">
-                  <label className="text-xs text-gray-500 mb-1">Tax ID</label>
-                  <input
-                    type="text"
-                    value={entry.tax_id}
-                    onChange={(e) =>
-                      updateBillingEntry(index, "tax_id", e.target.value)
-                    }
-                    placeholder="07ABCDE1234F1Z5"
-                    className="px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                  />
-                </div>
+                <InputField
+                  label="Account Holder"
+                  value={entry.account_holder}
+                  onChange={(v) =>
+                    updateBillingEntry(index, "account_holder", v)
+                  }
+                />
 
-                {/* Billing Address */}
-                <div className="flex flex-col">
-                  <label className="text-xs text-gray-500 mb-1">
-                    Billing Address
-                  </label>
-                  <input
-                    type="text"
-                    value={entry.billing_address}
-                    onChange={(e) =>
-                      updateBillingEntry(
-                        index,
-                        "billing_address",
-                        e.target.value,
-                      )
-                    }
-                    placeholder="Delhi, India"
-                    className="px-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                  />
-                </div>
+                <InputField
+                  label="Account Number"
+                  value={entry.account_number}
+                  onChange={(v) =>
+                    updateBillingEntry(index, "account_number", v)
+                  }
+                />
+
+                <InputField
+                  label="Account Currency"
+                  value={entry.account_currency}
+                  onChange={(v) =>
+                    updateBillingEntry(index, "account_currency", v)
+                  }
+                />
+
+                <InputField
+                  label="Bank Name"
+                  value={entry.bank_name}
+                  onChange={(v) => updateBillingEntry(index, "bank_name", v)}
+                />
+
+                <InputField
+                  label="Bank Branch Address"
+                  value={entry.bank_branch_address}
+                  onChange={(v) =>
+                    updateBillingEntry(index, "bank_branch_address", v)
+                  }
+                />
+
+                <InputField
+                  label="Swift BIC"
+                  value={entry.swift_bic}
+                  onChange={(v) => updateBillingEntry(index, "swift_bic", v)}
+                />
+
+                <InputField
+                  label="ACH Routing Number"
+                  value={entry.ach_routing_number}
+                  onChange={(v) =>
+                    updateBillingEntry(index, "ach_routing_number", v)
+                  }
+                />
+
+                <InputField
+                  label="Account Type"
+                  value={entry.account_type}
+                  onChange={(v) => updateBillingEntry(index, "account_type", v)}
+                />
+
+                <InputField
+                  label="USDT"
+                  value={entry.usdt}
+                  onChange={(v) => updateBillingEntry(index, "usdt", v)}
+                />
+
+                <InputField
+                  label="Paypal"
+                  value={entry.paypal}
+                  onChange={(v) => updateBillingEntry(index, "paypal", v)}
+                />
+
+                <InputField
+                  label="Payoneer"
+                  value={entry.payoneer}
+                  onChange={(v) => updateBillingEntry(index, "payoneer", v)}
+                />
               </div>
             </div>
           ))}
