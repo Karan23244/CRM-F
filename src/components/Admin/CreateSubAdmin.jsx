@@ -150,21 +150,6 @@ const SubAdminForm = () => {
       const data = await response.json();
 
       if (response.ok) {
-        fetch(`${apiChatUrl}/groups/sync-user`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            password: password.trim(),
-            subAdmin: {
-              id: data.subAdmin.id,
-              username: data.subAdmin.username,
-              role: Array.isArray(data.subAdmin.role)
-                ? data.subAdmin.role
-                : [data.subAdmin.role],
-            },
-          }),
-        }).catch(() => {});
-
         Swal.fire({
           icon: "success",
           title: "Success!",

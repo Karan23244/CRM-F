@@ -4,7 +4,7 @@ import Swal from "sweetalert2";
 import { FaEye, FaEyeSlash, FaUserCircle } from "react-icons/fa";
 
 const apiUrl = import.meta.env.VITE_API_URL;
-const apiChatUrl = import.meta.env.VITE_API_CHAT_URL;
+
 
 const MyAccount = () => {
   const user = useSelector((state) => state.auth.user);
@@ -48,26 +48,16 @@ const MyAccount = () => {
 
     setLoading(true);
     try {
-      const [response] = await Promise.all([
-        fetch(`${apiUrl}/change-pass/${user.id}`, {
-          method: "POST",
-
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(trimmedData),
-        }),
-        fetch(`${apiChatUrl}/groups/sync-password`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id: user.id,
-            password: trimmedData.newPassword,
-          }),
-        }),
-      ]);
+      const response = await fetch(`${apiUrl}/change-pass/${user.id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(trimmedData),
+      });
       const data = await response.json();
+
 
       if (response.ok) {
         Swal.fire({
