@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { permissionsApi } from "../api/permissionsApi";
+import { usePermissionsApi } from "../api/permissionsApi";
 import Swal from "sweetalert2";
 
 /** 🔑 backend → table column mapping */
 const PRESET_KEY_MAP = {};
 
 export const useColumnPresets = ({ userId, allColumns }) => {
+  const permissionsApi = usePermissionsApi();
   const [presets, setPresets] = useState([]);
   const [activePreset, setActivePreset] = useState(null);
   const [hiddenColumns, setHiddenColumns] = useState([]);
@@ -37,8 +38,10 @@ export const useColumnPresets = ({ userId, allColumns }) => {
   const loadPresets = async () => {
     try {
       const res = await permissionsApi.getUserPresets(userId);
+      console.log(res);
       setPresets(res.data?.data || []);
     } catch (err) {
+      console.log(err);
       Swal.fire("Error", "Failed to load presets", "error");
     }
   };

@@ -59,6 +59,7 @@ const columnHeadings = {
 
 const NewRequest = () => {
   const user = useSelector((state) => state.auth.user);
+  const token = useSelector((state) => state.auth.token);
   const username = user?.username || null;
   const userId = user?.id;
   const [requests, setRequests] = useState([]);
@@ -123,6 +124,9 @@ const NewRequest = () => {
         params: {
           user_id: user?.id || user?._id, // <-- sending user ID here
         },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
       console.log(res.data.data);
       if (res?.data && Array.isArray(res?.data?.data)) {
@@ -172,17 +176,15 @@ const NewRequest = () => {
         start_Date: startDate.format("YYYY-MM-DD"),
         end_Date: endDate.format("YYYY-MM-DD"),
       };
-      const fullUrl = `${apiUrl1}/newPrmadvRequests?${new URLSearchParams(
-        params,
-      ).toString()}`;
-
-      console.log("API URL:", fullUrl);
       const res = await axios.get(`${apiUrl1}/newPrmadvRequests`, {
         params: {
           id: userId,
           start_date: startDate.format("YYYY-MM-DD"),
           end_date: endDate.format("YYYY-MM-DD"),
         }, // <-- userId sent in params
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       const result = res.data?.data;
@@ -555,10 +557,18 @@ const NewRequest = () => {
     }
 
     try {
-      await axios.put(`${apiUrl}/updateAdvRes`, {
-        id,
-        adv_res: status,
-      });
+      await axios.put(
+        `${apiUrl}/updateAdvRes`,
+        {
+          id,
+          adv_res: status,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
 
       // Find record to get receiver info
       const updatedRecord = requests.find((r) => r.id === id);
@@ -566,13 +576,14 @@ const NewRequest = () => {
       const campaignName = updatedRecord?.campaign_name;
 
       // 📨 Send notification dynamically
-      await createNotification({
-        sender: username, // logged-in user
-        receiver: receiverName,
-        type: "status_update",
-        message: `📢 ${username} updated status of campaign "${campaignName}" → ✅ ${status.toUpperCase()}`,
-        url: "/dashboard/makerequest",
-      });
+      // await createNotification({
+      //   sender: username, // logged-in user
+      //   receiver: receiverName,
+      //   type: "status_update",
+      //   message: `📢 ${username} updated status of campaign "${campaignName}" → ✅ ${status.toUpperCase()}`,
+      //   url: "/dashboard/makerequest",
+      //   token,
+      // });
 
       // // ✅ Replace message.success with Swal
       // Swal.fire({
@@ -610,6 +621,11 @@ const NewRequest = () => {
           pub_name: sharedRecord?.pub_name,
           pay_out: sharedRecord?.payout,
         },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
       // ✅ Dynamic sender (logged-in user)
       const senderName = username; // from Redux
@@ -619,14 +635,15 @@ const NewRequest = () => {
 
       const receiverName = sharedRecord?.adv_name;
 
-      // 📨 Send notification dynamically
-      await createNotification({
-        sender: senderName, // resolved to sender_id internally
-        receiver: receiverName, // resolved to receiver_id internally
-        type: "status_update",
-        message: `📢 ${senderName} updated status of campaign "${sharedCampaign}" → SHARED`,
-        url: "/dashboard/makerequest",
-      });
+      // // 📨 Send notification dynamically
+      // await createNotification({
+      //   sender: senderName, // resolved to sender_id internally
+      //   receiver: receiverName, // resolved to receiver_id internally
+      //   type: "status_update",
+      //   message: `📢 ${senderName} updated status of campaign "${sharedCampaign}" → SHARED`,
+      //   url: "/dashboard/makerequest",
+      //   token,
+      // });
       if (res.data?.success) {
         // ✅ Show success alert
         // Swal.fire({
@@ -638,10 +655,18 @@ const NewRequest = () => {
         // });
 
         // Update status to shared after success
-        await axios.put(`${apiUrl}/updateAdvRes`, {
-          id: selectedRequestId,
-          adv_res: "shared",
-        });
+        await axios.put(
+          `${apiUrl}/updateAdvRes`,
+          {
+            id: selectedRequestId,
+            adv_res: "shared",
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
 
         setShareModalVisible(false);
         setSelectedCampaignId(null);

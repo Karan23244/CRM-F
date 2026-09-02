@@ -42,7 +42,6 @@ import CustomRangePicker from "../../Utils/CustomRangePicker";
 const { Option } = Select;
 const apiUrl = import.meta.env.VITE_API_URL1;
 const apiUrl1 = import.meta.env.VITE_API_URL;
-const apiUrl2 = import.meta.env.VITE_API_URL2;
 const columnHeadingsMap = {
   pub_name: "PUB AM",
   adv_name: "ADV AM",
@@ -58,6 +57,7 @@ const columnHeadingsMap = {
 };
 const PublisherRequest = ({ senderId, receiverId }) => {
   const user = useSelector((state) => state.auth.user);
+  const token = useSelector((state) => state.auth.token);
   const username = user?.username || null;
   const userRole = user?.role || []; // array of roles
   const userId = user?.id || null;
@@ -86,7 +86,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
   const [campaigns, setCampaigns] = useState([]);
   const [mappingData, setMappingData] = useState([]);
   const [selectedCampaign, setSelectedCampaign] = useState(null);
-  const normalize = (val,key) => {
+  const normalize = (val, key) => {
     if (key === "prm") {
       if (val === 1 || val === "1") return "1";
       if (val === 2 || val === "2") return "2";
@@ -201,8 +201,16 @@ const PublisherRequest = ({ senderId, receiverId }) => {
   const fetchDropdowns = useCallback(async () => {
     try {
       const [pidRes, pubRes] = await Promise.all([
-        axios.get(`${apiUrl1}/get-pid`),
-        axios.get(`${apiUrl1}/get-allpub`),
+        axios.get(`${apiUrl1}/get-pid`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }),
+        axios.get(`${apiUrl1}/get-allpub`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }),
       ]);
       setDropdownOptions({
         pid: pidRes.data?.data?.map((item) => item.pid) || [],
@@ -216,7 +224,11 @@ const PublisherRequest = ({ senderId, receiverId }) => {
 
   const fetchAdvertisers = useCallback(async () => {
     try {
-      const { data } = await axios.get(`${apiUrl1}/get-subadmin`);
+      const { data } = await axios.get(`${apiUrl1}/get-subadmin`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       const names =
         data?.data
@@ -248,7 +260,11 @@ const PublisherRequest = ({ senderId, receiverId }) => {
 
   const fetchBlacklistPIDs = useCallback(async () => {
     try {
-      const { data } = await axios.get(`${apiUrl1}/get-blacklist`);
+      const { data } = await axios.get(`${apiUrl1}/get-blacklist`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       setBlacklistPIDs(data?.map((item) => item.blacklistID) || []);
     } catch {
       console.error("Failed to fetch blacklist PIDs");
@@ -263,6 +279,9 @@ const PublisherRequest = ({ senderId, receiverId }) => {
           startDate: startDate.format("YYYY-MM-DD"),
           endDate: endDate.format("YYYY-MM-DD"),
           id: userId,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
       });
       const sortedData = (res.data?.data || []).sort((a, b) => b.id - a.id);
@@ -288,6 +307,9 @@ const PublisherRequest = ({ senderId, receiverId }) => {
         params: {
           user_id: user?.id || user?._id, // <-- sending user ID here
         },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
       setCampaigns(res.data.data || []);
     } catch (err) {
@@ -307,6 +329,9 @@ const PublisherRequest = ({ senderId, receiverId }) => {
         params: {
           userid: userId,
           role: Array.isArray(userRole) ? userRole[0] : userRole,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
       });
       setMappingData(res.data.data || []);
@@ -447,6 +472,11 @@ const PublisherRequest = ({ senderId, receiverId }) => {
       const response = await axios.post(
         `${apiUrl}/addPubRequestnew`,
         requestData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
 
       if (response.status === 201) {
@@ -488,27 +518,32 @@ const PublisherRequest = ({ senderId, receiverId }) => {
           priority: values.priority,
           prm: values.prm,
         };
-        // 🧠 Dynamic sender (logged-in user)
-        const senderName = username; // from Redux
-        const receiverName = record.adv_name; // advertiser name from table row
+        // // 🧠 Dynamic sender (logged-in user)
+        // const senderName = username; // from Redux
+        // const receiverName = record.adv_name; // advertiser name from table row
 
-        // 📨 Send notification dynamically
-        await createNotification({
-          sender: senderName, // will be resolved to sender_id internally
-          receiver: receiverName, // will be resolved to receiver_id internally
-          type: "link_shared",
-          message: `📢 Permission by ${senderName} for campaign "${
-            record.campaign_name
-          }" — ${
-            values.prm === 1
-              ? "✅ Allow"
-              : values.prm === 2
-                ? "❌ Disallow"
-                : "🟡 Hold"
-          }`,
-          url: "/dashboard/view-request",
+        // // 📨 Send notification dynamically
+        // await createNotification({
+        //   sender: senderName, // will be resolved to sender_id internally
+        //   receiver: receiverName, // will be resolved to receiver_id internally
+        //   type: "link_shared",
+        //   message: `📢 Permission by ${senderName} for campaign "${
+        //     record.campaign_name
+        //   }" — ${
+        //     values.prm === 1
+        //       ? "✅ Allow"
+        //       : values.prm === 2
+        //         ? "❌ Disallow"
+        //         : "🟡 Hold"
+        //   }`,
+        //   url: "/dashboard/view-request",
+        //   token
+        // });
+        const res = await axios.put(`${apiUrl}/updatePubprm`, payload, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
-        const res = await axios.put(`${apiUrl}/updatePubprm`, payload);
         if (res.data?.success) {
           // Update only the specific row in local state
           setRequests((prev) =>
@@ -827,9 +862,14 @@ const PublisherRequest = ({ senderId, receiverId }) => {
 
           const visibleValues = sortDropdownValues(
             allValues.filter((val) => {
-              const label = val === "1" ? "✅ Allow" : val === "2" ? "❌ Disallow" : "🟡 Hold";
+              const label =
+                val === "1"
+                  ? "✅ Allow"
+                  : val === "2"
+                    ? "❌ Disallow"
+                    : "🟡 Hold";
               return label.toLowerCase().includes(searchText.toLowerCase());
-            })
+            }),
           );
           const isAllSelected = selectedValues.length === allValues.length;
           const isIndeterminate = selectedValues.length > 0 && !isAllSelected;
@@ -862,7 +902,12 @@ const PublisherRequest = ({ senderId, receiverId }) => {
               </div>
               <div className="max-h-[220px] overflow-y-auto p-2 space-y-1">
                 {visibleValues.map((val) => {
-                  const label = val === "1" ? "✅ Allow" : val === "2" ? "❌ Disallow" : "🟡 Hold";
+                  const label =
+                    val === "1"
+                      ? "✅ Allow"
+                      : val === "2"
+                        ? "❌ Disallow"
+                        : "🟡 Hold";
                   return (
                     <label
                       key={val}
@@ -908,7 +953,7 @@ const PublisherRequest = ({ senderId, receiverId }) => {
                   if (val === 1 || val === "1") return "1";
                   if (val === 2 || val === "2") return "2";
                   return "-";
-                })
+                }),
               ),
             ].sort((a, b) => a.localeCompare(b));
 

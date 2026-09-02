@@ -1,4 +1,10 @@
-import React, { useEffect, useState, useMemo, startTransition,useCallback } from "react";
+import React, {
+  useEffect,
+  useState,
+  useMemo,
+  startTransition,
+  useCallback,
+} from "react";
 import {
   Table,
   Select,
@@ -15,7 +21,11 @@ import "../../index.css";
 import isBetween from "dayjs/plugin/isBetween";
 import { useSelector } from "react-redux";
 import { exportToExcel } from "../exportExcel";
-import { PushpinOutlined, PushpinFilled,DeleteOutlined } from "@ant-design/icons";
+import {
+  PushpinOutlined,
+  PushpinFilled,
+  DeleteOutlined,
+} from "@ant-design/icons";
 import StyledTable from "../../Utils/StyledTable";
 import { LuEye } from "react-icons/lu";
 import { RiFileExcel2Line } from "react-icons/ri";
@@ -31,6 +41,7 @@ const { Option } = Select;
 const apiUrl = import.meta.env.VITE_API_URL;
 
 const PublisherPayoutData = () => {
+  const token = useSelector((state) => state.auth.token);
   const user = useSelector((state) => state.auth.user);
   const userId = useSelector((state) => state.auth.user.id);
   const assignedSubAdmins = user?.assigned_subadmins || [];
@@ -76,6 +87,7 @@ const PublisherPayoutData = () => {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ note: newNote }),
       });
@@ -127,7 +139,11 @@ const PublisherPayoutData = () => {
     if (!result.isConfirmed) return;
 
     try {
-      await axios.post(`${apiUrl}/advdata-delete-data/${id}`);
+      await axios.post(`${apiUrl}/advdata-delete-data/${id}`, null, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       setAdvData((prev) => prev.filter((r) => r.id !== id));
       Swal.fire("Deleted!", "Data has been deleted.", "success");
     } catch (err) {
@@ -140,7 +156,10 @@ const PublisherPayoutData = () => {
     try {
       const resp = await fetch(`${apiUrl}/adv_update/${record.id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ fp: newFP }),
       });
 
@@ -211,6 +230,9 @@ const PublisherPayoutData = () => {
           startDate: startDate.format("YYYY-MM-DD"),
           endDate: endDate.format("YYYY-MM-DD"),
         },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
       setAdvData([...response.data.data].reverse());
     } catch (error) {
@@ -221,7 +243,11 @@ const PublisherPayoutData = () => {
   useEffect(() => {
     const fetchSubAdmins = async () => {
       try {
-        const response = await axios.get(`${apiUrl}/get-subadmin`);
+        const response = await axios.get(`${apiUrl}/get-subadmin`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         if (response.data.success) {
           const subAdminOptions = response.data.data
             .filter((subAdmin) => assignedSubAdmins.includes(subAdmin.id)) // Filter only assigned sub-admins

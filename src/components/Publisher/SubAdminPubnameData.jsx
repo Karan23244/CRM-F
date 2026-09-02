@@ -20,6 +20,7 @@ const apiUrl = import.meta.env.VITE_API_URL;
 
 const SubAdminPubnameData = () => {
   const user = useSelector((state) => state.auth.user);
+  const token = useSelector((state) => state.auth.token);
   const userId = user?.id;
   const isPublisherManager = user?.role?.includes("publisher_manager");
   const [tableData, setTableData] = useState([]);
@@ -57,6 +58,9 @@ const SubAdminPubnameData = () => {
     try {
       const response = await axios.get(`${apiUrl}/get-Namepub`, {
         params: { user_id: userId },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
       console.log(response);
       if (response.data && Array.isArray(response.data.data)) {
@@ -77,7 +81,11 @@ const SubAdminPubnameData = () => {
   useEffect(() => {
     const fetchSubAdmins = async () => {
       try {
-        const response = await fetch(`${apiUrl}/get-subadmin`);
+        const response = await fetch(`${apiUrl}/get-subadmin`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         const data = await response.json();
         if (response.ok) {
           const filtered = data.data.filter((subAdmin) =>
@@ -163,7 +171,11 @@ const SubAdminPubnameData = () => {
     };
 
     try {
-      const response = await axios.put(`${apiUrl}/update-pubid`, updatedPub);
+      const response = await axios.put(`${apiUrl}/update-pubid`, updatedPub, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       if (response.data.success) {
         await Swal.fire({
           icon: "success",
@@ -174,9 +186,13 @@ const SubAdminPubnameData = () => {
         });
 
         // Refresh table data after update
-        const { data } = axios.get(`${apiUrl}/get-Namepub`, {
+        const { data } = await axios.get(`${apiUrl}/get-Namepub`, {
           params: { user_id: userId },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
+
         if (data.success && Array.isArray(data.data)) {
           setTableData(data.data);
         }
@@ -245,7 +261,11 @@ const SubAdminPubnameData = () => {
         });
       }
 
-      const { data } = await axios.get(`${apiUrl}/get-Namepub/${userId}`);
+      const { data } = await axios.get(`${apiUrl}/get-Namepub/${userId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       if (data.success && Array.isArray(data.data)) {
         setTableData(data.data);
       }
@@ -273,19 +293,34 @@ const SubAdminPubnameData = () => {
     try {
       const nextStatus = record.pause === "1" ? "0" : "1";
 
-      const res = await axios.put(`${apiUrl}/update-pubid`, {
-        ...record,
-        pause: nextStatus,
-        role: user.role,
-      });
-      console.log("Pause toggle response:", res.data);
-      fetchPublishers();
+      const res = await axios.put(
+        `${apiUrl}/update-pubid`,
+        {
+          ...record,
+          pause: nextStatus,
+          role: user.role,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
 
-      Swal.fire({
-        icon: "success",
-        title: nextStatus === "1" ? "Publisher Paused" : "Publisher Activated",
-      });
+      console.log("Pause toggle response:", res.data);
+
+      if (res.data.success) {
+        await fetchData();
+
+        Swal.fire({
+          icon: "success",
+          title:
+            nextStatus === "1" ? "Publisher Paused" : "Publisher Activated",
+        });
+      }
     } catch (err) {
+      console.error("Pause toggle error:", err);
+
       Swal.fire({
         icon: "error",
         title: err.response?.data?.message || "Something went wrong.",
@@ -644,6 +679,11 @@ const SubAdminPubnameData = () => {
                             ...record,
                             user_id: selectedAdmin.id,
                             username: selectedAdmin.username,
+                          },
+                          {
+                            headers: {
+                              Authorization: `Bearer ${token}`,
+                            },
                           },
                         );
                         if (response.data.success) {

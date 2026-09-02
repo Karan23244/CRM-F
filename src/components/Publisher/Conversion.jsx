@@ -4,7 +4,7 @@ import { DownloadOutlined } from "@ant-design/icons";
 import { Resizable } from "react-resizable";
 import dayjs from "dayjs";
 import "react-resizable/css/styles.css";
-
+import { useSelector } from "react-redux";
 const { RangePicker } = DatePicker;
 const apiUrl = import.meta.env.VITE_API_URL;
 
@@ -37,6 +37,7 @@ const ResizableTitle = ({ onResize, width, ...restProps }) => {
 };
 
 const Conversion = () => {
+  const token = useSelector((state) => state.auth.token);
   const [messageApi, contextHolder] = message.useMessage();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -55,6 +56,11 @@ const Conversion = () => {
     try {
       const res = await fetch(
         `${apiUrl}/get-conversions?startDate=${startDate}&endDate=${endDate}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
       const json = await res.json();
       setData(json.data || []);
@@ -98,6 +104,11 @@ const Conversion = () => {
       const endDate = dateRange[1].format("YYYY-MM-DD");
       const res = await fetch(
         `${apiUrl}/get-conversions/${campaignId}/export?startDate=${startDate}&endDate=${endDate}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
       if (!res.ok) throw new Error("Export failed");
       const blob = await res.blob();
@@ -118,9 +129,10 @@ const Conversion = () => {
   };
 
   const handleResize = useCallback(
-    (key) => (_, { size }) => {
-      setColWidths((prev) => ({ ...prev, [key]: size.width }));
-    },
+    (key) =>
+      (_, { size }) => {
+        setColWidths((prev) => ({ ...prev, [key]: size.width }));
+      },
     [],
   );
 
@@ -150,7 +162,9 @@ const Conversion = () => {
         (ev) => ev.event?.toLowerCase() === "install",
       );
       const otherEvents =
-        item.event_data?.filter((ev) => ev.event?.toLowerCase() !== "install") ?? [];
+        item.event_data?.filter(
+          (ev) => ev.event?.toLowerCase() !== "install",
+        ) ?? [];
 
       const baseRow = {
         campaign_id: item.campaign_id,
@@ -194,8 +208,10 @@ const Conversion = () => {
         title: "Campaign Name (ID)",
         key: "campaign",
         width: 220,
-        sorter: (a, b) => (a.campaign_name || "").localeCompare(b.campaign_name || ""),
-        render: (_, record) => `${record.campaign_name} (${record.campaign_id})`,
+        sorter: (a, b) =>
+          (a.campaign_name || "").localeCompare(b.campaign_name || ""),
+        render: (_, record) =>
+          `${record.campaign_name} (${record.campaign_id})`,
       },
       {
         title: "Publisher ID",
@@ -219,13 +235,19 @@ const Conversion = () => {
           }
         },
       },
-       {
+      {
         title: "Impressions",
         dataIndex: "total_impressions",
         key: "total_impressions",
         width: 130,
-        sorter: (a, b) => (a.total_impressions ?? 0) - (b.total_impressions ?? 0),
-        render: (val) => (val !== null && val !== undefined ? val : <span className="text-gray-400">—</span>),
+        sorter: (a, b) =>
+          (a.total_impressions ?? 0) - (b.total_impressions ?? 0),
+        render: (val) =>
+          val !== null && val !== undefined ? (
+            val
+          ) : (
+            <span className="text-gray-400">—</span>
+          ),
       },
       {
         title: "Total Clicks",
@@ -247,8 +269,13 @@ const Conversion = () => {
         key: "event_name",
         width: 160,
         render: (val) =>
-          val ? <span className="capitalize">{val}</span> : <span className="text-gray-400">—</span>,
-        sorter: (a, b) => (a.event_name || "").localeCompare(b.event_name || ""),
+          val ? (
+            <span className="capitalize">{val}</span>
+          ) : (
+            <span className="text-gray-400">—</span>
+          ),
+        sorter: (a, b) =>
+          (a.event_name || "").localeCompare(b.event_name || ""),
       },
       {
         title: "Event Count",
@@ -256,7 +283,11 @@ const Conversion = () => {
         key: "event_count",
         width: 130,
         render: (val) =>
-          val !== null && val !== undefined ? val : <span className="text-gray-400">—</span>,
+          val !== null && val !== undefined ? (
+            val
+          ) : (
+            <span className="text-gray-400">—</span>
+          ),
         sorter: (a, b) => (a.event_count ?? 0) - (b.event_count ?? 0),
       },
       {
@@ -270,7 +301,8 @@ const Conversion = () => {
           </Tag>
         ),
         sorter: (a, b) =>
-          parseFloat(a.conversion_rate ?? 0) - parseFloat(b.conversion_rate ?? 0),
+          parseFloat(a.conversion_rate ?? 0) -
+          parseFloat(b.conversion_rate ?? 0),
       },
     ];
 
@@ -386,7 +418,8 @@ const Conversion = () => {
           </span>
           {checkedRowKeys.length > 0 && (
             <span className="text-[#1d3557] font-medium">
-              {checkedRowKeys.length} row{checkedRowKeys.length > 1 ? "s" : ""} selected
+              {checkedRowKeys.length} row{checkedRowKeys.length > 1 ? "s" : ""}{" "}
+              selected
             </span>
           )}
         </div>
@@ -407,7 +440,11 @@ const Conversion = () => {
           tableLayout="fixed"
           rowSelection={rowSelection}
           scroll={{
-            x: columns.reduce((s, c) => s + (colWidths[c.key] ?? c.width ?? 150), 0) + 48,
+            x:
+              columns.reduce(
+                (s, c) => s + (colWidths[c.key] ?? c.width ?? 150),
+                0,
+              ) + 48,
             y: 600,
           }}
           components={{ header: { cell: ResizableTitle } }}
@@ -415,7 +452,8 @@ const Conversion = () => {
             pageSizeOptions: ["10", "20", "50"],
             showSizeChanger: true,
             defaultPageSize: 10,
-            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+            showTotal: (total, range) =>
+              `${range[0]}-${range[1]} of ${total} items`,
           }}
           className="conversion-table"
         />

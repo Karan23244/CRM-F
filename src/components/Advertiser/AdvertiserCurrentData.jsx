@@ -51,6 +51,7 @@ const apiUrl1 = import.meta.env.VITE_API_URL1;
 
 const AdvertiserData = () => {
   const user = useSelector((state) => state.auth?.user);
+  const token = useSelector((state) => state.auth.token);
   const userId = user?.id || null;
 
   const [data, setData] = useState([]);
@@ -138,6 +139,9 @@ const AdvertiserData = () => {
           startDate: startDate.format("YYYY-MM-DD"),
           endDate: endDate.format("YYYY-MM-DD"),
         },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
       console.log("Fetched data:", response.data);
       if (response?.data.data && Array.isArray(response.data.data)) {
@@ -163,7 +167,11 @@ const AdvertiserData = () => {
   }, [userId, selectedDateRange]);
   const fetchCampaignList = async () => {
     try {
-      const res = await axios.get(`${apiUrl}/campaigns_list`);
+      const res = await axios.get(`${apiUrl}/campaigns_list`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       if (res.data && Array.isArray(res.data)) {
         const validCampaigns = res.data.filter(
@@ -203,6 +211,9 @@ const AdvertiserData = () => {
           params: {
             start_date,
             end_date,
+          },
+          headers: {
+            Authorization: `Bearer ${token}`,
           },
         }),
       );
@@ -260,7 +271,11 @@ const AdvertiserData = () => {
   useEffect(() => {
     const fetchSubAdmins = async () => {
       try {
-        const response = await axios.get(`${apiUrl}/get-subadmin`);
+        const response = await axios.get(`${apiUrl}/get-subadmin`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         if (response.data.success) {
           const subAdminOptions = response.data.data
             .filter((subAdmin) => assignedSubAdmins.includes(subAdmin.id)) // Filter only assigned sub-admins
@@ -282,12 +297,36 @@ const AdvertiserData = () => {
     try {
       const [advmName, payableEvent, mmpTracker, pid, pub_id, adv_id] =
         await Promise.all([
-          axios.get(`${apiUrl}/get-subadmin`),
-          axios.get(`${apiUrl}/get-paybleevernt`),
-          axios.get(`${apiUrl}/get-mmptracker`),
-          axios.get(`${apiUrl}/get-pid`),
-          axios.get(`${apiUrl}/get-allpub`),
-          axios.get(`${apiUrl}/advid-data/${userId}`),
+          axios.get(`${apiUrl}/get-subadmin`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }),
+          axios.get(`${apiUrl}/get-paybleevernt`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }),
+          axios.get(`${apiUrl}/get-mmptracker`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }),
+          axios.get(`${apiUrl}/get-pid`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }),
+          axios.get(`${apiUrl}/get-allpub`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }),
+          axios.get(`${apiUrl}/advid-data/${userId}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }),
         ]);
 
       setDropdownOptions((prev) => ({
@@ -418,6 +457,11 @@ const AdvertiserData = () => {
       const res = await axios.post(
         `${apiUrl1}/api/fix-empty-adv-fields`,
         payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
 
       if (res?.data?.success) {
@@ -819,7 +863,10 @@ const AdvertiserData = () => {
           `${apiUrl}/advdata-update/${record.id}`,
           updated,
           {
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
           },
         );
 
@@ -859,7 +906,10 @@ const AdvertiserData = () => {
         created_at: new Date().toISOString(),
       };
       await axios.post(`${apiUrl}/add-advdata`, newRow, {
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
       });
       fetchData();
       Swal.fire("Success", "Data added successfully", "success");
@@ -888,7 +938,10 @@ const AdvertiserData = () => {
           created_at: new Date().toISOString(),
         };
         await axios.post(`${apiUrl}/add-advdata`, copiedRow, {
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
         });
         fetchData();
         Swal.fire({
@@ -952,7 +1005,12 @@ const AdvertiserData = () => {
       const res = await axios.post(
         `${apiUrl}/advdata-update/${selectedPauseRecord.id}`,
         payload,
-        { headers: { "Content-Type": "application/json" } },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
 
       message.success("Pause date linked successfully");

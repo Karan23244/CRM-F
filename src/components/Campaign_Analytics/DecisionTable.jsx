@@ -31,6 +31,7 @@ const DecisionTable = ({
   allowedCampaignIds = [],
 }) => {
   const user = useSelector((state) => state.auth.user);
+  const token = useSelector((state) => state.auth.token);
 
   const [loading, setLoading] = useState(false);
   const [dataSource, setDataSource] = useState([]);
@@ -59,7 +60,11 @@ const DecisionTable = ({
   // ================= FETCH SUBADMINS =================
   const fetchSubadmins = async () => {
     try {
-      const res = await axios.get(`${apiUrl}/get-subadmin`);
+      const res = await axios.get(`${apiUrl}/get-subadmin`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       setSubadmins(res.data?.data || []);
     } catch (err) {
@@ -110,7 +115,6 @@ const DecisionTable = ({
 
   // ================= FILTER DATA BY USER =================
   const roleFilteredData = useMemo(() => {
-  
     const normalize = (val) =>
       val === null || val === undefined || val === ""
         ? "-"
@@ -183,7 +187,14 @@ const DecisionTable = ({
 
       return false;
     });
-  }, [dataSource, user, subadmins, hasAccess,campaign_ids, allowedCampaignIds]);
+  }, [
+    dataSource,
+    user,
+    subadmins,
+    hasAccess,
+    campaign_ids,
+    allowedCampaignIds,
+  ]);
   console.log(roleFilteredData, "roleFilteredData");
   // ================= COLUMN FILTERING =================
   const filteredData = useMemo(() => {

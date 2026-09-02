@@ -80,6 +80,7 @@ const Section = ({
 // ─────────────────────────────────────────────────────────────
 const CampaignConfigPage = () => {
   const user = useSelector((state) => state.auth.user);
+  const token = useSelector((state) => state.auth.token);
   const [form] = Form.useForm();
   const [campaigns, setCampaigns] = useState([]);
   const [campaignsLoading, setCampaignsLoading] = useState(false);
@@ -117,11 +118,19 @@ const CampaignConfigPage = () => {
   // ─────────────────────────────────────────────────────────
   const fetchCampaigns = useCallback(async () => {
     try {
-      const res = await axios.get(`${apiUrl}/campaigns`, {
-        params: {
-          user_id: user?.id || user?._id,
+      const res = await axios.get(
+        `${apiUrl}/campaigns`,
+        {
+          params: {
+            user_id: user?.id || user?._id,
+          },
         },
-      });
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
 
       const campaignsData = res.data.data || [];
 
@@ -138,12 +147,20 @@ const CampaignConfigPage = () => {
   }, [user]);
   const fetchMappings = async () => {
     try {
-      const res = await axios.get(`${apiUrl}/campaign-publisher-map`, {
-        params: {
-          userid: user.id,
-          role: Array.isArray(user.role) ? user.role[0] : user.role,
+      const res = await axios.get(
+        `${apiUrl}/campaign-publisher-map`,
+        {
+          params: {
+            userid: user.id,
+            role: Array.isArray(user.role) ? user.role[0] : user.role,
+          },
         },
-      });
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
 
       const ids = (res.data.data || []).map((item) => Number(item.campaign_id));
 

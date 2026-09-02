@@ -1,11 +1,13 @@
 import { useState } from "react";
 import axios from "axios";
+import { useSelector } from "react-redux";
 import { Card, Input, Button, Tag, Alert } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 
 const apiUrl = import.meta.env.VITE_API_URL;
 
 export default function PublisherStatusSearch() {
+  const token = useSelector((state) => state.auth.token);
   const [publisher, setPublisher] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -17,14 +19,14 @@ export default function PublisherStatusSearch() {
     setResult(null);
 
     try {
-      const { data } = await axios.get(
-        `${apiUrl}/getpubstatusnew`,
-        {
-          params: {
-            publisher,
-          },
+      const { data } = await axios.get(`${apiUrl}/getpubstatusnew`, {
+        params: {
+          publisher,
         },
-      );
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       setResult(data);
     } catch (err) {

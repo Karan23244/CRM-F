@@ -42,6 +42,7 @@ const VERTICALS = [
 const CreateCampaignForm = () => {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
+  const token = useSelector((state) => state.auth.token);
   const campaignId = queryParams.get("id");
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -99,7 +100,11 @@ const CreateCampaignForm = () => {
         return;
       }
 
-      const res = await axios.get(`${apiUrl}/campaigns_list`);
+      const res = await axios.get(`${apiUrl}/campaigns_list`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       const data = res?.data || [];
 
@@ -153,10 +158,26 @@ const CreateCampaignForm = () => {
   const fetchDropdowns = useCallback(async () => {
     try {
       const [advmName, payableEvent, mmpTracker, adv_id] = await Promise.all([
-        axios.get(`${apiUrl}/get-subadmin`),
-        axios.get(`${apiUrl}/get-paybleevernt`),
-        axios.get(`${apiUrl}/get-mmptracker`),
-        axios.get(`${apiUrl}/advid-data/${userId}`),
+        axios.get(`${apiUrl}/get-subadmin`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }),
+        axios.get(`${apiUrl}/get-paybleevernt`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }),
+        axios.get(`${apiUrl}/get-mmptracker`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }),
+        axios.get(`${apiUrl}/advid-data/${userId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }),
       ]);
       setDropdownOptions({
         pub_name: [
@@ -196,7 +217,11 @@ const CreateCampaignForm = () => {
   }, [fetchDropdowns]);
   const fetchCampaignById = async (id) => {
     try {
-      const res = await axios.get(`${apiUrl}/campaign/${id}`);
+      const res = await axios.get(`${apiUrl}/campaign/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       console.log("Fetched campaign for editing:", res.data);
       const data = res.data.data;
       console.log("Fetched campaign data:", data);
@@ -216,7 +241,11 @@ const CreateCampaignForm = () => {
   }, [campaignId]);
   const getNextSubCampaignId = async () => {
     try {
-      const res = await axios.get(`${apiUrl}/campaigns_list`);
+      const res = await axios.get(`${apiUrl}/campaigns_list`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       const data = res?.data || [];
 
@@ -312,7 +341,11 @@ const CreateCampaignForm = () => {
       // ============================================================
       // 1️⃣ CREATE CAMPAIGN
       // ============================================================
-      const res = await axios.post(`${apiUrl}/campaignsnew`, finalPayload);
+      const res = await axios.post(`${apiUrl}/campaignsnew`, finalPayload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       if (res.data?.message === "Campaign(s) created successfully") {
         const campaignId = res.data.campaign_id; // ⚠ MUST be returned from backend
@@ -470,7 +503,11 @@ const CreateCampaignForm = () => {
       status: values.status,
     };
     try {
-      const res = await axios.post(`${apiUrl}/campaign-update`, finalPayload);
+      const res = await axios.post(`${apiUrl}/campaign-update`, finalPayload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       const msg = res?.data?.message;
       if (msg && msg.includes("updated")) {
         Swal.fire({
@@ -610,12 +647,15 @@ const CreateCampaignForm = () => {
     if (!editRecord) return;
     // 🔥 SEND campaign_name & OS to backend to fetch PID info
     const fetchPidInfo = async () => {
-      console.log(editRecord.id, editRecord.campaign_name, editRecord.os);
       try {
         const res = await axios.post(`${apiUrl}/pid-update`, {
           campaign_id: editRecord.id,
           campaign_name: editRecord.campaign_name,
           os: editRecord.os,
+        }, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
         setLivePids(
           (res.data.live_pids || []).map((item) => ({
@@ -643,7 +683,11 @@ const CreateCampaignForm = () => {
     const fetchPubs = async () => {
       try {
         setPubLoading(true);
-        const res = await axios.get(`${apiUrl}/get-allpub`);
+        const res = await axios.get(`${apiUrl}/get-allpub`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         setAllPubs(res?.data?.data?.map((i) => i.pub_id) || []);
       } finally {
         setPubLoading(false);
@@ -826,7 +870,11 @@ const CreateCampaignForm = () => {
         })),
       };
 
-      await axios.post(`${apiUrl}/pid-updatestatus`, payload);
+      await axios.post(`${apiUrl}/pid-updatestatus`, payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       Swal.fire("Success", "PID status updated!", "success");
       setUpdatedStatus({});

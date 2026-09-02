@@ -16,6 +16,7 @@ const { Option } = Select;
 const apiUrl = import.meta.env.VITE_API_URL;
 
 const AdvnameData = () => {
+  const token = useSelector((state) => state.auth.token);
   const user = useSelector((state) => state.auth.user);
   const userId = user?.id || null;
 
@@ -130,13 +131,20 @@ const AdvnameData = () => {
   useEffect(() => {
     const fetchSubAdmins = async () => {
       try {
-        const response = await fetch(`${apiUrl}/get-subadmin`);
+        const response = await fetch(`${apiUrl}/get-subadmin`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         const data = await response.json();
         if (response.ok) {
           const filtered = data.data.filter((subAdmin) =>
-            ["advertiser_manager", "advertiser", "operations","adv_executive"].includes(
-              subAdmin.role,
-            ),
+            [
+              "advertiser_manager",
+              "advertiser",
+              "operations",
+              "adv_executive",
+            ].includes(subAdmin.role),
           );
           setSubAdmins(filtered);
           setOperationsUsers(data.data.filter((u) => u.role === "operations"));
@@ -183,12 +191,20 @@ const AdvnameData = () => {
     };
     try {
       // **Update existing advertiser**
-      const response = await axios.put(`${apiUrl}/update-advid`, updatedAdv);
+      const response = await axios.put(`${apiUrl}/update-advid`, updatedAdv, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       if (response.data.success) {
         Swal.fire("Success", "Advertiser updated successfully.", "success");
 
         // Refresh table data after update
-        const { data } = await axios.get(`${apiUrl}/get-NameAdv/`);
+        const { data } = await axios.get(`${apiUrl}/get-NameAdv/`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         if (data.success && Array.isArray(data.data)) {
           setTableData(data.data);
         }
@@ -235,10 +251,18 @@ const AdvnameData = () => {
   };
   const handlePause = async (record) => {
     try {
-      const response = await axios.post(`${apiUrl}/advid-pause`, {
-        adv_id: record.adv_id,
-        pause: 1,
-      });
+      const response = await axios.post(
+        `${apiUrl}/advid-pause`,
+        {
+          adv_id: record.adv_id,
+          pause: 1,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
 
       if (response.data.success) {
         Swal.fire(
@@ -248,7 +272,11 @@ const AdvnameData = () => {
         );
 
         // ✅ Refresh data after pause
-        const { data } = await axios.get(`${apiUrl}/get-NameAdv/`);
+        const { data } = await axios.get(`${apiUrl}/get-NameAdv/`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         if (data.success && Array.isArray(data.data)) {
           setTableData(data.data);
         }
@@ -1008,6 +1036,10 @@ const AdvnameData = () => {
                   const response = await axios.put(`${apiUrl}/update-advid`, {
                     ...record,
                     user_id: newUserId,
+                  }, {
+                    headers: {
+                      Authorization: `Bearer ${token}`,
+                    },
                   });
 
                   if (response.data.success) {
@@ -1100,7 +1132,7 @@ const AdvnameData = () => {
       ),
     },
   ];
-  console.log("finalFilteredData",finalFilteredData)
+  console.log("finalFilteredData", finalFilteredData);
   return (
     <div className="m-6 p-6 bg-white shadow-md rounded-lg">
       <h2 className="text-2xl font-bold mb-4">Advertisers</h2>

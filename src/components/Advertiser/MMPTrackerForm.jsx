@@ -5,8 +5,7 @@ import { Table, Button, Input, Tooltip } from "antd";
 import { SearchOutlined, EditOutlined } from "@ant-design/icons";
 import Swal from "sweetalert2";
 
-const apiUrl =
-  import.meta.env.VITE_API_URL;
+const apiUrl = import.meta.env.VITE_API_URL;
 
 const MMPTrackerForm = () => {
   const user = useSelector((state) => state.auth.user);
@@ -16,12 +15,17 @@ const MMPTrackerForm = () => {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [dataloading, setDataLoading] = useState(true);
+  const token = useSelector((state) => state.auth.token);
 
   // ✅ Fetch MMP Trackers
   const fetchTrackers = async () => {
     setDataLoading(true);
     try {
-      const response = await axios.get(`${apiUrl}/get-mmptracker`);
+      const response = await axios.get(`${apiUrl}/get-mmptracker`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       if (response.data?.success) {
         setTrackers(response.data.data);
       }
@@ -52,6 +56,11 @@ const MMPTrackerForm = () => {
           {
             user_id: user?.id,
             mmptext: trimmed,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           }
         );
 
@@ -61,10 +70,18 @@ const MMPTrackerForm = () => {
           Swal.fire("Error", "Failed to update tracker", "error");
         }
       } else {
-        const response = await axios.post(`${apiUrl}/add-mmptracker`, {
-          user_id: user?.id,
-          mmptext: trimmed,
-        });
+        const response = await axios.post(
+          `${apiUrl}/add-mmptracker`,
+          {
+            user_id: user?.id,
+            mmptext: trimmed,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
 
         if (response.status === 500) {
           Swal.fire("Warning", "Tracker already exists!", "warning");
@@ -96,7 +113,7 @@ const MMPTrackerForm = () => {
 
   // ✅ Filter trackers by search
   const filteredTrackers = trackers.filter((t) =>
-    t.mmptext.toLowerCase().includes(searchTerm.toLowerCase())
+    t.mmptext.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   // ✅ Table Columns

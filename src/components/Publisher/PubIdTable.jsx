@@ -29,6 +29,7 @@ const apiUrl = import.meta.env.VITE_API_URL;
 
 const PubIdTable = () => {
   const roles = useSelector((state) => state.auth.user?.role || []);
+  const token = useSelector((state) => state.auth.token);
   const id = useSelector((state) => state.auth.user?.id || []);
   const [data, setData] = useState([]);
   const [pinnedColumns, setPinnedColumns] = useState({});
@@ -115,6 +116,9 @@ const PubIdTable = () => {
       setLoading(true);
       const res = await axios.get(`${apiUrl}/getpubdata`, {
         params: { id: id }, // 👈 send id here
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       const sortedData = (res.data.data || []).reverse(); // latest first
@@ -202,7 +206,13 @@ const PubIdTable = () => {
 
       const response = await axios.put(`${apiUrl}/updatePubidData/${id}`, {
         [field]: value,
-      });
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
 
       if (response.data.success) {
         await Swal.fire({

@@ -33,6 +33,7 @@ const apiUrl = import.meta.env.VITE_API_URL;
 const CampaignList = () => {
   const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
+  const token = useSelector((state) => state.auth.token);
   const role = user?.role;
   const userId = useSelector((state) => state.auth.user.id);
   const [campaigns, setCampaigns] = useState([]);
@@ -72,6 +73,9 @@ const CampaignList = () => {
         params: {
           user_id: user?.id || user?._id, // <-- sending user ID here
         },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
       console.log("Fetched Campaigns:", res.data.data);
       setCampaigns(res.data.data || []);
@@ -95,10 +99,18 @@ const CampaignList = () => {
             ? `${apiUrl}/resume-campaign`
             : `${apiUrl}/pause-campaign`;
 
-        await axios.post(endpoint, {
-          campaign_id: record.id.toString(),
-          os: record.os || "Android", // fallback if OS not set
-        });
+        await axios.post(
+          endpoint,
+          {
+            campaign_id: record.id.toString(),
+            os: record.os || "Android", // fallback if OS not set
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
 
         Swal.fire({
           title: "Status Updated!",
@@ -112,10 +124,18 @@ const CampaignList = () => {
         fetchCampaigns();
       } else {
         // For other editable fields (adv_note, category, etc.)
-        await axios.put(`${apiUrl}/campaigns/${record.id}`, {
-          ...record,
-          ...updatedValues,
-        });
+        await axios.put(
+          `${apiUrl}/campaigns/${record.id}`,
+          {
+            ...record,
+            ...updatedValues,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
 
         Swal.fire({
           title: "Updated!",
@@ -480,14 +500,22 @@ const CampaignList = () => {
 
   if (
     roles.some((r) =>
-      ["advertiser", "advertiser_manager","adv_executive", "operations", "admin"].includes(r),
+      [
+        "advertiser",
+        "advertiser_manager",
+        "adv_executive",
+        "operations",
+        "admin",
+      ].includes(r),
     )
   ) {
     editableFields.push("adv_note", "status");
   }
 
   if (
-    roles.some((r) => ["publisher","pub_executive", "publisher_manager", "admin"].includes(r))
+    roles.some((r) =>
+      ["publisher", "pub_executive", "publisher_manager", "admin"].includes(r),
+    )
   ) {
     editableFields.push("category", "Target", "achieve_number");
   }
@@ -505,7 +533,7 @@ const CampaignList = () => {
       "✅ All filters, sorts, pins, and hidden columns have been cleared",
     );
   };
-  const allowedRoles = ["publisher", "publisher_manager","pub_executive"];
+  const allowedRoles = ["publisher", "publisher_manager", "pub_executive"];
   const isPublisherRole = user?.role?.some((r) => allowedRoles.includes(r));
 
   // All Columns
@@ -523,8 +551,7 @@ const CampaignList = () => {
       (text, record) => (
         <a
           href={`/dashboard/createcampaign?id=${record.id}`}
-          style={{ color: "#2F5D99" }}
-        >
+          style={{ color: "#2F5D99" }}>
           {text}
         </a>
       ),

@@ -19,13 +19,13 @@ const { Option } = Select;
 const apiUrl = import.meta.env.VITE_API_URL;
 
 const PubnameData = () => {
+  const token = useSelector((state) => state.auth.token);
   const user = useSelector((state) => state.auth.user);
   const userId = user?.id || null;
   const [tableData, setTableData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingPub, setEditingPub] = useState(null);
-  console.log(tableData);
   // Form State for Editing
   const [name, setName] = useState("");
   const [selectedId, setSelectedId] = useState("");
@@ -106,7 +106,11 @@ const PubnameData = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${apiUrl}/get-Namepub/${userId}`);
+      const response = await axios.get(`${apiUrl}/get-Namepub/${userId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       if (response.data && Array.isArray(response.data.data)) {
         setTableData(response.data.data);
       } else {
@@ -115,7 +119,7 @@ const PubnameData = () => {
       }
     } catch (error) {
       console.error("Error fetching data:", error);
-    } finally{
+    } finally {
       setLoading(false);
     }
   };
@@ -127,7 +131,11 @@ const PubnameData = () => {
   useEffect(() => {
     const fetchSubAdmins = async () => {
       try {
-        const response = await fetch(`${apiUrl}/get-subadmin`);
+        const response = await fetch(`${apiUrl}/get-subadmin`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         const data = await response.json();
         if (response.ok) {
           const filtered = data.data.filter((subAdmin) =>
@@ -165,12 +173,20 @@ const PubnameData = () => {
 
     try {
       // **Update existing publisher**
-      const response = await axios.put(`${apiUrl}/update-pubid`, updatedPub);
+      const response = await axios.put(`${apiUrl}/update-pubid`, updatedPub, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       if (response.data.success) {
         Swal.fire("Success", "Publisher updated successfully.", "success");
 
         // Refresh table data after update
-        const { data } = await axios.get(`${apiUrl}/get-Namepub/`);
+        const { data } = await axios.get(`${apiUrl}/get-Namepub/`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         if (data.success && Array.isArray(data.data)) {
           setTableData(data.data);
         }
@@ -235,7 +251,11 @@ const PubnameData = () => {
         });
       }
 
-      const { data } = await axios.get(`${apiUrl}/get-Namepub/`);
+      const { data } = await axios.get(`${apiUrl}/get-Namepub/`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       if (data.success && Array.isArray(data.data)) {
         setTableData(data.data);
       }
@@ -507,6 +527,10 @@ const PubnameData = () => {
                     ...record,
                     user_id: selectedAdmin.id,
                     username: selectedAdmin.username,
+                  }, {
+                    headers: {
+                      Authorization: `Bearer ${token}`,
+                    },
                   });
                   if (response.data.success) {
                     Swal.fire(

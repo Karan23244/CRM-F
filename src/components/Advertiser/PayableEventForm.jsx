@@ -10,10 +10,10 @@ import {
 } from "@ant-design/icons";
 import Swal from "sweetalert2";
 
-const apiUrl =
-  import.meta.env.VITE_API_URL;
+const apiUrl = import.meta.env.VITE_API_URL;
 
 const PayableEventForm = () => {
+  const token = useSelector((state) => state.auth.token);
   const user = useSelector((state) => state.auth.user);
   const [event, setEvent] = useState("");
   const [events, setEvents] = useState([]);
@@ -24,11 +24,14 @@ const PayableEventForm = () => {
   const fetchEvents = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${apiUrl}/get-paybleevernt`);
-      if (!response.ok)
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      const data = await response.json();
-      if (data?.success) setEvents(data.data);
+      const response = await axios.get(`${apiUrl}/get-paybleevernt`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (response.data?.success) {
+        setEvents(response.data.data);
+      }
     } catch (error) {
       console.error("Error fetching events:", error);
     } finally {
@@ -47,25 +50,41 @@ const PayableEventForm = () => {
     try {
       let response;
       if (editId) {
-        response = await axios.post(`${apiUrl}/update-event/${editId}`, {
-          user_id: user?.id,
-          payble_event: trimmedEvent,
-        });
+        response = await axios.post(
+          `${apiUrl}/update-event/${editId}`,
+          {
+            user_id: user?.id,
+            payble_event: trimmedEvent,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
 
         if (response.data.success) {
           Swal.fire(
             "Updated!",
             "Payable Event updated successfully",
-            "success"
+            "success",
           );
         } else {
           Swal.fire("Error", "Failed to update Payable Event", "error");
         }
       } else {
-        response = await axios.post(`${apiUrl}/add-paybleevernt`, {
-          user_id: user?.id,
-          payble_event: trimmedEvent,
-        });
+        response = await axios.post(
+          `${apiUrl}/add-paybleevernt`,
+          {
+            user_id: user?.id,
+            payble_event: trimmedEvent,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
         if (response.status === 500) {
           Swal.fire("Duplicate", "Payable Event already exists!", "warning");
@@ -83,7 +102,7 @@ const PayableEventForm = () => {
       Swal.fire(
         "Error",
         "Something went wrong. Please try again later.",
-        "error"
+        "error",
       );
     }
   };
@@ -121,7 +140,7 @@ const PayableEventForm = () => {
   ];
 
   const filteredEvents = events.filter((ev) =>
-    ev.payble_event.toLowerCase().includes(searchTerm.toLowerCase())
+    ev.payble_event.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   return (

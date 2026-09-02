@@ -23,15 +23,17 @@ import {
   DeleteOutlined,
 } from "@ant-design/icons";
 import Swal from "sweetalert2";
-
+import { useSelector } from "react-redux";
 const { Option } = Select;
 const apiUrl = import.meta.env.VITE_API_URL;
 const apiChatUrl = import.meta.env.VITE_API_CHAT_URL;
 
 const SubAdminForm = () => {
+  const token = useSelector((state) => state.auth.token);
   const [subAdmins, setSubAdmins] = useState([]);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("");
   const [role, setRole] = useState([]); // ✅ multi-select roles
   const [ranges, setRanges] = useState([{ start: "", end: "" }]);
   const [assignedSubAdmins, setAssignedSubAdmins] = useState([]);
@@ -47,7 +49,11 @@ const SubAdminForm = () => {
   const fetchSubAdmins = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${apiUrl}/get-subadmin`);
+      const response = await fetch(`${apiUrl}/get-subadmin`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       const data = await response.json();
       if (response.ok) {
         // Exclude only those with role "admin"
@@ -107,7 +113,7 @@ const SubAdminForm = () => {
 
   const handleSaveSubAdmin = async () => {
     console.log(role.length, password, username);
-    if (!username || !password || role.length === 0) {
+    if (!username || !email || !password || role.length === 0) {
       Swal.fire({
         icon: "warning",
         title: "Oops...",
@@ -118,6 +124,7 @@ const SubAdminForm = () => {
 
     const payload = {
       username,
+      email,
       password,
       role,
       // ranges: ranges.map(({ start, end }) => ({
@@ -133,7 +140,10 @@ const SubAdminForm = () => {
     try {
       const response = await fetch(`${apiUrl}/create-subadmin`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify(payload),
       });
       console.log(response);
@@ -180,6 +190,7 @@ const SubAdminForm = () => {
 
   const resetForm = () => {
     setUsername("");
+    setEmail("");
     setPassword("");
     setRole([]);
     // setRanges([{ start: "", end: "" }]);
@@ -207,24 +218,41 @@ const SubAdminForm = () => {
         </h2>
 
         {/* Username and Password */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
-          <div>
-            <label className="block font-semibold mb-2">Username</label>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
+          <div className="w-full">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Username
+            </label>
             <Input
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="Enter username"
-              className="h-11 rounded-lg border-gray-200 bg-gray-50"
+              className="w-full h-11 rounded-lg"
             />
           </div>
 
-          <div>
-            <label className="block font-semibold mb-2">Password</label>
+          <div className="w-full">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Email
+            </label>
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter email address"
+              className="w-full h-11 rounded-lg"
+            />
+          </div>
+
+          <div className="w-full">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Password
+            </label>
             <Input.Password
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter password"
-              className="h-11 rounded-lg border-gray-200 bg-gray-50"
+              className="w-full h-11 rounded-lg"
             />
           </div>
         </div>

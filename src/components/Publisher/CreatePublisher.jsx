@@ -10,6 +10,7 @@ const apiUrl = import.meta.env.VITE_API_URL;
 
 const PublisherCreateForm = () => {
   const user = useSelector((state) => state.auth.user);
+  const token = useSelector((state) => state.auth.token);
   const userId = user?.id || null;
   const [name, setName] = useState("");
   const [selectedId, setSelectedId] = useState("");
@@ -20,7 +21,11 @@ const PublisherCreateForm = () => {
   useEffect(() => {
     const fetchAvailableIds = async () => {
       try {
-        const { data } = await axios.get(`${apiUrl}/available-id`);
+        const { data } = await axios.get(`${apiUrl}/available-id`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         if (data.success && data.available_id !== undefined) {
           // Wrap single ID into array
           setAvailableIds([String(data.available_id)]);
@@ -37,7 +42,11 @@ const PublisherCreateForm = () => {
   }, []);
   const refreshAvailableIds = async () => {
     try {
-      const { data } = await axios.get(`${apiUrl}/available-id`);
+      const { data } = await axios.get(`${apiUrl}/available-id`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       if (data.success && data.available_id !== undefined) {
         // Wrap single ID into array
@@ -70,7 +79,11 @@ const PublisherCreateForm = () => {
     }
 
     try {
-      const res = await axios.post(`${apiUrl}/create-pubid`, trimmed);
+      const res = await axios.post(`${apiUrl}/create-pubid`, trimmed, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       if (res.data.success) {
         Swal.fire({
           icon: "success",
@@ -101,9 +114,7 @@ const PublisherCreateForm = () => {
       <h2 className="text-2xl font-semibold text-gray-800 mb-6 border-b pb-3">
         Create Publisher
       </h2>
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
         {/* Publisher Name */}
         <div>
           <label className="block text-[#2F5D99] text-lg font-semibold mb-2">

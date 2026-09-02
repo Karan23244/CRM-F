@@ -27,12 +27,15 @@ const OffersTrendChart = lazy(() => import("./Charts/OffersTrendChart"));
 const TopAdvertisersChart = lazy(() => import("./Charts/TopAdvertisersChart"));
 const TopPublishersChart = lazy(() => import("./Charts/TopPublishersChart"));
 const OSDistributionChart = lazy(() => import("./Charts/OSDistributionChart"));
-const VerticalDistributionChart = lazy(() => import("./Charts/VerticalDistributionChart"));
+const VerticalDistributionChart = lazy(
+  () => import("./Charts/VerticalDistributionChart"),
+);
 const RevenueDashboard = lazy(() => import("./Revenu/RevenueDashboard"));
 const { RangePicker } = DatePicker;
 const apiUrl = import.meta.env.VITE_API_URL;
 const API = import.meta.env.VITE_API_URL5;
 export default function Dashboard() {
+  const token = useSelector((state) => state.auth.token);
   const { user } = useSelector((state) => state.auth);
   const { notifications } = useNotifications(15);
   // 🔥 TWO SEPARATE TOGGLES
@@ -89,7 +92,11 @@ export default function Dashboard() {
   // 🟡 Fetch Request Toggle
   const fetchRequestToggle = async () => {
     try {
-      const res = await axios.get(`${apiUrl}/getHierarchyToggle`);
+      const res = await axios.get(`${apiUrl}/getHierarchyToggle`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       if (res.data?.success) setToggleRequest(res.data.value);
     } catch {
       Swal.fire("Error", "Failed to load Request toggle", "error");
@@ -99,7 +106,11 @@ export default function Dashboard() {
   // 🟡 Fetch Campaign Toggle
   const fetchCampaignToggle = async () => {
     try {
-      const res = await axios.get(`${apiUrl}/getcamHierarchyToggle`);
+      const res = await axios.get(`${apiUrl}/getcamHierarchyToggle`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       if (res.data?.success) setToggleCampaign(res.data.value);
     } catch {
       Swal.fire("Error", "Failed to load Campaign toggle", "error");
@@ -110,9 +121,17 @@ export default function Dashboard() {
   const updateRequest = async (checked) => {
     setLoadReq(true);
     try {
-      const res = await axios.put(`${apiUrl}/updateHierarchyToggle`, {
-        value: checked ? 0 : 1,
-      });
+      const res = await axios.put(
+        `${apiUrl}/updateHierarchyToggle`,
+        {
+          value: checked ? 0 : 1,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
       if (res.data?.success) {
         setToggleRequest(res.data.new_value);
         Swal.fire("Updated!", "Request view permission changed", "success");
@@ -127,9 +146,17 @@ export default function Dashboard() {
   const updateCampaign = async (checked) => {
     setLoadCamp(true);
     try {
-      const res = await axios.put(`${apiUrl}/updatecamHierarchyToggle`, {
-        value: checked ? 0 : 1,
-      });
+      const res = await axios.put(
+        `${apiUrl}/updatecamHierarchyToggle`,
+        {
+          value: checked ? 0 : 1,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
       if (res.data?.success) {
         setToggleCampaign(res.data.new_value);
         Swal.fire("Updated!", "Campaign view permission changed", "success");
@@ -144,12 +171,10 @@ export default function Dashboard() {
     fetchRequestToggle();
     fetchCampaignToggle();
     // fetchCounts();
-
   }, []);
   const role = user?.role || "";
 
   const isAdmin = role.includes("admin");
-
 
   return (
     <div className="p-6 bg-gradient-to-br from-[#eef3fb] to-[#e6ecf5] min-h-screen space-y-8">
@@ -239,7 +264,10 @@ export default function Dashboard() {
       </section>
       <div>
         {!isRestricted && (
-          <Suspense fallback={<div className="text-center py-8 text-gray-400">Loading...</div>}>
+          <Suspense
+            fallback={
+              <div className="text-center py-8 text-gray-400">Loading...</div>
+            }>
             <RevenueDashboard />
           </Suspense>
         )}
@@ -254,7 +282,6 @@ const DashboardOverview = ({ user }) => {
     dayjs().startOf("month"),
     dayjs().endOf("month"),
   ]);
-  console.log("user:", user); // ✅ DEBUG LOG
 
   const fetchAdvData = async () => {
     try {
@@ -273,7 +300,6 @@ const DashboardOverview = ({ user }) => {
       };
 
       const response = await axios.post(`${API}/dashboard-adv-data`, payload);
-      console.log("Dashboard adv data response:", response.data); // ✅ DEBUG LOG
       if (response.data?.success) {
         setData(response.data.data || []);
       } else {
@@ -314,7 +340,12 @@ const DashboardOverview = ({ user }) => {
       </div>
 
       {/* NEW PERFORMANCE CHARTS */}
-      <Suspense fallback={<div className="text-center py-8 text-gray-400">Loading charts...</div>}>
+      <Suspense
+        fallback={
+          <div className="text-center py-8 text-gray-400">
+            Loading charts...
+          </div>
+        }>
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           <PerformanceBarChart
             title="Top 5 Performing Verticals (PID Additions)"

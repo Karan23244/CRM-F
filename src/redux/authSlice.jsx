@@ -1,17 +1,18 @@
 import { createSlice } from "@reduxjs/toolkit";
 import CryptoJS from "crypto-js";
 
-const SECRET_KEY = "your_secret_key"; // Replace with a secure key
+const SECRET_KEY = "your_secret_key";
 
-// Function to encrypt data
+// Encrypt data
 const encryptData = (data) => {
   return CryptoJS.AES.encrypt(JSON.stringify(data), SECRET_KEY).toString();
 };
 
-// Function to decrypt data
+// Decrypt data
 const decryptData = (cipherText) => {
   try {
     const bytes = CryptoJS.AES.decrypt(cipherText, SECRET_KEY);
+
     return JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
   } catch (error) {
     console.error("Decryption error:", error);
@@ -19,25 +20,47 @@ const decryptData = (cipherText) => {
   }
 };
 
-// Retrieve encrypted user from localStorage
+// Retrieve encrypted user
 const storedUser = localStorage.getItem("subAdmin")
   ? decryptData(localStorage.getItem("subAdmin"))
   : null;
 
+// Retrieve token
+const storedToken = localStorage.getItem("token") || null;
+
 const authSlice = createSlice({
   name: "auth",
-  initialState: { user: storedUser, loading: false, error: null },
+
+  initialState: {
+    user: storedUser,
+    token: storedToken, // IMPORTANT
+    loading: false,
+    error: null,
+  },
+
   reducers: {
     setUser: (state, action) => {
       state.user = action.payload;
+
       localStorage.setItem("subAdmin", encryptData(action.payload));
     },
+
+    setToken: (state, action) => {
+      state.token = action.payload;
+
+      localStorage.setItem("token", action.payload);
+    },
+
     logout: (state) => {
       localStorage.removeItem("subAdmin");
+      localStorage.removeItem("token");
+
       state.user = null;
+      state.token = null;
     },
   },
 });
 
-export const { setUser, logout } = authSlice.actions;
+export const { setUser, setToken, logout } = authSlice.actions;
+
 export default authSlice.reducer;
