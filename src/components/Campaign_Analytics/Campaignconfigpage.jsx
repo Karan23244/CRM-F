@@ -605,7 +605,7 @@ const CampaignConfigPage = () => {
             {/* Divider */}
             <div className="border-t border-dashed border-gray-200" />
             {/* CTI Chart Limits */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Form.Item
                 name="cti_lower_limit"
                 className="mb-0"
@@ -675,10 +675,10 @@ const CampaignConfigPage = () => {
                   placeholder="0.30"
                 />
               </Form.Item>
-            </div>
+            </div> */}
 
             {/* Divider */}
-            <div className="border-t border-dashed border-gray-200" />
+            {/* <div className="border-t border-dashed border-gray-200" /> */}
 
             {/* Event Configuration */}
             {template.events && (
