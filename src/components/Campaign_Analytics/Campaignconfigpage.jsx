@@ -124,8 +124,6 @@ const CampaignConfigPage = () => {
           params: {
             user_id: user?.id || user?._id,
           },
-        },
-        {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -147,20 +145,15 @@ const CampaignConfigPage = () => {
   }, [user]);
   const fetchMappings = async () => {
     try {
-      const res = await axios.get(
-        `${apiUrl}/campaign-publisher-map`,
-        {
-          params: {
-            userid: user.id,
-            role: Array.isArray(user.role) ? user.role[0] : user.role,
-          },
+      const res = await axios.get(`${apiUrl}/campaign-publisher-map`, {
+        params: {
+          userid: user.id,
+          role: Array.isArray(user.role) ? user.role[0] : user.role,
         },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-      );
+      });
 
       const ids = (res.data.data || []).map((item) => Number(item.campaign_id));
 
@@ -605,6 +598,81 @@ const CampaignConfigPage = () => {
                   style={{ width: "100%" }}
                   placeholder="200"
                   className="w-full"
+                />
+              </Form.Item>
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-dashed border-gray-200" />
+            {/* CTI Chart Limits */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Form.Item
+                name="cti_lower_limit"
+                className="mb-0"
+                label={
+                  <span className="text-sm font-semibold text-gray-700">
+                    CTI Lower Limit
+                  </span>
+                }
+                rules={[
+                  {
+                    required: true,
+                    message: "Please enter CTI lower limit",
+                  },
+                ]}>
+                <InputNumber
+                  size="large"
+                  min={0}
+                  step={0.01}
+                  precision={4}
+                  style={{ width: "100%" }}
+                  placeholder="0.05"
+                />
+              </Form.Item>
+
+              <Form.Item
+                name="cti_upper_limit"
+                className="mb-0"
+                label={
+                  <span className="text-sm font-semibold text-gray-700">
+                    CTI Upper Limit
+                  </span>
+                }
+                dependencies={["cti_lower_limit"]}
+                rules={[
+                  {
+                    required: true,
+                    message: "Please enter CTI upper limit",
+                  },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      const lowerLimit = getFieldValue("cti_lower_limit");
+
+                      if (
+                        value === undefined ||
+                        value === null ||
+                        lowerLimit === undefined ||
+                        lowerLimit === null ||
+                        Number(value) > Number(lowerLimit)
+                      ) {
+                        return Promise.resolve();
+                      }
+
+                      return Promise.reject(
+                        new Error(
+                          "Upper limit must be greater than lower limit",
+                        ),
+                      );
+                    },
+                  }),
+                ]}>
+                <InputNumber
+                  size="large"
+                  min={0}
+                  step={0.01}
+                  precision={4}
+                  style={{ width: "100%" }}
+                  placeholder="0.30"
                 />
               </Form.Item>
             </div>
