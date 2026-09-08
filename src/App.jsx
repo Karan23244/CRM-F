@@ -63,6 +63,7 @@ const AddDetails = lazy(() => import("./components/PublisherAM/DetailsAdd"));
 const CampaignConfigPage = lazy(() => import("./components/Campaign_Analytics/Campaignconfigpage"));
 const PublisherRevnu = lazy(() => import("./components/Billing/PublisherRevnu"));
 const CampaignPublisherMapping = lazy(() => import("./components/Publisher/CampaignAccess"));
+const PidRankingDashboard = lazy(() => import("./components/Publisher/PidRankingDashboard"));
 const PageLoader = () => (
   <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", fontSize: "16px", color: "#888" }}>
     Loading...
@@ -141,6 +142,7 @@ const AppRoutes = () => (
           <Route path="accountsadvbill" element={<AdvertiserAccount />} />
           <Route path="accountspubbill" element={<PublisherAccount />} />
           <Route path="publisherrevenue" element={<PublisherRevnu />} />
+          <Route path="pid-ranking" element={<PidRankingDashboard />} />
           <Route
             path="optimizationalldata"
             element={<CampianDataOptimization />}

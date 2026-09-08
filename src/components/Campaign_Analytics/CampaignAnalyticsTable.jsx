@@ -15,6 +15,7 @@ import {
   Popconfirm,
   message,
   Card,
+  Collapse,
 } from "antd";
 import Swal from "sweetalert2";
 import {
@@ -26,6 +27,7 @@ import axios from "axios";
 import dayjs from "dayjs";
 import DecisionTable from "./DecisionTable";
 import { sortDropdownValues } from "../../Utils/sortDropdownValues";
+import CTITrendChart from "./CTITrendChart";
 import UploadForm from "./UploadForm";
 import { useSelector } from "react-redux";
 import { exportToExcel } from "./exportColorExcel";
@@ -1237,8 +1239,26 @@ const CampaignAnalyticsTable = () => {
   return (
     <>
       {user?.permissions?.can_see_input1 === 1 && (
-        <div>
-          <UploadForm onUploadSuccess={fetchData} />
+        <div
+          style={{
+            padding: "20px 20px 0",
+          }}>
+          <Collapse
+            items={[
+              {
+                key: "upload-data",
+                label: (
+                  <span
+                    style={{
+                      fontWeight: 700,
+                    }}>
+                    Upload Campaign Data
+                  </span>
+                ),
+                children: <UploadForm onUploadSuccess={fetchData} />,
+              },
+            ]}
+          />
         </div>
       )}
       {hasAccess ? (
@@ -1541,7 +1561,35 @@ const CampaignAnalyticsTable = () => {
                 </Button>
               </Row>
             </Row>
-
+            {/* ================= CTI TREND GRAPH ================= */}
+            <div
+              style={{
+                marginBottom: 20,
+              }}>
+              <Collapse
+                items={[
+                  {
+                    key: "cti-trend",
+                    label: (
+                      <span
+                        style={{
+                          fontWeight: 700,
+                        }}>
+                        Click-To-Install Trend Chart
+                      </span>
+                    ),
+                    children: (
+                      <CTITrendChart
+                        configId={payload.config_id}
+                        startDate={payload.start_date}
+                        endDate={payload.end_date}
+                        geo={payload.geo}
+                      />
+                    ),
+                  },
+                ]}
+              />
+            </div>
             {/* ================= TABLE ================= */}
             {loading ? (
               <Spin />

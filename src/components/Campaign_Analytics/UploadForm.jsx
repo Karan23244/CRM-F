@@ -184,7 +184,7 @@ export default function UploadForm({ onUploadSuccess }) {
   // unique campaigns by display_name
   const uniqueCampaigns = configuredCampaigns;
   return (
-    <div className=" flex items-center justify-center bg-gradient-to-br from-[#EAF1FA] via-[#F6F9FC] to-[#FFFFFF] p-8">
+    <div className=" flex items-center justify-center p-8">
       <Card
         className="w-full max-w-6xl rounded-2xl shadow-2xl border border-gray-100 bg-white/90 backdrop-blur-sm"
         bodyStyle={{ padding: "2.5rem" }}>

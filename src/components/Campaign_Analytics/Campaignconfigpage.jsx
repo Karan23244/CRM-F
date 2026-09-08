@@ -118,17 +118,14 @@ const CampaignConfigPage = () => {
   // ─────────────────────────────────────────────────────────
   const fetchCampaigns = useCallback(async () => {
     try {
-      const res = await axios.get(
-        `${apiUrl}/campaigns`,
-        {
-          params: {
-            user_id: user?.id || user?._id,
-          },
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+      const res = await axios.get(`${apiUrl}/campaigns`, {
+        params: {
+          user_id: user?.id || user?._id,
         },
-      );
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       const campaignsData = res.data.data || [];
 
@@ -236,7 +233,12 @@ const CampaignConfigPage = () => {
       if (!campaignIds.length) {
         setExistingConfigId(null);
 
-        form.resetFields(["clicks_per_day", "installs_per_day"]);
+        form.resetFields([
+          "clicks_per_day",
+          "installs_per_day",
+          "cti_upper_limit",
+          "cti_lower_limit",
+        ]);
 
         setEvents(["E1", "E2"]);
 
@@ -269,8 +271,12 @@ const CampaignConfigPage = () => {
           // restore ALL campaign ids
           form.setFieldsValue({
             campaign_ids: config.campaign_ids,
+
             clicks_per_day: config.clicks_per_day,
             installs_per_day: config.installs_per_day,
+
+            cti_upper_limit: config.cti_upper_limit,
+            cti_lower_limit: config.cti_lower_limit,
           });
 
           setSelectedCampaigns(
@@ -300,13 +306,22 @@ const CampaignConfigPage = () => {
   const buildPayload = (values) => ({
     campaign_ids: selectedCampaigns.map((c) => c.id),
     campaign_names: [...new Set(selectedCampaigns.map((c) => c.campaign_name))],
+
     os: selectedCampaigns?.[0]?.os,
+
     clicks_per_day: values.clicks_per_day,
     installs_per_day: values.installs_per_day,
+
+    cti_upper_limit: values.cti_upper_limit,
+    cti_lower_limit: values.cti_lower_limit,
+
     events,
+
     rule1_params: rule1Params,
     rule2_params: rule2Params,
+
     ignore_metrics: ignoreMetrics,
+
     config_type: configType,
   });
 
@@ -605,7 +620,7 @@ const CampaignConfigPage = () => {
             {/* Divider */}
             <div className="border-t border-dashed border-gray-200" />
             {/* CTI Chart Limits */}
-            {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Form.Item
                 name="cti_lower_limit"
                 className="mb-0"
@@ -675,10 +690,10 @@ const CampaignConfigPage = () => {
                   placeholder="0.30"
                 />
               </Form.Item>
-            </div> */}
+            </div>
 
             {/* Divider */}
-            {/* <div className="border-t border-dashed border-gray-200" /> */}
+            <div className="border-t border-dashed border-gray-200" />
 
             {/* Event Configuration */}
             {template.events && (

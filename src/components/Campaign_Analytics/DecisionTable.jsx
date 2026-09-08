@@ -132,7 +132,11 @@ const DecisionTable = ({
 
     return dataSource.filter((item) => {
       const pubam = normalize(item.pubam);
-
+      // Exclude non-PID / PRT records
+      // Only show PID-level records containing "_int"
+      if (!item.pid.includes("_int")) {
+        return false;
+      }
       // Full access roles
       if (
         user?.role?.includes("operations") ||

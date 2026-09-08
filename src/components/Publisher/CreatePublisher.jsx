@@ -11,13 +11,21 @@ const apiUrl = import.meta.env.VITE_API_URL;
 const PublisherCreateForm = () => {
   const user = useSelector((state) => state.auth.user);
   const token = useSelector((state) => state.auth.token);
+
   const userId = user?.id || null;
+
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const [geo, setGeo] = useState("");
+
+  // Assigned user's ID
+  const [assignedUserId, setAssignedUserId] = useState("");
+
   const [availableIds, setAvailableIds] = useState([]);
-  const [usedIds, setUsedIds] = useState(new Set());
-  // Fetch available advertiser IDs (GLOBAL – no user_id)
+  const [subAdmins, setSubAdmins] = useState([]);
+
+  // Fetch available Publisher ID
   useEffect(() => {
     const fetchAvailableIds = async () => {
       try {
@@ -26,11 +34,15 @@ const PublisherCreateForm = () => {
             Authorization: `Bearer ${token}`,
           },
         });
+
         if (data.success && data.available_id !== undefined) {
-          // Wrap single ID into array
-          setAvailableIds([String(data.available_id)]);
+          const firstId = String(data.available_id);
+
+          setAvailableIds([firstId]);
+          setSelectedId(firstId); // auto select first ID
         } else {
           setAvailableIds([]);
+          setSelectedId("");
         }
       } catch (err) {
         console.error("Failed to fetch available IDs", err);
@@ -38,8 +50,45 @@ const PublisherCreateForm = () => {
       }
     };
 
-    fetchAvailableIds();
-  }, []);
+    if (token) {
+      fetchAvailableIds();
+    }
+  }, [token]);
+
+  // Fetch users for Assign User dropdown
+  useEffect(() => {
+    const fetchSubAdmins = async () => {
+      try {
+        const response = await axios.get(`${apiUrl}/get-subadmin`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        console.log("Sub-admins fetched:", response.data);
+        const data = response.data;
+
+        const filtered = (data?.data || []).filter(
+          (subAdmin) =>
+            ["publisher", "pub_executive"].includes(subAdmin.role) &&
+            subAdmin.id !== userId &&
+            subAdmin.pause !== 1,
+        );
+
+        setSubAdmins(filtered);
+
+        setSubAdmins(filtered);
+      } catch (err) {
+        console.error("Failed to fetch sub-admins:", err);
+        setSubAdmins([]);
+      }
+    };
+
+    if (token) {
+      fetchSubAdmins();
+    }
+  }, [token, userId]);
+
+  // Refresh available Publisher ID
   const refreshAvailableIds = async () => {
     try {
       const { data } = await axios.get(`${apiUrl}/available-id`, {
@@ -49,28 +98,42 @@ const PublisherCreateForm = () => {
       });
 
       if (data.success && data.available_id !== undefined) {
-        // Wrap single ID into array
-        setAvailableIds([String(data.available_id)]);
+        const firstId = String(data.available_id);
+
+        setAvailableIds([firstId]);
+        setSelectedId(firstId); // auto select new available ID
       } else {
         setAvailableIds([]);
+        setSelectedId("");
       }
     } catch (err) {
       console.error("Failed to refresh available IDs", err);
       setAvailableIds([]);
+      setSelectedId("");
     }
   };
+
   // Submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const trimmed = {
+    const payload = {
       pub_name: name.trim(),
+      email: email.trim(),
       pub_id: selectedId.trim(),
       geo: geo.trim(),
-      user_id: userId,
-    };
 
-    if (!trimmed.pub_name || !trimmed.pub_id || !trimmed.geo) {
+      // Selected assigned user, NOT logged-in user
+      user_id: assignedUserId,
+    };
+    console.log("Submitting payload:", payload);
+    if (
+      !payload.pub_name ||
+      !payload.email ||
+      !payload.pub_id ||
+      !payload.geo ||
+      !payload.user_id
+    ) {
       return Swal.fire({
         icon: "warning",
         title: "Missing Fields",
@@ -79,34 +142,46 @@ const PublisherCreateForm = () => {
     }
 
     try {
-      const res = await axios.post(`${apiUrl}/create-pubid`, trimmed, {
+      const res = await axios.post(`${apiUrl}/create-pubid`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
+
       if (res.data.success) {
-        Swal.fire({
+        await Swal.fire({
           icon: "success",
           title: "Created",
           text: "Publisher created successfully!",
         });
-        await refreshAvailableIds();
+
         resetForm();
+        await refreshAvailableIds();
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: res.data.message || "Failed to create publisher.",
+        });
       }
     } catch (err) {
       console.error(err);
+
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: err.message || "Something went wrong.",
+        text:
+          err.response?.data?.message || err.message || "Something went wrong.",
       });
     }
   };
 
   const resetForm = () => {
     setName("");
+    setEmail("");
     setSelectedId("");
     setGeo("");
+    setAssignedUserId("");
   };
 
   return (
@@ -114,16 +189,35 @@ const PublisherCreateForm = () => {
       <h2 className="text-2xl font-semibold text-gray-800 mb-6 border-b pb-3">
         Create Publisher
       </h2>
+
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Publisher Name */}
         <div>
           <label className="block text-[#2F5D99] text-lg font-semibold mb-2">
             Publisher Name
           </label>
+
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            placeholder="Enter publisher name"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2F5D99] focus:border-[#2F5D99] transition-all"
+            required
+          />
+        </div>
+
+        {/* Email */}
+        <div>
+          <label className="block text-[#2F5D99] text-lg font-semibold mb-2">
+            Email
+          </label>
+
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Enter email address"
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2F5D99] focus:border-[#2F5D99] transition-all"
             required
           />
@@ -134,12 +228,14 @@ const PublisherCreateForm = () => {
           <label className="block text-[#2F5D99] text-lg font-semibold mb-2">
             Select Publisher ID
           </label>
+
           <select
             value={selectedId}
             onChange={(e) => setSelectedId(e.target.value)}
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2F5D99] focus:border-[#2F5D99] transition-all"
             required>
             <option value="">Select an ID</option>
+
             {availableIds.map((id) => (
               <option key={id} value={id}>
                 {id}
@@ -148,28 +244,53 @@ const PublisherCreateForm = () => {
           </select>
         </div>
 
+        {/* Assign User */}
+        {/* Assign User */}
+        <div>
+          <label className="block text-[#2F5D99] text-lg font-semibold mb-2">
+            Assign User
+          </label>
+
+          <Select
+            showSearch
+            value={assignedUserId || undefined}
+            onChange={(value) => setAssignedUserId(value)}
+            placeholder="Select User"
+            className="w-full !h-12"
+            optionFilterProp="label"
+            options={subAdmins.map((subAdmin) => ({
+              value: subAdmin.id, // sends ID
+              label: subAdmin.username, // shows username
+            }))}
+            filterOption={(input, option) =>
+              (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+            }
+          />
+        </div>
+
         {/* Geo */}
         <div className="md:col-span-2">
           <label className="block text-[#2F5D99] text-lg font-semibold mb-2">
             Select Geo
           </label>
+
           <Select
             showSearch
-            value={geo}
+            value={geo || undefined}
             onChange={(val) => setGeo(val)}
             placeholder="Select Geo"
             className="w-full !h-12"
-            optionFilterProp="children"
-            filterOption={(input, option) =>
-              option?.label?.toLowerCase().includes(input.toLowerCase())
+            optionFilterProp="label"
+            options={
+              geoData.geo?.map((g) => ({
+                value: g.code,
+                label: g.code,
+              })) || []
             }
-            required>
-            {geoData.geo?.map((g) => (
-              <Select.Option key={g.code} value={g.code} label={g.code}>
-                {g.code}
-              </Select.Option>
-            ))}
-          </Select>
+            filterOption={(input, option) =>
+              (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+            }
+          />
         </div>
 
         {/* Buttons */}
@@ -179,6 +300,7 @@ const PublisherCreateForm = () => {
             className="flex-1 md:flex-none bg-[#2F5D99] hover:bg-[#24487A] text-white px-8 py-3 rounded-lg font-medium shadow-md transition-all">
             Create Publisher
           </button>
+
           <button
             type="button"
             onClick={resetForm}
