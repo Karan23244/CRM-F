@@ -47,11 +47,13 @@ const SubAdminEdit = () => {
   const isAssignedUserView = userRoles.some((r) =>
     ASSIGNED_USER_ROLES.includes(r),
   );
+  const token = useSelector((state) => state.auth.token);
   const isAdmin = userRoles.includes("admin");
   const [subAdmins, setSubAdmins] = useState([]);
   const [selectedSubAdmin, setSelectedSubAdmin] = useState(null);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("");
   const [role, setRole] = useState([]);
   const [ranges, setRanges] = useState([{ start: "", end: "" }]);
   const [assignedSubAdmins, setAssignedSubAdmins] = useState([]);
@@ -92,6 +94,11 @@ const SubAdminEdit = () => {
       if (isAssignedUserView) {
         response = await fetch(
           `${apiUrl}/assigned-users?id=${senderData?.id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
         );
         data = await response.json();
         if (data.success) {
@@ -100,12 +107,18 @@ const SubAdminEdit = () => {
           setError(data.message || "Failed to fetch assigned users.");
         }
       } else {
-        response = await fetch(`${apiUrl}/get-subadmin`);
+        response = await fetch(`${apiUrl}/get-subadmin`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         data = await response.json();
         console.log("Fetched Sub-Admins:", data); // Debug log
         if (response.ok) {
           // Exclude only those with role "admin"
-          setSubAdmins(data.data.filter((subAdmin) => subAdmin.role !== "admin"));
+          setSubAdmins(
+            data.data.filter((subAdmin) => subAdmin.role !== "admin"),
+          );
         } else {
           setError(data.message || "Failed to fetch sub-admins.");
         }
@@ -120,14 +133,21 @@ const SubAdminEdit = () => {
   // Always fetch all sub-admins for the Assign Sub-Admins dropdown options
   const fetchAllSubAdminOptions = async () => {
     try {
-      const response = await fetch(`${apiUrl}/get-subadmin`);
+      const response = await fetch(`${apiUrl}/get-subadmin`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       const data = await response.json();
       if (response.ok) {
         const cleaned = data.data
           .filter((u) => u.role !== "admin")
           .map((u) => ({
             ...u,
-            role: typeof u.role === "string" ? u.role.replace(/"/g, "").trim() : u.role,
+            role:
+              typeof u.role === "string"
+                ? u.role.replace(/"/g, "").trim()
+                : u.role,
           }));
         setAllSubAdminsData(cleaned);
         setSubAdminOptions(
@@ -149,10 +169,9 @@ const SubAdminEdit = () => {
   };
 
   const handleEdit = (subAdmin) => {
-    console.log(subAdmin);
     setSelectedSubAdmin(subAdmin.id);
     setUsername(subAdmin.username);
-
+    setEmail(subAdmin.email || "");
     // ✅ Handle both stringified array and normal array cases
     let parsedRole = [];
 
@@ -170,7 +189,8 @@ const SubAdminEdit = () => {
     // For non-admin users, assigned_subadmins may not be in the API response,
     // so fall back to the full /get-subadmin data to get the correct pre-selected values.
     const fullData = allSubAdminsData.find((u) => u.id === subAdmin.id);
-    const assignedSource = subAdmin.assigned_subadmins ?? fullData?.assigned_subadmins;
+    const assignedSource =
+      subAdmin.assigned_subadmins ?? fullData?.assigned_subadmins;
     setAssignedSubAdmins(assignedSource?.map((a) => a.id) || []);
     setPermissionEditCondition(subAdmin.permissions?.can_see_button1 === 1);
     setPermissionUploadFiles(subAdmin.permissions?.can_see_input1 === 1);
@@ -198,6 +218,7 @@ const SubAdminEdit = () => {
       id: selectedSubAdmin,
       username,
       password,
+      email,
       // ✅ Convert array back to comma-separated string
       role: Array.isArray(role) ? role.join(", ") : role,
       ranges: ranges.map(({ start, end }) => ({
@@ -217,7 +238,10 @@ const SubAdminEdit = () => {
       console.log("Payload for Update:", payload);
       const response = await fetch(`${apiUrl}/update-sub-admin`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify(payload),
       });
       const data = await response.json();
@@ -259,16 +283,7 @@ const SubAdminEdit = () => {
         // ✅ Build notification message
         const message = `⚙️ Your ${detailsChanged} were updated by ${
           senderData?.username || "Admin"
-        }.`;
-
-        // ✅ Send notification to updated sub-admin
-        await createNotification({
-          sender: senderData?.id,
-          receiver: selectedSubAdmin,
-          type: "subadmin_update",
-          message,
-          url: "/dashboard/myaccount",
-        });
+        }.`
         fetchSubAdmins();
         handleCancel();
       } else {
@@ -304,7 +319,10 @@ const SubAdminEdit = () => {
     try {
       const response = await fetch(`${apiUrl}/delete-sub-admin`, {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ id }),
       });
 
@@ -348,6 +366,7 @@ const SubAdminEdit = () => {
     setUsername("");
     setPassword("");
     setRole("");
+    setEmail("");
     // setRanges([{ start: "", end: "" }]);
     setAssignedSubAdmins([]);
     setPermissionEditCondition(false);
@@ -377,6 +396,7 @@ const SubAdminEdit = () => {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             pause: checked ? 1 : 0, // ✅ FIXED BODY
@@ -434,6 +454,12 @@ const SubAdminEdit = () => {
       key: "username",
     },
     {
+      title: <div>Email</div>,
+      dataIndex: "email",
+      key: "email",
+      render: (email) => <span className="text-gray-700">{email || "-"}</span>,
+    },
+    {
       title: <div>Role</div>,
       dataIndex: "role",
       key: "role",
@@ -485,57 +511,59 @@ const SubAdminEdit = () => {
           </Tooltip>
         ),
     },
-          {
-            title: <div>Actions</div>,
-            key: "actions",
-            render: (record) => (
-              <div className="flex justify-center gap-3">
-                <Tooltip title="Edit User">
-                  <Button
-                    type="text"
-                    icon={<EditOutlined style={{ color: "#2F5D99", fontSize: 18 }} />}
-                    onClick={() => handleEdit(record)}
-                  />
-                </Tooltip>
+    {
+      title: <div>Actions</div>,
+      key: "actions",
+      render: (record) => (
+        <div className="flex justify-center gap-3">
+          <Tooltip title="Edit User">
+            <Button
+              type="text"
+              icon={<EditOutlined style={{ color: "#2F5D99", fontSize: 18 }} />}
+              onClick={() => handleEdit(record)}
+            />
+          </Tooltip>
 
-                {isAdmin && (
-                  <Tooltip title="Delete User">
-                    <Button
-                      type="text"
-                      icon={<DeleteOutlined style={{ color: "red", fontSize: 18 }} />}
-                      onClick={() => handleDeleteSubAdmin(record.id)}
-                    />
-                  </Tooltip>
-                )}
-              </div>
-            ),
-          },
-          {
-            title: <div>Account Status</div>,
-            key: "status",
-            render: (_, record) => (
-              <div className="flex justify-center">
-                <Tooltip
-                  title={record.is_paused ? "Account Paused" : "Account Active"}>
-                  <Switch
-                    checked={record.pause === 1}
-                    onChange={(checked) => handleTogglePause(record, checked)}
-                    checkedChildren="Paused"
-                    unCheckedChildren="Active"
-                    style={{
-                      backgroundColor: record.pause ? "#ff4d4f" : "#52c41a",
-                    }}
-                  />
-                </Tooltip>
-              </div>
-            ),
-          },
+          {isAdmin && (
+            <Tooltip title="Delete User">
+              <Button
+                type="text"
+                icon={<DeleteOutlined style={{ color: "red", fontSize: 18 }} />}
+                onClick={() => handleDeleteSubAdmin(record.id)}
+              />
+            </Tooltip>
+          )}
+        </div>
+      ),
+    },
+    {
+      title: <div>Account Status</div>,
+      key: "status",
+      render: (_, record) => (
+        <div className="flex justify-center">
+          <Tooltip
+            title={record.is_paused ? "Account Paused" : "Account Active"}>
+            <Switch
+              checked={record.pause === 1}
+              onChange={(checked) => handleTogglePause(record, checked)}
+              checkedChildren="Paused"
+              unCheckedChildren="Active"
+              style={{
+                backgroundColor: record.pause ? "#ff4d4f" : "#52c41a",
+              }}
+            />
+          </Tooltip>
+        </div>
+      ),
+    },
   ];
   const availableRoles = useMemo(() => {
     const seen = new Set();
     subAdmins.forEach((u) => {
       const r =
-        typeof u.role === "string" ? u.role.replace(/^["']|["']$/g, "").trim() : u.role;
+        typeof u.role === "string"
+          ? u.role.replace(/^["']|["']$/g, "").trim()
+          : u.role;
       if (r) seen.add(r);
     });
     return Array.from(seen).sort();
@@ -672,27 +700,42 @@ const SubAdminEdit = () => {
         <Card className="w-full max-w-6xl rounded-2xl shadow-md border border-gray-100">
           <h2 className="text-2xl font-bold mb-6 text-gray-800">Edit User</h2>
 
-          {/* Username & Password */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
-            <div>
-              <label className="block font-semibold mb-2">Username</label>
+          {/* Username & Password & Email */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
+            <div className="w-full">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Username
+              </label>
               <Input
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Enter username"
-                className="h-11 rounded-lg border-gray-200 bg-gray-50"
+                className="w-full h-11 rounded-lg"
               />
             </div>
 
-            <div>
-              <label className="block font-semibold mb-2">
-                Password (optional)
+            <div className="w-full">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Email
+              </label>
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter email"
+                className="w-full h-11 rounded-lg"
+              />
+            </div>
+
+            <div className="w-full">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Password (Optional)
               </label>
               <Input.Password
                 value={password}
                 placeholder="Password is hidden"
                 disabled
-                className="h-11 rounded-lg border-gray-200 bg-gray-100"
+                className="w-full h-11 rounded-lg bg-gray-100"
               />
             </div>
           </div>

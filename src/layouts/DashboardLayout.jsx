@@ -72,7 +72,6 @@ const DashboardLayout = () => {
         const res = await axios.get(
           `https://apii.clickorbits.in/getNotifications/${userId}`,
         );
-        console.log("Notifications response:", res.data);
         const unread = res.data.filter((n) => n.is_read === 0).length;
         setNotificationCount(unread);
       } catch (err) {

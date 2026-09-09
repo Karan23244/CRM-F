@@ -32,6 +32,7 @@ const apiUrl = import.meta.env.VITE_API_URL;
 
 const CampaignPublisherMapping = () => {
   const user = useSelector((state) => state.auth.user);
+  const token = useSelector((state) => state.auth.token);
   const role = user?.role;
   const userId = useSelector((state) => state.auth.user.id);
   const [form] = Form.useForm();
@@ -105,11 +106,17 @@ const CampaignPublisherMapping = () => {
   const fetchCampaigns = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${apiUrl}/campaigns`, {
-        params: {
-          user_id: user?.id || user?._id, // <-- sending user ID here
+      const res = await axios.get(
+        `${apiUrl}/campaigns`,
+        {
+          params: {
+            user_id: user?.id || user?._id, // <-- sending user ID here
+          },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
-      });
+      );
       setCampaigns(res.data.data || []);
     } catch (err) {
       console.error(err);
@@ -125,7 +132,11 @@ const CampaignPublisherMapping = () => {
 
   const getPublisherAM = async () => {
     try {
-      const res = await axios.get(`${apiUrl}/get-subadmin`);
+      const res = await axios.get(`${apiUrl}/get-subadmin`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       const filtered = res.data.data.filter((user) =>
         ["publisher", "pub_executive"].includes(user.role),
       );
@@ -148,6 +159,9 @@ const CampaignPublisherMapping = () => {
         params: {
           userid: userId,
           role: Array.isArray(role) ? role[0] : role,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
       });
       setMappingData(res.data.data || []);
@@ -207,11 +221,15 @@ const CampaignPublisherMapping = () => {
         })),
       };
 
-
       if (editing) {
         await axios.put(
           `${apiUrl}/campaign-publisher-map/${editing.access_id}`,
           payload,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
         );
 
         Swal.fire({
@@ -225,6 +243,11 @@ const CampaignPublisherMapping = () => {
         const res = await axios.post(
           `${apiUrl}/campaign-publisher-map`,
           payload,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
         );
         Swal.fire({
           icon: "success",
@@ -293,7 +316,11 @@ const CampaignPublisherMapping = () => {
     if (!result.isConfirmed) return;
 
     try {
-      await axios.delete(`${apiUrl}/campaign-publisher-map/${accessId}`);
+      await axios.delete(`${apiUrl}/campaign-publisher-map/${accessId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       Swal.fire({
         icon: "success",

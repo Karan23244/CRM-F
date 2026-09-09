@@ -80,6 +80,7 @@ const Section = ({
 // ─────────────────────────────────────────────────────────────
 const CampaignConfigPage = () => {
   const user = useSelector((state) => state.auth.user);
+  const token = useSelector((state) => state.auth.token);
   const [form] = Form.useForm();
   const [campaigns, setCampaigns] = useState([]);
   const [campaignsLoading, setCampaignsLoading] = useState(false);
@@ -121,6 +122,9 @@ const CampaignConfigPage = () => {
         params: {
           user_id: user?.id || user?._id,
         },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       const campaignsData = res.data.data || [];
@@ -142,6 +146,9 @@ const CampaignConfigPage = () => {
         params: {
           userid: user.id,
           role: Array.isArray(user.role) ? user.role[0] : user.role,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -226,7 +233,12 @@ const CampaignConfigPage = () => {
       if (!campaignIds.length) {
         setExistingConfigId(null);
 
-        form.resetFields(["clicks_per_day", "installs_per_day"]);
+        form.resetFields([
+          "clicks_per_day",
+          "installs_per_day",
+          "cti_upper_limit",
+          "cti_lower_limit",
+        ]);
 
         setEvents(["E1", "E2"]);
 
@@ -259,8 +271,12 @@ const CampaignConfigPage = () => {
           // restore ALL campaign ids
           form.setFieldsValue({
             campaign_ids: config.campaign_ids,
+
             clicks_per_day: config.clicks_per_day,
             installs_per_day: config.installs_per_day,
+
+            cti_upper_limit: config.cti_upper_limit,
+            cti_lower_limit: config.cti_lower_limit,
           });
 
           setSelectedCampaigns(
@@ -290,13 +306,22 @@ const CampaignConfigPage = () => {
   const buildPayload = (values) => ({
     campaign_ids: selectedCampaigns.map((c) => c.id),
     campaign_names: [...new Set(selectedCampaigns.map((c) => c.campaign_name))],
+
     os: selectedCampaigns?.[0]?.os,
+
     clicks_per_day: values.clicks_per_day,
     installs_per_day: values.installs_per_day,
+
+    cti_upper_limit: values.cti_upper_limit,
+    cti_lower_limit: values.cti_lower_limit,
+
     events,
+
     rule1_params: rule1Params,
     rule2_params: rule2Params,
+
     ignore_metrics: ignoreMetrics,
+
     config_type: configType,
   });
 
@@ -588,6 +613,81 @@ const CampaignConfigPage = () => {
                   style={{ width: "100%" }}
                   placeholder="200"
                   className="w-full"
+                />
+              </Form.Item>
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-dashed border-gray-200" />
+            {/* CTI Chart Limits */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Form.Item
+                name="cti_lower_limit"
+                className="mb-0"
+                label={
+                  <span className="text-sm font-semibold text-gray-700">
+                    CTI Lower Limit
+                  </span>
+                }
+                rules={[
+                  {
+                    required: true,
+                    message: "Please enter CTI lower limit",
+                  },
+                ]}>
+                <InputNumber
+                  size="large"
+                  min={0}
+                  step={0.01}
+                  precision={4}
+                  style={{ width: "100%" }}
+                  placeholder="0.05"
+                />
+              </Form.Item>
+
+              <Form.Item
+                name="cti_upper_limit"
+                className="mb-0"
+                label={
+                  <span className="text-sm font-semibold text-gray-700">
+                    CTI Upper Limit
+                  </span>
+                }
+                dependencies={["cti_lower_limit"]}
+                rules={[
+                  {
+                    required: true,
+                    message: "Please enter CTI upper limit",
+                  },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      const lowerLimit = getFieldValue("cti_lower_limit");
+
+                      if (
+                        value === undefined ||
+                        value === null ||
+                        lowerLimit === undefined ||
+                        lowerLimit === null ||
+                        Number(value) > Number(lowerLimit)
+                      ) {
+                        return Promise.resolve();
+                      }
+
+                      return Promise.reject(
+                        new Error(
+                          "Upper limit must be greater than lower limit",
+                        ),
+                      );
+                    },
+                  }),
+                ]}>
+                <InputNumber
+                  size="large"
+                  min={0}
+                  step={0.01}
+                  precision={4}
+                  style={{ width: "100%" }}
+                  placeholder="0.30"
                 />
               </Form.Item>
             </div>

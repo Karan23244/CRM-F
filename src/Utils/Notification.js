@@ -1,35 +1,29 @@
 import axios from "axios";
-const BASE_URL = import.meta.env.VITE_API_URL1; // your API base URL
-const API_URL = import.meta.env.VITE_API_URL; // your API base URL
+
+const BASE_URL = import.meta.env.VITE_API_URL1;
+const API_URL = import.meta.env.VITE_API_URL;
 
 /**
- * Helper: Fetch all users from /get-subadmin
- * @returns {Promise<Array>} - List of user objects
+ * Fetch all users from /get-subadmin
  */
-export const fetchAllUsers = async () => {
-  console.log("📡 Fetching all users from:", `${API_URL}/get-subadmin`);
-  const { data } = await axios.get(`${API_URL}/get-subadmin`);
+export const fetchAllUsers = async (token) => {
+  const { data } = await axios.get(`${API_URL}/get-subadmin`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
   console.log("✅ Users fetched successfully:", data);
 
-  // Optional safety check
   if (!Array.isArray(data?.data || data)) {
     console.warn("⚠️ Unexpected user data structure:", data);
   }
 
-  return data?.data || data; // normalize in case your API returns { data: [] }
+  return data?.data || data;
 };
 
 /**
- * Create a notification and send it in real-time
- * Automatically resolves sender_id and receiver_id from names if needed.
- *
- * @param {Object} params
- * @param {string|number} params.sender - sender name or id
- * @param {string|number} params.receiver - receiver name or id
- * @param {string} params.type - type of notification (e.g., "link_shared")
- * @param {string} params.message - text to display
- * @param {string} params.url - redirect link on click
- * @returns {Promise<Object>} - Created notification response
+ * Create a notification
  */
 export const createNotification = async ({
   sender,
@@ -37,47 +31,56 @@ export const createNotification = async ({
   type = "custom",
   message,
   url = "/",
+  token,
 }) => {
   try {
     console.group("🔔 createNotification()");
-    console.log("➡️ Input Params:", { sender, receiver, type, message, url });
+    console.log("➡️ Input Params:", {
+      sender,
+      receiver,
+      type,
+      message,
+      url,
+    });
 
-    const users = await fetchAllUsers();
+    if (!token) {
+      throw new Error("Authentication token is missing");
+    }
+
+    const users = await fetchAllUsers(token);
+
     console.log("👥 Total users found:", users.length);
 
-    // 🧩 Resolve sender
+    // Resolve sender
     const senderUser =
       typeof sender === "number"
         ? users.find((u) => u.id === sender)
         : users.find(
             (u) =>
               u.username?.toLowerCase() === sender?.toLowerCase() ||
-              u.name?.toLowerCase() === sender?.toLowerCase()
+              u.name?.toLowerCase() === sender?.toLowerCase(),
           );
 
-    // 🧩 Resolve receiver
+    // Resolve receiver
     const receiverUser =
       typeof receiver === "number"
         ? users.find((u) => u.id === receiver)
         : users.find(
             (u) =>
               u.username?.toLowerCase() === receiver?.toLowerCase() ||
-              u.name?.toLowerCase() === receiver?.toLowerCase()
+              u.name?.toLowerCase() === receiver?.toLowerCase(),
           );
-
-    console.log("📤 Matched Sender:", senderUser);
-    console.log("📥 Matched Receiver:", receiverUser);
 
     if (!senderUser) {
       console.error("❌ Sender not found:", sender);
       throw new Error(`Sender not found: ${sender}`);
     }
+
     if (!receiverUser) {
       console.error("❌ Receiver not found:", receiver);
       throw new Error(`Receiver not found: ${receiver}`);
     }
 
-    // 🚀 Send notification
     const payload = {
       sender_id: senderUser.id,
       receiver_id: receiverUser.id,
@@ -90,10 +93,16 @@ export const createNotification = async ({
 
     const response = await axios.post(
       `${BASE_URL}/createNotification`,
-      payload
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
     );
 
     console.log("✅ Notification created successfully:", response.data);
+
     console.groupEnd();
 
     return response.data;
@@ -105,21 +114,20 @@ export const createNotification = async ({
 };
 
 /**
- * Send a broadcast notification to all users
- * @param {string} sender - who triggered the upload
- * @param {string} message - notification message text
- * @param {string} url - redirect path when clicked
+ * Send notification to all users
  */
-export const notifyAllUsers = async (sender, message, url) => {
+export const notifyAllUsers = async (sender, message, url, token) => {
   try {
-    const users = await fetchAllUsers();
-    console.log("📢 Sending broadcast to:", users.length, "users");
+    if (!token) {
+      throw new Error("Authentication token is missing");
+    }
 
-    // Find sender details
+    const users = await fetchAllUsers(token);
+
     const senderUser = users.find(
       (u) =>
         u.username?.toLowerCase() === sender?.toLowerCase() ||
-        u.name?.toLowerCase() === sender?.toLowerCase()
+        u.name?.toLowerCase() === sender?.toLowerCase(),
     );
 
     if (!senderUser) {
@@ -127,19 +135,27 @@ export const notifyAllUsers = async (sender, message, url) => {
       return;
     }
 
-    // Loop through all users and send notification
     for (const receiver of users) {
-      if (receiver.id === senderUser.id) continue; // skip self
-      await axios.post(`${BASE_URL}/createNotification`, {
-        sender_id: senderUser.id,
-        receiver_id: receiver.id,
-        type: "file_upload",
-        message,
-        url,
-      });
+      if (receiver.id === senderUser.id) continue;
+
+      await axios.post(
+        `${BASE_URL}/createNotification`,
+        {
+          sender_id: senderUser.id,
+          receiver_id: receiver.id,
+          type: "file_upload",
+          message,
+          url,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
     }
 
-    console.log("✅ Broadcast notifications sent successfully!");
+    console.log("✅ Broadcast notifications sent");
   } catch (err) {
     console.error("💥 Error broadcasting notifications:", err);
   }

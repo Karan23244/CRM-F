@@ -264,6 +264,7 @@ const AdvertiserSelectCell = ({ value, options, onSave }) => {
 
 function AdvertiserAccount() {
   const currentMonth = dayjs().format("YYYY-MM");
+  const token = useSelector((state) => state.auth.token);
 
   const [data, setData] = useState([]);
   const [month, setMonth] = useState(currentMonth);
@@ -306,9 +307,11 @@ function AdvertiserAccount() {
   /* ============================= */
   const fetchAdvertisers = async () => {
     try {
-      const response = await axios.get(`${apiUrl}/get-NameAdv/`);
-
-      console.log("Fetched Advertisers:", response.data);
+      const response = await axios.get(`${apiUrl}/get-NameAdv/`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       setAdvertisers(response.data.data || []);
     } catch (error) {

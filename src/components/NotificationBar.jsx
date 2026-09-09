@@ -10,6 +10,7 @@ const bc = new BroadcastChannel("notifications");
 
 export default function NotificationList() {
   const [notifications, setNotifications] = useState([]);
+  const token = useSelector((state) => state.auth.token);
   const navigate = useNavigate();
   const user = useSelector((state) => state.auth?.user);
   const userId = user?.id || JSON.parse(localStorage.getItem("user"))?.id;
@@ -43,8 +44,8 @@ export default function NotificationList() {
       else if (type === "notification_read")
         setNotifications((prev) =>
           prev.map((n) =>
-            n.id === notificationId ? { ...n, is_read: true } : n
-          )
+            n.id === notificationId ? { ...n, is_read: true } : n,
+          ),
         );
     };
 
@@ -53,9 +54,17 @@ export default function NotificationList() {
 
   const handleNotificationClick = async (id, url) => {
     try {
-      await axios.post(`${apiUrl}/mark-read`, { id });
+      await axios.post(
+        `${apiUrl}/mark-read`,
+        { id },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
       setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, is_read: 1 } : n))
+        prev.map((n) => (n.id === id ? { ...n, is_read: 1 } : n)),
       );
       if (url) window.open(url, "_blank");
     } catch (err) {

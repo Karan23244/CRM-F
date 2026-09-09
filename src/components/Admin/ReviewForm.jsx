@@ -6,10 +6,10 @@ import { useSelector } from "react-redux";
 import Swal from "sweetalert2";
 import StyledTable from "../../Utils/StyledTable";
 
-const apiUrl =
-  import.meta.env.VITE_API_URL;
+const apiUrl = import.meta.env.VITE_API_URL;
 
 const ReviewForm = () => {
+  const token = useSelector((state) => state.auth.token);
   const user = useSelector((state) => state.auth.user);
   const [review, setReview] = useState("");
   const [reviews, setReviews] = useState([]);
@@ -19,7 +19,11 @@ const ReviewForm = () => {
   // ✅ Fetch reviews
   const fetchReviews = async () => {
     try {
-      const response = await axios.get(`${apiUrl}/get-reviews`);
+      const response = await axios.get(`${apiUrl}/get-reviews`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       if (response.data?.success) {
         setReviews(response.data.data);
       }
@@ -45,6 +49,10 @@ const ReviewForm = () => {
         const res = await axios.post(`${apiUrl}/update-reviews/${editId}`, {
           user_id: user?.id,
           review_text: review,
+        }, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
         if (res.data.success) {
           Swal.fire("Success", "Review updated successfully", "success");
@@ -55,6 +63,10 @@ const ReviewForm = () => {
         const res = await axios.post(`${apiUrl}/add-reviews`, {
           user_id: user?.id,
           review_text: review,
+        }, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
         if (res.data.success) {
           Swal.fire("Success", "Review added successfully", "success");

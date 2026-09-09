@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Table, InputNumber, Input, Card, Select, Dropdown } from "antd";
+import { useSelector } from "react-redux";
 import axios from "axios";
 import dayjs from "dayjs";
 import Swal from "sweetalert2";
@@ -9,10 +10,10 @@ import {
   PushpinFilled,
 } from "@ant-design/icons";
 
-const apiUrl =
-  import.meta.env.VITE_API_URL;
+const apiUrl = import.meta.env.VITE_API_URL;
 
 function PublisherCampaigns() {
+  const token = useSelector((state) => state.auth.token);
   const [campaigns, setCampaigns] = useState([]);
   const [filters, setFilters] = useState({});
   const [pinnedColumns, setPinnedColumns] = useState({});
@@ -24,7 +25,11 @@ function PublisherCampaigns() {
   // 🔹 Fetch campaigns
   const fetchCampaigns = async () => {
     try {
-      const res = await axios.get(`${apiUrl}/campaigns`);
+      const res = await axios.get(`${apiUrl}/campaigns`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       setCampaigns(res.data || []);
     } catch (error) {
       console.error(error);
@@ -41,7 +46,11 @@ function PublisherCampaigns() {
     const updatedData = { ...record, ...updatedValues };
 
     try {
-      await axios.put(`${apiUrl}/campaigns/${record.id}`, updatedData);
+      await axios.put(`${apiUrl}/campaigns/${record.id}`, updatedData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       Swal.fire({
         icon: "success",
         title: "Saved!",
@@ -204,17 +213,17 @@ function PublisherCampaigns() {
     getColumnWithFilterAndPin(
       "category",
       "Category",
-      getEditableCell("category").render
+      getEditableCell("category").render,
     ),
     getColumnWithFilterAndPin(
       "Target",
       "Target",
-      getEditableCell("Target", "number").render
+      getEditableCell("Target", "number").render,
     ),
     getColumnWithFilterAndPin(
       "achieve_number",
       "Achieve Number",
-      getEditableCell("achieve_number", "number").render
+      getEditableCell("achieve_number", "number").render,
     ),
 
     {

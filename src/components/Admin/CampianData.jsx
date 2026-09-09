@@ -99,6 +99,7 @@ const getColumnValue = (row, key) => {
 };
 const CampianData = () => {
   const userId = useSelector((state) => state.auth.user.id);
+  const token = useSelector((state) => state.auth.token);
   const allColumns = Object.keys(columnHeadingsAdv);
   const {
     presets,
@@ -171,13 +172,16 @@ const CampianData = () => {
           startDate: startDate.format("YYYY-MM-DD"),
           endDate: endDate.format("YYYY-MM-DD"),
         },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
       if (response.data.success) {
         setAdvData(response.data.data);
       }
     } catch (error) {
       console.error("Error fetching advertiser data:", error);
-    } finally{
+    } finally {
       setLoading(false);
     }
   };
@@ -392,12 +396,36 @@ const CampianData = () => {
     try {
       const [advmName, payableEvent, mmpTracker, pid, review, adv_id] =
         await Promise.all([
-          axios.get(`${apiUrl}/get-subadmin`),
-          axios.get(`${apiUrl}/get-paybleevernt`),
-          axios.get(`${apiUrl}/get-mmptracker`),
-          axios.get(`${apiUrl}/get-pid`),
-          axios.get(`${apiUrl}/get-reviews`),
-          axios.get(`${apiUrl}/get-NameAdv`),
+          axios.get(`${apiUrl}/get-subadmin`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }),
+          axios.get(`${apiUrl}/get-paybleevernt`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }),
+          axios.get(`${apiUrl}/get-mmptracker`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }),
+          axios.get(`${apiUrl}/get-pid`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }),
+          axios.get(`${apiUrl}/get-reviews`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }),
+          axios.get(`${apiUrl}/get-NameAdv`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }),
         ]);
       setDropdownOptions((prev) => ({
         ...prev,
@@ -583,7 +611,10 @@ const CampianData = () => {
     }
     try {
       const response = await axios.post(updateUrl, updated, {
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
       });
       const updatedRecord = response.data.updated_fields; // 👈 updated row
 

@@ -19,6 +19,7 @@ const emptyBilling = () => ({
 
 const AdvertiserCreateForm = () => {
   const user = useSelector((state) => state.auth.user);
+  const token = useSelector((state) => state.auth.token);
   const userId = user?.id || null;
 
   const [name, setName] = useState("");
@@ -32,13 +33,20 @@ const AdvertiserCreateForm = () => {
 
   const trimValues = (obj) =>
     Object.fromEntries(
-      Object.entries(obj).map(([k, v]) => [k, typeof v === "string" ? v.trim() : v])
+      Object.entries(obj).map(([k, v]) => [
+        k,
+        typeof v === "string" ? v.trim() : v,
+      ]),
     );
 
   useEffect(() => {
     const fetchAvailableIds = async () => {
       try {
-        const { data } = await axios.get(`${apiUrl}/available-id`);
+        const { data } = await axios.get(`${apiUrl}/available-id`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         if (data.success && data.available_id !== undefined) {
           setAvailableIds([String(data.available_id)]);
         } else {
@@ -52,13 +60,15 @@ const AdvertiserCreateForm = () => {
     fetchAvailableIds();
     const fetchSubAdmins = async () => {
       try {
-        const res = await fetch(`${apiUrl}/get-subadmin`);
+        const res = await fetch(`${apiUrl}/get-subadmin`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         const data = await res.json();
 
         if (res.ok) {
-          setSubAdmins(
-            data.data.filter((a) => a.role === "operations")
-          );
+          setSubAdmins(data.data.filter((a) => a.role === "operations"));
         }
       } catch (err) {
         console.error(err);
@@ -69,8 +79,16 @@ const AdvertiserCreateForm = () => {
 
   const refreshAvailableIds = async () => {
     try {
-      const { data } = await axios.get(`${apiUrl}/available-id`);
-      setAvailableIds(data.success && data.available_id !== undefined ? [String(data.available_id)] : []);
+      const { data } = await axios.get(`${apiUrl}/available-id`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setAvailableIds(
+        data.success && data.available_id !== undefined
+          ? [String(data.available_id)]
+          : [],
+      );
     } catch (err) {
       console.error("Failed to refresh available IDs", err);
       setAvailableIds([]);
@@ -78,14 +96,15 @@ const AdvertiserCreateForm = () => {
   };
 
   // ── Billing helpers ──────────────────────────────────────────
-  const addBillingEntry = () => setBillingDetails((prev) => [...prev, emptyBilling()]);
+  const addBillingEntry = () =>
+    setBillingDetails((prev) => [...prev, emptyBilling()]);
 
   const removeBillingEntry = (index) =>
     setBillingDetails((prev) => prev.filter((_, i) => i !== index));
 
   const updateBillingEntry = (index, field, value) =>
     setBillingDetails((prev) =>
-      prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
+      prev.map((item, i) => (i === index ? { ...item, [field]: value } : item)),
     );
 
   // ── Submit ───────────────────────────────────────────────────
@@ -103,16 +122,29 @@ const AdvertiserCreateForm = () => {
     });
 
     if (!newAdv.adv_name || !newAdv.adv_id || !newAdv.geo) {
-      return Swal.fire({ icon: "warning", title: "Missing Fields", text: "Please fill all required fields." });
+      return Swal.fire({
+        icon: "warning",
+        title: "Missing Fields",
+        text: "Please fill all required fields.",
+      });
     }
 
     try {
       // const response = await axios.post(`http://localhost:5200/api/create-advid`, newAdv);
-      const response = await axios.post(`${apiUrl}/create-advid`, newAdv);
+      const response = await axios.post(`${apiUrl}/create-advid`, newAdv, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-      if (!response.data.success) throw new Error(response.data.message || "Failed to create advertiser");
+      if (!response.data.success)
+        throw new Error(response.data.message || "Failed to create advertiser");
 
-      Swal.fire({ icon: "success", title: "Created", text: response.data.message || "Advertiser created successfully!" });
+      Swal.fire({
+        icon: "success",
+        title: "Created",
+        text: response.data.message || "Advertiser created successfully!",
+      });
 
       try {
         await axios.post(`${apiUrl2}/link/advertiser`, {
@@ -128,7 +160,11 @@ const AdvertiserCreateForm = () => {
       await refreshAvailableIds();
       resetForm();
     } catch (err) {
-      Swal.fire({ icon: "error", title: "Error", text: err.message || "Something went wrong." });
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: err.message || "Something went wrong.",
+      });
     }
   };
 
@@ -150,7 +186,9 @@ const AdvertiserCreateForm = () => {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Advertiser Name */}
         <div className="flex flex-col">
-          <label className="text-sm font-medium text-gray-700 mb-1">Advertiser Name</label>
+          <label className="text-sm font-medium text-gray-700 mb-1">
+            Advertiser Name
+          </label>
           <input
             type="text"
             value={name}
@@ -164,7 +202,9 @@ const AdvertiserCreateForm = () => {
         {/* ID + Geo row */}
         <div className="grid grid-cols-2 gap-4">
           <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1">Advertiser ID</label>
+            <label className="text-sm font-medium text-gray-700 mb-1">
+              Advertiser ID
+            </label>
             <select
               value={selectedId}
               onChange={(e) => setSelectedId(e.target.value)}
@@ -172,13 +212,23 @@ const AdvertiserCreateForm = () => {
               required>
               <option value="">Select an ID</option>
               {[...availableIds]
-                .sort((a, b) => (!isNaN(a) && !isNaN(b) ? Number(a) - Number(b) : a.localeCompare(b)))
-                .map((id) => <option key={id} value={id}>{id}</option>)}
+                .sort((a, b) =>
+                  !isNaN(a) && !isNaN(b)
+                    ? Number(a) - Number(b)
+                    : a.localeCompare(b),
+                )
+                .map((id) => (
+                  <option key={id} value={id}>
+                    {id}
+                  </option>
+                ))}
             </select>
           </div>
 
           <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1">Geo</label>
+            <label className="text-sm font-medium text-gray-700 mb-1">
+              Geo
+            </label>
             <Select
               showSearch
               value={geo}
@@ -190,7 +240,9 @@ const AdvertiserCreateForm = () => {
                 option?.label?.toLowerCase().includes(input.toLowerCase())
               }>
               {geoData.geo?.map((g) => (
-                <Select.Option key={g.code} value={g.code} label={g.code}>{g.code}</Select.Option>
+                <Select.Option key={g.code} value={g.code} label={g.code}>
+                  {g.code}
+                </Select.Option>
               ))}
             </Select>
           </div>
@@ -207,13 +259,12 @@ const AdvertiserCreateForm = () => {
               const sid = e.target.value;
 
               const selectedUser = subAdmins.find(
-                (a) => a.id.toString() === sid
+                (a) => a.id.toString() === sid,
               );
 
               setAssign_id(sid);
               setAssign_user(selectedUser?.username || "");
-            }}
-          >
+            }}>
             <option value="">Select Operations</option>
             {subAdmins.map((admin) => (
               <option key={admin.id} value={admin.id}>
@@ -262,11 +313,15 @@ const AdvertiserCreateForm = () => {
                 <div className="grid grid-cols-2 gap-3">
                   {/* Legal Name */}
                   <div className="flex flex-col">
-                    <label className="text-xs font-medium text-gray-600 mb-1">Legal Name</label>
+                    <label className="text-xs font-medium text-gray-600 mb-1">
+                      Legal Name
+                    </label>
                     <input
                       type="text"
                       value={entry.legal_name}
-                      onChange={(e) => updateBillingEntry(index, "legal_name", e.target.value)}
+                      onChange={(e) =>
+                        updateBillingEntry(index, "legal_name", e.target.value)
+                      }
                       placeholder="Legal entity name"
                       className="p-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm bg-white"
                     />
@@ -274,23 +329,31 @@ const AdvertiserCreateForm = () => {
 
                   {/* Tax Type */}
                   <div className="flex flex-col">
-                    <label className="text-xs font-medium text-gray-600 mb-1">Tax Type</label>
+                    <label className="text-xs font-medium text-gray-600 mb-1">
+                      Tax Type
+                    </label>
                     <input
-  type="text"
-  value={entry.tax_type}
-  onChange={(e) => updateBillingEntry(index, "tax_type", e.target.value)}
-  placeholder="e.g. GST, VAT, PAN..."
-  className="p-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm bg-white"
-/>
+                      type="text"
+                      value={entry.tax_type}
+                      onChange={(e) =>
+                        updateBillingEntry(index, "tax_type", e.target.value)
+                      }
+                      placeholder="e.g. GST, VAT, PAN..."
+                      className="p-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm bg-white"
+                    />
                   </div>
 
                   {/* Tax ID */}
                   <div className="flex flex-col">
-                    <label className="text-xs font-medium text-gray-600 mb-1">Tax ID</label>
+                    <label className="text-xs font-medium text-gray-600 mb-1">
+                      Tax ID
+                    </label>
                     <input
                       type="text"
                       value={entry.tax_id}
-                      onChange={(e) => updateBillingEntry(index, "tax_id", e.target.value)}
+                      onChange={(e) =>
+                        updateBillingEntry(index, "tax_id", e.target.value)
+                      }
                       placeholder="e.g. 27AAPFU0939F1ZV"
                       className="p-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm bg-white"
                     />
@@ -298,11 +361,19 @@ const AdvertiserCreateForm = () => {
 
                   {/* Billing Address */}
                   <div className="flex flex-col">
-                    <label className="text-xs font-medium text-gray-600 mb-1">Billing Address</label>
+                    <label className="text-xs font-medium text-gray-600 mb-1">
+                      Billing Address
+                    </label>
                     <input
                       type="text"
                       value={entry.billing_address}
-                      onChange={(e) => updateBillingEntry(index, "billing_address", e.target.value)}
+                      onChange={(e) =>
+                        updateBillingEntry(
+                          index,
+                          "billing_address",
+                          e.target.value,
+                        )
+                      }
                       placeholder="Full billing address"
                       className="p-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm bg-white"
                     />

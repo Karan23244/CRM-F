@@ -520,6 +520,16 @@ export const sidebarLinks = [
     roles: ["admin", "accounts"],
   },
   {
+    to:"pid-ranking",
+    label:"PID Ranking Dashboard",
+    roles: [
+      "admin",
+      "publisher",
+      "publisher_manager",
+      "pub_executive",
+    ],
+  },
+  {
     to: "publisherrevenue",
     label: "Publisher Revenue",
     roles: ["admin", "publisher", "publisher_manager", "pub_executive"],

@@ -12,7 +12,6 @@ import {
 const COLORS = ["#6366F1", "#22C55E", "#F59E0B", "#EF4444", "#0EA5E9"];
 
 const CustomTooltip = ({ active, payload }) => {
-  console.log("Tooltip payload:", payload);
   if (active && payload && payload.length) {
     return (
       <div className="bg-white shadow-lg rounded-lg px-4 py-2 border">
@@ -30,7 +29,6 @@ const CustomTooltip = ({ active, payload }) => {
 
 const TopPublishersChart = ({ data, role }) => {
   const normalizedRole = Array.isArray(role) ? role[0] : role;
-  console.log(role);
   const isAdvertiser = ["advertiser", "advertiser_manager"].includes(
     normalizedRole,
   );
@@ -38,7 +36,6 @@ const TopPublishersChart = ({ data, role }) => {
     ...d,
     label: isAdvertiser ? `${d.pub_id}` : d.name,
   }));
-  console.log(chartData);
   return (
     <div className="bg-white p-6 rounded-2xl shadow-lg w-full">
       {/* Header */}

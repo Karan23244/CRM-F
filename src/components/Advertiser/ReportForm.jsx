@@ -1,9 +1,10 @@
 import React, { useState, useRef } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
-
+import { useSelector } from "react-redux";
 const ExcelUploader = () => {
-  const apiUrl =  import.meta.env.VITE_API_URL1;
+  const apiUrl = import.meta.env.VITE_API_URL1;
+  const token = useSelector((state) => state.auth.token);
   const [files, setFiles] = useState([]);
   const [inputText, setInputText] = useState("");
   const [campaignName, setCampaignName] = useState("");
@@ -15,7 +16,7 @@ const ExcelUploader = () => {
     setFiles((prevFiles) => {
       const allFiles = [...prevFiles, ...selectedFiles];
       const uniqueFiles = Array.from(
-        new Map(allFiles.map((file) => [file.name, file])).values()
+        new Map(allFiles.map((file) => [file.name, file])).values(),
       );
       return uniqueFiles;
     });
@@ -46,6 +47,7 @@ const ExcelUploader = () => {
     try {
       const uploadRes = await axios.post(`${apiUrl}/upload`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
+        Authorization: `Bearer ${token}`,
       });
 
       if (uploadRes.status !== 200 || !uploadRes.data.zips?.length) {
@@ -53,9 +55,17 @@ const ExcelUploader = () => {
       }
 
       for (const zipFile of uploadRes.data.zips) {
-        const downloadRes = await axios.get(`${apiUrl}/download/${zipFile}`, {
-          responseType: "blob",
-        });
+        const downloadRes = await axios.get(
+          `${apiUrl}/download/${zipFile}`,
+          {
+            responseType: "blob",
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
 
         const url = window.URL.createObjectURL(new Blob([downloadRes.data]));
         const link = document.createElement("a");

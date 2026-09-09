@@ -19,12 +19,13 @@ import {
 } from "@ant-design/icons";
 import axios from "axios";
 import StyledTable from "../../Utils/StyledTable";
-
+import { useSelector } from "react-redux";
 const { Title } = Typography;
 
 const apiUrl = import.meta.env.VITE_API_URL2;
 
 const PidHistoryModal = ({ open, pid, onClose }) => {
+  const token = useSelector((state) => state.auth.token);
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState({
     summary: {},
@@ -42,13 +43,15 @@ const PidHistoryModal = ({ open, pid, onClose }) => {
       setLoading(true);
 
       const [historyRes, pauseRes] = await Promise.all([
-        axios.get(`${apiUrl}/analytics/pid-history/${pid}`),
+        axios.get(`${apiUrl}/analytics/pid-history/${pid}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }),
         axios.get(
           `https://chat.pidmetric.com/api/campaigns/pause-history/${pid}`,
         ),
       ]);
-      console.log("historyRes", historyRes);
-      console.log("pauseRes", pauseRes.data);
       setHistory({
         summary: historyRes.data.summary || {},
         campaigns: historyRes.data.campaigns || [],
@@ -188,7 +191,7 @@ const PidHistoryModal = ({ open, pid, onClose }) => {
         </div>
       }>
       <Spin spinning={loading}>
-        <Title level={5}>Campaign History (Last 30 Days)</Title>
+        <Title level={5}>Campaign History (Last 60 Days)</Title>
 
         <StyledTable
           rowKey="campaign_name"
@@ -220,7 +223,7 @@ const PidHistoryModal = ({ open, pid, onClose }) => {
       </Spin>
       <Divider />
 
-      <Title level={5}>Pause History (Last 30 Days)</Title>
+      <Title level={5}>Pause History (Last 60 Days)</Title>
 
       <StyledTable
         rowKey="key"

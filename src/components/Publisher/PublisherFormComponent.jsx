@@ -34,6 +34,7 @@ const apiUrl = import.meta.env.VITE_API_URL;
 const apiUrl1 = import.meta.env.VITE_API_URL3;
 
 const PublisherIDDashboard = () => {
+  const token = useSelector((state) => state.auth.token);
   const user = useSelector((state) => state.auth.user);
   const [activeTab, setActiveTab] = useState("yourData");
 
@@ -111,6 +112,7 @@ export default PublisherIDDashboard;
 
 const PublisherEditForm = () => {
   const user = useSelector((state) => state.auth.user);
+  const token = useSelector((state) => state.auth.token);
   const userId = user?.id || null;
   const isAdmin =
     user?.role === "admin" ||
@@ -151,8 +153,12 @@ const PublisherEditForm = () => {
   useEffect(() => {
     const fetchSubAdmins = async () => {
       try {
-        const response = await fetch(`${apiUrl}/get-subadmin`);
-        const data = await response.json();
+        const response = await axios.get(`${apiUrl}/get-subadmin`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const data = response.data;
         if (response.ok) {
           const filtered = data.data.filter(
             (subAdmin) =>
@@ -187,13 +193,22 @@ const PublisherEditForm = () => {
       if (isAdmin) {
         const { data } = await axios.get(
           `${apiUrl}/get-Namepub?user_id=${userId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
         );
         if (data && Array.isArray(data.data)) {
           setPublishers(data.data);
           seedEventPostbacks(data.data);
         }
       } else {
-        const { data } = await axios.get(`${apiUrl}/pubid-data/${userId}`);
+        const { data } = await axios.get(`${apiUrl}/pubid-data/${userId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         if (data.success && Array.isArray(data.publishers)) {
           setPublishers(data.publishers);
           seedEventPostbacks(data.publishers);
@@ -292,11 +307,19 @@ const PublisherEditForm = () => {
     try {
       const nextStatus = record.pause === "1" ? "0" : "1";
 
-      const res = await axios.put(`${apiUrl}/update-pubid`, {
-        ...record,
-        pause: nextStatus,
-        role: user.role,
-      });
+      const res = await axios.put(
+        `${apiUrl}/update-pubid`,
+        {
+          ...record,
+          pause: nextStatus,
+          role: user.role,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
       console.log("Pause toggle response:", res.data);
       fetchPublishers();
 
@@ -334,7 +357,11 @@ const PublisherEditForm = () => {
 
     try {
       setLoading(true);
-      const res = await axios.put(`${apiUrl}/update-pubid`, trimmed);
+      const res = await axios.put(`${apiUrl}/update-pubid`, trimmed, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       if (res.data.success) {
         Swal.fire({
           icon: "success",
@@ -343,7 +370,11 @@ const PublisherEditForm = () => {
         });
 
         // Refresh data
-        const { data } = await axios.get(`${apiUrl}/pubid-data/${userId}`);
+        const { data } = await axios.get(`${apiUrl}/pubid-data/${userId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         if (data.success && Array.isArray(data.publishers)) {
           setPublishers(data.publishers);
         }
@@ -395,7 +426,11 @@ const PublisherEditForm = () => {
         });
 
         // Refresh data
-        const { data } = await axios.get(`${apiUrl}/pubid-data/${userId}`);
+        const { data } = await axios.get(`${apiUrl}/pubid-data/${userId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         if (data.success && Array.isArray(data.publishers)) {
           setPublishers(data.publishers);
         }
@@ -467,7 +502,11 @@ const PublisherEditForm = () => {
           position: "top-end",
         });
 
-        const { data } = await axios.get(`${apiUrl}/pubid-data/${userId}`);
+        const { data } = await axios.get(`${apiUrl}/pubid-data/${userId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         if (data.success && Array.isArray(data.publishers)) {
           setPublishers(data.publishers);
         }
@@ -921,11 +960,19 @@ const PublisherEditForm = () => {
                     Swal.fire("Error", "Invalid user selected", "error");
                     return;
                   }
-                  const response = await axios.put(`${apiUrl}/update-pubid`, {
-                    ...record,
-                    user_id: selectedAdmin.id,
-                    username: selectedAdmin.username,
-                  });
+                  const response = await axios.put(
+                    `${apiUrl}/update-pubid`,
+                    {
+                      ...record,
+                      user_id: selectedAdmin.id,
+                      username: selectedAdmin.username,
+                    },
+                    {
+                      headers: {
+                        Authorization: `Bearer ${token}`,
+                      },
+                    },
+                  );
                   if (response.data.success) {
                     Swal.fire(
                       "Success",

@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { useDispatch } from "react-redux";
-import { setUser } from "../redux/authSlice";
+import { setUser, setToken } from "../redux/authSlice";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import { FaEye, FaEyeSlash, FaUser, FaLock } from "react-icons/fa";
 
-const apiUrl =
-  import.meta.env.VITE_API_URL;
+const apiUrl = import.meta.env.VITE_API_URL;
 
 const LoginForm = () => {
   const [username, setUsername] = useState("");
@@ -25,7 +24,7 @@ const LoginForm = () => {
       return Swal.fire({
         icon: "error",
         title: "Oops...",
-        text: "Both username and password are required.",
+        text: "Both username / Email and password are required.",
       });
     }
 
@@ -42,16 +41,20 @@ const LoginForm = () => {
       const data = await response.json();
       console.log("Login response:", data);
       if (data.success) {
+        // Store user
         dispatch(
           setUser({
             ...data.subAdmin,
             role: Array.isArray(data.subAdmin.role)
               ? data.subAdmin.role
               : typeof data.subAdmin.role === "string"
-              ? data.subAdmin.role.split(",").map((r) => r.trim())
-              : [],
-          })
+                ? data.subAdmin.role.split(",").map((r) => r.trim())
+                : [],
+          }),
         );
+
+        // Store JWT token
+        dispatch(setToken(data.token));
 
         Swal.fire({
           icon: "success",
@@ -86,7 +89,8 @@ const LoginForm = () => {
         {/* Left Side */}
         <div className="w-full md:w-2/5 bg-[#002F65] text-white flex flex-col justify-center px-8 py-10 md:px-14 relative">
           <h1 className="text-3xl md:text-5xl font-bold mb-6 leading-snug text-center md:text-left">
-            Welcome to <br/>Click Orbits
+            Welcome to <br />
+            Click Orbits
           </h1>
           <p className="text-base md:text-lg leading-relaxed opacity-90 text-center md:text-left">
             PID Metric: Powering seamless campaign management and precise
@@ -118,7 +122,7 @@ const LoginForm = () => {
               {/* Username */}
               <div>
                 <label className="block text-gray-700 text-sm font-medium mb-1">
-                  Username
+                  Username / Email
                 </label>
                 <div className="relative">
                   <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
@@ -127,7 +131,7 @@ const LoginForm = () => {
                   <input
                     type="text"
                     className="block w-full pl-10 pr-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-[#2F5D99] focus:outline-none"
-                    placeholder="Enter your username"
+                    placeholder="Enter username or email"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     autoComplete="username"

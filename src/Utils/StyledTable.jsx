@@ -4,7 +4,7 @@ import { Table } from "antd";
 const StyledTable = ({
   title,
   dataSource,
-  loading=false,
+  loading = false,
   columns,
   rowKey = "id",
   pagination = {
@@ -19,6 +19,7 @@ const StyledTable = ({
   defaultColWidth = 230,
   maxColWidth = 300,
   minColWidth = 120,
+  ...rest
 }) => {
   const normalizedColumns = useMemo(() => {
     return columns.map((col) => {
@@ -56,13 +57,12 @@ const StyledTable = ({
         pagination={pagination}
         summary={summary}
         tableLayout="fixed"
-      
-        
         scroll={{
           x: normalizedColumns.reduce((sum, col) => sum + col.width, 0), // 🔥 hard table width
           y: 600,
         }}
         className="custom-table"
+        {...rest}
       />
 
       <style jsx>{`

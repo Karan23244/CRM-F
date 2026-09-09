@@ -5,11 +5,11 @@ import { Table, Button, Input, Tooltip } from "antd";
 import { EditOutlined, SearchOutlined } from "@ant-design/icons";
 import Swal from "sweetalert2";
 
-const apiUrl =
-  import.meta.env.VITE_API_URL;
+const apiUrl = import.meta.env.VITE_API_URL;
 
 const PIDForm = () => {
   const user = useSelector((state) => state.auth.user);
+  const token = useSelector((state) => state.auth.token);
   const [pid, setPid] = useState("");
   const [pids, setPids] = useState([]);
   const [editId, setEditId] = useState(null);
@@ -21,13 +21,17 @@ const PIDForm = () => {
   const fetchPids = async () => {
     setDataLoading(true);
     try {
-      const response = await axios.get(`${apiUrl}/get-pid`);
+      const response = await axios.get(`${apiUrl}/get-pid`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       if (response.data?.success) {
         setPids(response.data.data);
       }
     } catch (error) {
       console.error("Error fetching PIDs:", error);
-    } finally{
+    } finally {
       setDataLoading(false);
     }
   };
@@ -50,6 +54,10 @@ const PIDForm = () => {
         const response = await axios.post(`${apiUrl}/update-pid/${editId}`, {
           user_id: user?.id,
           pid: trimmedPid,
+        }, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
 
         if (response.data.success) {
@@ -61,6 +69,10 @@ const PIDForm = () => {
         const response = await axios.post(`${apiUrl}/add-pid`, {
           user_id: user?.id,
           pid: trimmedPid,
+        }, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
 
         if (response.status === 500) {
@@ -93,7 +105,7 @@ const PIDForm = () => {
 
   // ✅ Filter by search
   const filteredPids = pids.filter((item) =>
-    item.pid.toLowerCase().includes(searchTerm.toLowerCase())
+    item.pid.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   // ✅ Table Columns

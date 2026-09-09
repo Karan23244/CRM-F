@@ -32,11 +32,8 @@ const RevenueDashboard = () => {
             : [],
       };
 
-      console.log("Payload:", payload);
 
       const res = await axios.post(API, payload);
-
-      console.log("Revenue data:", res.data);
 
       setData(res.data);
     } catch (err) {

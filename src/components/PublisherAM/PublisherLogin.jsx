@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useDispatch } from "react-redux";
-import { setUser } from "../../redux/authSlice";
+import { setUser, setToken } from "../../redux/authSlice";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import { FaEye, FaEyeSlash, FaUser, FaLock } from "react-icons/fa";
@@ -39,7 +39,6 @@ const PublisherLogin = () => {
       });
       console.log("Login response status:", response);
       const data = await response.json();
-      console.log("Login response:", data);
       if (data.success) {
         dispatch(
           setUser({
@@ -51,7 +50,8 @@ const PublisherLogin = () => {
                 : [],
           }),
         );
-
+        // Store JWT token
+        dispatch(setToken(data.token));
         Swal.fire({
           icon: "success",
           title: "Logged in!",

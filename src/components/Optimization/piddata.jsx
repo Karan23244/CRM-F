@@ -44,7 +44,7 @@ const columnHeadingsAdv = {
 const CampianDataOptimization = () => {
   const userId = useSelector((state) => state.auth.user.id);
   const allColumns = Object.keys(columnHeadingsAdv);
-
+  const token = useSelector((state) => state.auth.token);
   const {
     presets,
     hiddenColumns,
@@ -97,6 +97,9 @@ const CampianDataOptimization = () => {
         params: {
           startDate: startDate.format("YYYY-MM-DD"),
           endDate: endDate.format("YYYY-MM-DD"),
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -461,7 +464,7 @@ const CampianDataOptimization = () => {
       })),
     ];
   };
-
+  console.log(filteredData);
   return (
     <div className="p-5">
       {/* Toggle Section */}
@@ -525,7 +528,7 @@ const CampianDataOptimization = () => {
                   const columnHeadings = columnHeadingsAdv;
 
                   // ❌ columns to remove
-                  const excludedKeys = ["adv_display", "pub_display","pub_am"];
+                  const excludedKeys = ["adv_display", "pub_display", "pub_am"];
 
                   // ✅ extra columns to add
                   const extraColumns = {

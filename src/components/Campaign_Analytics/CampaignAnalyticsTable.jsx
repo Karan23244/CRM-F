@@ -15,6 +15,7 @@ import {
   Popconfirm,
   message,
   Card,
+  Collapse,
 } from "antd";
 import Swal from "sweetalert2";
 import {
@@ -26,6 +27,7 @@ import axios from "axios";
 import dayjs from "dayjs";
 import DecisionTable from "./DecisionTable";
 import { sortDropdownValues } from "../../Utils/sortDropdownValues";
+import CTITrendChart from "./CTITrendChart";
 import UploadForm from "./UploadForm";
 import { useSelector } from "react-redux";
 import { exportToExcel } from "./exportColorExcel";
@@ -66,6 +68,7 @@ const API = import.meta.env.VITE_API_URL2;
 const apiUrl = import.meta.env.VITE_API_URL;
 
 const CampaignAnalyticsTable = () => {
+  const token = useSelector((state) => state.auth.token);
   const user = useSelector((state) => state.auth.user);
   const canDeleteCampaignData =
     user?.role?.includes("optimization") ||
@@ -74,7 +77,6 @@ const CampaignAnalyticsTable = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [allowedCampaignIds, setAllowedCampaignIds] = useState([]);
-
   // ================= DROPDOWN DATA =================
   const [campaigns, setCampaigns] = useState([]);
   const [filters, setFilters] = useState({});
@@ -82,7 +84,11 @@ const CampaignAnalyticsTable = () => {
   const [uniqueValues, setUniqueValues] = useState({});
   const [pinnedColumns, setPinnedColumns] = useState({});
   const [sortInfo, setSortInfo] = useState({});
-
+  const [pidCount, setPidCount] = useState({
+    totalPid: 0,
+    livePid: 0,
+    pausedPid: 0,
+  });
   // ================= PAYLOAD =================
   const [payload, setPayload] = useState({
     config_id: null,
@@ -118,47 +124,98 @@ const CampaignAnalyticsTable = () => {
   const [subadmins, setSubadmins] = useState([]);
 
   const fetchSubadmins = async () => {
+    if (!token) return;
+
     try {
-      const res = await axios.get(`${apiUrl}/get-subadmin`);
+      const res = await axios.get(`${apiUrl}/get-subadmin`, {
+        headers: {
+          Authorization: token.startsWith("Bearer ")
+            ? token
+            : `Bearer ${token}`,
+        },
+      });
 
       setSubadmins(res.data?.data || []);
     } catch (err) {
-      console.error("Subadmin fetch error", err);
+      console.error("Subadmin fetch error:", {
+        status: err.response?.status,
+        data: err.response?.data,
+        token,
+      });
     }
   };
 
   useEffect(() => {
-    if (hasAccess) {
+    if (hasAccess && token) {
       fetchSubadmins();
     }
-  }, [hasAccess]);
+  }, [hasAccess, token]);
+  // ================= PID COUNT =================
+  useEffect(() => {
+    if (
+      !payload.campaign_name ||
+      !payload.os ||
+      !payload.campaign_ids?.length
+    ) {
+      setPidCount({
+        totalPid: 0,
+        livePid: 0,
+        pausedPid: 0,
+      });
 
-  // ================= FETCH CAMPAIGNS =================
-  // const fetchCampaigns = async () => {
-  //   try {
-  //     const res = await axios.get(`${API}/api/campaign_analytics/campaigns`);
+      return;
+    }
 
-  //     const uniqueCampaigns = [...new Set(res.data.data || [])];
+    const controller = new AbortController();
 
-  //     setCampaigns(uniqueCampaigns);
+    const fetchPidCount = async () => {
+      try {
+        const campaignId = payload.campaign_ids[0];
 
-  //     // auto select first campaign
-  //     if (uniqueCampaigns.length > 0) {
-  //       setPayload((prev) => ({
-  //         ...prev,
-  //         campaign_name: uniqueCampaigns[0],
-  //       }));
-  //     }
-  //   } catch (err) {
-  //     console.error(err);
-  //   }
-  // };
+        const res = await axios.get(`${API}/api/campaign/campaign-pid-count`, {
+          params: {
+            campaignId: campaignId,
+            campaignName: payload.campaign_name,
+            os: payload.os,
+          },
+          signal: controller.signal,
+        });
+
+        console.log("PID Count API:", res.data);
+
+        setPidCount({
+          totalPid: Number(res.data?.data?.totalPid || 0),
+          livePid: Number(res.data?.data?.livePid || 0),
+          pausedPid: Number(res.data?.data?.pausedPid || 0),
+        });
+      } catch (err) {
+        if (err?.code === "ERR_CANCELED") return;
+
+        console.error("PID Count API Error:", err);
+
+        setPidCount({
+          totalPid: 0,
+          livePid: 0,
+          pausedPid: 0,
+        });
+      }
+    };
+
+    fetchPidCount();
+
+    return () => {
+      controller.abort();
+    };
+  }, [payload.campaign_name, payload.os, payload.campaign_ids]);
   const fetchMappings = async () => {
     try {
       const res = await axios.get(`${apiUrl}/campaign-publisher-map`, {
         params: {
           userid: user.id,
           role: Array.isArray(user.role) ? user.role[0] : user.role,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
       });
       console.log("Mappings API Response:", res.data);
@@ -1182,8 +1239,26 @@ const CampaignAnalyticsTable = () => {
   return (
     <>
       {user?.permissions?.can_see_input1 === 1 && (
-        <div>
-          <UploadForm onUploadSuccess={fetchData} />
+        <div
+          style={{
+            padding: "20px 20px 0",
+          }}>
+          <Collapse
+            items={[
+              {
+                key: "upload-data",
+                label: (
+                  <span
+                    style={{
+                      fontWeight: 700,
+                    }}>
+                    Upload Campaign Data
+                  </span>
+                ),
+                children: <UploadForm onUploadSuccess={fetchData} />,
+              },
+            ]}
+          />
         </div>
       )}
       {hasAccess ? (
@@ -1486,7 +1561,35 @@ const CampaignAnalyticsTable = () => {
                 </Button>
               </Row>
             </Row>
-
+            {/* ================= CTI TREND GRAPH ================= */}
+            <div
+              style={{
+                marginBottom: 20,
+              }}>
+              <Collapse
+                items={[
+                  {
+                    key: "cti-trend",
+                    label: (
+                      <span
+                        style={{
+                          fontWeight: 700,
+                        }}>
+                        Click-To-Install Trend Chart
+                      </span>
+                    ),
+                    children: (
+                      <CTITrendChart
+                        configId={payload.config_id}
+                        startDate={payload.start_date}
+                        endDate={payload.end_date}
+                        geo={payload.geo}
+                      />
+                    ),
+                  },
+                ]}
+              />
+            </div>
             {/* ================= TABLE ================= */}
             {loading ? (
               <Spin />
@@ -1927,7 +2030,8 @@ const CampaignAnalyticsTable = () => {
           </div>
           <div style={{ padding: 20 }}>
             <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
-              <Col xs={12} sm={12} md={6}>
+              {/* Total PIDs */}
+              <Col xs={24} sm={12} md={8}>
                 <Card
                   size="small"
                   style={{
@@ -1942,12 +2046,13 @@ const CampaignAnalyticsTable = () => {
                       fontWeight: 700,
                       color: "#1677ff",
                     }}>
-                    {pidSummary.total}
+                    {pidCount.totalPid}
                   </div>
                 </Card>
               </Col>
 
-              <Col xs={12} sm={12} md={6}>
+              {/* Active PIDs */}
+              <Col xs={24} sm={12} md={8}>
                 <Card
                   size="small"
                   style={{
@@ -1962,12 +2067,13 @@ const CampaignAnalyticsTable = () => {
                       fontWeight: 700,
                       color: "#52c41a",
                     }}>
-                    {pidSummary.active}
+                    {pidCount.livePid}
                   </div>
                 </Card>
               </Col>
 
-              <Col xs={12} sm={12} md={6}>
+              {/* Paused PIDs */}
+              <Col xs={24} sm={12} md={8}>
                 <Card
                   size="small"
                   style={{
@@ -1982,27 +2088,7 @@ const CampaignAnalyticsTable = () => {
                       fontWeight: 700,
                       color: "#ff4d4f",
                     }}>
-                    {pidSummary.paused}
-                  </div>
-                </Card>
-              </Col>
-
-              <Col xs={12} sm={12} md={6}>
-                <Card
-                  size="small"
-                  style={{
-                    borderRadius: 12,
-                    textAlign: "center",
-                    borderLeft: "5px solid #fa8c16",
-                  }}>
-                  <div style={{ fontSize: 13, color: "#666" }}>N/A PIDs</div>
-                  <div
-                    style={{
-                      fontSize: 28,
-                      fontWeight: 700,
-                      color: "#fa8c16",
-                    }}>
-                    {pidSummary.na}
+                    {pidCount.pausedPid}
                   </div>
                 </Card>
               </Col>

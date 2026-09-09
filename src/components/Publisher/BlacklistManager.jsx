@@ -7,11 +7,11 @@ import { createNotification } from "../../Utils/Notification";
 import { useSelector } from "react-redux";
 
 const { Option } = Select;
-const apiUrl =
-  import.meta.env.VITE_API_URL;
+const apiUrl = import.meta.env.VITE_API_URL;
 
 const BlacklistManager = () => {
   const user = useSelector((state) => state.auth.user);
+  const token = useSelector((state) => state.auth.token);
   const senderData = user;
   const [pids, setPids] = useState([]);
   const [selectedPID, setSelectedPID] = useState("");
@@ -21,7 +21,11 @@ const BlacklistManager = () => {
 
   const fetchPIDs = async () => {
     try {
-      const res = await axios.get(`${apiUrl}/get-pid`);
+      const res = await axios.get(`${apiUrl}/get-pid`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       setPids(res.data.data);
     } catch (err) {
       Swal.fire("Error", "Failed to fetch PIDs", "error");
@@ -30,7 +34,11 @@ const BlacklistManager = () => {
 
   const fetchBlacklisted = async () => {
     try {
-      const res = await axios.get(`${apiUrl}/get-blacklist`);
+      const res = await axios.get(`${apiUrl}/get-blacklist`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       setBlacklistedData(res.data || []);
     } catch (err) {
       Swal.fire("Error", "Failed to fetch blacklist", "error");
@@ -50,32 +58,45 @@ const BlacklistManager = () => {
 
     try {
       setLoading(true);
-      await axios.post(`${apiUrl}/add-blacklist`, { blacklistID: selectedPID });
+      await axios.post(
+        `${apiUrl}/add-blacklist`,
+        { blacklistID: selectedPID },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
       Swal.fire("Success", `PID ${selectedPID} blacklisted`, "success");
 
       // Notify publisher users
-      const { data } = await axios.get(`${apiUrl}/get-subadmin`);
+      const { data } = await axios.get(`${apiUrl}/get-subadmin`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       const allUsers = data?.data || data || [];
 
       const publisherUsers = allUsers.filter(
         (u) =>
           (u.role === "publisher" || u.role === "publisher_manager") &&
-          u.id !== senderData?.id
+          u.id !== senderData?.id,
       );
 
       const message = `🚫 PID ${selectedPID} has been added to blacklist by ${
         senderData?.username || "a user"
       }`;
 
-      for (const user of publisherUsers) {
-        await createNotification({
-          sender: senderData?.id,
-          receiver: user.id,
-          type: "blacklist_update",
-          message,
-          url: "/dashboard/blacklistpid",
-        });
-      }
+      // for (const user of publisherUsers) {
+      //   await createNotification({
+      //     sender: senderData?.id,
+      //     receiver: user.id,
+      //     type: "blacklist_update",
+      //     message,
+      //     url: "/dashboard/blacklistpid",
+      //     token,
+      //   });
+      // }
 
       setSelectedPID("");
       fetchBlacklisted();
@@ -98,7 +119,11 @@ const BlacklistManager = () => {
     if (confirm.isConfirmed) {
       try {
         setLoading(true);
-        await axios.delete(`${apiUrl}/blacklist-delete/${id}`);
+        await axios.delete(`${apiUrl}/blacklist-delete/${id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         Swal.fire("Success", `PID unblacklisted successfully`, "success");
         fetchBlacklisted();
       } catch (err) {
@@ -111,7 +136,7 @@ const BlacklistManager = () => {
 
   // ✅ Filtered data by search
   const filteredData = blacklistedData.filter((item) =>
-    item.blacklistID.toLowerCase().includes(searchTerm.toLowerCase())
+    item.blacklistID.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   // ✅ Table Columns

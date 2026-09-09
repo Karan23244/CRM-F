@@ -12,6 +12,7 @@ const apiUrl = import.meta.env.VITE_API_URL;
 
 const AdvnameData = () => {
   const user = useSelector((state) => state.auth.user);
+  const token = useSelector((state) => state.auth.token);
   const userId = user?.id || null;
   const [tableData, setTableData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -42,7 +43,11 @@ const AdvnameData = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get(`${apiUrl}/advertisers/${userId}`);
+        const response = await axios.get(`${apiUrl}/advertisers/${userId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         if (response.data && Array.isArray(response.data.data)) {
           setTableData(response.data.data);
         } else {
@@ -60,7 +65,11 @@ const AdvnameData = () => {
   useEffect(() => {
     const fetchSubAdmins = async () => {
       try {
-        const response = await fetch(`${apiUrl}/get-subadmin`);
+        const response = await fetch(`${apiUrl}/get-subadmin`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         const data = await response.json();
         if (response.ok) {
           const filtered = data.data.filter((subAdmin) =>
@@ -143,7 +152,11 @@ const AdvnameData = () => {
     };
     try {
       // **Update existing advertiser**
-      const response = await axios.put(`${apiUrl}/update-advid`, updatedAdv);
+      const response = await axios.put(`${apiUrl}/update-advid`, updatedAdv, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       if (response.data.success) {
         Swal.fire({
           icon: "success",
@@ -154,7 +167,11 @@ const AdvnameData = () => {
         });
 
         // Refresh table data after update
-        const { data } = await axios.get(`${apiUrl}/get-NameAdv/`);
+        const { data } = await axios.get(`${apiUrl}/get-NameAdv/`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         if (data.success && Array.isArray(data.data)) {
           setTableData(data.data);
         }
@@ -198,10 +215,18 @@ const AdvnameData = () => {
 
   const handlePause = async (record) => {
     try {
-      const response = await axios.post(`${apiUrl}/advid-pause`, {
-        adv_id: record.adv_id,
-        pause: 1,
-      });
+      const response = await axios.post(
+        `${apiUrl}/advid-pause`,
+        {
+          adv_id: record.adv_id,
+          pause: 1,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
 
       if (response.data.success) {
         Swal.fire({
@@ -213,7 +238,11 @@ const AdvnameData = () => {
         });
 
         // ✅ Refresh data after pause
-        const { data } = await axios.get(`${apiUrl}/get-NameAdv/`);
+        const { data } = await axios.get(`${apiUrl}/get-NameAdv/`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         if (data.success && Array.isArray(data.data)) {
           setTableData(data.data);
         }
@@ -537,20 +566,39 @@ const AdvnameData = () => {
                     Swal.fire("Error", "Invalid user selected", "error");
                     return;
                   }
-                  const response = await axios.put(`${apiUrl}/update-advid`, {
-                    adv_name: record.adv_name,
-                    adv_id: record.adv_id,
-                    geo: record.geo,
-                    note: record.note || "",
-                    target: record.target || "",
-                    user_id: selectedAdmin.id,
-                    username: selectedAdmin.username,
-                    assign_id: record.assign_id || "",
-                    assign_user: record.assign_user || "",
-                  });
+                  const response = await axios.put(
+                    `${apiUrl}/update-advid`,
+                    {
+                      adv_name: record.adv_name,
+                      adv_id: record.adv_id,
+                      geo: record.geo,
+                      note: record.note || "",
+                      target: record.target || "",
+                      user_id: selectedAdmin.id,
+                      username: selectedAdmin.username,
+                      assign_id: record.assign_id || "",
+                      assign_user: record.assign_user || "",
+                    },
+                    {
+                      headers: {
+                        Authorization: `Bearer ${token}`,
+                      },
+                    },
+                  );
                   if (response.data.success) {
-                    Swal.fire("Success", "User transferred successfully!", "success");
-                    const res = await axios.get(`${apiUrl}/advertisers/${userId}`);
+                    Swal.fire(
+                      "Success",
+                      "User transferred successfully!",
+                      "success",
+                    );
+                    const res = await axios.get(
+                      `${apiUrl}/advertisers/${userId}`,
+                      {
+                        headers: {
+                          Authorization: `Bearer ${token}`,
+                        },
+                      },
+                    );
                     if (res.data && Array.isArray(res.data.data)) {
                       setTableData(res.data.data);
                     }

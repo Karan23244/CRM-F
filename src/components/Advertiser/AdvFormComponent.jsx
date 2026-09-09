@@ -17,6 +17,7 @@ const apiUrl = import.meta.env.VITE_API_URL;
 
 const AdvertiserIDDashboard = () => {
   const user = useSelector((state) => state.auth.user);
+  const token = useSelector((state) => state.auth.token);
   const [activeTab, setActiveTab] = useState("yourData");
   const showAssignPubTab = user?.role?.includes("advertiser_manager");
   const [billingDetails, setBillingDetails] = useState([]);
@@ -90,9 +91,12 @@ const emptyBilling = () => ({
 
 const AdvertiserEditForm = () => {
   const user = useSelector((state) => state.auth.user);
+  const token = useSelector((state) => state.auth.token);
   const userId = user?.id || null;
   const { Option } = Select;
-  const isAdmin = user?.role === "admin" || (Array.isArray(user?.role) && user.role.includes("admin"));
+  const isAdmin =
+    user?.role === "admin" ||
+    (Array.isArray(user?.role) && user.role.includes("admin"));
   const isAdvertiserManager = user?.role?.includes("advertiser_manager");
   const restrictedRoles = ["operation", "optimization"];
   const isOperationsRole = user?.role?.some((r) =>
@@ -178,12 +182,20 @@ const AdvertiserEditForm = () => {
     if (!userId) return;
     try {
       if (isAdmin) {
-        const { data } = await axios.get(`${apiUrl}/get-NameAdv/`);
+        const { data } = await axios.get(`${apiUrl}/get-NameAdv/`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         if (data && Array.isArray(data.data)) {
           setAdvertisers(data.data);
         }
       } else {
-        const { data } = await axios.get(`${apiUrl}/advid-data/${userId}`);
+        const { data } = await axios.get(`${apiUrl}/advid-data/${userId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         if (data.success && Array.isArray(data.advertisements)) {
           setAdvertisers(data.advertisements);
         }
@@ -200,7 +212,11 @@ const AdvertiserEditForm = () => {
   useEffect(() => {
     const fetchSubAdmins = async () => {
       try {
-        const res = await fetch(`${apiUrl}/get-subadmin`);
+        const res = await fetch(`${apiUrl}/get-subadmin`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         const data = await res.json();
         if (res.ok) {
           setSubAdmins(
@@ -297,8 +313,11 @@ const AdvertiserEditForm = () => {
     }
 
     try {
-      const response = await axios.put(`${apiUrl}/update-advid`, updatedAdv);
-      //  const response = await axios.put(`http://localhost:5200/api/update-advid`, updatedAdv);
+      const response = await axios.put(`${apiUrl}/update-advid`, updatedAdv, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       if (response.data.success) {
         Swal.fire({
@@ -415,8 +434,7 @@ const AdvertiserEditForm = () => {
             return { columnKey: key, order: "ascend" };
           if (prev.order === "ascend")
             return { columnKey: key, order: "descend" };
-          if (prev.order === "descend")
-            return { columnKey: key, order: null };
+          if (prev.order === "descend") return { columnKey: key, order: null };
           return { columnKey: key, order: "ascend" };
         });
       },
@@ -534,6 +552,11 @@ const AdvertiserEditForm = () => {
                             ...record,
                             user_id: selectedAdmin.id,
                             username: selectedAdmin.username,
+                          },
+                          {
+                            headers: {
+                              Authorization: `Bearer ${token}`,
+                            },
                           },
                         );
                         if (response.data.success) {

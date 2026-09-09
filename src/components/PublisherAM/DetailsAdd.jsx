@@ -22,6 +22,7 @@ const InputField = React.memo(({ label, value, onChange }) => (
 ));
 const PublisherBilling = () => {
   const user = useSelector((state) => state.auth.user);
+  const token = useSelector((state) => state.auth.token);
   const emptyBilling = {
     official_name: "",
     address: "",
@@ -55,6 +56,11 @@ const PublisherBilling = () => {
     try {
       const res = await axios.get(
         `${apiUrl}/get-publisher-billing?user_id=${user.id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
 
       console.log("Fetch Response:", res.data);
@@ -86,7 +92,14 @@ const PublisherBilling = () => {
       setApiUrlLoading(true);
       try {
         // First check if postback is set via pubid-data
-        const pubRes = await axios.get(`${apiUrl}/pubid-data/${user.created_by}`);
+        const pubRes = await axios.get(
+          `${apiUrl}/pubid-data/${user.created_by}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
         const publishers = pubRes.data?.publishers || [];
         const thisPublisher = publishers.find((p) => p.pub_id === user.pubid);
         if (!thisPublisher?.postback_url) return;
@@ -157,6 +170,11 @@ const PublisherBilling = () => {
       const res = await axios.post(
         `${apiUrl}/create-publisher-billing`,
         payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
 
       console.log("Create Response:", res.data);

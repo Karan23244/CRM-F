@@ -55,12 +55,15 @@ const PublisherAccount = lazy(() => import("./components/Accounts/PublisherAccou
 const PublisherLogin = lazy(() => import("./components/PublisherAM/PublisherLogin"));
 const Billing = lazy(() => import("./components/Billing/Billing"));
 const ForgotPassword = lazy(() => import("./components/ForgetPassword"));
+const VerifyOTP = lazy(() => import("./components/VerifyOTP"));
+const ResetPassword = lazy(() => import("./components/ResetPassword"));
 const CampianDataOptimization = lazy(() => import("./components/Optimization/piddata"));
 const TotalPidData = lazy(() => import("./components/Optimization/CampaignPid"));
 const AddDetails = lazy(() => import("./components/PublisherAM/DetailsAdd"));
 const CampaignConfigPage = lazy(() => import("./components/Campaign_Analytics/Campaignconfigpage"));
 const PublisherRevnu = lazy(() => import("./components/Billing/PublisherRevnu"));
 const CampaignPublisherMapping = lazy(() => import("./components/Publisher/CampaignAccess"));
+const PidRankingDashboard = lazy(() => import("./components/Publisher/PidRankingDashboard"));
 const PageLoader = () => (
   <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", fontSize: "16px", color: "#888" }}>
     Loading...
@@ -73,6 +76,8 @@ const AppRoutes = () => (
     <Routes>
       <Route path="/" element={<LoginForm />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/verify-otp" element={<VerifyOTP />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/publisherlogin" element={<PublisherLogin />} />
       <Route
         element={
@@ -137,6 +142,7 @@ const AppRoutes = () => (
           <Route path="accountsadvbill" element={<AdvertiserAccount />} />
           <Route path="accountspubbill" element={<PublisherAccount />} />
           <Route path="publisherrevenue" element={<PublisherRevnu />} />
+          <Route path="pid-ranking" element={<PidRankingDashboard />} />
           <Route
             path="optimizationalldata"
             element={<CampianDataOptimization />}
