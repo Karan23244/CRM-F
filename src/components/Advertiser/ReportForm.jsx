@@ -46,8 +46,10 @@ const ExcelUploader = () => {
 
     try {
       const uploadRes = await axios.post(`${apiUrl}/upload`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-        Authorization: `Bearer ${token}`,
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (uploadRes.status !== 200 || !uploadRes.data.zips?.length) {

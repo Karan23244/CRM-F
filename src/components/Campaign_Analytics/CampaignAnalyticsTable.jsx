@@ -1073,7 +1073,7 @@ const CampaignAnalyticsTable = () => {
 
       key: dataIndex,
       dataIndex,
-
+      exportLabel: title,
       title: (
         <div
           style={{
@@ -1521,8 +1521,11 @@ const CampaignAnalyticsTable = () => {
                         }
 
                         // normal columns
+                        // normal columns
                         else {
-                          data[col.title] = row[col.dataIndex] ?? "";
+                          const header = col.exportLabel ?? col.dataIndex;
+
+                          data[header] = row[col.dataIndex] ?? "";
 
                           // PID keep background color
                           if (
@@ -1530,7 +1533,7 @@ const CampaignAnalyticsTable = () => {
                             row.pid_color &&
                             colorMap[row.pid_color]
                           ) {
-                            styles[col.title] = {
+                            styles[header] = {
                               fill: colorMap[row.pid_color],
                               font: "#FFFFFF",
                             };
