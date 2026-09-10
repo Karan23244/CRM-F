@@ -1120,8 +1120,23 @@ const AdvertiserData = () => {
           }
 
           if (key === "adv_payout_total") {
-            const total = calculateAdvPayoutTotal(record);
-            return <span>{total ? total.toFixed(2) : "-"}</span>;
+            const isMissing = (value) =>
+              value == null ||
+              (typeof value === "string" && ["", "-"].includes(value.trim()));
+
+            if (
+              isMissing(record.adv_approved_no) ||
+              isMissing(record.adv_payout)
+            ) {
+              return <span>-</span>;
+            }
+
+            const total =
+              Number(record.adv_approved_no) * Number(record.adv_payout);
+
+            return (
+              <span>{Number.isFinite(total) ? total.toFixed(2) : "-"}</span>
+            );
           }
 
           // Editor UI
