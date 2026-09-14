@@ -57,17 +57,12 @@ const ExcelUploader = () => {
       }
 
       for (const zipFile of uploadRes.data.zips) {
-        const downloadRes = await axios.get(
-          `${apiUrl}/download/${zipFile}`,
-          {
-            responseType: "blob",
+        const downloadRes = await axios.get(`${apiUrl}/download/${zipFile}`, {
+          responseType: "blob",
+          headers: {
+            Authorization: `Bearer ${token}`,
           },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          },
-        );
+        });
 
         const url = window.URL.createObjectURL(new Blob([downloadRes.data]));
         const link = document.createElement("a");
