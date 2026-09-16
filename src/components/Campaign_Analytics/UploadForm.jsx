@@ -78,31 +78,43 @@ export default function UploadForm({ onUploadSuccess }) {
     fetchConfiguredCampaigns();
   }, []);
   const handleFinish = async (values) => {
-    if (submitted) return; // prevent double submit
+    if (submitted) return;
+
     setLoading(true);
     setSubmitted(true);
-    const cleanCampaignName = values.campaignName.split("(")[0].trim();
+
     const data = new FormData();
+
     const formattedRange = `${values.dateRange[0].format(
       "YYYY-MM-DD",
     )} - ${values.dateRange[1].format("YYYY-MM-DD")}`;
-    data.append("campaignName", cleanCampaignName);
+
+    data.append("campaignName", values.campaignName);
     data.append("os", values.os.trim());
 
     const geoInput = values.geo.includes("[")
       ? values.geo
       : JSON.stringify(values.geo.split(",").map((g) => g.trim()));
+
     data.append("geo", geoInput);
     data.append("dateRange", formattedRange);
+
     data.append("campaign_ids", JSON.stringify(values.campaign_ids));
+
     data.append("mmpTracker", values.mmpTracker);
-    // 🔹 Append socketId to identify user
     if (socketId) {
       data.append("socketId", socketId);
     }
+
     fileList.forEach((file) => {
       data.append("files", file.originFileObj);
     });
+
+    // useful for debugging
+    console.log("Payload:");
+    for (const [key, value] of data.entries()) {
+      console.log(key, value);
+    }
     // 🔹 Show processing Swal immediately BEFORE axios call
     Swal.fire({
       title: "⏳ Processing...",
@@ -227,50 +239,11 @@ export default function UploadForm({ onUploadSuccess }) {
           </Form.Item>
           {/* Campaign Name */}
           <Form.Item
-            name="campaignName"
+            name="campaignSelection"
             label={
               <span className="font-medium text-[#2F5D99]">Campaign Name</span>
             }
-            rules={[{ required: true, message: "Please enter campaign name" }]}>
-            {/* <Select
-              size="large"
-              placeholder="Select campaign"
-              showSearch
-              optionFilterProp="label"
-              className="rounded-lg"
-              onChange={(value) => {
-                const selectedCampaigns = configuredCampaigns.filter(
-                  (c) => c.display_name === value,
-                );
-
-                // get unique OS list
-                const osList = [...new Set(selectedCampaigns.map((c) => c.os))];
-
-                if (osList.length === 1) {
-                  // only one OS → auto select
-                  form.setFieldsValue({ os: osList[0] });
-                } else {
-                  // multiple OS → clear and let user select
-                  form.setFieldsValue({ os: undefined });
-                }
-
-                // store OS list in state
-                setAvailableOS(osList);
-              }}>
-              {configuredCampaigns.map((c) => (
-                <Select.Option
-                  key={c.id}
-                  value={c.display_name}
-                  label={`${c.display_name} ${c.os}`}
-                  os={c.os}>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-semibold">{c.display_name}</div>
-                    </div>
-                  </div>
-                </Select.Option>
-              ))}
-            </Select> */}
+            rules={[{ required: true, message: "Please select campaign" }]}>
             <Select
               size="large"
               placeholder="Select campaign"
@@ -300,28 +273,28 @@ export default function UploadForm({ onUploadSuccess }) {
 
                   geoString = uniqueGeos.join(", ");
                 }
+
                 form.setFieldsValue({
+                  campaignName: option.campaignName,
                   os: option.os,
                   campaign_ids: option.campaignIds,
                   geo: geoString,
-                  mmpTracker: option.configType, // Auto fill
+                  mmpTracker: option.configType,
                 });
 
-                setSelectedMMP(option.configType); // keep state in sync
-
+                setSelectedMMP(option.configType);
                 setAvailableOS([option.os]);
               }}>
               {uniqueCampaigns.map((c) => (
                 <Select.Option
-                  key={`${c.config_id}-${c.os}`}
-                  value={`${c.campaign_name} (${c.config_id}) (${c.os})`}
+                  key={`${c.config_id}-${c.os}-${c.campaign_ids.join("-")}`}
+                  value={`${c.campaign_name}__${c.os}__${c.campaign_ids.join(",")}`}
                   label={`${c.campaign_name} (${c.campaign_ids.join(", ")}) (${c.os})`}
                   campaignName={c.campaign_name}
                   campaignIds={c.campaign_ids}
                   geos={c.geos}
                   os={c.os}
-                  configType={c.config_type} // <-- add this
-                >
+                  configType={c.config_type}>
                   <div className="flex items-center justify-between w-full">
                     <div>
                       <div className="font-semibold">
@@ -336,6 +309,9 @@ export default function UploadForm({ onUploadSuccess }) {
             </Select>
           </Form.Item>
           <Form.Item name="campaign_ids" hidden>
+            <Input />
+          </Form.Item>
+          <Form.Item name="campaignName" hidden>
             <Input />
           </Form.Item>
           {/* Operating System */}
