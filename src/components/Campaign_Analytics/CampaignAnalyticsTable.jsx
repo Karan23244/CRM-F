@@ -2103,6 +2103,7 @@ const CampaignAnalyticsTable = () => {
             lastdate={payload.end_date}
             geo={payload.geo}
             campaign_ids={payload.campaign_ids}
+            campaign_type={selectedCampaign?.campaign_type}
             allowedCampaignIds={allowedCampaignIds}
           />
         </>
