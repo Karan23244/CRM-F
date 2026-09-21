@@ -28,8 +28,18 @@ const DecisionTable = ({
   lastdate,
   geo,
   campaign_ids,
+  campaign_type,
   allowedCampaignIds = [],
 }) => {
+  console.log("DecisionTable props:", {
+    campaign_name,
+    os,
+    lastdate,
+    geo,
+    campaign_ids,
+    campaign_type,
+    allowedCampaignIds,
+  });
   const user = useSelector((state) => state.auth.user);
   const token = useSelector((state) => state.auth.token);
 
@@ -132,9 +142,12 @@ const DecisionTable = ({
 
     return dataSource.filter((item) => {
       const pubam = normalize(item.pubam);
-      // Exclude non-PID / PRT records
-      // Only show PID-level records containing "_int"
-      if (!item.pid.includes("_int")) {
+      // Only for AppsFlyer campaigns:
+      // show PID-level records containing "_int"
+      if (
+        campaign_type?.toLowerCase() === "appsflyer" &&
+        !item.pid?.includes("_int")
+      ) {
         return false;
       }
       // Full access roles
