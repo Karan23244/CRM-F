@@ -976,7 +976,16 @@ const AdvertiserData = () => {
     if (!result.isConfirmed) return;
 
     try {
-      await axios.post(`${apiUrl}/advdata-delete-data/${id}`);
+      await axios.post(
+        `${apiUrl}/advdata-delete-data/${id}`,
+        {},
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
       setData((prev) => prev.filter((r) => r.id !== id));
       Swal.fire("Deleted!", "Data has been deleted.", "success");
     } catch (err) {
