@@ -1351,6 +1351,11 @@ const CampaignAnalyticsTable = () => {
                       start_date: startDate,
                       end_date: endDate,
                     }));
+                    setFilters({});
+                    setPinnedColumns({});
+                    setFilterSearch({});
+                    setUniqueValues({});
+                    setSortInfo({});
                   }}>
                   {campaigns.map((campaign) => {
                     const geoParsed = (() => {

@@ -150,7 +150,6 @@ const NewRequest = () => {
   const clearAllFilters = useCallback(() => {
     setFilters({});
     setSortInfo({}); // FIX: remove sorting
-    setPinnedColumns({}); // FIX: remove pinning
     setHiddenColumns([]);
     // 🔁 Reset to current month again
     setSelectedDateRange([dayjs().startOf("month"), dayjs().endOf("month")]);
