@@ -125,7 +125,6 @@ const PublisherRequest = ({ senderId, receiverId }) => {
   const clearAllFilters = useCallback(() => {
     setFilters({});
     setHiddenColumns([]);
-    setPinnedColumns({});
     setSearchText("");
     localStorage.removeItem("hiddenCampaignColumns");
 
