@@ -318,6 +318,38 @@ const CampaignAnalyticsTable = () => {
   //     });
   //   });
   // };
+
+  const priorityFilteredData = useMemo(() => {
+    const normalize = (value) =>
+      String(value ?? "")
+        .trim()
+        .toLowerCase();
+
+    // Collect Prayag's PubID + PID combinations
+    const prayagKeys = new Set(
+      data
+        .filter((row) => normalize(row.pubam) === "prayag")
+        .map((row) =>
+          JSON.stringify([normalize(row.pubid), normalize(row.pid)]),
+        ),
+    );
+
+    // Hide Bhumika only if BOTH PubID and PID match Prayag
+    return data.filter((row) => {
+      const pubam = normalize(row.pubam);
+
+      if (pubam === "bhumika") {
+        const key = JSON.stringify([normalize(row.pubid), normalize(row.pid)]);
+
+        if (prayagKeys.has(key)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [data]);
+
   const roleFilteredData = useMemo(() => {
     const normalize = (val) =>
       val === null || val === undefined || val === ""
@@ -369,7 +401,7 @@ const CampaignAnalyticsTable = () => {
 
     //   return false;
     // });
-    return data.filter((item) => {
+    return priorityFilteredData.filter((item) => {
       const pubam = normalize(item.pubam);
 
       // Full access roles
@@ -426,7 +458,7 @@ const CampaignAnalyticsTable = () => {
 
       return false;
     });
-  }, [data, user, subadmins, hasAccess]);
+  }, [priorityFilteredData, user, subadmins, hasAccess]);
   const pidSummary = useMemo(() => {
     const uniquePids = new Set();
     const activePids = new Set();
