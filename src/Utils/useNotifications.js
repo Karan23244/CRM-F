@@ -9,6 +9,7 @@ const bc = new BroadcastChannel("notifications");
 export default function useNotifications(limit) {
   const [notifications, setNotifications] = useState([]);
   const user = useSelector((state) => state.auth?.user);
+  const token = useSelector((state) => state.auth.token);
   const userId = user?.id || JSON.parse(localStorage.getItem("user"))?.id;
 
   useEffect(() => {
@@ -17,10 +18,17 @@ export default function useNotifications(limit) {
     const socket = io("https://apii.clickorbits.in", {
       query: { userId },
       transports: ["websocket"],
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
 
     axios
-      .get(`https://apii.clickorbits.in/getNotifications/${userId}`)
+      .get(`https://apii.clickorbits.in/getNotifications/${userId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
       .then((res) => {
         const data = limit ? res.data.slice(0, limit) : res.data;
         setNotifications(data);
