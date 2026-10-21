@@ -264,6 +264,18 @@ export const sidebarLinks = [
       "admin",
     ],
   },
+  // {
+  //   to: "campaignwizard",
+  //   label: "Campaign Wizard",
+  //   roles: ["admin"],
+  //   usernames: ["Abhay"],
+  // },
+  // {
+  //   to: "performance-dashboard",
+  //   label: "Performance Dashboard",
+  //   roles: ["admin"],
+  //   usernames: ["Abhay"],
+  // },
 
   // ==========================
   // 🔹 PUBLISHER REQUESTS
@@ -316,6 +328,7 @@ export const sidebarLinks = [
           "advertiser",
           "admin",
           "adv_executive",
+          "optimization",
         ],
       },
       {
@@ -504,10 +517,7 @@ export const sidebarLinks = [
   {
     to: "campaign-publisher-mapping",
     label: "Campaign Publisher Access",
-    roles: [
-      "admin",
-      "publisher_manager",
-    ],
+    roles: ["admin", "publisher_manager"],
   },
   {
     to: "accountsadvbill",
@@ -520,14 +530,9 @@ export const sidebarLinks = [
     roles: ["admin", "accounts"],
   },
   {
-    to:"pid-ranking",
-    label:"PID Ranking Dashboard",
-    roles: [
-      "admin",
-      "publisher",
-      "publisher_manager",
-      "pub_executive",
-    ],
+    to: "pid-ranking",
+    label: "PID Ranking Dashboard",
+    roles: ["admin", "publisher", "publisher_manager", "pub_executive"],
   },
   {
     to: "publisherrevenue",

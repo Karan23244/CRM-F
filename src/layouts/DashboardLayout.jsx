@@ -25,6 +25,7 @@ const apiUrl = import.meta.env.VITE_API_URL;
 const bc = new BroadcastChannel("notifications");
 
 const DashboardLayout = () => {
+  const token = useSelector((state) => state.auth.token);
   const [showMenu, setShowMenu] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1024);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
@@ -71,6 +72,11 @@ const DashboardLayout = () => {
       try {
         const res = await axios.get(
           `https://apii.clickorbits.in/getNotifications/${userId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
         );
         const unread = res.data.filter((n) => n.is_read === 0).length;
         setNotificationCount(unread);
@@ -172,33 +178,56 @@ const DashboardLayout = () => {
   }, [location.pathname]);
 
   // Filter sidebar links by role
-  const filterByRole = (items) =>
+  const filterByAccess = (items) =>
     items
       .map((item) => {
         // ✅ ROLE CHECK
         const hasRole =
-          Array.isArray(user?.role) &&
-          user.role.some((r) => item.roles?.includes(r));
+          item.roles?.length > 0
+            ? Array.isArray(user?.role)
+              ? user.role.some((role) => item.roles.includes(role))
+              : item.roles.includes(user?.role)
+            : false;
+
+        // ✅ USERNAME CHECK
+        const hasUsername =
+          item.usernames?.length > 0
+            ? item.usernames.some(
+                (username) =>
+                  username.toLowerCase() === user?.username?.toLowerCase(),
+              )
+            : false;
+
+        // ✅ If neither role nor username is provided, allow
+        const noAccessRestriction =
+          !item.roles?.length && !item.usernames?.length;
+
+        // ✅ ROLE OR USERNAME
+        const hasAccess = noAccessRestriction || hasRole || hasUsername;
 
         // ✅ PERMISSION CHECK
         const hasPermission = item.permission
           ? user?.permissions?.[item.permission] === 1
           : true;
-        // ❌ If parent permission fails → hide everything
-        if (!hasRole || !hasPermission) {
+
+        // ❌ Hide item if access or permission fails
+        if (!hasAccess || !hasPermission) {
           return null;
         }
 
-        // ✅ Filter sublinks ONLY if parent is allowed
+        // ✅ Apply same logic recursively to sublinks
         const filteredSublinks = item.sublinks
-          ? filterByRole(item.sublinks)
+          ? filterByAccess(item.sublinks)
           : [];
 
-        return { ...item, sublinks: filteredSublinks };
+        return {
+          ...item,
+          sublinks: filteredSublinks,
+        };
       })
       .filter(Boolean);
 
-  const links = filterByRole(sidebarLinks);
+  const links = filterByAccess(sidebarLinks);
 
   // Navigate to first valid route on login
   const getFirstRoute = (items) => {
